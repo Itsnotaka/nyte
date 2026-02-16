@@ -36,12 +36,17 @@ async function resetDb() {
   await db.delete(users);
 }
 
-function buildRequest() {
+function buildRequest(body?: unknown, headers?: HeadersInit) {
+  const requestHeaders = new Headers(headers);
+  requestHeaders.set("x-forwarded-for", "198.51.100.16");
+  if (body !== undefined && !requestHeaders.has("content-type")) {
+    requestHeaders.set("content-type", "application/json");
+  }
+
   return new Request("http://localhost/api/workflows/prune", {
     method: "POST",
-    headers: {
-      "x-forwarded-for": "198.51.100.16",
-    },
+    headers: requestHeaders,
+    body: body === undefined ? undefined : JSON.stringify(body),
   });
 }
 
@@ -89,6 +94,94 @@ describe("workflow prune route", () => {
     expect(lastResponse).not.toBeNull();
     expect(lastResponse?.status).toBe(429);
     expect(lastResponse?.headers.get("Retry-After")).toBeTruthy();
+  });
+
+  it("returns 400 for malformed json body", async () => {
+    const response = await POST(
+      new Request("http://localhost/api/workflows/prune", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-forwarded-for": "198.51.100.17",
+        },
+        body: "{bad-json",
+      }),
+    );
+    const body = (await response.json()) as { error: string };
+
+    expect(response.status).toBe(400);
+    expect(body.error).toContain("Invalid JSON body");
+  });
+
+  it("returns 415 for non-json content-type with non-empty body", async () => {
+    const response = await POST(
+      new Request("http://localhost/api/workflows/prune", {
+        method: "POST",
+        headers: {
+          "content-type": "text/plain",
+          "x-forwarded-for": "198.51.100.18",
+        },
+        body: "payload",
+      }),
+    );
+    const body = (await response.json()) as { error: string };
+
+    expect(response.status).toBe(415);
+    expect(body.error).toContain("application/json");
+  });
+
+  it("returns 400 when unexpected payload fields are provided", async () => {
+    const response = await POST(
+      buildRequest({
+        force: true,
+      }),
+    );
+    const body = (await response.json()) as { error: string };
+
+    expect(response.status).toBe(400);
+    expect(body.error).toContain("does not accept request payload fields");
+  });
+
+  it("accepts empty structured +json payload", async () => {
+    const response = await POST(
+      new Request("http://localhost/api/workflows/prune", {
+        method: "POST",
+        headers: {
+          "content-type": "application/merge-patch+json",
+          "x-forwarded-for": "198.51.100.19",
+        },
+        body: JSON.stringify({}),
+      }),
+    );
+    const body = (await response.json()) as {
+      performed: boolean;
+      triggeredBy: string;
+    };
+
+    expect(response.status).toBe(200);
+    expect(body.performed).toBe(true);
+    expect(body.triggeredBy).toBe("manual");
+  });
+
+  it("accepts empty UTF-8 BOM prefixed json payload", async () => {
+    const response = await POST(
+      new Request("http://localhost/api/workflows/prune", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-forwarded-for": "198.51.100.20",
+        },
+        body: `\ufeff${JSON.stringify({})}`,
+      }),
+    );
+    const body = (await response.json()) as {
+      performed: boolean;
+      triggeredBy: string;
+    };
+
+    expect(response.status).toBe(200);
+    expect(body.performed).toBe(true);
+    expect(body.triggeredBy).toBe("manual");
   });
 
   it("returns 401 when authz is enforced and session missing", async () => {
