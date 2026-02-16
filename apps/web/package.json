@@ -8,7 +8,9 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsgo --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:api": "vitest run \"app/api/**/*.test.ts\"",
+    "test:server": "vitest run \"lib/server/**/*.test.ts\""
   },
   "dependencies": {
     "@workspace/db": "workspace:^",

@@ -94,6 +94,11 @@ All repository quality gates pass:
 - `pnpm --filter web test`
 - `pnpm build`
 
+Focused local test runs are also available:
+
+- `pnpm --filter web test:api` (route-level API tests)
+- `pnpm --filter web test:server` (server/domain service tests)
+
 ## Explicit MVP constraints (still true)
 
 - Polling-only ingestion.
