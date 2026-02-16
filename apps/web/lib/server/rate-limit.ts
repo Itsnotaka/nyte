@@ -51,7 +51,7 @@ class MemoryRatelimiter implements Ratelimiter {
   ) {}
 
   async limit(identifier: string): Promise<RatelimitResponse> {
-    const key = `${this.namespace}:${identifier}`;
+    const key = `${this.namespace}:${this.maxRequests}:${this.windowMs}:${identifier}`;
     const now = Date.now();
     const existing = memoryBuckets.get(key);
     const resetAt = now + this.windowMs;

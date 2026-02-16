@@ -65,6 +65,31 @@ describe("rateLimitRequest", () => {
     }
   });
 
+  it("isolates counters for same scope with different limits", async () => {
+    const request = new Request("http://localhost:3000/api/actions/approve", {
+      headers: {
+        "x-forwarded-for": "10.0.0.9",
+      },
+    });
+
+    const strictFirst = await rateLimitRequest(request, "approve", {
+      limit: 1,
+      windowMs: 60_000,
+    });
+    const strictSecond = await rateLimitRequest(request, "approve", {
+      limit: 1,
+      windowMs: 60_000,
+    });
+    const relaxed = await rateLimitRequest(request, "approve", {
+      limit: 3,
+      windowMs: 60_000,
+    });
+
+    expect(strictFirst.isOk()).toBe(true);
+    expect(strictSecond.isErr()).toBe(true);
+    expect(relaxed.isOk()).toBe(true);
+  });
+
   it("uses first forwarded address from comma-separated chain", async () => {
     const primaryRequest = new Request("http://localhost:3000/api/actions/approve", {
       headers: {
