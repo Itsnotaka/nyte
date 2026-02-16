@@ -84,6 +84,7 @@ export type TrustReport = {
     tokenEncryptionKeyConfigured: boolean;
     tokenEncryptionKeySource: "env" | "dev-fallback";
     hasPreviousTokenKey: boolean;
+    runtimeAuthTokenConfigured: boolean;
     rateLimitMode: RateLimitMode;
     rateLimitProvider: RateLimitProvider;
     unkeyRateLimitConfigured: boolean;
@@ -140,6 +141,7 @@ export async function getTrustReport(
       tokenEncryptionKeyConfigured: Boolean(process.env.NYTE_TOKEN_ENCRYPTION_KEY),
       tokenEncryptionKeySource,
       hasPreviousTokenKey: Boolean(process.env.NYTE_TOKEN_ENCRYPTION_KEY_PREVIOUS),
+      runtimeAuthTokenConfigured: Boolean(process.env.NYTE_RUNTIME_AUTH_TOKEN?.trim()),
       rateLimitMode: getRateLimitMode(),
       rateLimitProvider: getRateLimitProvider(),
       unkeyRateLimitConfigured: isUnkeyRateLimitConfigured(),

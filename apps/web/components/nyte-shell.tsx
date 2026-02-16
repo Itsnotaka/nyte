@@ -160,6 +160,7 @@ type TrustReportResponse = {
     tokenEncryptionKeyConfigured: boolean;
     tokenEncryptionKeySource: "env" | "dev-fallback";
     hasPreviousTokenKey: boolean;
+    runtimeAuthTokenConfigured: boolean;
     rateLimitMode: "auto" | "memory" | "unkey";
     rateLimitProvider: "unkey" | "memory";
     unkeyRateLimitConfigured: boolean;
@@ -172,6 +173,14 @@ type TrustReportResponse = {
   audit: {
     recentCount: number;
     latestAction: string | null;
+  };
+  runtimeDelegation: {
+    recentCount: number;
+    acceptedCount: number;
+    errorCount: number;
+    latestCommand: string | null;
+    latestOutcome: string | null;
+    latestRequestId: string | null;
   };
 };
 
@@ -1513,6 +1522,10 @@ export function NyteShell() {
                           {trustReport.security.hasPreviousTokenKey ? "yes" : "no"}
                         </p>
                         <p>
+                          runtime auth token configured:{" "}
+                          {trustReport.security.runtimeAuthTokenConfigured ? "yes" : "no"}
+                        </p>
+                        <p>
                           rate-limit mode/provider: {trustReport.security.rateLimitMode}/
                           {trustReport.security.rateLimitProvider} (
                           {trustReport.security.unkeyRateLimitConfigured
@@ -1526,6 +1539,21 @@ export function NyteShell() {
                         </p>
                         <p>recent audit events: {trustReport.audit.recentCount}</p>
                         <p>latest audit action: {trustReport.audit.latestAction ?? "none"}</p>
+                        <p>
+                          runtime delegation events: {trustReport.runtimeDelegation.recentCount} (
+                          {trustReport.runtimeDelegation.acceptedCount} accepted /{" "}
+                          {trustReport.runtimeDelegation.errorCount} errors)
+                        </p>
+                        <p>
+                          latest runtime delegation:{" "}
+                          {trustReport.runtimeDelegation.latestCommand
+                            ? `${trustReport.runtimeDelegation.latestCommand}.${trustReport.runtimeDelegation.latestOutcome ?? "unknown"}`
+                            : "none"}
+                        </p>
+                        <p>
+                          latest runtime request id:{" "}
+                          {trustReport.runtimeDelegation.latestRequestId ?? "none"}
+                        </p>
                         {trustReport.posture.warnings.length > 0 ? (
                           <div className="space-y-1">
                             <p className="font-medium">warnings</p>

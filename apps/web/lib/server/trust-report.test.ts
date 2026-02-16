@@ -30,6 +30,7 @@ const originalAuthSecret = process.env.BETTER_AUTH_SECRET;
 const originalRequireAuth = process.env.NYTE_REQUIRE_AUTH;
 const originalUnkeyRootKey = process.env.UNKEY_ROOT_KEY;
 const originalRateLimitMode = process.env.NYTE_RATE_LIMIT_MODE;
+const originalRuntimeAuthToken = process.env.NYTE_RUNTIME_AUTH_TOKEN;
 
 async function resetDb() {
   await ensureDbSchema();
@@ -55,6 +56,7 @@ describe("getTrustReport", () => {
     process.env.NYTE_REQUIRE_AUTH = "true";
     process.env.UNKEY_ROOT_KEY = "trust-report-unkey-root-key";
     delete process.env.NYTE_RATE_LIMIT_MODE;
+    delete process.env.NYTE_RUNTIME_AUTH_TOKEN;
   });
 
   afterEach(() => {
@@ -83,6 +85,12 @@ describe("getTrustReport", () => {
     } else {
       process.env.NYTE_RATE_LIMIT_MODE = originalRateLimitMode;
     }
+
+    if (originalRuntimeAuthToken === undefined) {
+      delete process.env.NYTE_RUNTIME_AUTH_TOKEN;
+    } else {
+      process.env.NYTE_RUNTIME_AUTH_TOKEN = originalRuntimeAuthToken;
+    }
   });
 
   it("aggregates metrics, retention, watch rules, and connection status", async () => {
@@ -110,6 +118,7 @@ describe("getTrustReport", () => {
     expect(report.security.authSecretSource).toBe("env");
     expect(report.security.tokenEncryptionKeyConfigured).toBe(true);
     expect(report.security.tokenEncryptionKeySource).toBe("env");
+    expect(report.security.runtimeAuthTokenConfigured).toBe(false);
     expect(report.security.rateLimitMode).toBe("auto");
     expect(report.security.rateLimitProvider).toBe("unkey");
     expect(report.security.unkeyRateLimitConfigured).toBe(true);
@@ -254,5 +263,15 @@ describe("getTrustReport", () => {
       latestOutcome: "runtime_error",
       latestRequestId: "req_error_1",
     });
+  });
+
+  it("reports runtime auth token configuration status", async () => {
+    process.env.NYTE_RUNTIME_AUTH_TOKEN = "runtime-token";
+    const configured = await getTrustReport(new Date("2026-01-20T12:10:00.000Z"));
+    expect(configured.security.runtimeAuthTokenConfigured).toBe(true);
+
+    process.env.NYTE_RUNTIME_AUTH_TOKEN = "   ";
+    const blankValue = await getTrustReport(new Date("2026-01-20T12:10:00.000Z"));
+    expect(blankValue.security.runtimeAuthTokenConfigured).toBe(false);
   });
 });
