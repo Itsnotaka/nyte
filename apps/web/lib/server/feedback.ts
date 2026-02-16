@@ -29,39 +29,42 @@ export async function recordFeedback(
     throw new FeedbackError("Feedback is only available for processed items.");
   }
 
-  await db
-    .insert(feedbackEntries)
-    .values({
-      id: itemId,
-      workItemId: itemId,
-      rating,
-      note: note?.trim() ? note.trim() : null,
-      createdAt: now,
-      updatedAt: now,
-    })
-    .onConflictDoUpdate({
-      target: feedbackEntries.id,
-      set: {
+  await db.transaction(async (tx) => {
+    await tx
+      .insert(feedbackEntries)
+      .values({
+        id: itemId,
+        workItemId: itemId,
         rating,
         note: note?.trim() ? note.trim() : null,
+        createdAt: now,
         updatedAt: now,
-      },
-    });
-
-  await recordWorkflowRun({
-    workItemId: itemId,
-    phase: "feedback",
-    status: "completed",
-    now,
-    events: [
-      {
-        kind: "feedback.recorded",
-        payload: {
+      })
+      .onConflictDoUpdate({
+        target: feedbackEntries.id,
+        set: {
           rating,
-          hasNote: Boolean(note?.trim()),
+          note: note?.trim() ? note.trim() : null,
+          updatedAt: now,
         },
-      },
-    ],
+      });
+
+    await recordWorkflowRun({
+      workItemId: itemId,
+      phase: "feedback",
+      status: "completed",
+      now,
+      executor: tx,
+      events: [
+        {
+          kind: "feedback.recorded",
+          payload: {
+            rating,
+            hasNote: Boolean(note?.trim()),
+          },
+        },
+      ],
+    });
   });
 
   return {

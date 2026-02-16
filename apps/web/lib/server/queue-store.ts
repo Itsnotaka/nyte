@@ -39,24 +39,12 @@ async function upsertWorkItem(signal: IntakeSignal, now: Date): Promise<WorkItem
     return null;
   }
 
-  await db
-    .insert(workItems)
-    .values({
-      id: workItem.id,
-      userId: DEFAULT_USER_ID,
-      source: workItem.source,
-      actor: workItem.actor,
-      summary: workItem.summary,
-      context: workItem.context,
-      preview: workItem.preview,
-      status: "awaiting_approval",
-      priorityScore: workItem.priorityScore,
-      createdAt: now,
-      updatedAt: now,
-    })
-    .onConflictDoUpdate({
-      target: workItems.id,
-      set: {
+  await db.transaction(async (tx) => {
+    await tx
+      .insert(workItems)
+      .values({
+        id: workItem.id,
+        userId: DEFAULT_USER_ID,
         source: workItem.source,
         actor: workItem.actor,
         summary: workItem.summary,
@@ -64,61 +52,76 @@ async function upsertWorkItem(signal: IntakeSignal, now: Date): Promise<WorkItem
         preview: workItem.preview,
         status: "awaiting_approval",
         priorityScore: workItem.priorityScore,
+        createdAt: now,
         updatedAt: now,
-      },
+      })
+      .onConflictDoUpdate({
+        target: workItems.id,
+        set: {
+          source: workItem.source,
+          actor: workItem.actor,
+          summary: workItem.summary,
+          context: workItem.context,
+          preview: workItem.preview,
+          status: "awaiting_approval",
+          priorityScore: workItem.priorityScore,
+          updatedAt: now,
+        },
+      });
+
+    const evaluations = evaluateNeedsYou(signal, now);
+    await tx.delete(gateEvaluations).where(eq(gateEvaluations.workItemId, workItem.id));
+    await tx.insert(gateEvaluations).values(
+      evaluations.map((evaluation) => ({
+        id: `${workItem.id}:${evaluation.gate}`,
+        workItemId: workItem.id,
+        gate: evaluation.gate,
+        matched: evaluation.matched,
+        reason: evaluation.reason,
+        score: evaluation.score,
+      })),
+    );
+
+    const payload = createToolCallPayload(workItem);
+    await tx.delete(proposedActions).where(eq(proposedActions.workItemId, workItem.id));
+    await tx.insert(proposedActions).values({
+      id: `${workItem.id}:action`,
+      workItemId: workItem.id,
+      actionType: payload.kind,
+      status: "pending",
+      payloadJson: JSON.stringify(payload),
+      createdAt: now,
+      updatedAt: now,
     });
 
-  const evaluations = evaluateNeedsYou(signal, now);
-  await db.delete(gateEvaluations).where(eq(gateEvaluations.workItemId, workItem.id));
-  await db.insert(gateEvaluations).values(
-    evaluations.map((evaluation) => ({
-      id: `${workItem.id}:${evaluation.gate}`,
+    await recordWorkflowRun({
       workItemId: workItem.id,
-      gate: evaluation.gate,
-      matched: evaluation.matched,
-      reason: evaluation.reason,
-      score: evaluation.score,
-    })),
-  );
-
-  const payload = createToolCallPayload(workItem);
-  await db.delete(proposedActions).where(eq(proposedActions.workItemId, workItem.id));
-  await db.insert(proposedActions).values({
-    id: `${workItem.id}:action`,
-    workItemId: workItem.id,
-    actionType: payload.kind,
-    status: "pending",
-    payloadJson: JSON.stringify(payload),
-    createdAt: now,
-    updatedAt: now,
-  });
-
-  await recordWorkflowRun({
-    workItemId: workItem.id,
-    phase: "ingest",
-    status: "completed",
-    now,
-    events: [
-      {
-        kind: "signal.persisted",
-        payload: {
-          source: signal.source,
-          actor: signal.actor,
+      phase: "ingest",
+      status: "completed",
+      now,
+      executor: tx,
+      events: [
+        {
+          kind: "signal.persisted",
+          payload: {
+            source: signal.source,
+            actor: signal.actor,
+          },
         },
-      },
-      {
-        kind: "gates.evaluated",
-        payload: {
-          matched: evaluations.filter((entry) => entry.matched).map((entry) => entry.gate),
+        {
+          kind: "gates.evaluated",
+          payload: {
+            matched: evaluations.filter((entry) => entry.matched).map((entry) => entry.gate),
+          },
         },
-      },
-      {
-        kind: "action.prepared",
-        payload: {
-          kind: payload.kind,
+        {
+          kind: "action.prepared",
+          payload: {
+            kind: payload.kind,
+          },
         },
-      },
-    ],
+      ],
+    });
   });
 
   return workItem;

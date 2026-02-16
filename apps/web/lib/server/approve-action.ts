@@ -114,88 +114,92 @@ export async function approveWorkItem(itemId: string, now = new Date()) {
 
   const execution = executeProposedAction(payload, now);
 
-  await db
-    .update(proposedActions)
-    .set({
-      status: "executed",
-      updatedAt: now,
-    })
-    .where(eq(proposedActions.id, proposal.id));
-
-  if (execution.destination === "gmail_drafts") {
-    await db
-      .insert(gmailDrafts)
-      .values({
-        id: `${proposal.id}:gmail`,
-        actionId: proposal.id,
-        providerDraftId: execution.providerReference,
-        threadId: itemId,
-        syncedAt: now,
+  await db.transaction(async (tx) => {
+    await tx
+      .update(proposedActions)
+      .set({
+        status: "executed",
+        updatedAt: now,
       })
-      .onConflictDoUpdate({
-        target: gmailDrafts.id,
-        set: {
+      .where(eq(proposedActions.id, proposal.id));
+
+    if (execution.destination === "gmail_drafts") {
+      await tx
+        .insert(gmailDrafts)
+        .values({
+          id: `${proposal.id}:gmail`,
+          actionId: proposal.id,
           providerDraftId: execution.providerReference,
+          threadId: itemId,
           syncedAt: now,
-        },
-      });
-  }
+        })
+        .onConflictDoUpdate({
+          target: gmailDrafts.id,
+          set: {
+            providerDraftId: execution.providerReference,
+            syncedAt: now,
+          },
+        });
+    }
 
-  if (execution.destination === "google_calendar") {
-    const startsAt =
-      payload.kind === "google-calendar.createEvent" ? new Date(payload.startsAt) : now;
-    const endsAt = payload.kind === "google-calendar.createEvent" ? new Date(payload.endsAt) : now;
+    if (execution.destination === "google_calendar") {
+      const startsAt =
+        payload.kind === "google-calendar.createEvent" ? new Date(payload.startsAt) : now;
+      const endsAt =
+        payload.kind === "google-calendar.createEvent" ? new Date(payload.endsAt) : now;
 
-    await db
-      .insert(calendarEvents)
-      .values({
-        id: `${proposal.id}:calendar`,
-        actionId: proposal.id,
-        providerEventId: execution.providerReference,
-        startsAt,
-        endsAt,
-        syncedAt: now,
-      })
-      .onConflictDoUpdate({
-        target: calendarEvents.id,
-        set: {
+      await tx
+        .insert(calendarEvents)
+        .values({
+          id: `${proposal.id}:calendar`,
+          actionId: proposal.id,
           providerEventId: execution.providerReference,
           startsAt,
           endsAt,
           syncedAt: now,
-        },
-      });
-  }
+        })
+        .onConflictDoUpdate({
+          target: calendarEvents.id,
+          set: {
+            providerEventId: execution.providerReference,
+            startsAt,
+            endsAt,
+            syncedAt: now,
+          },
+        });
+    }
 
-  await db
-    .update(workItems)
-    .set({
+    await tx
+      .update(workItems)
+      .set({
+        status: "completed",
+        updatedAt: now,
+      })
+      .where(eq(workItems.id, itemId));
+
+    await recordWorkflowRun({
+      workItemId: itemId,
+      phase: "approve",
       status: "completed",
-      updatedAt: now,
-    })
-    .where(eq(workItems.id, itemId));
-
-  await recordWorkflowRun({
-    workItemId: itemId,
-    phase: "approve",
-    status: "completed",
-    now,
-    events: [
-      {
-        kind: "action.approved",
-        payload: {
-          actionId: proposal.id,
-          kind: payload.kind,
+      now,
+      executor: tx,
+      events: [
+        {
+          kind: "action.approved",
+          payload: {
+            actionId: proposal.id,
+            kind: payload.kind,
+          },
         },
-      },
-      {
-        kind: "action.executed",
-        payload: {
-          destination: execution.destination,
-          providerReference: execution.providerReference,
+        {
+          kind: "action.executed",
+          payload: {
+            destination: execution.destination,
+            providerReference: execution.providerReference,
+          },
         },
-      },
-    ],
+      ],
+    });
   });
 
   return {

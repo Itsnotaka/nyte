@@ -12,6 +12,7 @@ type RecordRunInput = {
   status: "completed";
   events: WorkflowLogEvent[];
   now?: Date;
+  executor?: Pick<typeof db, "insert">;
 };
 
 export async function recordWorkflowRun({
@@ -20,9 +21,10 @@ export async function recordWorkflowRun({
   status,
   events,
   now = new Date(),
+  executor = db,
 }: RecordRunInput) {
   const runId = `${workItemId}:${phase}:${now.getTime()}`;
-  await db.insert(workflowRuns).values({
+  await executor.insert(workflowRuns).values({
     id: runId,
     workItemId,
     phase,
@@ -32,7 +34,7 @@ export async function recordWorkflowRun({
   });
 
   if (events.length > 0) {
-    await db.insert(workflowEvents).values(
+    await executor.insert(workflowEvents).values(
       events.map((event, index) => ({
         id: `${runId}:${index}`,
         runId,

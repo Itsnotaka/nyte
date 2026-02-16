@@ -29,35 +29,38 @@ export async function dismissWorkItem(itemId: string, now = new Date()) {
     };
   }
 
-  await db
-    .update(workItems)
-    .set({
-      status: "dismissed",
-      updatedAt: now,
-    })
-    .where(eq(workItems.id, itemId));
+  await db.transaction(async (tx) => {
+    await tx
+      .update(workItems)
+      .set({
+        status: "dismissed",
+        updatedAt: now,
+      })
+      .where(eq(workItems.id, itemId));
 
-  await db
-    .update(proposedActions)
-    .set({
-      status: "dismissed",
-      updatedAt: now,
-    })
-    .where(eq(proposedActions.workItemId, itemId));
+    await tx
+      .update(proposedActions)
+      .set({
+        status: "dismissed",
+        updatedAt: now,
+      })
+      .where(eq(proposedActions.workItemId, itemId));
 
-  await recordWorkflowRun({
-    workItemId: itemId,
-    phase: "dismiss",
-    status: "completed",
-    now,
-    events: [
-      {
-        kind: "action.dismissed",
-        payload: {
-          reason: "user dismissed from queue",
+    await recordWorkflowRun({
+      workItemId: itemId,
+      phase: "dismiss",
+      status: "completed",
+      now,
+      executor: tx,
+      events: [
+        {
+          kind: "action.dismissed",
+          payload: {
+            reason: "user dismissed from queue",
+          },
         },
-      },
-    ],
+      ],
+    });
   });
 
   return {
