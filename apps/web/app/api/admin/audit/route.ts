@@ -29,8 +29,10 @@ export async function GET(request: Request) {
   }
 
   const url = new URL(request.url);
-  const targetType = url.searchParams.get("targetType");
-  const targetId = url.searchParams.get("targetId");
+  const targetTypeParam = url.searchParams.get("targetType");
+  const targetIdParam = url.searchParams.get("targetId");
+  const targetType = targetTypeParam?.trim() ? targetTypeParam.trim() : null;
+  const targetId = targetIdParam?.trim() ? targetIdParam.trim() : null;
   if ((targetType && !targetId) || (!targetType && targetId)) {
     return Response.json(
       { error: "targetType and targetId must be provided together." },

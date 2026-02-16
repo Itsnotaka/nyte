@@ -184,9 +184,43 @@ describe("GET /api/admin/audit", () => {
     expect(body.rows[0]?.targetId).toBe("w_match");
   });
 
+  it("trims target filters before querying", async () => {
+    await recordAuditLog({
+      action: "event.match",
+      targetType: "work_item",
+      targetId: "w_match",
+      payload: {},
+    });
+
+    const response = await GET(
+      buildRequest(
+        "http://localhost/api/admin/audit?targetType=%20work_item%20&targetId=%20w_match%20",
+      ),
+    );
+    const body = (await response.json()) as {
+      count: number;
+      rows: Array<{ targetType: string; targetId: string }>;
+    };
+
+    expect(response.status).toBe(200);
+    expect(body.count).toBe(1);
+    expect(body.rows[0]?.targetType).toBe("work_item");
+    expect(body.rows[0]?.targetId).toBe("w_match");
+  });
+
   it("rejects incomplete target filters", async () => {
     const response = await GET(
       buildRequest("http://localhost/api/admin/audit?targetType=work_item"),
+    );
+    const body = (await response.json()) as { error: string };
+
+    expect(response.status).toBe(400);
+    expect(body.error).toContain("must be provided together");
+  });
+
+  it("rejects effectively empty target filters after trimming", async () => {
+    const response = await GET(
+      buildRequest("http://localhost/api/admin/audit?targetType=%20%20%20&targetId=w_1"),
     );
     const body = (await response.json()) as { error: string };
 
