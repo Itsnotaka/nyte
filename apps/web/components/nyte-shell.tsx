@@ -115,6 +115,23 @@ type WorkflowTimelineResponse = {
   }>;
 };
 
+type MetricsResponse = {
+  generatedAt: string;
+  awaitingCount: number;
+  completedCount: number;
+  dismissedCount: number;
+  interruptionPrecision: number;
+  approvalRate: number;
+  medianDecisionMinutes: number;
+  gateHitCounts: {
+    decision: number;
+    time: number;
+    relationship: number;
+    impact: number;
+    watch: number;
+  };
+};
+
 const navBlueprint = [
   { id: "needs-you", label: "Needs You", icon: BellDotIcon },
   { id: "drafts", label: "Drafts", icon: DraftingCompassIcon },
@@ -161,6 +178,11 @@ export function NyteShell() {
   >([]);
   const [isTimelineLoading, setIsTimelineLoading] = React.useState(false);
   const [timelineError, setTimelineError] = React.useState<string | null>(null);
+  const [metrics, setMetrics] = React.useState<MetricsResponse | null>(null);
+  const [isMetricsLoading, setIsMetricsLoading] = React.useState(false);
+  const [metricsError, setMetricsError] = React.useState<string | null>(null);
+  const [watchRuleInput, setWatchRuleInput] = React.useState("");
+  const [watchRules, setWatchRules] = React.useState<string[]>([]);
   const [activeItem, setActiveItem] = React.useState<WorkItemWithAction | null>(
     queueItems.at(0) ?? null,
   );
@@ -223,11 +245,48 @@ export function NyteShell() {
     applyDashboard(dashboard);
   }, [applyDashboard]);
 
+  const refreshMetrics = React.useCallback(async () => {
+    setMetricsError(null);
+    setIsMetricsLoading(true);
+    try {
+      const response = await fetch("/api/metrics");
+      if (!response.ok) {
+        throw new Error("Unable to refresh metrics.");
+      }
+
+      const snapshot = (await response.json()) as MetricsResponse;
+      setMetrics(snapshot);
+    } catch (error) {
+      setMetricsError(error instanceof Error ? error.message : "Unable to refresh metrics.");
+    } finally {
+      setIsMetricsLoading(false);
+    }
+  }, []);
+
   const openItem = React.useCallback((item: WorkItemWithAction) => {
     setActionError(null);
     setActiveItem(item);
     setEditableAction(clonePayload(item.proposedAction));
   }, []);
+
+  React.useEffect(() => {
+    const stored = window.localStorage.getItem("nyte.watch-rules");
+    if (!stored) {
+      setWatchRules(["renewal", "board", "vip"]);
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(stored) as string[];
+      setWatchRules(Array.isArray(parsed) ? parsed : []);
+    } catch {
+      setWatchRules(["renewal", "board", "vip"]);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    window.localStorage.setItem("nyte.watch-rules", JSON.stringify(watchRules));
+  }, [watchRules]);
 
   React.useEffect(() => {
     if (!activeItem) {
@@ -311,13 +370,14 @@ export function NyteShell() {
           closeDrawer();
         }
         await refreshDashboard();
+        await refreshMetrics();
       } catch (error) {
         setActionError(error instanceof Error ? error.message : "Unable to dismiss item.");
       } finally {
         setIsDismissingId(null);
       }
     },
-    [activeItem?.id, closeDrawer, refreshDashboard],
+    [activeItem?.id, closeDrawer, refreshDashboard, refreshMetrics],
   );
 
   const approveActiveItem = React.useCallback(async () => {
@@ -347,12 +407,13 @@ export function NyteShell() {
       (await response.json()) as ApproveResponse;
       closeDrawer();
       await refreshDashboard();
+      await refreshMetrics();
     } catch (error) {
       setActionError(error instanceof Error ? error.message : "Unable to approve action.");
     } finally {
       setIsApproving(false);
     }
-  }, [activeItem, closeDrawer, editableAction, refreshDashboard]);
+  }, [activeItem, closeDrawer, editableAction, refreshDashboard, refreshMetrics]);
 
   const syncQueue = React.useCallback(async () => {
     setSyncError(null);
@@ -369,16 +430,18 @@ export function NyteShell() {
       const data = (await response.json()) as PollResponse;
       setSyncCursor(data.cursor);
       applyDashboard(data);
+      await refreshMetrics();
     } catch (error) {
       setSyncError(error instanceof Error ? error.message : "Unable to sync queue.");
     } finally {
       setIsSyncing(false);
     }
-  }, [applyDashboard, syncCursor]);
+  }, [applyDashboard, refreshMetrics, syncCursor]);
 
   React.useEffect(() => {
     void syncQueue();
-  }, [syncQueue]);
+    void refreshMetrics();
+  }, [refreshMetrics, syncQueue]);
 
   const connectGoogle = React.useCallback(async () => {
     setConnectionError(null);
@@ -403,6 +466,22 @@ export function NyteShell() {
         error instanceof Error ? error.message : "Unable to disconnect Google account.",
       );
     }
+  }, []);
+
+  const addWatchRule = React.useCallback(() => {
+    const normalized = watchRuleInput.trim().toLowerCase();
+    if (!normalized) {
+      return;
+    }
+
+    setWatchRules((current) =>
+      current.includes(normalized) ? current : [normalized, ...current].slice(0, 12),
+    );
+    setWatchRuleInput("");
+  }, [watchRuleInput]);
+
+  const removeWatchRule = React.useCallback((rule: string) => {
+    setWatchRules((current) => current.filter((entry) => entry !== rule));
   }, []);
 
   return (
@@ -639,14 +718,100 @@ export function NyteShell() {
             ) : null}
 
             {activeNav === "rules" ? (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Rules</CardTitle>
-                </CardHeader>
-                <CardContent className="text-muted-foreground text-sm">
-                  Watch rules and strict gate tuning surface is next in roadmap.
-                </CardContent>
-              </Card>
+              <div className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Supervisor metrics</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {isMetricsLoading ? (
+                      <p className="text-muted-foreground text-sm">Loading metrics…</p>
+                    ) : metricsError ? (
+                      <p className="text-destructive text-sm">{metricsError}</p>
+                    ) : metrics ? (
+                      <>
+                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                          <div className="bg-muted/40 border-border rounded-lg border px-3 py-2">
+                            <p className="text-muted-foreground text-xs">Interruption precision</p>
+                            <p className="text-lg font-semibold">
+                              {metrics.interruptionPrecision}%
+                            </p>
+                          </div>
+                          <div className="bg-muted/40 border-border rounded-lg border px-3 py-2">
+                            <p className="text-muted-foreground text-xs">Approval rate</p>
+                            <p className="text-lg font-semibold">{metrics.approvalRate}%</p>
+                          </div>
+                          <div className="bg-muted/40 border-border rounded-lg border px-3 py-2">
+                            <p className="text-muted-foreground text-xs">Median decision time</p>
+                            <p className="text-lg font-semibold">
+                              {metrics.medianDecisionMinutes} min
+                            </p>
+                          </div>
+                          <div className="bg-muted/40 border-border rounded-lg border px-3 py-2">
+                            <p className="text-muted-foreground text-xs">Awaiting decisions</p>
+                            <p className="text-lg font-semibold">{metrics.awaitingCount}</p>
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <p className="text-muted-foreground text-xs uppercase">
+                            Gate hit distribution
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {Object.entries(metrics.gateHitCounts).map(([gate, count]) => (
+                              <Badge key={gate} variant="secondary">
+                                {gate}: {count}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <p className="text-muted-foreground text-sm">No metrics yet.</p>
+                    )}
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Watch gate tuning</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <p className="text-muted-foreground text-sm">
+                      Add watch keywords to force escalation into Needs You whenever matching
+                      signals appear.
+                    </p>
+                    <div className="flex gap-2">
+                      <Input
+                        value={watchRuleInput}
+                        onChange={(event) => setWatchRuleInput(event.currentTarget.value)}
+                        placeholder="Add watch keyword (e.g. renewal)"
+                      />
+                      <Button variant="outline" onClick={addWatchRule}>
+                        Add
+                      </Button>
+                    </div>
+                    {watchRules.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {watchRules.map((rule) => (
+                          <Button
+                            key={rule}
+                            variant="outline"
+                            className="h-7 text-xs"
+                            onClick={() => removeWatchRule(rule)}
+                          >
+                            {rule}
+                            <ChevronRightIcon className="size-3 rotate-90" />
+                          </Button>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-muted-foreground text-xs">
+                        No watch rules yet. Add one to tighten escalation.
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
             ) : null}
           </section>
         </div>
