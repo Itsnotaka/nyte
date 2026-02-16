@@ -126,6 +126,19 @@ describe("workflow retention route", () => {
     expect(body.error).toContain("days is required");
   });
 
+  it("rejects non-numeric retention day values", async () => {
+    const response = await POST(
+      buildRequest("http://localhost/api/workflows/retention", {
+        method: "POST",
+        body: JSON.stringify({ days: "14" }),
+      }),
+    );
+    const body = (await response.json()) as { error: string };
+
+    expect(response.status).toBe(400);
+    expect(body.error).toContain("days must be a number");
+  });
+
   it("rejects fractional retention day values", async () => {
     const response = await POST(
       buildRequest("http://localhost/api/workflows/retention", {

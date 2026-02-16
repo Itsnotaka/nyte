@@ -13,8 +13,34 @@ import { enforceRateLimit, RateLimitError } from "@/lib/server/rate-limit";
 import { createRateLimitResponse } from "@/lib/server/rate-limit-response";
 
 type RetentionBody = {
-  days?: number;
+  days?: unknown;
 };
+
+type NormalizedRetentionBody =
+  | {
+      error: string;
+    }
+  | {
+      days: number;
+    };
+
+function normalizeRetentionBody(body: RetentionBody): NormalizedRetentionBody {
+  if (body.days === undefined) {
+    return {
+      error: "days is required.",
+    };
+  }
+
+  if (typeof body.days !== "number") {
+    return {
+      error: "days must be a number.",
+    };
+  }
+
+  return {
+    days: body.days,
+  };
+}
 
 export async function GET(request: Request) {
   try {
@@ -73,12 +99,13 @@ export async function POST(request: Request) {
     }
     throw error;
   }
-  if (typeof body.days !== "number") {
-    return Response.json({ error: "days is required." }, { status: 400 });
+  const normalized = normalizeRetentionBody(body);
+  if ("error" in normalized) {
+    return Response.json({ error: normalized.error }, { status: 400 });
   }
 
   try {
-    const retention = await setWorkflowRetentionDays(body.days, new Date());
+    const retention = await setWorkflowRetentionDays(normalized.days, new Date());
     return Response.json(retention);
   } catch (error) {
     if (error instanceof WorkflowRetentionError) {
