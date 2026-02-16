@@ -15,9 +15,8 @@ import {
 
 import { mockIntakeSignals } from "../domain/mock-intake";
 import { approveWorkItem } from "./approve-action";
-import { getDashboardData } from "./dashboard";
-import { dismissWorkItem } from "./dismiss-action";
 import { persistSignals } from "./queue-store";
+import { getWorkflowTimeline } from "./workflow-log";
 
 async function resetDb() {
   await ensureDbSchema();
@@ -32,22 +31,20 @@ async function resetDb() {
   await db.delete(users);
 }
 
-describe("getDashboardData", () => {
+describe("getWorkflowTimeline", () => {
   beforeEach(async () => {
     await resetDb();
   });
 
-  it("returns needs-you, drafts, and processed sections from persisted state", async () => {
+  it("returns ingest and approve runs for processed work item", async () => {
     await persistSignals(mockIntakeSignals, new Date("2026-01-20T12:00:00.000Z"));
     await approveWorkItem("w_renewal", new Date("2026-01-20T12:05:00.000Z"));
-    await dismissWorkItem("w_board", new Date("2026-01-20T12:10:00.000Z"));
 
-    const dashboard = await getDashboardData();
+    const timeline = await getWorkflowTimeline("w_renewal");
 
-    expect(dashboard.needsYou.map((item) => item.id)).toContain("w_refund");
-    expect(dashboard.drafts.map((draft) => draft.id)).toContain("w_renewal");
-    expect(dashboard.processed.map((entry) => entry.itemId)).toEqual(
-      expect.arrayContaining(["w_renewal", "w_board"]),
+    expect(timeline.length).toBeGreaterThanOrEqual(2);
+    expect(timeline.map((entry) => entry.phase)).toEqual(
+      expect.arrayContaining(["ingest", "approve"]),
     );
   });
 });

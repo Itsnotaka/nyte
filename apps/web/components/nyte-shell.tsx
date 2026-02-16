@@ -100,6 +100,21 @@ type DismissResponse = {
   dismissedAt: string;
 };
 
+type WorkflowTimelineResponse = {
+  itemId: string;
+  timeline: Array<{
+    runId: string;
+    phase: string;
+    status: string;
+    at: string;
+    events: Array<{
+      kind: string;
+      payload: Record<string, unknown>;
+      at: string;
+    }>;
+  }>;
+};
+
 const navBlueprint = [
   { id: "needs-you", label: "Needs You", icon: BellDotIcon },
   { id: "drafts", label: "Drafts", icon: DraftingCompassIcon },
@@ -141,6 +156,11 @@ export function NyteShell() {
   const [isApproving, setIsApproving] = React.useState(false);
   const [isDismissingId, setIsDismissingId] = React.useState<string | null>(null);
   const [syncCursor, setSyncCursor] = React.useState<string | null>(null);
+  const [workflowTimeline, setWorkflowTimeline] = React.useState<
+    WorkflowTimelineResponse["timeline"]
+  >([]);
+  const [isTimelineLoading, setIsTimelineLoading] = React.useState(false);
+  const [timelineError, setTimelineError] = React.useState<string | null>(null);
   const [activeItem, setActiveItem] = React.useState<WorkItemWithAction | null>(
     queueItems.at(0) ?? null,
   );
@@ -216,6 +236,48 @@ export function NyteShell() {
     }
 
     setEditableAction(clonePayload(activeItem.proposedAction));
+  }, [activeItem]);
+
+  React.useEffect(() => {
+    if (!activeItem) {
+      setWorkflowTimeline([]);
+      setTimelineError(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadTimeline = async () => {
+      setTimelineError(null);
+      setIsTimelineLoading(true);
+      try {
+        const response = await fetch(`/api/workflows/${activeItem.id}`);
+        if (!response.ok) {
+          throw new Error("Unable to load workflow timeline.");
+        }
+
+        const data = (await response.json()) as WorkflowTimelineResponse;
+        if (!cancelled) {
+          setWorkflowTimeline(data.timeline);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setTimelineError(
+            error instanceof Error ? error.message : "Unable to load workflow timeline.",
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setIsTimelineLoading(false);
+        }
+      }
+    };
+
+    void loadTimeline();
+
+    return () => {
+      cancelled = true;
+    };
   }, [activeItem]);
 
   const closeDrawer = React.useCallback(() => {
@@ -766,6 +828,43 @@ export function NyteShell() {
                     </div>
                   </>
                 ) : null}
+
+                <div className="space-y-2">
+                  <p className="text-muted-foreground text-xs uppercase">Workflow timeline</p>
+                  {isTimelineLoading ? (
+                    <p className="text-muted-foreground text-xs">Loading timeline...</p>
+                  ) : timelineError ? (
+                    <p className="text-destructive text-xs">{timelineError}</p>
+                  ) : workflowTimeline.length === 0 ? (
+                    <p className="text-muted-foreground text-xs">
+                      No workflow events recorded yet.
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {workflowTimeline.map((run) => (
+                        <div
+                          key={run.runId}
+                          className="bg-muted/40 border-border rounded-lg border p-2"
+                        >
+                          <div className="flex items-center gap-2 text-xs">
+                            <Badge variant="outline">{run.phase}</Badge>
+                            <span className="text-muted-foreground">{run.status}</span>
+                          </div>
+                          <div className="mt-2 space-y-1">
+                            {run.events.map((event) => (
+                              <div
+                                key={`${run.runId}:${event.kind}:${event.at}`}
+                                className="text-xs"
+                              >
+                                <span className="font-medium">{event.kind}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
 
               <SheetFooter className="sm:flex-row sm:justify-between">

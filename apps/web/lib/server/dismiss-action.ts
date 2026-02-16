@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
 import { db, ensureDbSchema, proposedActions, workItems } from "@workspace/db";
+import { recordWorkflowRun } from "./workflow-log";
 
 export class DismissError extends Error {
   constructor(message: string) {
@@ -31,6 +32,21 @@ export async function dismissWorkItem(itemId: string, now = new Date()) {
       updatedAt: now,
     })
     .where(eq(proposedActions.workItemId, itemId));
+
+  await recordWorkflowRun({
+    workItemId: itemId,
+    phase: "dismiss",
+    status: "completed",
+    now,
+    events: [
+      {
+        kind: "action.dismissed",
+        payload: {
+          reason: "user dismissed from queue",
+        },
+      },
+    ],
+  });
 
   return {
     itemId,

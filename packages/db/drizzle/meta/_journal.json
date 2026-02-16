@@ -8,6 +8,13 @@
       "when": 1771212027158,
       "tag": "0000_strong_mac_gargan",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1771212851990,
+      "tag": "0001_cheerful_red_hulk",
+      "breakpoints": true
     }
   ]
 }

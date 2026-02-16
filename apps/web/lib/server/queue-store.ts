@@ -10,6 +10,7 @@ import {
 
 import { createToolCallPayload } from "../domain/actions";
 import { evaluateNeedsYou, toWorkItem, type IntakeSignal, type WorkItem } from "../domain/triage";
+import { recordWorkflowRun } from "./workflow-log";
 
 const DEFAULT_USER_ID = "local-user";
 const DEFAULT_USER_EMAIL = "local-user@nyte.dev";
@@ -90,6 +91,34 @@ async function upsertWorkItem(signal: IntakeSignal, now: Date): Promise<WorkItem
     payloadJson: JSON.stringify(payload),
     createdAt: now,
     updatedAt: now,
+  });
+
+  await recordWorkflowRun({
+    workItemId: workItem.id,
+    phase: "ingest",
+    status: "completed",
+    now,
+    events: [
+      {
+        kind: "signal.persisted",
+        payload: {
+          source: signal.source,
+          actor: signal.actor,
+        },
+      },
+      {
+        kind: "gates.evaluated",
+        payload: {
+          matched: evaluations.filter((entry) => entry.matched).map((entry) => entry.gate),
+        },
+      },
+      {
+        kind: "action.prepared",
+        payload: {
+          kind: payload.kind,
+        },
+      },
+    ],
   });
 
   return workItem;

@@ -94,6 +94,29 @@ async function runBootstrap() {
       FOREIGN KEY(action_id) REFERENCES proposed_actions(id)
     )
   `);
+
+  await db.run(sql`
+    CREATE TABLE IF NOT EXISTS workflow_runs (
+      id TEXT PRIMARY KEY NOT NULL,
+      work_item_id TEXT NOT NULL,
+      phase TEXT NOT NULL,
+      status TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+      FOREIGN KEY(work_item_id) REFERENCES work_items(id)
+    )
+  `);
+
+  await db.run(sql`
+    CREATE TABLE IF NOT EXISTS workflow_events (
+      id TEXT PRIMARY KEY NOT NULL,
+      run_id TEXT NOT NULL,
+      kind TEXT NOT NULL,
+      payload_json TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      FOREIGN KEY(run_id) REFERENCES workflow_runs(id)
+    )
+  `);
 }
 
 export async function ensureDbSchema() {

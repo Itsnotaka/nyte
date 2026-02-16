@@ -8,6 +8,8 @@ import {
   gmailDrafts,
   proposedActions,
   users,
+  workflowEvents,
+  workflowRuns,
   workItems,
 } from "@workspace/db";
 
@@ -19,6 +21,8 @@ async function resetDb() {
   await ensureDbSchema();
   await db.delete(calendarEvents);
   await db.delete(gmailDrafts);
+  await db.delete(workflowEvents);
+  await db.delete(workflowRuns);
   await db.delete(proposedActions);
   await db.delete(gateEvaluations);
   await db.delete(workItems);

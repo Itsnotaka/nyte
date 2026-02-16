@@ -10,6 +10,7 @@ import {
 
 import { type ToolCallPayload } from "../domain/actions";
 import { executeProposedAction } from "../domain/execution";
+import { recordWorkflowRun } from "./workflow-log";
 
 export class ApprovalError extends Error {
   constructor(message: string) {
@@ -99,6 +100,29 @@ export async function approveWorkItem(itemId: string, now = new Date()) {
       updatedAt: now,
     })
     .where(eq(workItems.id, itemId));
+
+  await recordWorkflowRun({
+    workItemId: itemId,
+    phase: "approve",
+    status: "completed",
+    now,
+    events: [
+      {
+        kind: "action.approved",
+        payload: {
+          actionId: proposal.id,
+          kind: payload.kind,
+        },
+      },
+      {
+        kind: "action.executed",
+        payload: {
+          destination: execution.destination,
+          providerReference: execution.providerReference,
+        },
+      },
+    ],
+  });
 
   return {
     itemId,

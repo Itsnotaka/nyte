@@ -81,3 +81,24 @@ export const calendarEvents = sqliteTable("calendar_events", {
   endsAt: integer("ends_at", { mode: "timestamp_ms" }).notNull(),
   syncedAt: integer("synced_at", { mode: "timestamp_ms" }).notNull(),
 });
+
+export const workflowRuns = sqliteTable("workflow_runs", {
+  id: text("id").primaryKey(),
+  workItemId: text("work_item_id")
+    .notNull()
+    .references(() => workItems.id),
+  phase: text("phase").notNull(),
+  status: text("status").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+});
+
+export const workflowEvents = sqliteTable("workflow_events", {
+  id: text("id").primaryKey(),
+  runId: text("run_id")
+    .notNull()
+    .references(() => workflowRuns.id),
+  kind: text("kind").notNull(),
+  payloadJson: text("payload_json").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+});
