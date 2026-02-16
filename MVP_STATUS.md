@@ -119,3 +119,16 @@ Focused local test runs are also available:
   - `auto` (default): use Unkey when key is configured, otherwise memory fallback.
   - `memory`: force in-process limiter even when Unkey key exists.
   - `unkey`: prefer Unkey path; falls back to memory when key is missing.
+- Runtime delegation controls (web gateway):
+  - `NYTE_RUNTIME_URL`: base URL for the external runtime service.
+  - `NYTE_RUNTIME_AUTH_TOKEN`: optional bearer token propagated from web to runtime.
+  - `NYTE_RUNTIME_DELEGATE_SYNC`: delegate `/api/sync/poll` ingest path to runtime when `true`.
+  - `NYTE_RUNTIME_DELEGATE_APPROVE`: delegate `/api/actions/approve` when `true`.
+  - `NYTE_RUNTIME_DELEGATE_DISMISS`: delegate `/api/actions/dismiss` when `true`.
+  - `NYTE_RUNTIME_DELEGATE_FEEDBACK`: delegate `/api/feedback` when `true`.
+- Runtime delegation resiliency controls (web runtime client):
+  - `NYTE_RUNTIME_TIMEOUT_MS`: optional per-request timeout override for runtime dispatch.
+  - `NYTE_RUNTIME_MAX_ATTEMPTS`: optional retry-attempt override for transient runtime outages.
+  - defaults are deterministic (`timeout=15000ms`, `attempts=2`) when unset.
+- Runtime service ingress control:
+  - `NYTE_RUNTIME_AUTH_TOKEN` on `apps/runtime` enforces `Authorization: Bearer <token>` on runtime endpoints when configured.

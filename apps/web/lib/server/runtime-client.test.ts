@@ -291,6 +291,30 @@ describe("dispatchRuntimeCommand", () => {
     expect(callCount).toBe(2);
   });
 
+  it("uses deterministic default retry attempts for persistent transient failures", async () => {
+    let callCount = 0;
+    const fetchImpl: typeof fetch = async () => {
+      callCount += 1;
+      return new Response(JSON.stringify({ error: "Runtime still unavailable." }), {
+        status: 503,
+      });
+    };
+
+    const result = await dispatchRuntimeCommand(baseCommand, {
+      runtimeBaseUrl: "https://runtime.nyte.dev",
+      fetchImpl,
+    });
+
+    expect(result.isErr()).toBe(true);
+    if (result.isOk()) {
+      return;
+    }
+
+    expect(result.error).toBeInstanceOf(RuntimeCommandDispatchError);
+    expect(result.error.message).toBe("Runtime still unavailable.");
+    expect(callCount).toBe(2);
+  });
+
   it("retries retryable transport failures up to max attempts", async () => {
     let callCount = 0;
     const fetchImpl: typeof fetch = async () => {
