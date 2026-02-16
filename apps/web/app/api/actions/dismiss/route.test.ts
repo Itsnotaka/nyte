@@ -52,9 +52,15 @@ function buildRequest(body: Record<string, unknown>, headers?: HeadersInit) {
 
 describe("POST /api/actions/dismiss", () => {
   const originalRequireAuth = process.env.NYTE_REQUIRE_AUTH;
+  const originalRuntimeDelegateDismiss = process.env.NYTE_RUNTIME_DELEGATE_DISMISS;
+  const originalRuntimeUrl = process.env.NYTE_RUNTIME_URL;
+  const originalFetch = globalThis.fetch;
 
   beforeEach(async () => {
     process.env.NYTE_REQUIRE_AUTH = "false";
+    delete process.env.NYTE_RUNTIME_DELEGATE_DISMISS;
+    delete process.env.NYTE_RUNTIME_URL;
+    globalThis.fetch = originalFetch;
     resetRateLimitState();
     await resetDb();
   });
@@ -62,10 +68,23 @@ describe("POST /api/actions/dismiss", () => {
   afterEach(() => {
     if (originalRequireAuth === undefined) {
       delete process.env.NYTE_REQUIRE_AUTH;
-      return;
+    } else {
+      process.env.NYTE_REQUIRE_AUTH = originalRequireAuth;
     }
 
-    process.env.NYTE_REQUIRE_AUTH = originalRequireAuth;
+    if (originalRuntimeDelegateDismiss === undefined) {
+      delete process.env.NYTE_RUNTIME_DELEGATE_DISMISS;
+    } else {
+      process.env.NYTE_RUNTIME_DELEGATE_DISMISS = originalRuntimeDelegateDismiss;
+    }
+
+    if (originalRuntimeUrl === undefined) {
+      delete process.env.NYTE_RUNTIME_URL;
+    } else {
+      process.env.NYTE_RUNTIME_URL = originalRuntimeUrl;
+    }
+
+    globalThis.fetch = originalFetch;
   });
 
   it("dismisses a seeded work item", async () => {
@@ -242,6 +261,59 @@ describe("POST /api/actions/dismiss", () => {
     expect(secondResponse.status).toBe(200);
     expect(secondBody.status).toBe("dismissed");
     expect(secondBody.idempotent).toBe(true);
+  });
+
+  it("returns 502 when dismiss delegation is enabled without runtime url", async () => {
+    process.env.NYTE_RUNTIME_DELEGATE_DISMISS = "true";
+    delete process.env.NYTE_RUNTIME_URL;
+
+    const response = await POST(
+      buildRequest({
+        itemId: "w_board",
+      }),
+    );
+    const body = (await response.json()) as { error: string };
+
+    expect(response.status).toBe(502);
+    expect(body.error).toContain("NYTE_RUNTIME_URL is required");
+  });
+
+  it("returns delegated dismiss ack when runtime delegation is enabled", async () => {
+    process.env.NYTE_RUNTIME_DELEGATE_DISMISS = "true";
+    process.env.NYTE_RUNTIME_URL = "https://runtime.nyte.dev";
+    globalThis.fetch = async () =>
+      new Response(
+        JSON.stringify({
+          status: "accepted",
+          type: "runtime.dismiss",
+          requestId: "req_dismiss_123",
+          receivedAt: "2026-02-16T12:00:00.000Z",
+          result: {
+            itemId: "w_board",
+          },
+        }),
+        { status: 200 },
+      );
+
+    const response = await POST(
+      buildRequest({
+        itemId: "w_board",
+      }),
+    );
+    const body = (await response.json()) as {
+      itemId: string;
+      status: string;
+      idempotent: boolean;
+      delegated: boolean;
+      requestId: string;
+    };
+
+    expect(response.status).toBe(200);
+    expect(body.itemId).toBe("w_board");
+    expect(body.status).toBe("dismissed");
+    expect(body.idempotent).toBe(false);
+    expect(body.delegated).toBe(true);
+    expect(body.requestId).toBe("req_dismiss_123");
   });
 
   it("returns 404 for unknown item", async () => {
