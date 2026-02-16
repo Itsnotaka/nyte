@@ -63,6 +63,8 @@ describe("GET /api/admin/audit", () => {
     const response = await GET(buildRequest("http://localhost/api/admin/audit?limit=2"));
     const body = (await response.json()) as {
       count: number;
+      totalCount: number;
+      hasMore: boolean;
       limit: number;
       offset: number;
       rows: Array<{ action: string; targetId: string }>;
@@ -70,6 +72,8 @@ describe("GET /api/admin/audit", () => {
 
     expect(response.status).toBe(200);
     expect(body.count).toBe(2);
+    expect(body.totalCount).toBe(3);
+    expect(body.hasMore).toBe(true);
     expect(body.limit).toBe(2);
     expect(body.offset).toBe(0);
     expect(body.rows).toHaveLength(2);
@@ -103,6 +107,8 @@ describe("GET /api/admin/audit", () => {
     const response = await GET(buildRequest("http://localhost/api/admin/audit?limit=1&offset=1"));
     const body = (await response.json()) as {
       count: number;
+      totalCount: number;
+      hasMore: boolean;
       limit: number;
       offset: number;
       rows: Array<{ action: string }>;
@@ -110,6 +116,8 @@ describe("GET /api/admin/audit", () => {
 
     expect(response.status).toBe(200);
     expect(body.count).toBe(1);
+    expect(body.totalCount).toBe(3);
+    expect(body.hasMore).toBe(true);
     expect(body.limit).toBe(1);
     expect(body.offset).toBe(1);
     expect(body.rows[0]?.action).toBe("event.two");
@@ -136,6 +144,8 @@ describe("GET /api/admin/audit", () => {
     );
     const body = (await response.json()) as {
       count: number;
+      totalCount: number;
+      hasMore: boolean;
       limit: number;
       offset: number;
       rows: Array<{ action: string; targetId: string }>;
@@ -143,6 +153,8 @@ describe("GET /api/admin/audit", () => {
 
     expect(response.status).toBe(200);
     expect(body.count).toBe(1);
+    expect(body.totalCount).toBe(1);
+    expect(body.hasMore).toBe(false);
     expect(body.limit).toBe(10);
     expect(body.offset).toBe(0);
     expect(body.rows[0]?.targetId).toBe("w_match");

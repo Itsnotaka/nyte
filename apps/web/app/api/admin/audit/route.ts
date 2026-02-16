@@ -1,5 +1,10 @@
 import { AuthorizationError, requireAuthorizedSession } from "@/lib/server/authz";
-import { listAuditLogs, listAuditLogsByTarget } from "@/lib/server/audit-log";
+import {
+  countAuditLogs,
+  countAuditLogsByTarget,
+  listAuditLogs,
+  listAuditLogsByTarget,
+} from "@/lib/server/audit-log";
 import { enforceRateLimit, RateLimitError } from "@/lib/server/rate-limit";
 import { createRateLimitResponse } from "@/lib/server/rate-limit-response";
 
@@ -42,9 +47,15 @@ export async function GET(request: Request) {
     targetType && targetId
       ? await listAuditLogsByTarget(targetType, targetId, safeLimit, safeOffset)
       : await listAuditLogs(safeLimit, safeOffset);
+  const totalCount =
+    targetType && targetId
+      ? await countAuditLogsByTarget(targetType, targetId)
+      : await countAuditLogs();
 
   return Response.json({
     count: rows.length,
+    totalCount,
+    hasMore: safeOffset + rows.length < totalCount,
     limit: safeLimit,
     offset: safeOffset,
     rows,

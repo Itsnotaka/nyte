@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import { and, desc, eq } from "drizzle-orm";
+import { and, count, desc, eq } from "drizzle-orm";
 import { auditLogs, db, ensureDbSchema } from "@workspace/db";
 
 type AuditExecutor = Pick<typeof db, "insert">;
@@ -88,6 +88,13 @@ export async function listAuditLogs(limit = 100, offset = 0): Promise<AuditLogEn
   return rows.map(toAuditLogEntry);
 }
 
+export async function countAuditLogs() {
+  await ensureDbSchema();
+  const rows = await db.select({ total: count() }).from(auditLogs);
+  const total = rows[0]?.total ?? 0;
+  return Number(total);
+}
+
 export async function listAuditLogsByTarget(
   targetType: string,
   targetId: string,
@@ -104,6 +111,16 @@ export async function listAuditLogsByTarget(
     .offset(offset);
 
   return rows.map(toAuditLogEntry);
+}
+
+export async function countAuditLogsByTarget(targetType: string, targetId: string) {
+  await ensureDbSchema();
+  const rows = await db
+    .select({ total: count() })
+    .from(auditLogs)
+    .where(and(eq(auditLogs.targetType, targetType), eq(auditLogs.targetId, targetId)));
+  const total = rows[0]?.total ?? 0;
+  return Number(total);
 }
 
 function toAuditLogEntry(row: typeof auditLogs.$inferSelect): AuditLogEntry {

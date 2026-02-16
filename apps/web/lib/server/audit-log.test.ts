@@ -18,7 +18,13 @@ import {
 
 import { mockIntakeSignals } from "../domain/mock-intake";
 import { approveWorkItem } from "./approve-action";
-import { listAuditLogs, listAuditLogsByTarget, recordAuditLog } from "./audit-log";
+import {
+  countAuditLogs,
+  countAuditLogsByTarget,
+  listAuditLogs,
+  listAuditLogsByTarget,
+  recordAuditLog,
+} from "./audit-log";
 import { persistSignals } from "./queue-store";
 
 async function resetDb() {
@@ -47,12 +53,16 @@ describe("audit log recording", () => {
     await approveWorkItem("w_renewal", new Date("2026-01-20T12:05:00.000Z"));
 
     const logs = await listAuditLogs(50);
+    const totalCount = await countAuditLogs();
     expect(logs.some((entry) => entry.action === "work-item.ingested")).toBe(true);
     expect(logs.some((entry) => entry.action === "action.approve")).toBe(true);
+    expect(totalCount).toBe(logs.length);
 
     const filtered = await listAuditLogsByTarget("work_item", "w_renewal", 50);
+    const filteredCount = await countAuditLogsByTarget("work_item", "w_renewal");
     expect(filtered.length).toBeGreaterThan(0);
     expect(filtered.every((entry) => entry.targetId === "w_renewal")).toBe(true);
+    expect(filteredCount).toBe(filtered.length);
   });
 
   it("creates unique ids when multiple logs share timestamp and target", async () => {

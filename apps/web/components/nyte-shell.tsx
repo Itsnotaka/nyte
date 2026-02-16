@@ -139,6 +139,7 @@ type WorkflowPruneResponse = {
   retentionDays: number | null;
   source: "default" | "policy" | "env" | null;
   prunedRuns: number;
+  prunedAuditLogs: number;
   cutoff: string | null;
   performed: boolean;
   triggeredBy: "manual" | "auto";
@@ -180,6 +181,10 @@ type AuditLogEntry = {
 
 type AuditLogsResponse = {
   count: number;
+  totalCount: number;
+  hasMore: boolean;
+  limit: number;
+  offset: number;
   rows: AuditLogEntry[];
 };
 
@@ -287,6 +292,7 @@ export function NyteShell() {
   const [isTrustReportLoading, setIsTrustReportLoading] = React.useState(false);
   const [trustReportError, setTrustReportError] = React.useState<string | null>(null);
   const [auditLogs, setAuditLogs] = React.useState<AuditLogEntry[]>([]);
+  const [auditLogsTotalCount, setAuditLogsTotalCount] = React.useState(0);
   const [isAuditLogsLoading, setIsAuditLogsLoading] = React.useState(false);
   const [auditLogsError, setAuditLogsError] = React.useState<string | null>(null);
   const [activeItem, setActiveItem] = React.useState<WorkItemWithAction | null>(
@@ -447,23 +453,27 @@ export function NyteShell() {
     }
   }, []);
 
-  const refreshAuditLogs = React.useCallback(async () => {
-    setAuditLogsError(null);
-    setIsAuditLogsLoading(true);
-    try {
-      const response = await fetch("/api/admin/audit?limit=12");
-      if (!response.ok) {
-        throw new Error("Unable to load audit logs.");
-      }
+  const refreshAuditLogs = React.useCallback(
+    async ({ offset = 0, append = false }: { offset?: number; append?: boolean } = {}) => {
+      setAuditLogsError(null);
+      setIsAuditLogsLoading(true);
+      try {
+        const response = await fetch(`/api/admin/audit?limit=12&offset=${offset}`);
+        if (!response.ok) {
+          throw new Error("Unable to load audit logs.");
+        }
 
-      const payload = (await response.json()) as AuditLogsResponse;
-      setAuditLogs(payload.rows);
-    } catch (error) {
-      setAuditLogsError(error instanceof Error ? error.message : "Unable to load audit logs.");
-    } finally {
-      setIsAuditLogsLoading(false);
-    }
-  }, []);
+        const payload = (await response.json()) as AuditLogsResponse;
+        setAuditLogsTotalCount(payload.totalCount);
+        setAuditLogs((current) => (append ? [...current, ...payload.rows] : payload.rows));
+      } catch (error) {
+        setAuditLogsError(error instanceof Error ? error.message : "Unable to load audit logs.");
+      } finally {
+        setIsAuditLogsLoading(false);
+      }
+    },
+    [],
+  );
 
   const openItem = React.useCallback((item: WorkItemWithAction) => {
     setActionError(null);
@@ -1449,7 +1459,8 @@ export function NyteShell() {
                     ) : null}
                     {pruneResult ? (
                       <p className="text-muted-foreground text-xs">
-                        Pruned {pruneResult.prunedRuns} run(s) older than {pruneResult.cutoff}.
+                        Pruned {pruneResult.prunedRuns} run(s) and {pruneResult.prunedAuditLogs}{" "}
+                        audit event(s) older than {pruneResult.cutoff}.
                       </p>
                     ) : null}
                   </CardContent>
@@ -1460,6 +1471,9 @@ export function NyteShell() {
                     <CardTitle>Recent audit log</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
+                    <p className="text-muted-foreground text-xs">
+                      Showing {auditLogs.length} of {auditLogsTotalCount} events.
+                    </p>
                     <div className="flex items-center gap-2">
                       <Button
                         variant="outline"
@@ -1468,6 +1482,20 @@ export function NyteShell() {
                       >
                         Refresh audit log
                       </Button>
+                      {auditLogs.length < auditLogsTotalCount ? (
+                        <Button
+                          variant="outline"
+                          disabled={isAuditLogsLoading}
+                          onClick={() =>
+                            void refreshAuditLogs({
+                              offset: auditLogs.length,
+                              append: true,
+                            })
+                          }
+                        >
+                          Load older
+                        </Button>
+                      ) : null}
                     </div>
                     {isAuditLogsLoading ? (
                       <p className="text-muted-foreground text-xs">Loading audit log…</p>
