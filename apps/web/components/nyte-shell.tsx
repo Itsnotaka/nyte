@@ -19,6 +19,7 @@ import {
   TextSearchIcon,
   WalletIcon,
 } from "lucide-react";
+import { errAsync, okAsync, ResultAsync } from "neverthrow";
 
 import {
   withToolCalls,
@@ -250,6 +251,55 @@ function clonePayload<T extends ToolCallPayload>(payload: T): T {
   return JSON.parse(JSON.stringify(payload)) as T;
 }
 
+function toErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof Error && error.message.trim().length > 0) {
+    return error.message;
+  }
+
+  return fallback;
+}
+
+function createRequestError(error: unknown, fallback: string): Error {
+  return new Error(toErrorMessage(error, fallback));
+}
+
+function parseErrorMessage(response: Response, fallback: string) {
+  return ResultAsync.fromPromise(response.json() as Promise<unknown>, () => fallback)
+    .map((payload) => {
+      if (typeof payload !== "object" || payload === null) {
+        return fallback;
+      }
+
+      const message = Reflect.get(payload, "error");
+      if (typeof message !== "string" || message.trim().length === 0) {
+        return fallback;
+      }
+
+      return message;
+    })
+    .orElse(() => okAsync(fallback));
+}
+
+function fetchJsonResult<T>(
+  input: RequestInfo | URL,
+  init: RequestInit | undefined,
+  fallbackMessage: string,
+): ResultAsync<T, Error> {
+  return ResultAsync.fromPromise(fetch(input, init), (error) =>
+    createRequestError(error, fallbackMessage),
+  ).andThen((response) => {
+    if (!response.ok) {
+      return parseErrorMessage(response, fallbackMessage).andThen((message) =>
+        errAsync(new Error(message)),
+      );
+    }
+
+    return ResultAsync.fromPromise(response.json() as Promise<T>, (error) =>
+      createRequestError(error, fallbackMessage),
+    );
+  });
+}
+
 export function NyteShell() {
   const seededItems = React.useMemo(
     () => withToolCalls(createNeedsYouQueue(mockIntakeSignals, REFERENCE_NOW)),
@@ -349,132 +399,137 @@ export function NyteShell() {
   );
 
   const refreshDashboard = React.useCallback(async () => {
-    const response = await fetch("/api/dashboard");
-    if (!response.ok) {
-      throw new Error("Unable to refresh dashboard.");
+    const result = await fetchJsonResult<Pick<PollResponse, "needsYou" | "drafts" | "processed">>(
+      "/api/dashboard",
+      undefined,
+      "Unable to refresh dashboard.",
+    );
+
+    if (result.isOk()) {
+      applyDashboard(result.value);
     }
 
-    const dashboard = (await response.json()) as Pick<
-      PollResponse,
-      "needsYou" | "drafts" | "processed"
-    >;
-    applyDashboard(dashboard);
+    return result;
   }, [applyDashboard]);
 
   const refreshMetrics = React.useCallback(async () => {
     setMetricsError(null);
     setIsMetricsLoading(true);
-    try {
-      const response = await fetch("/api/metrics");
-      if (!response.ok) {
-        throw new Error("Unable to refresh metrics.");
-      }
+    const result = await fetchJsonResult<MetricsResponse>(
+      "/api/metrics",
+      undefined,
+      "Unable to refresh metrics.",
+    );
 
-      const snapshot = (await response.json()) as MetricsResponse;
-      setMetrics(snapshot);
-    } catch (error) {
-      setMetricsError(error instanceof Error ? error.message : "Unable to refresh metrics.");
-    } finally {
-      setIsMetricsLoading(false);
+    if (result.isOk()) {
+      setMetrics(result.value);
+    } else {
+      setMetricsError(result.error.message);
     }
+
+    setIsMetricsLoading(false);
+    return result;
   }, []);
 
   const refreshWatchRules = React.useCallback(async () => {
     setRulesError(null);
     setIsRulesLoading(true);
-    try {
-      const response = await fetch("/api/policy-rules");
-      if (!response.ok) {
-        throw new Error("Unable to load watch rules.");
-      }
+    const result = await fetchJsonResult<PolicyRulesResponse>(
+      "/api/policy-rules",
+      undefined,
+      "Unable to load watch rules.",
+    );
 
-      const payload = (await response.json()) as PolicyRulesResponse;
-      setWatchRules(payload.watchKeywords);
-    } catch (error) {
-      setRulesError(error instanceof Error ? error.message : "Unable to load watch rules.");
-    } finally {
-      setIsRulesLoading(false);
+    if (result.isOk()) {
+      setWatchRules(result.value.watchKeywords);
+    } else {
+      setRulesError(result.error.message);
     }
+
+    setIsRulesLoading(false);
+    return result;
   }, []);
 
   const refreshGoogleConnection = React.useCallback(async () => {
     setConnectionError(null);
     setConnectionNotice(null);
     setIsConnectionLoading(true);
-    try {
-      const response = await fetch("/api/connections/google");
-      if (!response.ok) {
-        throw new Error("Unable to load Google connection.");
-      }
+    const result = await fetchJsonResult<GoogleConnectionResponse>(
+      "/api/connections/google",
+      undefined,
+      "Unable to load Google connection.",
+    );
 
-      const payload = (await response.json()) as GoogleConnectionResponse;
-      setGoogleConnection(payload);
-    } catch (error) {
-      setConnectionError(
-        error instanceof Error ? error.message : "Unable to load Google connection.",
-      );
-    } finally {
-      setIsConnectionLoading(false);
+    if (result.isOk()) {
+      setGoogleConnection(result.value);
+    } else {
+      setConnectionError(result.error.message);
     }
+
+    setIsConnectionLoading(false);
+    return result;
   }, []);
 
   const refreshWorkflowRetention = React.useCallback(async () => {
     setRetentionError(null);
     setIsRetentionLoading(true);
-    try {
-      const response = await fetch("/api/workflows/retention");
-      if (!response.ok) {
-        throw new Error("Unable to load workflow retention.");
-      }
+    const result = await fetchJsonResult<WorkflowRetentionResponse>(
+      "/api/workflows/retention",
+      undefined,
+      "Unable to load workflow retention.",
+    );
 
-      const payload = (await response.json()) as WorkflowRetentionResponse;
-      setRetentionDays(payload.days);
-      setRetentionSource(payload.source);
-    } catch (error) {
-      setRetentionError(
-        error instanceof Error ? error.message : "Unable to load workflow retention.",
-      );
-    } finally {
-      setIsRetentionLoading(false);
+    if (result.isOk()) {
+      setRetentionDays(result.value.days);
+      setRetentionSource(result.value.source);
+    } else {
+      setRetentionError(result.error.message);
     }
+
+    setIsRetentionLoading(false);
+    return result;
   }, []);
 
   const refreshTrustReport = React.useCallback(async () => {
     setTrustReportError(null);
     setIsTrustReportLoading(true);
-    try {
-      const response = await fetch("/api/admin/trust");
-      if (!response.ok) {
-        throw new Error("Unable to load trust report.");
-      }
+    const result = await fetchJsonResult<TrustReportResponse>(
+      "/api/admin/trust",
+      undefined,
+      "Unable to load trust report.",
+    );
 
-      const payload = (await response.json()) as TrustReportResponse;
-      setTrustReport(payload);
-    } catch (error) {
-      setTrustReportError(error instanceof Error ? error.message : "Unable to load trust report.");
-    } finally {
-      setIsTrustReportLoading(false);
+    if (result.isOk()) {
+      setTrustReport(result.value);
+    } else {
+      setTrustReportError(result.error.message);
     }
+
+    setIsTrustReportLoading(false);
+    return result;
   }, []);
 
   const refreshAuditLogs = React.useCallback(
     async ({ offset = 0, append = false }: { offset?: number; append?: boolean } = {}) => {
       setAuditLogsError(null);
       setIsAuditLogsLoading(true);
-      try {
-        const response = await fetch(`/api/admin/audit?limit=12&offset=${offset}`);
-        if (!response.ok) {
-          throw new Error("Unable to load audit logs.");
-        }
+      const result = await fetchJsonResult<AuditLogsResponse>(
+        `/api/admin/audit?limit=12&offset=${offset}`,
+        undefined,
+        "Unable to load audit logs.",
+      );
 
-        const payload = (await response.json()) as AuditLogsResponse;
-        setAuditLogsTotalCount(payload.totalCount);
-        setAuditLogs((current) => (append ? [...current, ...payload.rows] : payload.rows));
-      } catch (error) {
-        setAuditLogsError(error instanceof Error ? error.message : "Unable to load audit logs.");
-      } finally {
-        setIsAuditLogsLoading(false);
+      if (result.isOk()) {
+        setAuditLogsTotalCount(result.value.totalCount);
+        setAuditLogs((current) =>
+          append ? [...current, ...result.value.rows] : result.value.rows,
+        );
+      } else {
+        setAuditLogsError(result.error.message);
       }
+
+      setIsAuditLogsLoading(false);
+      return result;
     },
     [],
   );
@@ -506,26 +561,19 @@ export function NyteShell() {
     const loadTimeline = async () => {
       setTimelineError(null);
       setIsTimelineLoading(true);
-      try {
-        const response = await fetch(`/api/workflows/${activeItem.id}`);
-        if (!response.ok) {
-          throw new Error("Unable to load workflow timeline.");
-        }
+      const result = await fetchJsonResult<WorkflowTimelineResponse>(
+        `/api/workflows/${activeItem.id}`,
+        undefined,
+        "Unable to load workflow timeline.",
+      );
 
-        const data = (await response.json()) as WorkflowTimelineResponse;
-        if (!cancelled) {
-          setWorkflowTimeline(data.timeline);
+      if (!cancelled) {
+        if (result.isOk()) {
+          setWorkflowTimeline(result.value.timeline);
+        } else {
+          setTimelineError(result.error.message);
         }
-      } catch (error) {
-        if (!cancelled) {
-          setTimelineError(
-            error instanceof Error ? error.message : "Unable to load workflow timeline.",
-          );
-        }
-      } finally {
-        if (!cancelled) {
-          setIsTimelineLoading(false);
-        }
+        setIsTimelineLoading(false);
       }
     };
 
@@ -545,8 +593,9 @@ export function NyteShell() {
     async (item: WorkItemWithAction) => {
       setActionError(null);
       setIsDismissingId(item.id);
-      try {
-        const response = await fetch("/api/actions/dismiss", {
+      const dismissResult = await fetchJsonResult<DismissResponse>(
+        "/api/actions/dismiss",
+        {
           method: "POST",
           headers: {
             "content-type": "application/json",
@@ -554,26 +603,40 @@ export function NyteShell() {
           body: JSON.stringify({
             itemId: item.id,
           }),
-        });
+        },
+        "Unable to dismiss item.",
+      );
 
-        if (!response.ok) {
-          const errorBody = (await response.json().catch(() => null)) as { error?: string } | null;
-          throw new Error(errorBody?.error ?? "Unable to dismiss item.");
-        }
-
-        (await response.json()) as DismissResponse;
-
-        if (activeItem?.id === item.id) {
-          closeDrawer();
-        }
-        await refreshDashboard();
-        await refreshMetrics();
-        await refreshTrustReport();
-      } catch (error) {
-        setActionError(error instanceof Error ? error.message : "Unable to dismiss item.");
-      } finally {
+      if (dismissResult.isErr()) {
+        setActionError(dismissResult.error.message);
         setIsDismissingId(null);
+        return;
       }
+
+      if (activeItem?.id === item.id) {
+        closeDrawer();
+      }
+
+      const dashboardResult = await refreshDashboard();
+      if (dashboardResult.isErr()) {
+        setActionError(dashboardResult.error.message);
+        setIsDismissingId(null);
+        return;
+      }
+
+      const metricsResult = await refreshMetrics();
+      if (metricsResult.isErr()) {
+        setActionError(metricsResult.error.message);
+        setIsDismissingId(null);
+        return;
+      }
+
+      const trustResult = await refreshTrustReport();
+      if (trustResult.isErr()) {
+        setActionError(trustResult.error.message);
+      }
+
+      setIsDismissingId(null);
     },
     [activeItem?.id, closeDrawer, refreshDashboard, refreshMetrics, refreshTrustReport],
   );
@@ -585,10 +648,10 @@ export function NyteShell() {
 
     setActionError(null);
     setIsApproving(true);
-
-    try {
-      const idempotencyKey = `approve:${activeItem.id}`;
-      const response = await fetch("/api/actions/approve", {
+    const idempotencyKey = `approve:${activeItem.id}`;
+    const approveResult = await fetchJsonResult<ApproveResponse>(
+      "/api/actions/approve",
+      {
         method: "POST",
         headers: {
           "content-type": "application/json",
@@ -598,23 +661,38 @@ export function NyteShell() {
           itemId: activeItem.id,
           idempotencyKey,
         }),
-      });
+      },
+      "Unable to approve action.",
+    );
 
-      if (!response.ok) {
-        const errorBody = (await response.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(errorBody?.error ?? "Unable to approve action.");
-      }
-
-      (await response.json()) as ApproveResponse;
-      closeDrawer();
-      await refreshDashboard();
-      await refreshMetrics();
-      await refreshTrustReport();
-    } catch (error) {
-      setActionError(error instanceof Error ? error.message : "Unable to approve action.");
-    } finally {
+    if (approveResult.isErr()) {
+      setActionError(approveResult.error.message);
       setIsApproving(false);
+      return;
     }
+
+    closeDrawer();
+
+    const dashboardResult = await refreshDashboard();
+    if (dashboardResult.isErr()) {
+      setActionError(dashboardResult.error.message);
+      setIsApproving(false);
+      return;
+    }
+
+    const metricsResult = await refreshMetrics();
+    if (metricsResult.isErr()) {
+      setActionError(metricsResult.error.message);
+      setIsApproving(false);
+      return;
+    }
+
+    const trustResult = await refreshTrustReport();
+    if (trustResult.isErr()) {
+      setActionError(trustResult.error.message);
+    }
+
+    setIsApproving(false);
   }, [
     activeItem,
     closeDrawer,
@@ -627,25 +705,26 @@ export function NyteShell() {
   const syncQueue = React.useCallback(async () => {
     setSyncError(null);
     setIsSyncing(true);
-    try {
-      const url = syncCursor
-        ? `/api/sync/poll?cursor=${encodeURIComponent(syncCursor)}`
-        : "/api/sync/poll";
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error("Unable to poll mailbox signals.");
-      }
+    const url = syncCursor
+      ? `/api/sync/poll?cursor=${encodeURIComponent(syncCursor)}`
+      : "/api/sync/poll";
+    const result = await fetchJsonResult<PollResponse>(
+      url,
+      undefined,
+      "Unable to poll mailbox signals.",
+    );
 
-      const data = (await response.json()) as PollResponse;
-      setSyncCursor(data.cursor);
-      applyDashboard(data);
-      await refreshMetrics();
-      await refreshTrustReport();
-    } catch (error) {
-      setSyncError(error instanceof Error ? error.message : "Unable to sync queue.");
-    } finally {
-      setIsSyncing(false);
+    if (result.isOk()) {
+      setSyncCursor(result.value.cursor);
+      applyDashboard(result.value);
+      void refreshMetrics();
+      void refreshTrustReport();
+    } else {
+      setSyncError(result.error.message);
     }
+
+    setIsSyncing(false);
+    return result;
   }, [applyDashboard, refreshMetrics, refreshTrustReport, syncCursor]);
 
   React.useEffect(() => {
@@ -667,21 +746,29 @@ export function NyteShell() {
   ]);
 
   const persistGoogleConnection = React.useCallback(async () => {
-    const response = await fetch("/api/connections/google", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
+    const result = await fetchJsonResult<GoogleConnectionResponse>(
+      "/api/connections/google",
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({}),
       },
-      body: JSON.stringify({}),
-    });
-    if (!response.ok) {
-      const errorBody = (await response.json().catch(() => null)) as { error?: string } | null;
-      throw new Error(errorBody?.error ?? "Unable to persist Google connection.");
+      "Unable to persist Google connection.",
+    );
+
+    if (result.isErr()) {
+      return result;
     }
 
-    const payload = (await response.json()) as GoogleConnectionResponse;
-    setGoogleConnection(payload);
-    await refreshTrustReport();
+    setGoogleConnection(result.value);
+    const trustResult = await refreshTrustReport();
+    if (trustResult.isErr()) {
+      return trustResult.map(() => result.value);
+    }
+
+    return result;
   }, [refreshTrustReport]);
 
   React.useEffect(() => {
@@ -689,10 +776,10 @@ export function NyteShell() {
       return;
     }
 
-    void persistGoogleConnection().catch((error) => {
-      setConnectionError(
-        error instanceof Error ? error.message : "Unable to persist Google connection.",
-      );
+    void persistGoogleConnection().then((result) => {
+      if (result.isErr()) {
+        setConnectionError(result.error.message);
+      }
     });
   }, [googleConnection?.connected, persistGoogleConnection, session]);
 
@@ -709,39 +796,48 @@ export function NyteShell() {
   const connectGoogle = React.useCallback(async () => {
     setConnectionError(null);
     setConnectionNotice(null);
-    try {
-      await authClient.signIn.social({
+    const result = await ResultAsync.fromPromise(
+      authClient.signIn.social({
         provider: "google",
         callbackURL: "/",
-      });
-    } catch (error) {
-      setConnectionError(
-        error instanceof Error ? error.message : "Unable to connect Google account.",
-      );
+      }),
+      (error) => createRequestError(error, "Unable to connect Google account."),
+    );
+
+    if (result.isErr()) {
+      setConnectionError(result.error.message);
     }
   }, []);
 
   const disconnectGoogle = React.useCallback(async () => {
     setConnectionError(null);
     setConnectionNotice(null);
-    try {
-      const response = await fetch("/api/connections/google", {
+    const disconnectResult = await fetchJsonResult<GoogleConnectionResponse>(
+      "/api/connections/google",
+      {
         method: "DELETE",
-      });
-      if (!response.ok) {
-        const errorBody = (await response.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(errorBody?.error ?? "Unable to disconnect Google connection.");
-      }
+      },
+      "Unable to disconnect Google connection.",
+    );
 
-      const payload = (await response.json()) as GoogleConnectionResponse;
-      setGoogleConnection(payload);
-      await authClient.signOut();
-      setConnectionNotice("Disconnected Google OAuth and cleared encrypted credentials.");
-      await refreshTrustReport();
-    } catch (error) {
-      setConnectionError(
-        error instanceof Error ? error.message : "Unable to disconnect Google account.",
-      );
+    if (disconnectResult.isErr()) {
+      setConnectionError(disconnectResult.error.message);
+      return;
+    }
+
+    setGoogleConnection(disconnectResult.value);
+    const signOutResult = await ResultAsync.fromPromise(authClient.signOut(), (error) =>
+      createRequestError(error, "Unable to disconnect Google account."),
+    );
+    if (signOutResult.isErr()) {
+      setConnectionError(signOutResult.error.message);
+      return;
+    }
+
+    setConnectionNotice("Disconnected Google OAuth and cleared encrypted credentials.");
+    const trustResult = await refreshTrustReport();
+    if (trustResult.isErr()) {
+      setConnectionError(trustResult.error.message);
     }
   }, [refreshTrustReport]);
 
@@ -749,30 +845,32 @@ export function NyteShell() {
     setConnectionError(null);
     setConnectionNotice(null);
     setIsRotatingConnectionSecrets(true);
-    try {
-      const response = await fetch("/api/connections/google/rotate", {
+    const rotateResult = await fetchJsonResult<RotateConnectionResponse>(
+      "/api/connections/google/rotate",
+      {
         method: "POST",
-      });
-      if (!response.ok) {
-        const errorBody = (await response.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(errorBody?.error ?? "Unable to rotate encrypted secrets.");
-      }
+      },
+      "Unable to rotate encrypted secrets.",
+    );
 
-      const payload = (await response.json()) as RotateConnectionResponse;
-      setGoogleConnection(payload.status);
-      setConnectionNotice(
-        payload.rotated
-          ? "Encrypted connection secrets were re-keyed using current key material."
-          : "No connection secrets were found to rotate.",
-      );
-      await refreshTrustReport();
-    } catch (error) {
-      setConnectionError(
-        error instanceof Error ? error.message : "Unable to rotate encrypted secrets.",
-      );
-    } finally {
+    if (rotateResult.isErr()) {
+      setConnectionError(rotateResult.error.message);
       setIsRotatingConnectionSecrets(false);
+      return;
     }
+
+    setGoogleConnection(rotateResult.value.status);
+    setConnectionNotice(
+      rotateResult.value.rotated
+        ? "Encrypted connection secrets were re-keyed using current key material."
+        : "No connection secrets were found to rotate.",
+    );
+    const trustResult = await refreshTrustReport();
+    if (trustResult.isErr()) {
+      setConnectionError(trustResult.error.message);
+    }
+
+    setIsRotatingConnectionSecrets(false);
   }, [refreshTrustReport]);
 
   const addWatchRule = React.useCallback(async () => {
@@ -783,8 +881,9 @@ export function NyteShell() {
 
     setRulesError(null);
     setIsRulesLoading(true);
-    try {
-      const response = await fetch("/api/policy-rules", {
+    const addResult = await fetchJsonResult<PolicyRulesResponse>(
+      "/api/policy-rules",
+      {
         method: "POST",
         headers: {
           "content-type": "application/json",
@@ -792,28 +891,39 @@ export function NyteShell() {
         body: JSON.stringify({
           keyword: normalized,
         }),
-      });
-      if (!response.ok) {
-        const errorBody = (await response.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(errorBody?.error ?? "Unable to add watch rule.");
-      }
+      },
+      "Unable to add watch rule.",
+    );
 
-      setWatchRuleInput("");
-      await refreshWatchRules();
-      await refreshTrustReport();
-    } catch (error) {
-      setRulesError(error instanceof Error ? error.message : "Unable to add watch rule.");
-    } finally {
+    if (addResult.isErr()) {
+      setRulesError(addResult.error.message);
       setIsRulesLoading(false);
+      return;
     }
+
+    setWatchRuleInput("");
+    const watchRulesResult = await refreshWatchRules();
+    if (watchRulesResult.isErr()) {
+      setRulesError(watchRulesResult.error.message);
+      setIsRulesLoading(false);
+      return;
+    }
+
+    const trustResult = await refreshTrustReport();
+    if (trustResult.isErr()) {
+      setRulesError(trustResult.error.message);
+    }
+
+    setIsRulesLoading(false);
   }, [refreshTrustReport, refreshWatchRules, watchRuleInput]);
 
   const removeWatchRule = React.useCallback(
     async (rule: string) => {
       setRulesError(null);
       setIsRulesLoading(true);
-      try {
-        const response = await fetch("/api/policy-rules", {
+      const removeResult = await fetchJsonResult<PolicyRulesResponse>(
+        "/api/policy-rules",
+        {
           method: "DELETE",
           headers: {
             "content-type": "application/json",
@@ -821,19 +931,29 @@ export function NyteShell() {
           body: JSON.stringify({
             keyword: rule,
           }),
-        });
-        if (!response.ok) {
-          const errorBody = (await response.json().catch(() => null)) as { error?: string } | null;
-          throw new Error(errorBody?.error ?? "Unable to remove watch rule.");
-        }
+        },
+        "Unable to remove watch rule.",
+      );
 
-        await refreshWatchRules();
-        await refreshTrustReport();
-      } catch (error) {
-        setRulesError(error instanceof Error ? error.message : "Unable to remove watch rule.");
-      } finally {
+      if (removeResult.isErr()) {
+        setRulesError(removeResult.error.message);
         setIsRulesLoading(false);
+        return;
       }
+
+      const watchRulesResult = await refreshWatchRules();
+      if (watchRulesResult.isErr()) {
+        setRulesError(watchRulesResult.error.message);
+        setIsRulesLoading(false);
+        return;
+      }
+
+      const trustResult = await refreshTrustReport();
+      if (trustResult.isErr()) {
+        setRulesError(trustResult.error.message);
+      }
+
+      setIsRulesLoading(false);
     },
     [refreshTrustReport, refreshWatchRules],
   );
@@ -841,8 +961,9 @@ export function NyteShell() {
   const saveWorkflowRetention = React.useCallback(async () => {
     setRetentionError(null);
     setIsRetentionLoading(true);
-    try {
-      const response = await fetch("/api/workflows/retention", {
+    const saveResult = await fetchJsonResult<WorkflowRetentionResponse>(
+      "/api/workflows/retention",
+      {
         method: "POST",
         headers: {
           "content-type": "application/json",
@@ -850,55 +971,71 @@ export function NyteShell() {
         body: JSON.stringify({
           days: retentionDays,
         }),
-      });
-      if (!response.ok) {
-        const errorBody = (await response.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(errorBody?.error ?? "Unable to update workflow retention.");
-      }
+      },
+      "Unable to update workflow retention.",
+    );
 
-      const payload = (await response.json()) as WorkflowRetentionResponse;
-      setRetentionDays(payload.days);
-      setRetentionSource(payload.source);
-      await refreshTrustReport();
-    } catch (error) {
-      setRetentionError(
-        error instanceof Error ? error.message : "Unable to update workflow retention.",
-      );
-    } finally {
+    if (saveResult.isErr()) {
+      setRetentionError(saveResult.error.message);
       setIsRetentionLoading(false);
+      return;
     }
+
+    setRetentionDays(saveResult.value.days);
+    setRetentionSource(saveResult.value.source);
+    const trustResult = await refreshTrustReport();
+    if (trustResult.isErr()) {
+      setRetentionError(trustResult.error.message);
+    }
+
+    setIsRetentionLoading(false);
   }, [refreshTrustReport, retentionDays]);
 
   const pruneWorkflowHistoryNow = React.useCallback(async () => {
     setRetentionError(null);
     setIsRetentionLoading(true);
-    try {
-      const response = await fetch("/api/workflows/prune", {
+    const pruneResult = await fetchJsonResult<WorkflowPruneResponse>(
+      "/api/workflows/prune",
+      {
         method: "POST",
-      });
-      if (!response.ok) {
-        const errorBody = (await response.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(errorBody?.error ?? "Unable to prune workflow history.");
-      }
+      },
+      "Unable to prune workflow history.",
+    );
 
-      const payload = (await response.json()) as WorkflowPruneResponse;
-      setPruneResult(payload);
-      if (payload.retentionDays !== null) {
-        setRetentionDays(payload.retentionDays);
-      }
-      if (payload.source !== null) {
-        setRetentionSource(payload.source);
-      }
-      await refreshMetrics();
-      await refreshDashboard();
-      await refreshTrustReport();
-    } catch (error) {
-      setRetentionError(
-        error instanceof Error ? error.message : "Unable to prune workflow history.",
-      );
-    } finally {
+    if (pruneResult.isErr()) {
+      setRetentionError(pruneResult.error.message);
       setIsRetentionLoading(false);
+      return;
     }
+
+    setPruneResult(pruneResult.value);
+    if (pruneResult.value.retentionDays !== null) {
+      setRetentionDays(pruneResult.value.retentionDays);
+    }
+    if (pruneResult.value.source !== null) {
+      setRetentionSource(pruneResult.value.source);
+    }
+
+    const metricsResult = await refreshMetrics();
+    if (metricsResult.isErr()) {
+      setRetentionError(metricsResult.error.message);
+      setIsRetentionLoading(false);
+      return;
+    }
+
+    const dashboardResult = await refreshDashboard();
+    if (dashboardResult.isErr()) {
+      setRetentionError(dashboardResult.error.message);
+      setIsRetentionLoading(false);
+      return;
+    }
+
+    const trustResult = await refreshTrustReport();
+    if (trustResult.isErr()) {
+      setRetentionError(trustResult.error.message);
+    }
+
+    setIsRetentionLoading(false);
   }, [refreshDashboard, refreshMetrics, refreshTrustReport]);
 
   const submitFeedback = React.useCallback(
@@ -909,8 +1046,9 @@ export function NyteShell() {
         current.map((entry) => (entry.itemId === itemId ? { ...entry, feedback: rating } : entry)),
       );
 
-      try {
-        const response = await fetch("/api/feedback", {
+      const feedbackResult = await fetchJsonResult<FeedbackResponse>(
+        "/api/feedback",
+        {
           method: "POST",
           headers: {
             "content-type": "application/json",
@@ -919,23 +1057,37 @@ export function NyteShell() {
             itemId,
             rating,
           }),
-        });
+        },
+        "Unable to record feedback.",
+      );
 
-        if (!response.ok) {
-          const errorBody = (await response.json().catch(() => null)) as { error?: string } | null;
-          throw new Error(errorBody?.error ?? "Unable to record feedback.");
-        }
-
-        (await response.json()) as FeedbackResponse;
-        await refreshDashboard();
-        await refreshMetrics();
-        await refreshTrustReport();
-      } catch (error) {
-        setActionError(error instanceof Error ? error.message : "Unable to record feedback.");
-        await refreshDashboard();
-      } finally {
+      if (feedbackResult.isErr()) {
+        setActionError(feedbackResult.error.message);
+        void refreshDashboard();
         setIsSubmittingFeedbackId(null);
+        return;
       }
+
+      const dashboardResult = await refreshDashboard();
+      if (dashboardResult.isErr()) {
+        setActionError(dashboardResult.error.message);
+        setIsSubmittingFeedbackId(null);
+        return;
+      }
+
+      const metricsResult = await refreshMetrics();
+      if (metricsResult.isErr()) {
+        setActionError(metricsResult.error.message);
+        setIsSubmittingFeedbackId(null);
+        return;
+      }
+
+      const trustResult = await refreshTrustReport();
+      if (trustResult.isErr()) {
+        setActionError(trustResult.error.message);
+      }
+
+      setIsSubmittingFeedbackId(null);
     },
     [refreshDashboard, refreshMetrics, refreshTrustReport],
   );
