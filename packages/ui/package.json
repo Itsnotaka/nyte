@@ -1,14 +1,16 @@
 {
-  "name": "@workspace/ui",
+  "name": "@nyte/ui",
   "version": "0.0.0",
   "private": true,
   "type": "module",
   "exports": {
-    "./globals.css": "./src/styles/globals.css",
-    "./postcss.config": "./postcss.config.mjs",
+    "./components/*": "./src/components/ui/*.tsx",
     "./lib/*": "./src/lib/*.ts",
-    "./components/*": "./src/components/*.tsx",
     "./hooks/*": "./src/hooks/*.ts"
+  },
+  "scripts": {
+    "typecheck": "tsgo --noEmit",
+    "clean": "rm -rf .turbo .cache node_modules dist"
   },
   "dependencies": {
     "@base-ui/react": "^1.2.0",
@@ -32,12 +34,12 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@nyte/tsconfig": "workspace:*",
     "@tailwindcss/postcss": "^4.1.18",
     "@turbo/gen": "^2.8.1",
     "@types/node": "^25.1.0",
     "@types/react": "^19.2.10",
     "@types/react-dom": "^19.2.3",
-    "@workspace/typescript-config": "workspace:*",
     "tailwindcss": "^4.1.18",
     "typescript": "^5.9.3"
   }

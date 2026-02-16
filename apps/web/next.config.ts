@@ -1,6 +1,9 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  transpilePackages: ["@workspace/ui"],
-}
+import type { NextConfig } from "next";
 
-export default nextConfig
+const nextConfig: NextConfig = {
+  reactStrictMode: true,
+  typedRoutes: true,
+  transpilePackages: ["@nyte/ui"],
+};
+
+export default nextConfig;

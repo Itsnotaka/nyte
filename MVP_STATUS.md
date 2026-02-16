@@ -1,0 +1,134 @@
+# Nyte MVP Status
+
+This document captures the **current shipped state** of the Nyte MVP in this repository.
+
+## Product state
+
+Nyte is implemented as a **design-first supervisor console**:
+
+- Linear-style triage flow as the primary interface.
+- Background agent processing prepares actions.
+- Human stays in control through explicit approval gates.
+- Email is **read + draft only** in v1 (no send automation).
+- Google Calendar actions are approval-gated and execute on approval.
+
+## Implemented core surfaces
+
+- Supervisor shell with sections:
+  - Needs You
+  - Drafts
+  - Processed
+  - Connections
+  - Rules
+- Action detail drawer with structured action payload editing.
+- Workflow timeline per item.
+- Rules controls:
+  - watch keywords,
+  - workflow retention policy + prune action,
+  - trust report snapshot,
+  - recent audit log preview.
+
+## Implemented backend capabilities
+
+### Intake, triage, and execution
+
+- Polling-based Gmail ingestion pipeline (`/api/sync/poll`).
+- 5-gate Needs You engine:
+  - Decision
+  - Time
+  - Relationship
+  - Impact
+  - Watch
+- Prepared actions persisted for approval.
+- Approval + dismissal APIs with idempotent behavior.
+- Execution output persistence:
+  - Gmail draft artifacts
+  - Calendar event artifacts
+
+### Persistence and observability
+
+- Drizzle + SQLite data model with migrations.
+- Workflow runs/events logging.
+- Feedback capture and metrics aggregation.
+- Persistent audit logging for sensitive mutations.
+- Admin audit query API (`/api/admin/audit`).
+- Admin trust report API (`/api/admin/trust`).
+
+### Security and reliability hardening
+
+- Session authorization enforcement for sensitive routes.
+- Package-backed rate limiting on mutable operations (`@unkey/ratelimit`).
+- Package-backed rate limiting on high-frequency/sensitive read routes (sync + supervisor/admin reads).
+- Deterministic in-process limiter fallback when `UNKEY_ROOT_KEY` is not set (local/test reliability).
+- Trust report now exposes active rate-limit provider (`unkey` vs `memory`) and configuration status.
+- Trust report now exposes configured/active Unkey limiter state (`unkeyRateLimitConfigured`, `unkeyRateLimitActive`).
+- Standardized 429 payload + `Retry-After` response header.
+- Malformed JSON payload hardening: mutable APIs now return explicit 400 for invalid bodies.
+- AES-256-GCM token encryption with key rotation compatibility.
+- Credential re-key endpoint for stored Google connection secrets.
+- Proxy-applied security headers:
+  - no-store for API responses,
+  - CSP baseline,
+  - frame/object hardening headers.
+- Transactional DB writes for critical state transitions.
+
+## API coverage (MVP)
+
+- `POST /api/sync/poll`
+- `GET /api/dashboard`
+- `GET /api/metrics`
+- `POST /api/actions/approve`
+- `POST /api/actions/dismiss`
+- `POST /api/feedback`
+- `GET|POST|DELETE /api/policy-rules`
+- `GET|POST|DELETE /api/connections/google`
+- `POST /api/connections/google/rotate`
+- `GET /api/workflows/[itemId]`
+- `GET|POST /api/workflows/retention`
+- `POST /api/workflows/prune`
+- `GET /api/admin/trust`
+- `GET /api/admin/audit`
+
+## Quality status (latest)
+
+All repository quality gates pass:
+
+- `pnpm format`
+- `pnpm typecheck`
+- `pnpm lint`
+- `pnpm --filter web test`
+- `pnpm build`
+
+Focused local test runs are also available:
+
+- `pnpm --filter web test:api` (route-level API tests)
+- `pnpm --filter web test:server` (server/domain service tests)
+
+## Explicit MVP constraints (still true)
+
+- Polling-only ingestion.
+- No autonomous email sending.
+- Gmail + Google Calendar only.
+- Human-in-the-loop approvals for externally impactful actions.
+
+## Runtime environment notes
+
+- `UNKEY_ROOT_KEY` enables the Unkey-backed global rate limiter path (whitespace-only values are treated as unset).
+- Without `UNKEY_ROOT_KEY`, the app uses a deterministic in-process limiter fallback for local development and test runs.
+- Optional `NYTE_RATE_LIMIT_MODE` override:
+  - `auto` (default): use Unkey when key is configured, otherwise memory fallback.
+  - `memory`: force in-process limiter even when Unkey key exists.
+  - `unkey`: prefer Unkey path; falls back to memory when key is missing.
+- Runtime delegation controls (web gateway):
+  - `NYTE_RUNTIME_URL`: base URL for the external runtime service.
+  - `NYTE_RUNTIME_AUTH_TOKEN`: optional bearer token propagated from web to runtime.
+  - `NYTE_RUNTIME_DELEGATE_SYNC`: delegate `/api/sync/poll` ingest path to runtime when `true`.
+  - `NYTE_RUNTIME_DELEGATE_APPROVE`: delegate `/api/actions/approve` when `true`.
+  - `NYTE_RUNTIME_DELEGATE_DISMISS`: delegate `/api/actions/dismiss` when `true`.
+  - `NYTE_RUNTIME_DELEGATE_FEEDBACK`: delegate `/api/feedback` when `true`.
+- Runtime delegation resiliency controls (web runtime client):
+  - `NYTE_RUNTIME_TIMEOUT_MS`: optional per-request timeout override for runtime dispatch.
+  - `NYTE_RUNTIME_MAX_ATTEMPTS`: optional retry-attempt override for transient runtime outages.
+  - defaults are deterministic (`timeout=15000ms`, `attempts=2`) when unset.
+- Runtime service ingress control:
+  - `NYTE_RUNTIME_AUTH_TOKEN` on `apps/runtime` enforces `Authorization: Bearer <token>` on runtime endpoints when configured.

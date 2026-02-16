@@ -1,0 +1,21 @@
+{
+  "name": "@nyte/integrations",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./gmail/polling": "./src/gmail/polling.ts"
+  },
+  "scripts": {
+    "typecheck": "tsgo --noEmit",
+    "clean": "rm -rf .turbo .cache node_modules dist"
+  },
+  "dependencies": {
+    "@nyte/domain": "workspace:*"
+  },
+  "devDependencies": {
+    "@nyte/tsconfig": "workspace:*",
+    "typescript": "^5.9.3"
+  }
+}

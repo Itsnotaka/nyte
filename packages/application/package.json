@@ -1,0 +1,39 @@
+{
+  "name": "@nyte/application",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./audit-log": "./src/audit-log.ts",
+    "./approve-action": "./src/approve-action.ts",
+    "./connections": "./src/connections.ts",
+    "./dashboard": "./src/dashboard.ts",
+    "./dismiss-action": "./src/dismiss-action.ts",
+    "./feedback": "./src/feedback.ts",
+    "./metrics": "./src/metrics.ts",
+    "./policy-rules": "./src/policy-rules.ts",
+    "./queue-store": "./src/queue-store.ts",
+    "./runtime-secrets": "./src/runtime-secrets.ts",
+    "./security-posture": "./src/security-posture.ts",
+    "./token-crypto": "./src/token-crypto.ts",
+    "./trust-report": "./src/trust-report.ts",
+    "./workflow-log": "./src/workflow-log.ts",
+    "./workflow-retention": "./src/workflow-retention.ts"
+  },
+  "scripts": {
+    "typecheck": "tsgo --noEmit",
+    "clean": "rm -rf .turbo .cache node_modules dist"
+  },
+  "dependencies": {
+    "@nyte/db": "workspace:*",
+    "@nyte/domain": "workspace:*",
+    "drizzle-orm": "^0.45.1",
+    "neverthrow": "^8.2.0"
+  },
+  "devDependencies": {
+    "@nyte/tsconfig": "workspace:*",
+    "@types/node": "^25.1.0",
+    "typescript": "^5.9.3"
+  }
+}
