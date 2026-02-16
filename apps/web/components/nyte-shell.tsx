@@ -14,9 +14,16 @@ import {
   RefreshCwIcon,
   ShieldAlertIcon,
   SparklesIcon,
+  TextSearchIcon,
   WalletIcon,
 } from "lucide-react";
 
+import {
+  withToolCalls,
+  type GmailCreateDraftToolCall,
+  type ToolCallPayload,
+  type WorkItemWithAction,
+} from "@/lib/domain/actions";
 import { mockIntakeSignals } from "@/lib/domain/mock-intake";
 import { createNeedsYouQueue, GATE_LABEL, type WorkItem } from "@/lib/domain/triage";
 import { Badge } from "@workspace/ui/@/components/ui/badge";
@@ -58,12 +65,15 @@ import { Textarea } from "@workspace/ui/@/components/ui/textarea";
 
 const REFERENCE_NOW = new Date("2026-01-20T12:00:00.000Z");
 
-const navItems = [
+type NavId = "needs-you" | "drafts" | "processed" | "connections" | "rules";
+type DraftEntry = GmailCreateDraftToolCall & { id: string; actor: string };
+
+const navBlueprint = [
   { id: "needs-you", label: "Needs You", icon: BellDotIcon },
-  { id: "drafts", label: "Drafts", icon: DraftingCompassIcon, count: 8 },
-  { id: "processed", label: "Processed", icon: Layers2Icon, count: 27 },
-  { id: "connections", label: "Connections", icon: RefreshCwIcon, count: undefined },
-  { id: "rules", label: "Rules", icon: ShieldAlertIcon, count: undefined },
+  { id: "drafts", label: "Drafts", icon: DraftingCompassIcon },
+  { id: "processed", label: "Processed", icon: Layers2Icon },
+  { id: "connections", label: "Connections", icon: RefreshCwIcon },
+  { id: "rules", label: "Rules", icon: ShieldAlertIcon },
 ] as const;
 
 function sourceIcon(type: WorkItem["type"]) {
@@ -78,14 +88,87 @@ function sourceIcon(type: WorkItem["type"]) {
   return <MailIcon className="size-4" />;
 }
 
+function clonePayload<T extends ToolCallPayload>(payload: T): T {
+  return JSON.parse(JSON.stringify(payload)) as T;
+}
+
 export function NyteShell() {
-  const needsYouItems = React.useMemo(
-    () => createNeedsYouQueue(mockIntakeSignals, REFERENCE_NOW),
+  const seededItems = React.useMemo(
+    () => withToolCalls(createNeedsYouQueue(mockIntakeSignals, REFERENCE_NOW)),
     [],
   );
+  const [activeNav, setActiveNav] = React.useState<NavId>("needs-you");
+  const [handledIds, setHandledIds] = React.useState<Set<string>>(new Set());
+  const [savedDrafts, setSavedDrafts] = React.useState<DraftEntry[]>([]);
+  const [activeItem, setActiveItem] = React.useState<WorkItemWithAction | null>(
+    seededItems.at(0) ?? null,
+  );
+  const [editableAction, setEditableAction] = React.useState<ToolCallPayload | null>(
+    activeItem ? clonePayload(activeItem.proposedAction) : null,
+  );
+
+  const needsYouItems = React.useMemo(
+    () => seededItems.filter((item) => !handledIds.has(item.id)),
+    [handledIds, seededItems],
+  );
   const needsYouCount = needsYouItems.length;
-  const [activeNav, setActiveNav] = React.useState<(typeof navItems)[number]["id"]>("needs-you");
-  const [activeItem, setActiveItem] = React.useState<WorkItem | null>(needsYouItems.at(0) ?? null);
+  const processedCount = handledIds.size;
+
+  const navItems = React.useMemo(
+    () =>
+      navBlueprint.map((item) => ({
+        ...item,
+        count:
+          item.id === "needs-you"
+            ? needsYouCount
+            : item.id === "drafts"
+              ? savedDrafts.length
+              : item.id === "processed"
+                ? processedCount
+                : undefined,
+      })),
+    [needsYouCount, processedCount, savedDrafts.length],
+  );
+
+  const openItem = React.useCallback((item: WorkItemWithAction) => {
+    setActiveItem(item);
+    setEditableAction(clonePayload(item.proposedAction));
+  }, []);
+
+  const closeDrawer = React.useCallback(() => {
+    setActiveItem(null);
+    setEditableAction(null);
+  }, []);
+
+  const dismissItem = React.useCallback(
+    (itemId: string) => {
+      setHandledIds((current) => new Set(current).add(itemId));
+      if (activeItem?.id === itemId) {
+        closeDrawer();
+      }
+    },
+    [activeItem?.id, closeDrawer],
+  );
+
+  const approveActiveItem = React.useCallback(() => {
+    if (!activeItem || !editableAction) {
+      return;
+    }
+
+    if (editableAction.kind === "gmail.createDraft") {
+      setSavedDrafts((current) => [
+        {
+          ...editableAction,
+          id: activeItem.id,
+          actor: activeItem.actor,
+        },
+        ...current.filter((entry) => entry.id !== activeItem.id),
+      ]);
+    }
+
+    setHandledIds((current) => new Set(current).add(activeItem.id));
+    closeDrawer();
+  }, [activeItem, closeDrawer, editableAction]);
 
   return (
     <SidebarProvider>
@@ -107,7 +190,6 @@ export function NyteShell() {
               <SidebarMenu>
                 {navItems.map((item) => {
                   const Icon = item.icon;
-                  const badgeCount = item.id === "needs-you" ? needsYouCount : item.count;
 
                   return (
                     <SidebarMenuItem key={item.id}>
@@ -118,8 +200,8 @@ export function NyteShell() {
                         <Icon />
                         <span>{item.label}</span>
                       </SidebarMenuButton>
-                      {badgeCount !== undefined ? (
-                        <SidebarMenuBadge>{badgeCount}</SidebarMenuBadge>
+                      {item.count !== undefined ? (
+                        <SidebarMenuBadge>{item.count}</SidebarMenuBadge>
                       ) : null}
                     </SidebarMenuItem>
                   );
@@ -156,65 +238,142 @@ export function NyteShell() {
               </div>
             </div>
           </header>
+          <ToolIntentLegend />
 
           <section className="space-y-3">
-            {needsYouItems.map((item) => (
-              <Card key={item.id} className="gap-3">
+            {activeNav === "needs-you" ? (
+              needsYouItems.length === 0 ? (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>All clear</CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-muted-foreground text-sm">
+                    No work items are currently passing the strict needs-you gates.
+                  </CardContent>
+                </Card>
+              ) : (
+                needsYouItems.map((item) => (
+                  <Card key={item.id} className="gap-3">
+                    <CardHeader>
+                      <CardTitle className="flex flex-wrap items-center gap-2 text-base">
+                        <Badge variant="outline">{item.actor}</Badge>
+                        <span className="text-muted-foreground text-sm">from {item.source}</span>
+                      </CardTitle>
+                      <p className="text-muted-foreground text-sm">{item.summary}</p>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <p className="text-sm">{item.context}</p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {item.gates.map((gate) => (
+                          <Badge key={gate} variant="secondary">
+                            {GATE_LABEL[gate]}
+                          </Badge>
+                        ))}
+                      </div>
+                    </CardContent>
+                    <CardFooter className="justify-between">
+                      <Button
+                        variant="ghost"
+                        className="justify-start px-0 text-sm"
+                        onClick={() => openItem(item)}
+                      >
+                        {sourceIcon(item.type)}
+                        <span>{item.actionLabel}</span>
+                        <ChevronRightIcon className="size-4" />
+                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button variant="outline" onClick={() => dismissItem(item.id)}>
+                          {item.secondaryLabel}
+                        </Button>
+                        <Button onClick={() => openItem(item)}>
+                          {item.type === "calendar" ? (
+                            <CalendarCheck2Icon />
+                          ) : item.type === "refund" ? (
+                            <WalletIcon />
+                          ) : (
+                            <InboxIcon />
+                          )}
+                          {item.cta}
+                        </Button>
+                      </div>
+                    </CardFooter>
+                  </Card>
+                ))
+              )
+            ) : null}
+
+            {activeNav === "drafts" ? (
+              savedDrafts.length === 0 ? (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>No saved drafts yet</CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-muted-foreground text-sm">
+                    Approving a draft action immediately saves it to Gmail Drafts.
+                  </CardContent>
+                </Card>
+              ) : (
+                savedDrafts.map((draft) => (
+                  <Card key={draft.id}>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-base">
+                        <Badge>{draft.actor}</Badge>
+                        <span className="text-muted-foreground text-sm">gmail draft</span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      <p className="text-sm">{draft.subject}</p>
+                      <p className="text-muted-foreground text-xs">to {draft.to.join(", ")}</p>
+                      <p className="text-muted-foreground line-clamp-2 text-xs">{draft.body}</p>
+                    </CardContent>
+                  </Card>
+                ))
+              )
+            ) : null}
+
+            {activeNav === "processed" ? (
+              <Card>
                 <CardHeader>
-                  <CardTitle className="flex flex-wrap items-center gap-2 text-base">
-                    <Badge variant="outline">{item.actor}</Badge>
-                    <span className="text-muted-foreground text-sm">from {item.source}</span>
-                  </CardTitle>
-                  <p className="text-muted-foreground text-sm">{item.summary}</p>
+                  <CardTitle>Processed activity</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                  <p className="text-sm">{item.context}</p>
-                  <div className="flex flex-wrap items-center gap-2">
-                    {item.gates.map((gate) => (
-                      <Badge key={gate} variant="secondary">
-                        {GATE_LABEL[gate]}
-                      </Badge>
-                    ))}
-                  </div>
+                <CardContent className="text-muted-foreground text-sm">
+                  {processedCount} items were processed from the triage queue this session.
                 </CardContent>
-                <CardFooter className="justify-between">
-                  <Button
-                    variant="ghost"
-                    className="justify-start px-0 text-sm"
-                    onClick={() => setActiveItem(item)}
-                  >
-                    {sourceIcon(item.type)}
-                    <span>{item.actionLabel}</span>
-                    <ChevronRightIcon className="size-4" />
-                  </Button>
-                  <div className="flex items-center gap-2">
-                    <Button variant="outline" onClick={() => setActiveItem(item)}>
-                      {item.secondaryLabel}
-                    </Button>
-                    <Button onClick={() => setActiveItem(item)}>
-                      {item.type === "calendar" ? (
-                        <CalendarCheck2Icon />
-                      ) : item.type === "refund" ? (
-                        <WalletIcon />
-                      ) : (
-                        <InboxIcon />
-                      )}
-                      {item.cta}
-                    </Button>
-                  </div>
-                </CardFooter>
               </Card>
-            ))}
+            ) : null}
+
+            {activeNav === "connections" ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Connections</CardTitle>
+                </CardHeader>
+                <CardContent className="text-muted-foreground text-sm">
+                  Google auth foundation is configured. Connect Gmail + Calendar through Better
+                  Auth.
+                </CardContent>
+              </Card>
+            ) : null}
+
+            {activeNav === "rules" ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Rules</CardTitle>
+                </CardHeader>
+                <CardContent className="text-muted-foreground text-sm">
+                  Watch rules and strict gate tuning surface is next in roadmap.
+                </CardContent>
+              </Card>
+            ) : null}
           </section>
         </div>
       </SidebarInset>
 
       <Sheet
         open={Boolean(activeItem)}
-        onOpenChange={(open) => (!open ? setActiveItem(null) : undefined)}
+        onOpenChange={(open) => (!open ? closeDrawer() : undefined)}
       >
         <SheetContent side="right" className="sm:max-w-lg">
-          {activeItem ? (
+          {activeItem && editableAction ? (
             <>
               <SheetHeader>
                 <SheetTitle>{activeItem.actionLabel}</SheetTitle>
@@ -223,39 +382,167 @@ export function NyteShell() {
 
               <div className="space-y-4 px-4">
                 <div className="space-y-2">
+                  <p className="text-muted-foreground text-xs uppercase">Tool intent</p>
+                  <Badge variant="outline">{editableAction.kind}</Badge>
+                </div>
+
+                <div className="space-y-2">
                   <p className="text-muted-foreground text-xs uppercase">Actor</p>
                   <Input value={activeItem.actor} readOnly />
                 </div>
 
-                <div className="space-y-2">
-                  <p className="text-muted-foreground text-xs uppercase">Summary</p>
-                  <Textarea defaultValue={activeItem.summary} />
-                </div>
-
-                {activeItem.type === "calendar" ? (
+                {editableAction.kind === "gmail.createDraft" ? (
                   <>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-2">
-                        <p className="text-muted-foreground text-xs uppercase">Date</p>
-                        <Input defaultValue="2026-01-22" />
-                      </div>
-                      <div className="space-y-2">
-                        <p className="text-muted-foreground text-xs uppercase">Time</p>
-                        <Input defaultValue="14:00" />
-                      </div>
+                    <div className="space-y-2">
+                      <p className="text-muted-foreground text-xs uppercase">To</p>
+                      <Input
+                        value={editableAction.to.join(", ")}
+                        onChange={(event) =>
+                          setEditableAction({
+                            ...editableAction,
+                            to: event.currentTarget.value
+                              .split(",")
+                              .map((entry) => entry.trim())
+                              .filter(Boolean),
+                          })
+                        }
+                      />
                     </div>
                     <div className="space-y-2">
-                      <p className="text-muted-foreground text-xs uppercase">Attendees</p>
-                      <Input defaultValue="rachel@company.com, team@nyte.ai" />
+                      <p className="text-muted-foreground text-xs uppercase">Subject</p>
+                      <Input
+                        value={editableAction.subject}
+                        onChange={(event) =>
+                          setEditableAction({
+                            ...editableAction,
+                            subject: event.currentTarget.value,
+                          })
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-muted-foreground text-xs uppercase">Draft body</p>
+                      <Textarea
+                        value={editableAction.body}
+                        onChange={(event) =>
+                          setEditableAction({
+                            ...editableAction,
+                            body: event.currentTarget.value,
+                          })
+                        }
+                        className="min-h-44"
+                      />
                     </div>
                   </>
                 ) : null}
 
-                {activeItem.type === "draft" ? (
-                  <div className="space-y-2">
-                    <p className="text-muted-foreground text-xs uppercase">Draft body</p>
-                    <Textarea defaultValue={activeItem.preview} className="min-h-44" />
-                  </div>
+                {editableAction.kind === "google-calendar.createEvent" ? (
+                  <>
+                    <div className="space-y-2">
+                      <p className="text-muted-foreground text-xs uppercase">Title</p>
+                      <Input
+                        value={editableAction.title}
+                        onChange={(event) =>
+                          setEditableAction({
+                            ...editableAction,
+                            title: event.currentTarget.value,
+                          })
+                        }
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <p className="text-muted-foreground text-xs uppercase">Starts at</p>
+                        <Input
+                          value={editableAction.startsAt}
+                          onChange={(event) =>
+                            setEditableAction({
+                              ...editableAction,
+                              startsAt: event.currentTarget.value,
+                            })
+                          }
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <p className="text-muted-foreground text-xs uppercase">Ends at</p>
+                        <Input
+                          value={editableAction.endsAt}
+                          onChange={(event) =>
+                            setEditableAction({
+                              ...editableAction,
+                              endsAt: event.currentTarget.value,
+                            })
+                          }
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-muted-foreground text-xs uppercase">Attendees</p>
+                      <Input
+                        value={editableAction.attendees.join(", ")}
+                        onChange={(event) =>
+                          setEditableAction({
+                            ...editableAction,
+                            attendees: event.currentTarget.value
+                              .split(",")
+                              .map((entry) => entry.trim())
+                              .filter(Boolean),
+                          })
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-muted-foreground text-xs uppercase">Description</p>
+                      <Textarea
+                        value={editableAction.description}
+                        onChange={(event) =>
+                          setEditableAction({
+                            ...editableAction,
+                            description: event.currentTarget.value,
+                          })
+                        }
+                      />
+                    </div>
+                  </>
+                ) : null}
+
+                {editableAction.kind === "billing.queueRefund" ? (
+                  <>
+                    <div className="space-y-2">
+                      <p className="text-muted-foreground text-xs uppercase">Customer</p>
+                      <Input value={editableAction.customerName} readOnly />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <p className="text-muted-foreground text-xs uppercase">Amount</p>
+                        <Input
+                          value={String(editableAction.amount)}
+                          onChange={(event) =>
+                            setEditableAction({
+                              ...editableAction,
+                              amount: Number(event.currentTarget.value) || 0,
+                            })
+                          }
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <p className="text-muted-foreground text-xs uppercase">Currency</p>
+                        <Input value={editableAction.currency} readOnly />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-muted-foreground text-xs uppercase">Reason</p>
+                      <Textarea
+                        value={editableAction.reason}
+                        onChange={(event) =>
+                          setEditableAction({
+                            ...editableAction,
+                            reason: event.currentTarget.value,
+                          })
+                        }
+                      />
+                    </div>
+                  </>
                 ) : null}
               </div>
 
@@ -265,10 +552,10 @@ export function NyteShell() {
                   strict-gate validated
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button variant="outline" onClick={() => setActiveItem(null)}>
+                  <Button variant="outline" onClick={() => dismissItem(activeItem.id)}>
                     Dismiss
                   </Button>
-                  <Button onClick={() => setActiveItem(null)}>{activeItem.cta}</Button>
+                  <Button onClick={approveActiveItem}>{activeItem.cta}</Button>
                 </div>
               </SheetFooter>
             </>
@@ -276,5 +563,20 @@ export function NyteShell() {
         </SheetContent>
       </Sheet>
     </SidebarProvider>
+  );
+}
+
+function ToolIntentLegend() {
+  return (
+    <Card className="gap-2 border-dashed">
+      <CardHeader className="pb-0">
+        <CardTitle className="text-sm">Tool-call rendered UI</CardTitle>
+      </CardHeader>
+      <CardContent className="text-muted-foreground flex items-start gap-2 text-xs">
+        <TextSearchIcon className="mt-0.5 size-3.5 shrink-0" />
+        Model emits typed payloads, UI renders structured controls, and one-click approval executes
+        action.
+      </CardContent>
+    </Card>
   );
 }
