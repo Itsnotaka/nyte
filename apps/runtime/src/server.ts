@@ -1,6 +1,6 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { Result, ResultAsync } from "neverthrow";
-import { isRuntimeCommand } from "@workspace/contracts";
+import { isRuntimeCommand, type RuntimeCommandType } from "@workspace/contracts";
 
 import { handleRuntimeCommand } from "./command-handler.js";
 
@@ -52,9 +52,36 @@ function resolvePort(value: string | undefined): number {
   return parsed;
 }
 
+const RUNTIME_COMMAND_ENDPOINTS: Record<RuntimeCommandType, string> = {
+  "runtime.ingest": "/runtime/ingest",
+  "runtime.approve": "/runtime/approve",
+  "runtime.dismiss": "/runtime/dismiss",
+  "runtime.feedback": "/runtime/feedback",
+};
+
+function resolveRouteType(url: string | undefined): RuntimeCommandType | "runtime.command" | null {
+  if (!url) {
+    return null;
+  }
+
+  const pathname = new URL(url, "http://127.0.0.1").pathname;
+  if (pathname === "/runtime/command") {
+    return "runtime.command";
+  }
+
+  for (const [commandType, endpoint] of Object.entries(RUNTIME_COMMAND_ENDPOINTS)) {
+    if (pathname === endpoint) {
+      return commandType as RuntimeCommandType;
+    }
+  }
+
+  return null;
+}
+
 export function createRuntimeServer() {
   return createServer((request, response) => {
-    if (request.method !== "POST" || request.url !== "/runtime/command") {
+    const routeType = request.method === "POST" ? resolveRouteType(request.url) : null;
+    if (!routeType) {
       writeJson(response, 404, { error: "Not found." });
       return;
     }
@@ -73,6 +100,13 @@ export function createRuntimeServer() {
 
       if (!isRuntimeCommand(parsedBody.value)) {
         writeJson(response, 400, { error: "Request body must satisfy RuntimeCommand contract." });
+        return;
+      }
+
+      if (routeType !== "runtime.command" && parsedBody.value.type !== routeType) {
+        writeJson(response, 400, {
+          error: "Runtime command type does not match endpoint.",
+        });
         return;
       }
 

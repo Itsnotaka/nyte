@@ -48,6 +48,42 @@ afterEach(async () => {
 });
 
 describe("runtime server", () => {
+  it("accepts valid runtime commands on type-specific endpoints", async () => {
+    const server = await startRuntimeServer();
+    activeServers.push(server.close);
+
+    const response = await fetch(`${server.baseUrl}/runtime/approve`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        type: "runtime.approve",
+        context: {
+          userId: "local-user",
+          requestId: "req_approve_1",
+          source: "web",
+          issuedAt: "2026-02-16T12:00:00.000Z",
+        },
+        payload: {
+          itemId: "w_1",
+        },
+      }),
+    });
+    const body = (await response.json()) as {
+      status: string;
+      type?: string;
+      result?: {
+        itemId?: string;
+      };
+    };
+
+    expect(response.status).toBe(200);
+    expect(body.status).toBe("accepted");
+    expect(body.type).toBe("runtime.approve");
+    expect(body.result?.itemId).toBe("w_1");
+  });
+
   it("accepts valid runtime commands", async () => {
     const server = await startRuntimeServer();
     activeServers.push(server.close);
@@ -82,6 +118,34 @@ describe("runtime server", () => {
     expect(body.status).toBe("accepted");
     expect(body.type).toBe("runtime.approve");
     expect(body.result?.itemId).toBe("w_1");
+  });
+
+  it("returns 400 when endpoint and command type do not match", async () => {
+    const server = await startRuntimeServer();
+    activeServers.push(server.close);
+
+    const response = await fetch(`${server.baseUrl}/runtime/dismiss`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        type: "runtime.approve",
+        context: {
+          userId: "local-user",
+          requestId: "req_mismatch_1",
+          source: "web",
+          issuedAt: "2026-02-16T12:00:00.000Z",
+        },
+        payload: {
+          itemId: "w_1",
+        },
+      }),
+    });
+    const body = (await response.json()) as { error: string };
+
+    expect(response.status).toBe(400);
+    expect(body.error).toContain("does not match endpoint");
   });
 
   it("returns 400 for invalid JSON payloads", async () => {

@@ -30,6 +30,18 @@ afterEach(() => {
   }
 });
 
+function toFetchUrl(input: Parameters<typeof fetch>[0]) {
+  if (typeof input === "string") {
+    return input;
+  }
+
+  if (input instanceof URL) {
+    return input.toString();
+  }
+
+  return input.url;
+}
+
 describe("dispatchRuntimeCommand", () => {
   it("returns configuration error when runtime url is missing", async () => {
     delete process.env.NYTE_RUNTIME_URL;
@@ -45,7 +57,9 @@ describe("dispatchRuntimeCommand", () => {
   });
 
   it("returns accepted runtime result when command succeeds", async () => {
-    const fetchImpl: typeof fetch = async () => {
+    let calledUrl: string | null = null;
+    const fetchImpl: typeof fetch = async (input) => {
+      calledUrl = toFetchUrl(input);
       return new Response(
         JSON.stringify({
           status: "accepted",
@@ -76,6 +90,42 @@ describe("dispatchRuntimeCommand", () => {
       return;
     }
     expect(result.value.type).toBe("runtime.approve");
+    expect(calledUrl).toBe("https://runtime.nyte.dev/runtime/approve");
+  });
+
+  it("routes ingest commands to runtime ingest endpoint", async () => {
+    let calledUrl: string | null = null;
+    const fetchImpl: typeof fetch = async (input) => {
+      calledUrl = toFetchUrl(input);
+      return new Response(
+        JSON.stringify({
+          status: "accepted",
+          type: "runtime.ingest",
+          requestId: "req_123",
+          receivedAt: "2026-02-16T12:00:00.000Z",
+          result: {
+            cursor: "2026-02-16T12:00:00.000Z",
+            queuedCount: 0,
+          },
+        }),
+        { status: 200 },
+      );
+    };
+
+    const result = await dispatchRuntimeCommand(
+      {
+        type: "runtime.ingest",
+        context: baseCommand.context,
+        payload: {},
+      },
+      {
+        runtimeBaseUrl: "https://runtime.nyte.dev",
+        fetchImpl,
+      },
+    );
+
+    expect(result.isOk()).toBe(true);
+    expect(calledUrl).toBe("https://runtime.nyte.dev/runtime/ingest");
   });
 
   it("maps non-ok runtime responses into dispatch errors", async () => {

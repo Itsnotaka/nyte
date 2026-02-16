@@ -24,6 +24,22 @@ type RuntimeClientOptions = {
   fetchImpl?: typeof fetch;
 };
 
+function runtimeCommandPath(type: RuntimeCommand["type"]) {
+  if (type === "runtime.ingest") {
+    return "/runtime/ingest";
+  }
+
+  if (type === "runtime.approve") {
+    return "/runtime/approve";
+  }
+
+  if (type === "runtime.dismiss") {
+    return "/runtime/dismiss";
+  }
+
+  return "/runtime/feedback";
+}
+
 function normalizeRuntimeBaseUrl(value: string | undefined) {
   if (!value) {
     return null;
@@ -84,7 +100,7 @@ export function dispatchRuntimeCommand(
 > {
   return resolveRuntimeBaseUrl(options.runtimeBaseUrl).andThen((baseUrl) => {
     const fetchImpl = options.fetchImpl ?? fetch;
-    const runtimeEndpoint = `${baseUrl}/runtime/command`;
+    const runtimeEndpoint = `${baseUrl}${runtimeCommandPath(command.type)}`;
 
     return ResultAsync.fromPromise(
       fetchImpl(runtimeEndpoint, {
