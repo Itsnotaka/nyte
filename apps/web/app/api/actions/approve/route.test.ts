@@ -145,6 +145,33 @@ describe("POST /api/actions/approve", () => {
     expect(body.error).toContain("application/json");
   });
 
+  it("accepts structured +json content-type", async () => {
+    await persistSignals(mockIntakeSignals, new Date("2026-02-10T10:00:00.000Z"));
+
+    const response = await POST(
+      new Request("http://localhost/api/actions/approve", {
+        method: "POST",
+        headers: {
+          "content-type": "application/merge-patch+json",
+          "x-forwarded-for": "203.0.113.47",
+        },
+        body: JSON.stringify({
+          itemId: "w_renewal",
+        }),
+      }),
+    );
+    const body = (await response.json()) as {
+      itemId: string;
+      execution: {
+        idempotencyKey: string;
+      };
+    };
+
+    expect(response.status).toBe(200);
+    expect(body.itemId).toBe("w_renewal");
+    expect(body.execution.idempotencyKey).toBeTruthy();
+  });
+
   it("propagates explicit idempotency key from header", async () => {
     await persistSignals(mockIntakeSignals, new Date("2026-02-10T10:00:00.000Z"));
 

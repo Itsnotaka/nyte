@@ -154,6 +154,29 @@ describe("google connection route", () => {
     expect(body.error).toContain("application/json");
   });
 
+  it("accepts structured +json content-type for connection payload", async () => {
+    const response = await POST(
+      new Request("http://localhost/api/connections/google", {
+        method: "POST",
+        headers: {
+          "content-type": "application/merge-patch+json",
+          "x-forwarded-for": "198.51.100.95",
+        },
+        body: JSON.stringify({
+          providerAccountId: "google-structured-json",
+        }),
+      }),
+    );
+    const body = (await response.json()) as {
+      connected: boolean;
+      providerAccountId: string | null;
+    };
+
+    expect(response.status).toBe(200);
+    expect(body.connected).toBe(true);
+    expect(body.providerAccountId).toBe("google-structured-json");
+  });
+
   it("returns 429 when mutate rate limit is exceeded", async () => {
     let lastResponse: Response | null = null;
     for (let index = 0; index < 21; index += 1) {
