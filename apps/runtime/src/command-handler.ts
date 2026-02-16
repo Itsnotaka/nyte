@@ -1,22 +1,16 @@
 import { ApprovalError, approveWorkItem } from "@nyte/application/approve-action";
 import { dismissWorkItem, DismissError } from "@nyte/application/dismiss-action";
 import { FeedbackError, recordFeedback } from "@nyte/application/feedback";
-import { persistSignals } from "@nyte/application/queue-store";
 import type { RuntimeCommand, RuntimeCommandResult, RuntimeErrorResult } from "@nyte/contracts";
-import { pollGmailIngestion } from "@nyte/integrations/gmail/polling";
-import { Result, ResultAsync } from "neverthrow";
+import { ResultAsync } from "neverthrow";
 
 export type RuntimeCommandHandlerDeps = {
-  pollGmailIngestion: typeof pollGmailIngestion;
-  persistSignals: typeof persistSignals;
   approveWorkItem: typeof approveWorkItem;
   dismissWorkItem: typeof dismissWorkItem;
   recordFeedback: typeof recordFeedback;
 };
 
 const DEFAULT_DEPS: RuntimeCommandHandlerDeps = {
-  pollGmailIngestion,
-  persistSignals,
   approveWorkItem,
   dismissWorkItem,
   recordFeedback,
@@ -68,37 +62,11 @@ export function createRuntimeCommandHandler(deps: RuntimeCommandHandlerDeps = DE
     const requestId = command.context.requestId;
 
     if (command.type === "runtime.ingest") {
-      const pollResult = Result.fromThrowable(
-        () =>
-          deps.pollGmailIngestion({
-            cursor: command.payload.cursor,
-            now,
-            watchKeywords: command.payload.watchKeywords,
-          }),
-        () => new Error("Failed to ingest runtime command."),
-      )();
-      if (pollResult.isErr()) {
-        return toRuntimeError(requestId, "internal", "Failed to ingest runtime command.");
-      }
-
-      const persistedSignals = await ResultAsync.fromPromise(
-        deps.persistSignals(pollResult.value.signals, now),
-        () => new Error("Failed to ingest runtime command."),
-      );
-      if (persistedSignals.isErr()) {
-        return toRuntimeError(requestId, "internal", "Failed to ingest runtime command.");
-      }
-
-      return {
-        status: "accepted",
-        type: "runtime.ingest",
+      return toRuntimeError(
         requestId,
-        receivedAt,
-        result: {
-          cursor: pollResult.value.nextCursor,
-          queuedCount: persistedSignals.value.length,
-        },
-      };
+        "not_supported",
+        "Runtime ingestion is disabled in the web-first app.",
+      );
     }
 
     if (command.type === "runtime.approve") {

@@ -20,6 +20,7 @@
   "devDependencies": {
     "@nyte/tsconfig": "workspace:*",
     "@typescript/native-preview": "7.0.0-dev.20260215.1",
+    "knip": "^5.83.1",
     "oxfmt": "^0.32.0",
     "oxlint": "^1.47.0",
     "oxlint-tsgolint": "^0.13.0",
