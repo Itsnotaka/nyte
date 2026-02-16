@@ -82,6 +82,18 @@ export const calendarEvents = sqliteTable("calendar_events", {
   syncedAt: integer("synced_at", { mode: "timestamp_ms" }).notNull(),
 });
 
+export const policyRules = sqliteTable("policy_rules", {
+  id: text("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id),
+  ruleType: text("rule_type").notNull(),
+  value: text("value").notNull(),
+  enabled: integer("enabled", { mode: "boolean" }).notNull(),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+});
+
 export const workflowRuns = sqliteTable("workflow_runs", {
   id: text("id").primaryKey(),
   workItemId: text("work_item_id")

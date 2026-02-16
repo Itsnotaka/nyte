@@ -108,6 +108,19 @@ async function runBootstrap() {
   `);
 
   await db.run(sql`
+    CREATE TABLE IF NOT EXISTS policy_rules (
+      id TEXT PRIMARY KEY NOT NULL,
+      user_id TEXT NOT NULL,
+      rule_type TEXT NOT NULL,
+      value TEXT NOT NULL,
+      enabled INTEGER NOT NULL,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+      FOREIGN KEY(user_id) REFERENCES users(id)
+    )
+  `);
+
+  await db.run(sql`
     CREATE TABLE IF NOT EXISTS workflow_events (
       id TEXT PRIMARY KEY NOT NULL,
       run_id TEXT NOT NULL,

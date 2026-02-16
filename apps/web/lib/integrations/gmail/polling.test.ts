@@ -31,4 +31,19 @@ describe("pollGmailIngestion", () => {
     expect(result.signals[0]).toBeDefined();
     expect(result.signals[0]!.intent).toBe("refund_request");
   });
+
+  it("marks signals that match watch keywords", () => {
+    const result = pollGmailIngestion({
+      now: new Date("2026-01-20T12:00:00.000Z"),
+      watchKeywords: ["term sheet", "board"],
+    });
+
+    const renewal = result.signals.find((signal) => signal.id === "gmail_renewal");
+    const board = result.signals.find((signal) => signal.id === "gmail_board");
+    const refund = result.signals.find((signal) => signal.id === "gmail_refund");
+
+    expect(renewal?.watchMatched).toBe(true);
+    expect(board?.watchMatched).toBe(true);
+    expect(refund?.watchMatched).toBe(false);
+  });
 });

@@ -111,6 +111,10 @@ type FeedbackResponse = {
   notedAt: string;
 };
 
+type PolicyRulesResponse = {
+  watchKeywords: string[];
+};
+
 type WorkflowTimelineResponse = {
   itemId: string;
   timeline: Array<{
@@ -197,6 +201,8 @@ export function NyteShell() {
   const [metricsError, setMetricsError] = React.useState<string | null>(null);
   const [watchRuleInput, setWatchRuleInput] = React.useState("");
   const [watchRules, setWatchRules] = React.useState<string[]>([]);
+  const [isRulesLoading, setIsRulesLoading] = React.useState(false);
+  const [rulesError, setRulesError] = React.useState<string | null>(null);
   const [activeItem, setActiveItem] = React.useState<WorkItemWithAction | null>(
     queueItems.at(0) ?? null,
   );
@@ -277,30 +283,29 @@ export function NyteShell() {
     }
   }, []);
 
+  const refreshWatchRules = React.useCallback(async () => {
+    setRulesError(null);
+    setIsRulesLoading(true);
+    try {
+      const response = await fetch("/api/policy-rules");
+      if (!response.ok) {
+        throw new Error("Unable to load watch rules.");
+      }
+
+      const payload = (await response.json()) as PolicyRulesResponse;
+      setWatchRules(payload.watchKeywords);
+    } catch (error) {
+      setRulesError(error instanceof Error ? error.message : "Unable to load watch rules.");
+    } finally {
+      setIsRulesLoading(false);
+    }
+  }, []);
+
   const openItem = React.useCallback((item: WorkItemWithAction) => {
     setActionError(null);
     setActiveItem(item);
     setEditableAction(clonePayload(item.proposedAction));
   }, []);
-
-  React.useEffect(() => {
-    const stored = window.localStorage.getItem("nyte.watch-rules");
-    if (!stored) {
-      setWatchRules(["renewal", "board", "vip"]);
-      return;
-    }
-
-    try {
-      const parsed = JSON.parse(stored) as string[];
-      setWatchRules(Array.isArray(parsed) ? parsed : []);
-    } catch {
-      setWatchRules(["renewal", "board", "vip"]);
-    }
-  }, []);
-
-  React.useEffect(() => {
-    window.localStorage.setItem("nyte.watch-rules", JSON.stringify(watchRules));
-  }, [watchRules]);
 
   React.useEffect(() => {
     if (!activeItem) {
@@ -455,7 +460,8 @@ export function NyteShell() {
   React.useEffect(() => {
     void syncQueue();
     void refreshMetrics();
-  }, [refreshMetrics, syncQueue]);
+    void refreshWatchRules();
+  }, [refreshMetrics, refreshWatchRules, syncQueue]);
 
   const connectGoogle = React.useCallback(async () => {
     setConnectionError(null);
@@ -482,21 +488,66 @@ export function NyteShell() {
     }
   }, []);
 
-  const addWatchRule = React.useCallback(() => {
+  const addWatchRule = React.useCallback(async () => {
     const normalized = watchRuleInput.trim().toLowerCase();
     if (!normalized) {
       return;
     }
 
-    setWatchRules((current) =>
-      current.includes(normalized) ? current : [normalized, ...current].slice(0, 12),
-    );
-    setWatchRuleInput("");
-  }, [watchRuleInput]);
+    setRulesError(null);
+    setIsRulesLoading(true);
+    try {
+      const response = await fetch("/api/policy-rules", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          keyword: normalized,
+        }),
+      });
+      if (!response.ok) {
+        const errorBody = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(errorBody?.error ?? "Unable to add watch rule.");
+      }
 
-  const removeWatchRule = React.useCallback((rule: string) => {
-    setWatchRules((current) => current.filter((entry) => entry !== rule));
-  }, []);
+      setWatchRuleInput("");
+      await refreshWatchRules();
+    } catch (error) {
+      setRulesError(error instanceof Error ? error.message : "Unable to add watch rule.");
+    } finally {
+      setIsRulesLoading(false);
+    }
+  }, [refreshWatchRules, watchRuleInput]);
+
+  const removeWatchRule = React.useCallback(
+    async (rule: string) => {
+      setRulesError(null);
+      setIsRulesLoading(true);
+      try {
+        const response = await fetch("/api/policy-rules", {
+          method: "DELETE",
+          headers: {
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({
+            keyword: rule,
+          }),
+        });
+        if (!response.ok) {
+          const errorBody = (await response.json().catch(() => null)) as { error?: string } | null;
+          throw new Error(errorBody?.error ?? "Unable to remove watch rule.");
+        }
+
+        await refreshWatchRules();
+      } catch (error) {
+        setRulesError(error instanceof Error ? error.message : "Unable to remove watch rule.");
+      } finally {
+        setIsRulesLoading(false);
+      }
+    },
+    [refreshWatchRules],
+  );
 
   const submitFeedback = React.useCallback(
     async (itemId: string, rating: "positive" | "negative") => {
@@ -867,11 +918,20 @@ export function NyteShell() {
                         value={watchRuleInput}
                         onChange={(event) => setWatchRuleInput(event.currentTarget.value)}
                         placeholder="Add watch keyword (e.g. renewal)"
+                        disabled={isRulesLoading}
                       />
-                      <Button variant="outline" onClick={addWatchRule}>
+                      <Button
+                        variant="outline"
+                        onClick={() => void addWatchRule()}
+                        disabled={isRulesLoading}
+                      >
                         Add
                       </Button>
                     </div>
+                    {rulesError ? <p className="text-destructive text-xs">{rulesError}</p> : null}
+                    {isRulesLoading ? (
+                      <p className="text-muted-foreground text-xs">Updating watch rules…</p>
+                    ) : null}
                     {watchRules.length > 0 ? (
                       <div className="flex flex-wrap gap-2">
                         {watchRules.map((rule) => (
@@ -879,7 +939,8 @@ export function NyteShell() {
                             key={rule}
                             variant="outline"
                             className="h-7 text-xs"
-                            onClick={() => removeWatchRule(rule)}
+                            disabled={isRulesLoading}
+                            onClick={() => void removeWatchRule(rule)}
                           >
                             {rule}
                             <ChevronRightIcon className="size-3 rotate-90" />

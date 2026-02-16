@@ -13,6 +13,7 @@ export type GmailThreadSnapshot = {
 export type PollingInput = {
   cursor?: string;
   now?: Date;
+  watchKeywords?: string[];
 };
 
 export type PollingResult = {
@@ -63,9 +64,11 @@ function inferIntent(subject: string, snippet: string): IntakeIntent {
   return "draft_reply";
 }
 
-function buildSignal(snapshot: GmailThreadSnapshot): IntakeSignal {
+function buildSignal(snapshot: GmailThreadSnapshot, watchKeywords: string[] = []): IntakeSignal {
   const intent = inferIntent(snapshot.subject, snapshot.snippet);
   const hasDeadline = intent !== "draft_reply";
+  const haystack = `${snapshot.subject} ${snapshot.snippet}`.toLowerCase();
+  const watchMatched = watchKeywords.some((keyword) => haystack.includes(keyword.toLowerCase()));
 
   return {
     id: snapshot.id,
@@ -79,10 +82,15 @@ function buildSignal(snapshot: GmailThreadSnapshot): IntakeSignal {
     deadlineAt: hasDeadline ? "2026-01-22T14:00:00.000Z" : undefined,
     relationshipScore: snapshot.relationshipScore,
     impactScore: snapshot.impactScore,
+    watchMatched,
   };
 }
 
-export function pollGmailIngestion({ cursor, now = new Date() }: PollingInput): PollingResult {
+export function pollGmailIngestion({
+  cursor,
+  now = new Date(),
+  watchKeywords = [],
+}: PollingInput): PollingResult {
   const cursorTime = cursor ? new Date(cursor).getTime() : Number.NEGATIVE_INFINITY;
   const freshSnapshots = mockGmailSnapshots.filter(
     (snapshot) => new Date(snapshot.receivedAt).getTime() > cursorTime,
@@ -90,6 +98,6 @@ export function pollGmailIngestion({ cursor, now = new Date() }: PollingInput): 
 
   return {
     nextCursor: now.toISOString(),
-    signals: freshSnapshots.map(buildSignal),
+    signals: freshSnapshots.map((snapshot) => buildSignal(snapshot, watchKeywords)),
   };
 }

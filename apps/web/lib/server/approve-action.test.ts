@@ -7,6 +7,7 @@ import {
   feedbackEntries,
   gateEvaluations,
   gmailDrafts,
+  policyRules,
   proposedActions,
   users,
   workflowEvents,
@@ -27,6 +28,7 @@ async function resetDb() {
   await db.delete(workflowRuns);
   await db.delete(proposedActions);
   await db.delete(gateEvaluations);
+  await db.delete(policyRules);
   await db.delete(workItems);
   await db.delete(connectedAccounts);
   await db.delete(users);
