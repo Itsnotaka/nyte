@@ -107,17 +107,42 @@ describe("workflow retention policy", () => {
       now: new Date("2026-01-19T00:00:00.000Z"),
       events: [{ kind: "new", payload: {} }],
     });
+    await db.insert(auditLogs).values([
+      {
+        id: "audit:old",
+        userId: "local-user",
+        action: "old.audit",
+        targetType: "work_item",
+        targetId: "w_old",
+        payloadJson: JSON.stringify({ run: "old" }),
+        createdAt: new Date("2025-01-02T00:00:00.000Z"),
+      },
+      {
+        id: "audit:new",
+        userId: "local-user",
+        action: "new.audit",
+        targetType: "work_item",
+        targetId: "w_new",
+        payloadJson: JSON.stringify({ run: "new" }),
+        createdAt: new Date("2026-01-19T00:00:00.000Z"),
+      },
+    ]);
 
     await setWorkflowRetentionDays(7, new Date("2026-01-20T00:00:00.000Z"));
     const result = await pruneWorkflowHistory(new Date("2026-01-20T00:00:00.000Z"));
 
     expect(result.prunedRuns).toBe(1);
+    expect(result.prunedAuditLogs).toBe(1);
     expect(result.performed).toBe(true);
     expect(result.triggeredBy).toBe("manual");
 
     const remainingRuns = await db.select().from(workflowRuns);
     expect(remainingRuns).toHaveLength(1);
     expect(remainingRuns[0]?.workItemId).toBe("w_new");
+
+    const remainingAuditRows = await db.select().from(auditLogs);
+    expect(remainingAuditRows.map((row) => row.id)).toContain("audit:new");
+    expect(remainingAuditRows.map((row) => row.id)).not.toContain("audit:old");
   });
 
   it("skips auto-prune when interval has not elapsed", async () => {
@@ -127,5 +152,6 @@ describe("workflow retention policy", () => {
     expect(first.performed).toBe(true);
     expect(second.performed).toBe(false);
     expect(second.prunedRuns).toBe(0);
+    expect(second.prunedAuditLogs).toBe(0);
   });
 });

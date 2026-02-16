@@ -1,5 +1,6 @@
 import { and, eq, inArray, lt } from "drizzle-orm";
 import {
+  auditLogs,
   db,
   ensureDbSchema,
   policyRules,
@@ -147,6 +148,15 @@ export async function pruneWorkflowHistory(now = new Date()) {
     await db.delete(workflowRuns).where(inArray(workflowRuns.id, staleIds));
   }
 
+  const staleAuditRows = await db
+    .select({ id: auditLogs.id })
+    .from(auditLogs)
+    .where(lt(auditLogs.createdAt, cutoff));
+  const staleAuditIds = staleAuditRows.map((row) => row.id);
+  if (staleAuditIds.length > 0) {
+    await db.delete(auditLogs).where(inArray(auditLogs.id, staleAuditIds));
+  }
+
   await recordAuditLog({
     userId: DEFAULT_USER_ID,
     action: "workflow-retention.pruned",
@@ -154,6 +164,7 @@ export async function pruneWorkflowHistory(now = new Date()) {
     targetId: "runs",
     payload: {
       prunedRuns: staleIds.length,
+      prunedAuditLogs: staleAuditIds.length,
       cutoff: cutoff.toISOString(),
       retentionDays: retention.days,
     },
@@ -164,6 +175,7 @@ export async function pruneWorkflowHistory(now = new Date()) {
     retentionDays: retention.days,
     source: retention.source,
     prunedRuns: staleIds.length,
+    prunedAuditLogs: staleAuditIds.length,
     cutoff: cutoff.toISOString(),
     performed: true as const,
     triggeredBy: "manual" as const,
@@ -177,6 +189,7 @@ export async function pruneWorkflowHistoryIfDue(now = new Date(), intervalMs = 6
       retentionDays: null,
       source: null,
       prunedRuns: 0,
+      prunedAuditLogs: 0,
       cutoff: null,
       performed: false as const,
       triggeredBy: "auto" as const,
