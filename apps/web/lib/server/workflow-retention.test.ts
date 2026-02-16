@@ -18,7 +18,9 @@ import {
 import { recordWorkflowRun } from "./workflow-log";
 import {
   getWorkflowRetentionDays,
+  pruneWorkflowHistoryIfDue,
   pruneWorkflowHistory,
+  resetWorkflowRetentionState,
   setWorkflowRetentionDays,
 } from "./workflow-retention";
 
@@ -41,6 +43,7 @@ describe("workflow retention policy", () => {
   beforeEach(async () => {
     await resetDb();
     delete process.env.NYTE_WORKFLOW_RETENTION_DAYS;
+    resetWorkflowRetentionState();
   });
 
   it("stores retention days in policy rules", async () => {
@@ -107,9 +110,20 @@ describe("workflow retention policy", () => {
     const result = await pruneWorkflowHistory(new Date("2026-01-20T00:00:00.000Z"));
 
     expect(result.prunedRuns).toBe(1);
+    expect(result.performed).toBe(true);
+    expect(result.triggeredBy).toBe("manual");
 
     const remainingRuns = await db.select().from(workflowRuns);
     expect(remainingRuns).toHaveLength(1);
     expect(remainingRuns[0]?.workItemId).toBe("w_new");
+  });
+
+  it("skips auto-prune when interval has not elapsed", async () => {
+    const first = await pruneWorkflowHistoryIfDue(new Date("2026-01-20T00:00:00.000Z"), 60_000);
+    const second = await pruneWorkflowHistoryIfDue(new Date("2026-01-20T00:00:30.000Z"), 60_000);
+
+    expect(first.performed).toBe(true);
+    expect(second.performed).toBe(false);
+    expect(second.prunedRuns).toBe(0);
   });
 });

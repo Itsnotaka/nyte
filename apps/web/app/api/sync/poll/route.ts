@@ -3,6 +3,7 @@ import { AuthorizationError, requireAuthorizedSession } from "@/lib/server/authz
 import { getDashboardData } from "@/lib/server/dashboard";
 import { listWatchKeywords } from "@/lib/server/policy-rules";
 import { persistSignals } from "@/lib/server/queue-store";
+import { pruneWorkflowHistoryIfDue } from "@/lib/server/workflow-retention";
 
 export async function GET(request: Request) {
   try {
@@ -23,6 +24,7 @@ export async function GET(request: Request) {
     watchKeywords,
   });
   await persistSignals(pollResult.signals, now);
+  await pruneWorkflowHistoryIfDue(now);
   const dashboard = await getDashboardData();
 
   return Response.json({

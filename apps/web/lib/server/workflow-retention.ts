@@ -12,6 +12,7 @@ const DEFAULT_USER_ID = "local-user";
 const DEFAULT_USER_EMAIL = "local-user@nyte.dev";
 const DEFAULT_RETENTION_DAYS = 30;
 const RETENTION_RULE_ID = "policy:workflow_retention_days";
+let lastAutoPruneAt = 0;
 
 async function ensureDefaultUser(now: Date) {
   await db
@@ -139,5 +140,32 @@ export async function pruneWorkflowHistory(now = new Date()) {
     source: retention.source,
     prunedRuns: staleIds.length,
     cutoff: cutoff.toISOString(),
+    performed: true as const,
+    triggeredBy: "manual" as const,
   };
+}
+
+export async function pruneWorkflowHistoryIfDue(now = new Date(), intervalMs = 60 * 60 * 1000) {
+  const nowMs = now.getTime();
+  if (nowMs - lastAutoPruneAt < intervalMs) {
+    return {
+      retentionDays: null,
+      source: null,
+      prunedRuns: 0,
+      cutoff: null,
+      performed: false as const,
+      triggeredBy: "auto" as const,
+    };
+  }
+
+  const result = await pruneWorkflowHistory(now);
+  lastAutoPruneAt = nowMs;
+  return {
+    ...result,
+    triggeredBy: "auto" as const,
+  };
+}
+
+export function resetWorkflowRetentionState() {
+  lastAutoPruneAt = 0;
 }

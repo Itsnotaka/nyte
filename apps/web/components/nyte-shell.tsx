@@ -131,10 +131,12 @@ type WorkflowRetentionResponse = {
 };
 
 type WorkflowPruneResponse = {
-  retentionDays: number;
-  source: "default" | "policy" | "env";
+  retentionDays: number | null;
+  source: "default" | "policy" | "env" | null;
   prunedRuns: number;
-  cutoff: string;
+  cutoff: string | null;
+  performed: boolean;
+  triggeredBy: "manual" | "auto";
 };
 
 type WorkflowTimelineResponse = {
@@ -716,8 +718,12 @@ export function NyteShell() {
 
       const payload = (await response.json()) as WorkflowPruneResponse;
       setPruneResult(payload);
-      setRetentionDays(payload.retentionDays);
-      setRetentionSource(payload.source);
+      if (payload.retentionDays !== null) {
+        setRetentionDays(payload.retentionDays);
+      }
+      if (payload.source !== null) {
+        setRetentionSource(payload.source);
+      }
       await refreshMetrics();
       await refreshDashboard();
     } catch (error) {
