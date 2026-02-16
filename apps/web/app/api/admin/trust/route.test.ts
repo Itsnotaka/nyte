@@ -46,9 +46,11 @@ function buildRequest(url: string) {
 
 describe("GET /api/admin/trust", () => {
   const originalRequireAuth = process.env.NYTE_REQUIRE_AUTH;
+  const originalUnkeyRootKey = process.env.UNKEY_ROOT_KEY;
 
   beforeEach(async () => {
     process.env.NYTE_REQUIRE_AUTH = "false";
+    delete process.env.UNKEY_ROOT_KEY;
     resetRateLimitState();
     await resetDb();
   });
@@ -60,6 +62,12 @@ describe("GET /api/admin/trust", () => {
     }
 
     process.env.NYTE_REQUIRE_AUTH = originalRequireAuth;
+    if (originalUnkeyRootKey === undefined) {
+      delete process.env.UNKEY_ROOT_KEY;
+      return;
+    }
+
+    process.env.UNKEY_ROOT_KEY = originalUnkeyRootKey;
   });
 
   it("returns trust report payload", async () => {
@@ -80,8 +88,8 @@ describe("GET /api/admin/trust", () => {
     expect(body.generatedAt).toBeTruthy();
     expect(["ok", "warning"]).toContain(body.posture.status);
     expect(typeof body.security.authzEnforced).toBe("boolean");
-    expect(["unkey", "memory"]).toContain(body.security.rateLimitProvider);
-    expect(typeof body.security.unkeyRateLimitConfigured).toBe("boolean");
+    expect(body.security.rateLimitProvider).toBe("memory");
+    expect(body.security.unkeyRateLimitConfigured).toBe(false);
   });
 
   it("returns 429 when trust read limit is exceeded", async () => {
