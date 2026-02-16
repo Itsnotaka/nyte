@@ -19,6 +19,7 @@ import { decryptSecret } from "./token-crypto";
 import {
   disconnectGoogleConnection,
   getGoogleConnectionStatus,
+  rotateGoogleConnectionSecrets,
   upsertGoogleConnection,
 } from "./connections";
 
@@ -41,6 +42,7 @@ describe("google connection persistence", () => {
   beforeEach(async () => {
     await resetDb();
     process.env.NYTE_TOKEN_ENCRYPTION_KEY = "connections-test-key";
+    delete process.env.NYTE_TOKEN_ENCRYPTION_KEY_PREVIOUS;
   });
 
   it("stores encrypted tokens and exposes connection status without secrets", async () => {
@@ -75,5 +77,43 @@ describe("google connection persistence", () => {
 
     const disconnected = await disconnectGoogleConnection();
     expect(disconnected.connected).toBe(false);
+  });
+
+  it("re-encrypts stored tokens when encryption key rotates", async () => {
+    await upsertGoogleConnection(
+      {
+        providerAccountId: "acct_rotate",
+        accessToken: "access-before-rotation",
+        refreshToken: "refresh-before-rotation",
+      },
+      new Date("2026-01-20T12:00:00.000Z"),
+    );
+
+    const beforeRows = await db.select().from(connectedAccounts);
+    const beforeAccessToken = beforeRows[0]?.accessToken;
+    const beforeRefreshToken = beforeRows[0]?.refreshToken;
+    expect(beforeAccessToken).toBeDefined();
+    expect(beforeRefreshToken).toBeDefined();
+
+    process.env.NYTE_TOKEN_ENCRYPTION_KEY = "connections-rotated-key";
+    process.env.NYTE_TOKEN_ENCRYPTION_KEY_PREVIOUS = "connections-test-key";
+    const rotationResult = await rotateGoogleConnectionSecrets(
+      new Date("2026-01-20T12:05:00.000Z"),
+    );
+    expect(rotationResult.rotated).toBe(true);
+
+    const afterRows = await db.select().from(connectedAccounts);
+    expect(afterRows[0]?.accessToken).not.toBe(beforeAccessToken);
+    expect(afterRows[0]?.refreshToken).not.toBe(beforeRefreshToken);
+
+    delete process.env.NYTE_TOKEN_ENCRYPTION_KEY_PREVIOUS;
+    expect(decryptSecret(afterRows[0]!.accessToken)).toBe("access-before-rotation");
+    expect(decryptSecret(afterRows[0]!.refreshToken ?? "")).toBe("refresh-before-rotation");
+  });
+
+  it("returns non-rotated response when connection is missing", async () => {
+    const result = await rotateGoogleConnectionSecrets(new Date("2026-01-20T12:05:00.000Z"));
+    expect(result.rotated).toBe(false);
+    expect(result.status.connected).toBe(false);
   });
 });

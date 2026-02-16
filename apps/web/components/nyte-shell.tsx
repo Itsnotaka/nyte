@@ -125,6 +125,11 @@ type GoogleConnectionResponse = {
   updatedAt: string | null;
 };
 
+type RotateConnectionResponse = {
+  rotated: boolean;
+  status: GoogleConnectionResponse;
+};
+
 type WorkflowRetentionResponse = {
   days: number;
   source: "default" | "policy" | "env";
@@ -212,6 +217,8 @@ export function NyteShell() {
     null,
   );
   const [isConnectionLoading, setIsConnectionLoading] = React.useState(false);
+  const [isRotatingConnectionSecrets, setIsRotatingConnectionSecrets] = React.useState(false);
+  const [connectionNotice, setConnectionNotice] = React.useState<string | null>(null);
   const [syncError, setSyncError] = React.useState<string | null>(null);
   const [actionError, setActionError] = React.useState<string | null>(null);
   const [isSyncing, setIsSyncing] = React.useState(false);
@@ -337,6 +344,7 @@ export function NyteShell() {
 
   const refreshGoogleConnection = React.useCallback(async () => {
     setConnectionError(null);
+    setConnectionNotice(null);
     setIsConnectionLoading(true);
     try {
       const response = await fetch("/api/connections/google");
@@ -580,6 +588,7 @@ export function NyteShell() {
 
   const connectGoogle = React.useCallback(async () => {
     setConnectionError(null);
+    setConnectionNotice(null);
     try {
       await authClient.signIn.social({
         provider: "google",
@@ -594,6 +603,7 @@ export function NyteShell() {
 
   const disconnectGoogle = React.useCallback(async () => {
     setConnectionError(null);
+    setConnectionNotice(null);
     try {
       const response = await fetch("/api/connections/google", {
         method: "DELETE",
@@ -606,10 +616,40 @@ export function NyteShell() {
       const payload = (await response.json()) as GoogleConnectionResponse;
       setGoogleConnection(payload);
       await authClient.signOut();
+      setConnectionNotice("Disconnected Google OAuth and cleared encrypted credentials.");
     } catch (error) {
       setConnectionError(
         error instanceof Error ? error.message : "Unable to disconnect Google account.",
       );
+    }
+  }, []);
+
+  const rotateConnectionSecrets = React.useCallback(async () => {
+    setConnectionError(null);
+    setConnectionNotice(null);
+    setIsRotatingConnectionSecrets(true);
+    try {
+      const response = await fetch("/api/connections/google/rotate", {
+        method: "POST",
+      });
+      if (!response.ok) {
+        const errorBody = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(errorBody?.error ?? "Unable to rotate encrypted secrets.");
+      }
+
+      const payload = (await response.json()) as RotateConnectionResponse;
+      setGoogleConnection(payload.status);
+      setConnectionNotice(
+        payload.rotated
+          ? "Encrypted connection secrets were re-keyed using current key material."
+          : "No connection secrets were found to rotate.",
+      );
+    } catch (error) {
+      setConnectionError(
+        error instanceof Error ? error.message : "Unable to rotate encrypted secrets.",
+      );
+    } finally {
+      setIsRotatingConnectionSecrets(false);
     }
   }, []);
 
@@ -1032,9 +1072,19 @@ export function NyteShell() {
                     >
                       Refresh status
                     </Button>
+                    <Button
+                      variant="outline"
+                      disabled={isRotatingConnectionSecrets || !googleConnection?.connected}
+                      onClick={() => void rotateConnectionSecrets()}
+                    >
+                      Rotate encrypted secrets
+                    </Button>
                   </div>
                   {isConnectionLoading ? (
                     <p className="text-muted-foreground text-xs">Refreshing connection status…</p>
+                  ) : null}
+                  {isRotatingConnectionSecrets ? (
+                    <p className="text-muted-foreground text-xs">Rotating encrypted secrets…</p>
                   ) : null}
                   {googleConnection?.connected ? (
                     <div className="bg-muted/40 border-border rounded-lg border px-3 py-2 text-xs">
@@ -1048,6 +1098,9 @@ export function NyteShell() {
                   ) : null}
                   {connectionError ? (
                     <p className="text-destructive text-xs">{connectionError}</p>
+                  ) : null}
+                  {connectionNotice ? (
+                    <p className="text-muted-foreground text-xs">{connectionNotice}</p>
                   ) : null}
                 </CardContent>
               </Card>

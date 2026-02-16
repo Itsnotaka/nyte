@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { connectedAccounts, db, ensureDbSchema, users } from "@workspace/db";
 import { randomUUID } from "node:crypto";
 
-import { encryptSecret } from "./token-crypto";
+import { decryptSecret, encryptSecret } from "./token-crypto";
 
 const DEFAULT_USER_ID = "local-user";
 const DEFAULT_USER_EMAIL = "local-user@nyte.dev";
@@ -131,4 +131,37 @@ export async function disconnectGoogleConnection() {
   await ensureDbSchema();
   await db.delete(connectedAccounts).where(eq(connectedAccounts.id, "connection:google"));
   return getGoogleConnectionStatus();
+}
+
+export async function rotateGoogleConnectionSecrets(now = new Date()) {
+  await ensureDbSchema();
+  const rows = await db
+    .select()
+    .from(connectedAccounts)
+    .where(eq(connectedAccounts.id, "connection:google"))
+    .limit(1);
+  const row = rows.at(0);
+  if (!row) {
+    return {
+      rotated: false as const,
+      status: await getGoogleConnectionStatus(),
+    };
+  }
+
+  const accessToken = decryptSecret(row.accessToken);
+  const refreshToken = row.refreshToken ? decryptSecret(row.refreshToken) : null;
+
+  await db
+    .update(connectedAccounts)
+    .set({
+      accessToken: encryptSecret(accessToken),
+      refreshToken: refreshToken ? encryptSecret(refreshToken) : null,
+      updatedAt: now,
+    })
+    .where(eq(connectedAccounts.id, row.id));
+
+  return {
+    rotated: true as const,
+    status: await getGoogleConnectionStatus(),
+  };
 }

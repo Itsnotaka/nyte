@@ -9,6 +9,7 @@ This checklist documents current security controls and remaining hardening tasks
 - [x] Added token encryption helpers (`apps/web/lib/server/token-crypto.ts`) using AES-256-GCM with authenticated encryption.
 - [x] Added tests for token encryption round-trip and tamper detection.
 - [x] Wire encrypted token storage into connected account persistence (`/api/connections/google` uses encrypted writes).
+- [x] Added key-rotation compatibility for encrypted tokens (previous-key fallback + `/api/connections/google/rotate` re-encryption endpoint).
 
 ## Data minimization + PII handling
 
