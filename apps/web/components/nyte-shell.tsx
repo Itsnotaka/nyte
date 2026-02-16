@@ -79,8 +79,10 @@ type ActivityEntry = {
 };
 
 type PollResponse = {
+  needsYou: WorkItemWithAction[];
+  drafts: DraftEntry[];
+  processed: ActivityEntry[];
   cursor: string;
-  needsYou: WorkItem[];
 };
 
 type ApproveResponse = {
@@ -93,6 +95,7 @@ type ApproveResponse = {
 };
 
 type DismissResponse = {
+  itemId: string;
   status: "dismissed";
   dismissedAt: string;
 };
@@ -137,6 +140,7 @@ export function NyteShell() {
   const [isSyncing, setIsSyncing] = React.useState(false);
   const [isApproving, setIsApproving] = React.useState(false);
   const [isDismissingId, setIsDismissingId] = React.useState<string | null>(null);
+  const [syncCursor, setSyncCursor] = React.useState<string | null>(null);
   const [activeItem, setActiveItem] = React.useState<WorkItemWithAction | null>(
     queueItems.at(0) ?? null,
   );
@@ -168,11 +172,51 @@ export function NyteShell() {
     [needsYouCount, processedCount, savedDrafts.length],
   );
 
+  const applyDashboard = React.useCallback(
+    (dashboard: Pick<PollResponse, "needsYou" | "drafts" | "processed">) => {
+      setQueueItems(dashboard.needsYou);
+      setSavedDrafts(dashboard.drafts);
+      setActivityFeed(dashboard.processed);
+      setHandledIds(new Set());
+
+      setActiveItem((current) => {
+        if (!current) {
+          return dashboard.needsYou.at(0) ?? null;
+        }
+
+        return dashboard.needsYou.find((item) => item.id === current.id) ?? null;
+      });
+    },
+    [],
+  );
+
+  const refreshDashboard = React.useCallback(async () => {
+    const response = await fetch("/api/dashboard");
+    if (!response.ok) {
+      throw new Error("Unable to refresh dashboard.");
+    }
+
+    const dashboard = (await response.json()) as Pick<
+      PollResponse,
+      "needsYou" | "drafts" | "processed"
+    >;
+    applyDashboard(dashboard);
+  }, [applyDashboard]);
+
   const openItem = React.useCallback((item: WorkItemWithAction) => {
     setActionError(null);
     setActiveItem(item);
     setEditableAction(clonePayload(item.proposedAction));
   }, []);
+
+  React.useEffect(() => {
+    if (!activeItem) {
+      setEditableAction(null);
+      return;
+    }
+
+    setEditableAction(clonePayload(activeItem.proposedAction));
+  }, [activeItem]);
 
   const closeDrawer = React.useCallback(() => {
     setActiveItem(null);
@@ -199,31 +243,19 @@ export function NyteShell() {
           throw new Error(errorBody?.error ?? "Unable to dismiss item.");
         }
 
-        const result = (await response.json()) as DismissResponse;
-        setHandledIds((current) => new Set(current).add(item.id));
-        setActivityFeed((current) => [
-          {
-            id: `${item.id}:dismissed`,
-            itemId: item.id,
-            actor: item.actor,
-            action: item.actionLabel,
-            status: "dismissed",
-            detail: "Dismissed from Needs You queue.",
-            at: result.dismissedAt,
-          },
-          ...current,
-        ]);
+        (await response.json()) as DismissResponse;
 
         if (activeItem?.id === item.id) {
           closeDrawer();
         }
+        await refreshDashboard();
       } catch (error) {
         setActionError(error instanceof Error ? error.message : "Unable to dismiss item.");
       } finally {
         setIsDismissingId(null);
       }
     },
-    [activeItem?.id, closeDrawer],
+    [activeItem?.id, closeDrawer, refreshDashboard],
   );
 
   const approveActiveItem = React.useCallback(async () => {
@@ -233,17 +265,6 @@ export function NyteShell() {
 
     setActionError(null);
     setIsApproving(true);
-
-    if (editableAction.kind === "gmail.createDraft") {
-      setSavedDrafts((current) => [
-        {
-          ...editableAction,
-          id: activeItem.id,
-          actor: activeItem.actor,
-        },
-        ...current.filter((entry) => entry.id !== activeItem.id),
-      ]);
-    }
 
     try {
       const response = await fetch("/api/actions/approve", {
@@ -261,56 +282,37 @@ export function NyteShell() {
         throw new Error(errorBody?.error ?? "Unable to approve action.");
       }
 
-      const result = (await response.json()) as ApproveResponse;
-      setActivityFeed((current) => [
-        {
-          id: `${activeItem.id}:${result.execution.providerReference}`,
-          itemId: activeItem.id,
-          actor: activeItem.actor,
-          action: activeItem.actionLabel,
-          status: result.execution.status,
-          detail: `${result.execution.destination} • ${result.execution.providerReference}`,
-          at: result.execution.executedAt,
-        },
-        ...current,
-      ]);
-      setHandledIds((current) => new Set(current).add(activeItem.id));
+      (await response.json()) as ApproveResponse;
       closeDrawer();
+      await refreshDashboard();
     } catch (error) {
       setActionError(error instanceof Error ? error.message : "Unable to approve action.");
     } finally {
       setIsApproving(false);
     }
-  }, [activeItem, closeDrawer, editableAction]);
+  }, [activeItem, closeDrawer, editableAction, refreshDashboard]);
 
   const syncQueue = React.useCallback(async () => {
     setSyncError(null);
     setIsSyncing(true);
     try {
-      const response = await fetch("/api/sync/poll");
+      const url = syncCursor
+        ? `/api/sync/poll?cursor=${encodeURIComponent(syncCursor)}`
+        : "/api/sync/poll";
+      const response = await fetch(url);
       if (!response.ok) {
         throw new Error("Unable to poll mailbox signals.");
       }
 
       const data = (await response.json()) as PollResponse;
-      const syncedQueue = withToolCalls(data.needsYou);
-      setQueueItems(syncedQueue);
-      setHandledIds(new Set());
-      if (activeItem) {
-        const refreshedItem = syncedQueue.find((item) => item.id === activeItem.id);
-        if (refreshedItem) {
-          setActiveItem(refreshedItem);
-          setEditableAction(clonePayload(refreshedItem.proposedAction));
-        } else {
-          closeDrawer();
-        }
-      }
+      setSyncCursor(data.cursor);
+      applyDashboard(data);
     } catch (error) {
       setSyncError(error instanceof Error ? error.message : "Unable to sync queue.");
     } finally {
       setIsSyncing(false);
     }
-  }, [activeItem, closeDrawer]);
+  }, [applyDashboard, syncCursor]);
 
   React.useEffect(() => {
     void syncQueue();

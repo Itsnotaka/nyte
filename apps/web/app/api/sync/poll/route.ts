@@ -1,4 +1,5 @@
 import { pollGmailIngestion } from "@/lib/integrations/gmail/polling";
+import { getDashboardData } from "@/lib/server/dashboard";
 import { persistSignals } from "@/lib/server/queue-store";
 
 export async function GET(request: Request) {
@@ -9,11 +10,12 @@ export async function GET(request: Request) {
     cursor,
     now,
   });
-  const queue = await persistSignals(pollResult.signals, now);
+  await persistSignals(pollResult.signals, now);
+  const dashboard = await getDashboardData();
 
   return Response.json({
     cursor: pollResult.nextCursor,
     signals: pollResult.signals,
-    needsYou: queue,
+    ...dashboard,
   });
 }
