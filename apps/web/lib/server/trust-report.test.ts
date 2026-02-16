@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   calendarEvents,
   connectedAccounts,
@@ -23,6 +23,10 @@ import { getTrustReport } from "./trust-report";
 import { setWorkflowRetentionDays } from "./workflow-retention";
 import { mockIntakeSignals } from "../domain/mock-intake";
 
+const originalTokenKey = process.env.NYTE_TOKEN_ENCRYPTION_KEY;
+const originalAuthSecret = process.env.BETTER_AUTH_SECRET;
+const originalRequireAuth = process.env.NYTE_REQUIRE_AUTH;
+
 async function resetDb() {
   await ensureDbSchema();
   await db.delete(calendarEvents);
@@ -42,6 +46,26 @@ describe("getTrustReport", () => {
   beforeEach(async () => {
     await resetDb();
     process.env.NYTE_TOKEN_ENCRYPTION_KEY = "trust-report-test-key";
+    process.env.BETTER_AUTH_SECRET = "test-secret";
+    process.env.NYTE_REQUIRE_AUTH = "true";
+  });
+
+  afterEach(() => {
+    if (originalTokenKey === undefined) {
+      delete process.env.NYTE_TOKEN_ENCRYPTION_KEY;
+    } else {
+      process.env.NYTE_TOKEN_ENCRYPTION_KEY = originalTokenKey;
+    }
+    if (originalAuthSecret === undefined) {
+      delete process.env.BETTER_AUTH_SECRET;
+    } else {
+      process.env.BETTER_AUTH_SECRET = originalAuthSecret;
+    }
+    if (originalRequireAuth === undefined) {
+      delete process.env.NYTE_REQUIRE_AUTH;
+    } else {
+      process.env.NYTE_REQUIRE_AUTH = originalRequireAuth;
+    }
   });
 
   it("aggregates metrics, retention, watch rules, and connection status", async () => {
@@ -64,5 +88,8 @@ describe("getTrustReport", () => {
     expect(report.watchRules).toContain("renewal");
     expect(report.googleConnection.connected).toBe(true);
     expect(report.googleConnection.providerAccountId).toBe("acct_trust");
+    expect(report.security.authzEnforced).toBe(true);
+    expect(report.security.betterAuthSecretConfigured).toBe(true);
+    expect(report.security.tokenEncryptionKeyConfigured).toBe(true);
   });
 });

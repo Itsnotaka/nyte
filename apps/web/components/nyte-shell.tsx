@@ -150,6 +150,12 @@ type TrustReportResponse = {
   retention: WorkflowRetentionResponse;
   googleConnection: GoogleConnectionResponse;
   metrics: MetricsResponse;
+  security: {
+    authzEnforced: boolean;
+    betterAuthSecretConfigured: boolean;
+    tokenEncryptionKeyConfigured: boolean;
+    hasPreviousTokenKey: boolean;
+  };
 };
 
 type WorkflowTimelineResponse = {
@@ -1303,6 +1309,19 @@ export function NyteShell() {
                         <p>
                           google vault:{" "}
                           {trustReport.googleConnection.connected ? "connected" : "disconnected"}
+                        </p>
+                        <p>
+                          authz mode: {trustReport.security.authzEnforced ? "enforced" : "relaxed"}
+                        </p>
+                        <p>
+                          secret posture:{" "}
+                          {trustReport.security.betterAuthSecretConfigured
+                            ? "auth secret set"
+                            : "auth secret fallback"}
+                          {" / "}
+                          {trustReport.security.tokenEncryptionKeyConfigured
+                            ? "token key set"
+                            : "token key fallback"}
                         </p>
                       </div>
                     ) : null}
