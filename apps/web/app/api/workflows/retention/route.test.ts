@@ -81,6 +81,24 @@ describe("workflow retention route", () => {
     expect(body.source).toBe("default");
   });
 
+  it("returns 429 when retention read rate limit is exceeded", async () => {
+    let lastResponse: Response | null = null;
+    for (let index = 0; index < 121; index += 1) {
+      lastResponse = await GET(
+        buildRequest("http://localhost/api/workflows/retention", {
+          method: "GET",
+          headers: {
+            "x-forwarded-for": "203.0.113.19",
+          },
+        }),
+      );
+    }
+
+    expect(lastResponse).not.toBeNull();
+    expect(lastResponse?.status).toBe(429);
+    expect(lastResponse?.headers.get("Retry-After")).toBeTruthy();
+  });
+
   it("updates retention days via POST", async () => {
     const response = await POST(
       buildRequest("http://localhost/api/workflows/retention", {

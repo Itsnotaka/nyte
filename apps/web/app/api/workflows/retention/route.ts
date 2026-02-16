@@ -21,6 +21,17 @@ export async function GET(request: Request) {
     }
   }
 
+  try {
+    enforceRateLimit(request, "workflows:retention:read", {
+      limit: 120,
+      windowMs: 60_000,
+    });
+  } catch (error) {
+    if (error instanceof RateLimitError) {
+      return createRateLimitResponse(error);
+    }
+  }
+
   const retention = await getWorkflowRetentionDays();
   return Response.json(retention);
 }
