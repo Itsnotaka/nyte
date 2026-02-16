@@ -26,6 +26,13 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const targetType = url.searchParams.get("targetType");
   const targetId = url.searchParams.get("targetId");
+  if ((targetType && !targetId) || (!targetType && targetId)) {
+    return Response.json(
+      { error: "targetType and targetId must be provided together." },
+      { status: 400 },
+    );
+  }
+
   const limit = Number(url.searchParams.get("limit") ?? "100");
   const safeLimit = Number.isFinite(limit) && limit > 0 ? Math.min(Math.floor(limit), 500) : 100;
 
