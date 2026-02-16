@@ -1,6 +1,11 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { Result, ResultAsync } from "neverthrow";
-import { isRuntimeCommand, type RuntimeCommandType } from "@workspace/contracts";
+import {
+  isRuntimeCommand,
+  type RuntimeCommand,
+  type RuntimeCommandResult,
+  type RuntimeCommandType,
+} from "@workspace/contracts";
 
 import { handleRuntimeCommand } from "./command-handler.js";
 
@@ -87,6 +92,14 @@ const RUNTIME_COMMAND_ENDPOINTS: Record<RuntimeCommandType, string> = {
   "runtime.feedback": "/runtime/feedback",
 };
 
+type HandleRuntimeCommand = (
+  command: RuntimeCommand,
+) => RuntimeCommandResult | Promise<RuntimeCommandResult>;
+
+type RuntimeServerOptions = {
+  handleCommand?: HandleRuntimeCommand;
+};
+
 function resolveRouteType(url: string | undefined): RuntimeCommandType | "runtime.command" | null {
   if (!url) {
     return null;
@@ -107,6 +120,12 @@ function resolveRouteType(url: string | undefined): RuntimeCommandType | "runtim
 }
 
 export function createRuntimeServer() {
+  return createRuntimeServerWithOptions();
+}
+
+export function createRuntimeServerWithOptions(options: RuntimeServerOptions = {}) {
+  const handleCommand = options.handleCommand ?? handleRuntimeCommand;
+
   return createServer((request, response) => {
     const routeType = request.method === "POST" ? resolveRouteType(request.url) : null;
     if (!routeType) {
@@ -144,8 +163,17 @@ export function createRuntimeServer() {
         return;
       }
 
-      const commandResult = handleRuntimeCommand(parsedBody.value);
-      writeJson(response, 200, commandResult);
+      void ResultAsync.fromPromise(
+        Promise.resolve(handleCommand(parsedBody.value)),
+        () => new Error("Failed to process runtime command."),
+      ).match(
+        (commandResult) => {
+          writeJson(response, 200, commandResult as Record<string, unknown>);
+        },
+        () => {
+          writeJson(response, 500, { error: "Failed to process runtime command." });
+        },
+      );
     });
   });
 }

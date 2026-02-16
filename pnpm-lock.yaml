@@ -32,9 +32,15 @@ importers:
 
   apps/runtime:
     dependencies:
+      '@workspace/application':
+        specifier: workspace:^
+        version: link:../../packages/application
       '@workspace/contracts':
         specifier: workspace:^
         version: link:../../packages/contracts
+      '@workspace/integrations':
+        specifier: workspace:^
+        version: link:../../packages/integrations
       neverthrow:
         specifier: ^8.2.0
         version: 8.2.0

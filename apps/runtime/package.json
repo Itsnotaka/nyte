@@ -8,7 +8,9 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@workspace/application": "workspace:^",
     "@workspace/contracts": "workspace:^",
+    "@workspace/integrations": "workspace:^",
     "neverthrow": "^8.2.0"
   },
   "devDependencies": {

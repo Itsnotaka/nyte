@@ -1,14 +1,75 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import type { RuntimeCommand, RuntimeCommandResult } from "@workspace/contracts";
 
-import { createRuntimeServer } from "./server.js";
+import { createRuntimeServerWithOptions } from "./server.js";
 
 type RuntimeServerHandle = {
   baseUrl: string;
   close: () => Promise<void>;
 };
 
-async function startRuntimeServer(): Promise<RuntimeServerHandle> {
-  const server = createRuntimeServer();
+type RuntimeServerStartOptions = {
+  handleCommand?: (command: RuntimeCommand) => RuntimeCommandResult | Promise<RuntimeCommandResult>;
+};
+
+function createAcceptedResult(command: RuntimeCommand): RuntimeCommandResult {
+  const receivedAt = "2026-02-16T12:00:00.000Z";
+  if (command.type === "runtime.ingest") {
+    return {
+      status: "accepted",
+      type: "runtime.ingest",
+      requestId: command.context.requestId,
+      receivedAt,
+      result: {
+        cursor: "2026-02-16T11:59:00.000Z",
+        queuedCount: 0,
+      },
+    };
+  }
+
+  if (command.type === "runtime.approve") {
+    return {
+      status: "accepted",
+      type: "runtime.approve",
+      requestId: command.context.requestId,
+      receivedAt,
+      result: {
+        itemId: command.payload.itemId,
+        idempotent: false,
+      },
+    };
+  }
+
+  if (command.type === "runtime.dismiss") {
+    return {
+      status: "accepted",
+      type: "runtime.dismiss",
+      requestId: command.context.requestId,
+      receivedAt,
+      result: {
+        itemId: command.payload.itemId,
+      },
+    };
+  }
+
+  return {
+    status: "accepted",
+    type: "runtime.feedback",
+    requestId: command.context.requestId,
+    receivedAt,
+    result: {
+      itemId: command.payload.itemId,
+      rating: command.payload.rating,
+    },
+  };
+}
+
+async function startRuntimeServer(
+  options: RuntimeServerStartOptions = {},
+): Promise<RuntimeServerHandle> {
+  const server = createRuntimeServerWithOptions({
+    handleCommand: options.handleCommand ?? createAcceptedResult,
+  });
   await new Promise<void>((resolve, reject) => {
     server.once("error", reject);
     server.listen(0, () => {
@@ -263,6 +324,38 @@ describe("runtime server", () => {
 
     expect(response.status).toBe(400);
     expect(body.error).toContain("RuntimeCommand contract");
+  });
+
+  it("returns 500 when runtime command handler throws", async () => {
+    const server = await startRuntimeServer({
+      handleCommand: async () => {
+        throw new Error("handler exploded");
+      },
+    });
+    activeServers.push(server.close);
+
+    const response = await fetch(`${server.baseUrl}/runtime/approve`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        type: "runtime.approve",
+        context: {
+          userId: "local-user",
+          requestId: "req_approve_1",
+          source: "web",
+          issuedAt: "2026-02-16T12:00:00.000Z",
+        },
+        payload: {
+          itemId: "w_1",
+        },
+      }),
+    });
+    const body = (await response.json()) as { error: string };
+
+    expect(response.status).toBe(500);
+    expect(body.error).toContain("Failed to process runtime command");
   });
 
   it("returns 404 for unknown paths", async () => {
