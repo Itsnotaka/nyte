@@ -7,7 +7,7 @@
     "dev": "turbo dev",
     "lint": "oxlint --type-aware",
     "format": "oxfmt --check",
-    "typecheck": "tsgo --noEmit"
+    "typecheck": "turbo typecheck"
   },
   "devDependencies": {
     "@typescript/native-preview": "7.0.0-dev.20260215.1",
