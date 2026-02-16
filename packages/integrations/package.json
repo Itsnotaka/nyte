@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./calendar/polling": "./src/calendar/polling.ts",
     "./gmail/polling": "./src/gmail/polling.ts"
   },
   "scripts": {

@@ -1,7 +1,7 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
-import { db } from "@nyte/db";
+import { db, schema } from "@nyte/db";
 import { getAuthSecret } from "./server/runtime-secrets";
 
 const gmailScopes = [
@@ -10,6 +10,7 @@ const gmailScopes = [
   "profile",
   "https://www.googleapis.com/auth/gmail.readonly",
   "https://www.googleapis.com/auth/gmail.compose",
+  "https://www.googleapis.com/auth/calendar.readonly",
   "https://www.googleapis.com/auth/calendar.events",
 ];
 
@@ -23,6 +24,8 @@ export const auth = betterAuth({
   secret: authSecret.value,
   database: drizzleAdapter(db, {
     provider: "sqlite",
+    schema,
+    usePlural: true,
   }),
   plugins: [nextCookies()],
   socialProviders:

@@ -1,4 +1,7 @@
-import type { IntakeIntent, IntakeSignal } from "@nyte/domain/triage";
+import type { IntakeSignal } from "@nyte/domain/triage";
+
+const GOOGLE_GMAIL_API = "https://gmail.googleapis.com/gmail/v1/users/me";
+const DEFAULT_LOOKBACK_DAYS = 7;
 
 export type GmailThreadSnapshot = {
   id: string;
@@ -6,14 +9,14 @@ export type GmailThreadSnapshot = {
   subject: string;
   snippet: string;
   receivedAt: string;
-  relationshipScore?: number;
-  impactScore?: number;
 };
 
 export type PollingInput = {
+  accessToken: string;
   cursor?: string;
   now?: Date;
   watchKeywords?: string[];
+  maxResults?: number;
 };
 
 export type PollingResult = {
@@ -21,86 +24,247 @@ export type PollingResult = {
   signals: IntakeSignal[];
 };
 
-const mockGmailSnapshots: GmailThreadSnapshot[] = [
-  {
-    id: "gmail_renewal",
-    from: "David Kim",
-    subject: "Signed term sheet attached",
-    snippet: "I've sent over the signed copy for final countersignature.",
-    receivedAt: "2026-01-20T10:00:00.000Z",
-    relationshipScore: 0.92,
-    impactScore: 0.88,
-  },
-  {
-    id: "gmail_board",
-    from: "Rachel Torres",
-    subject: "Board sync planning and agenda update",
-    snippet: "Can we lock in the calendar slot and finalize board prep?",
-    receivedAt: "2026-01-20T11:00:00.000Z",
-    relationshipScore: 0.81,
-    impactScore: 0.72,
-  },
-  {
-    id: "gmail_refund",
-    from: "Joe",
-    subject: "Refund request for unavailable integration",
-    snippet: "Please refund this month since Notion integration isn't ready.",
-    receivedAt: "2026-01-20T11:30:00.000Z",
-    relationshipScore: 0.34,
-    impactScore: 0.78,
-  },
-];
+type GmailListResponse = {
+  messages?: Array<{
+    id: string;
+  }>;
+};
 
-function inferIntent(subject: string, snippet: string): IntakeIntent {
-  const value = `${subject} ${snippet}`.toLowerCase();
-  if (value.includes("refund")) {
-    return "refund_request";
+type GmailMessageMetadata = {
+  id: string;
+  snippet?: string;
+  internalDate?: string;
+  payload?: {
+    headers?: Array<{
+      name?: string;
+      value?: string;
+    }>;
+  };
+};
+
+function normalizeCursor(cursor: string | undefined, now: Date) {
+  if (!cursor) {
+    return new Date(now.getTime() - DEFAULT_LOOKBACK_DAYS * 24 * 60 * 60 * 1000);
   }
 
-  if (value.includes("calendar") || value.includes("meeting") || value.includes("board")) {
-    return "schedule_event";
+  const parsed = new Date(cursor);
+  if (Number.isNaN(parsed.getTime())) {
+    return new Date(now.getTime() - DEFAULT_LOOKBACK_DAYS * 24 * 60 * 60 * 1000);
   }
 
-  return "draft_reply";
+  return parsed;
 }
 
-function buildSignal(snapshot: GmailThreadSnapshot, watchKeywords: string[] = []): IntakeSignal {
+function toEpochSeconds(value: Date) {
+  return Math.max(0, Math.floor(value.getTime() / 1000));
+}
+
+async function fetchGoogleJson<T>(url: string, accessToken: string): Promise<T> {
+  const response = await fetch(url, {
+    method: "GET",
+    headers: {
+      authorization: `Bearer ${accessToken}`,
+    },
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    const detail = await response.text();
+    throw new Error(`Gmail API request failed with status ${response.status}: ${detail.slice(0, 240)}`);
+  }
+
+  return (await response.json()) as T;
+}
+
+function readHeader(metadata: GmailMessageMetadata, headerName: string) {
+  const target = headerName.toLowerCase();
+
+  for (const header of metadata.payload?.headers ?? []) {
+    if (header.name?.toLowerCase() === target) {
+      return header.value?.trim() ?? "";
+    }
+  }
+
+  return "";
+}
+
+function extractActor(fromHeader: string) {
+  const trimmed = fromHeader.trim();
+  if (!trimmed) {
+    return "Unknown sender";
+  }
+
+  const nameMatch = trimmed.match(/^(?:\"?([^\"<]+)\"?\s*)?<[^>]+>$/);
+  if (nameMatch?.[1]) {
+    return nameMatch[1].trim();
+  }
+
+  const emailMatch = trimmed.match(/([a-zA-Z0-9._%+-]+)@[a-zA-Z0-9.-]+/);
+  if (emailMatch?.[1]) {
+    return emailMatch[1]
+      .replace(/[._-]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  return trimmed;
+}
+
+function normalizeSnippet(value: string | undefined) {
+  return value?.replace(/\s+/g, " ").trim() ?? "";
+}
+
+function inferIntent(subject: string, snippet: string) {
+  const haystack = `${subject} ${snippet}`.toLowerCase();
+
+  if (
+    haystack.includes("refund") ||
+    haystack.includes("chargeback") ||
+    haystack.includes("cancel")
+  ) {
+    return "refund_request" as const;
+  }
+
+  return "draft_reply" as const;
+}
+
+function inferRelationshipScore(subject: string, actor: string) {
+  const haystack = `${subject} ${actor}`.toLowerCase();
+  if (
+    haystack.includes("board") ||
+    haystack.includes("exec") ||
+    haystack.includes("legal") ||
+    haystack.includes("renewal") ||
+    haystack.includes("contract")
+  ) {
+    return 0.86;
+  }
+
+  return 0.52;
+}
+
+function inferImpactScore(subject: string, snippet: string, intent: "draft_reply" | "refund_request") {
+  const haystack = `${subject} ${snippet}`.toLowerCase();
+
+  if (intent === "refund_request") {
+    return 0.84;
+  }
+
+  if (
+    haystack.includes("urgent") ||
+    haystack.includes("blocked") ||
+    haystack.includes("deadline") ||
+    haystack.includes("term sheet")
+  ) {
+    return 0.73;
+  }
+
+  return 0.46;
+}
+
+function inferDeadline(intent: "draft_reply" | "refund_request", now: Date) {
+  if (intent === "refund_request") {
+    return new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString();
+  }
+
+  return undefined;
+}
+
+function toSignal(
+  snapshot: GmailThreadSnapshot,
+  watchKeywords: string[],
+  now: Date,
+): IntakeSignal {
   const intent = inferIntent(snapshot.subject, snapshot.snippet);
-  const hasDeadline = intent !== "draft_reply";
   const haystack = `${snapshot.subject} ${snapshot.snippet}`.toLowerCase();
-  const watchMatched = watchKeywords.some((keyword) => haystack.includes(keyword.toLowerCase()));
+  const watchMatched = watchKeywords.some((keyword) =>
+    haystack.includes(keyword.toLowerCase()),
+  );
 
   return {
-    id: snapshot.id,
-    source: intent === "schedule_event" ? "Google Calendar" : "Gmail",
+    id: `gmail:${snapshot.id}`,
+    source: "Gmail",
     actor: snapshot.from,
-    summary: snapshot.subject,
-    context: snapshot.snippet,
-    preview: snapshot.snippet,
+    summary: snapshot.subject || "Untitled email",
+    context: snapshot.snippet || "No email snippet available.",
+    preview: snapshot.snippet || snapshot.subject || "Open in Gmail for full content.",
     intent,
     requiresDecision: true,
-    deadlineAt: hasDeadline ? "2026-01-22T14:00:00.000Z" : undefined,
-    relationshipScore: snapshot.relationshipScore,
-    impactScore: snapshot.impactScore,
+    deadlineAt: inferDeadline(intent, now),
+    relationshipScore: inferRelationshipScore(snapshot.subject, snapshot.from),
+    impactScore: inferImpactScore(snapshot.subject, snapshot.snippet, intent),
     watchMatched,
   };
 }
 
-export function pollGmailIngestion({
+async function fetchMessageSnapshot(accessToken: string, messageId: string): Promise<GmailThreadSnapshot> {
+  const params = new URLSearchParams({
+    format: "metadata",
+    metadataHeaders: "From",
+  });
+  params.append("metadataHeaders", "Subject");
+  params.append("metadataHeaders", "Date");
+
+  const metadata = await fetchGoogleJson<GmailMessageMetadata>(
+    `${GOOGLE_GMAIL_API}/messages/${encodeURIComponent(messageId)}?${params.toString()}`,
+    accessToken,
+  );
+
+  const fromHeader = readHeader(metadata, "From");
+  const subjectHeader = readHeader(metadata, "Subject");
+  const internalDate = metadata.internalDate ? Number.parseInt(metadata.internalDate, 10) : NaN;
+  const receivedAt = Number.isFinite(internalDate)
+    ? new Date(internalDate).toISOString()
+    : new Date().toISOString();
+
+  return {
+    id: metadata.id,
+    from: extractActor(fromHeader),
+    subject: subjectHeader || "Untitled message",
+    snippet: normalizeSnippet(metadata.snippet),
+    receivedAt,
+  };
+}
+
+export async function pollGmailIngestion({
+  accessToken,
   cursor,
   now = new Date(),
   watchKeywords = [],
-}: PollingInput): PollingResult {
-  const parsedCursorTime = cursor ? new Date(cursor).getTime() : Number.NEGATIVE_INFINITY;
-  const cursorTime = Number.isFinite(parsedCursorTime)
-    ? parsedCursorTime
-    : Number.NEGATIVE_INFINITY;
-  const freshSnapshots = mockGmailSnapshots.filter(
-    (snapshot) => new Date(snapshot.receivedAt).getTime() > cursorTime,
+  maxResults = 20,
+}: PollingInput): Promise<PollingResult> {
+  const since = normalizeCursor(cursor, now);
+  const query = `in:inbox -category:promotions after:${toEpochSeconds(since)}`;
+
+  const listParams = new URLSearchParams({
+    maxResults: String(Math.max(1, Math.min(maxResults, 50))),
+    q: query,
+  });
+
+  const list = await fetchGoogleJson<GmailListResponse>(
+    `${GOOGLE_GMAIL_API}/messages?${listParams.toString()}`,
+    accessToken,
+  );
+
+  const messages = list.messages ?? [];
+  if (messages.length === 0) {
+    return {
+      nextCursor: now.toISOString(),
+      signals: [],
+    };
+  }
+
+  const snapshots = await Promise.all(
+    messages.map((message) => fetchMessageSnapshot(accessToken, message.id)),
+  );
+
+  snapshots.sort(
+    (left, right) =>
+      new Date(right.receivedAt).getTime() - new Date(left.receivedAt).getTime(),
   );
 
   return {
     nextCursor: now.toISOString(),
-    signals: freshSnapshots.map((snapshot) => buildSignal(snapshot, watchKeywords)),
+    signals: snapshots.map((snapshot) => toSignal(snapshot, watchKeywords, now)),
   };
 }

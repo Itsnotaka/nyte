@@ -10,6 +10,3 @@ export function proxy(request: NextRequest) {
   return response;
 }
 
-export const config = {
-  matcher: "/:path*",
-};
