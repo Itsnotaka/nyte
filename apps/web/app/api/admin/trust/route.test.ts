@@ -144,4 +144,27 @@ describe("GET /api/admin/trust", () => {
       "NYTE_RATE_LIMIT_MODE is set to unkey but UNKEY_ROOT_KEY is not configured.",
     );
   });
+
+  it("surfaces warning when memory mode is explicitly forced", async () => {
+    process.env.UNKEY_ROOT_KEY = "trust-route-unkey-key";
+    process.env.NYTE_RATE_LIMIT_MODE = "memory";
+
+    const response = await GET(buildRequest("http://localhost/api/admin/trust"));
+    const body = (await response.json()) as {
+      security: {
+        rateLimitMode: "auto" | "memory" | "unkey";
+        rateLimitProvider: "unkey" | "memory";
+      };
+      posture: {
+        warnings: string[];
+      };
+    };
+
+    expect(response.status).toBe(200);
+    expect(body.security.rateLimitMode).toBe("memory");
+    expect(body.security.rateLimitProvider).toBe("memory");
+    expect(body.posture.warnings).toContain(
+      "NYTE_RATE_LIMIT_MODE is set to memory; using in-process rate limiter.",
+    );
+  });
 });

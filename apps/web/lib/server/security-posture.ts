@@ -24,6 +24,8 @@ export function evaluateSecurityPosture(report: SecurityPostureInput): SecurityP
 
   if (report.security.rateLimitMode === "unkey" && report.security.rateLimitProvider !== "unkey") {
     warnings.push("NYTE_RATE_LIMIT_MODE is set to unkey but UNKEY_ROOT_KEY is not configured.");
+  } else if (report.security.rateLimitMode === "memory") {
+    warnings.push("NYTE_RATE_LIMIT_MODE is set to memory; using in-process rate limiter.");
   } else if (report.security.rateLimitProvider !== "unkey") {
     warnings.push("UNKEY_ROOT_KEY is not configured; using in-process fallback rate limiter.");
   }

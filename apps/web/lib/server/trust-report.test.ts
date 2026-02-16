@@ -151,6 +151,9 @@ describe("getTrustReport", () => {
     expect(report.security.rateLimitMode).toBe("memory");
     expect(report.security.rateLimitProvider).toBe("memory");
     expect(report.security.unkeyRateLimitConfigured).toBe(true);
+    expect(report.posture.warnings).toContain(
+      "NYTE_RATE_LIMIT_MODE is set to memory; using in-process rate limiter.",
+    );
   });
 
   it("reports forced unkey mode with memory fallback when key is missing", async () => {
