@@ -168,7 +168,7 @@ function MenubarLabel({
   className,
   inset,
   ...props
-}: React.ComponentProps<typeof DropdownMenuLabel> & {
+}: MenuPrimitive.GroupLabel.Props & {
   inset?: boolean;
 }) {
   return (
@@ -218,7 +218,7 @@ function MenubarSubTrigger({
   className,
   inset,
   ...props
-}: React.ComponentProps<typeof DropdownMenuSubTrigger> & {
+}: MenuPrimitive.SubmenuTrigger.Props & {
   inset?: boolean;
 }) {
   return (

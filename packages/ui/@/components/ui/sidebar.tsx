@@ -476,6 +476,13 @@ const sidebarMenuButtonVariants = cva(
   },
 );
 
+type SidebarMenuTooltipConfig = {
+  children: React.ReactNode;
+  side?: "top" | "right" | "bottom" | "left";
+  align?: "start" | "center" | "end";
+  className?: string;
+};
+
 function SidebarMenuButton({
   render,
   isActive = false,
@@ -487,7 +494,7 @@ function SidebarMenuButton({
 }: useRender.ComponentProps<"button"> &
   React.ComponentProps<"button"> & {
     isActive?: boolean;
-    tooltip?: string | React.ComponentProps<typeof TooltipContent>;
+    tooltip?: string | SidebarMenuTooltipConfig;
   } & VariantProps<typeof sidebarMenuButtonVariants>) {
   const { isMobile, state } = useSidebar();
   const comp = useRender({
