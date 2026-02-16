@@ -5,6 +5,7 @@ import {
   removeWatchKeyword,
 } from "@/lib/server/policy-rules";
 import { AuthorizationError, requireAuthorizedSession } from "@/lib/server/authz";
+import { InvalidJsonBodyError, readJsonBody } from "@/lib/server/json-body";
 import { enforceRateLimit, RateLimitError } from "@/lib/server/rate-limit";
 import { createRateLimitResponse } from "@/lib/server/rate-limit-response";
 
@@ -44,7 +45,15 @@ export async function POST(request: Request) {
     }
   }
 
-  const body = (await request.json()) as PolicyRuleBody;
+  let body: PolicyRuleBody;
+  try {
+    body = await readJsonBody<PolicyRuleBody>(request);
+  } catch (error) {
+    if (error instanceof InvalidJsonBodyError) {
+      return Response.json({ error: error.message }, { status: 400 });
+    }
+    throw error;
+  }
   if (!body.keyword) {
     return Response.json({ error: "keyword is required." }, { status: 400 });
   }
@@ -80,7 +89,15 @@ export async function DELETE(request: Request) {
     }
   }
 
-  const body = (await request.json()) as PolicyRuleBody;
+  let body: PolicyRuleBody;
+  try {
+    body = await readJsonBody<PolicyRuleBody>(request);
+  } catch (error) {
+    if (error instanceof InvalidJsonBodyError) {
+      return Response.json({ error: error.message }, { status: 400 });
+    }
+    throw error;
+  }
   if (!body.keyword) {
     return Response.json({ error: "keyword is required." }, { status: 400 });
   }

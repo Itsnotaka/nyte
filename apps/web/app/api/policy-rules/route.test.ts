@@ -115,6 +115,23 @@ describe("policy rules route", () => {
     expect(body.error).toContain("keyword is required");
   });
 
+  it("returns 400 for malformed json body", async () => {
+    const response = await POST(
+      new Request("http://localhost/api/policy-rules", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-forwarded-for": "203.0.113.89",
+        },
+        body: "{bad-json",
+      }),
+    );
+    const body = (await response.json()) as { error: string };
+
+    expect(response.status).toBe(400);
+    expect(body.error).toContain("Invalid JSON body");
+  });
+
   it("returns 429 when mutate rate limit is exceeded", async () => {
     let lastResponse: Response | null = null;
     for (let index = 0; index < 21; index += 1) {

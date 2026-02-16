@@ -1,5 +1,6 @@
 import { ApprovalError, approveWorkItem } from "@/lib/server/approve-action";
 import { AuthorizationError, requireAuthorizedSession } from "@/lib/server/authz";
+import { InvalidJsonBodyError, readJsonBody } from "@/lib/server/json-body";
 import { enforceRateLimit, RateLimitError } from "@/lib/server/rate-limit";
 import { createRateLimitResponse } from "@/lib/server/rate-limit-response";
 
@@ -28,7 +29,15 @@ export async function POST(request: Request) {
     }
   }
 
-  const body = (await request.json()) as ApproveBody;
+  let body: ApproveBody;
+  try {
+    body = await readJsonBody<ApproveBody>(request);
+  } catch (error) {
+    if (error instanceof InvalidJsonBodyError) {
+      return Response.json({ error: error.message }, { status: 400 });
+    }
+    throw error;
+  }
   if (!body.itemId) {
     return Response.json({ error: "itemId is required." }, { status: 400 });
   }

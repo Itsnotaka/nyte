@@ -105,6 +105,23 @@ describe("POST /api/feedback", () => {
     expect(body.error).toContain("rating must be positive or negative");
   });
 
+  it("returns 400 for malformed json body", async () => {
+    const response = await POST(
+      new Request("http://localhost/api/feedback", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-forwarded-for": "192.0.2.45",
+        },
+        body: "{bad-json",
+      }),
+    );
+    const body = (await response.json()) as { error: string };
+
+    expect(response.status).toBe(400);
+    expect(body.error).toContain("Invalid JSON body");
+  });
+
   it("returns 409 for unprocessed item feedback attempt", async () => {
     await persistSignals(mockIntakeSignals, new Date("2026-02-10T10:00:00.000Z"));
 
