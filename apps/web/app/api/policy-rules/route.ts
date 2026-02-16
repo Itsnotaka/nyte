@@ -14,8 +14,41 @@ import { enforceRateLimit, RateLimitError } from "@/lib/server/rate-limit";
 import { createRateLimitResponse } from "@/lib/server/rate-limit-response";
 
 type PolicyRuleBody = {
-  keyword?: string;
+  keyword?: unknown;
 };
+
+type NormalizedPolicyRuleBody =
+  | {
+      error: string;
+    }
+  | {
+      keyword: string;
+    };
+
+function normalizePolicyRuleBody(body: PolicyRuleBody): NormalizedPolicyRuleBody {
+  if (body.keyword === undefined) {
+    return {
+      error: "keyword is required.",
+    };
+  }
+
+  if (typeof body.keyword !== "string") {
+    return {
+      error: "keyword must be a string.",
+    };
+  }
+
+  const keyword = body.keyword.trim();
+  if (!keyword) {
+    return {
+      error: "keyword is required.",
+    };
+  }
+
+  return {
+    keyword,
+  };
+}
 
 export async function GET(request: Request) {
   try {
@@ -74,12 +107,13 @@ export async function POST(request: Request) {
     }
     throw error;
   }
-  if (!body.keyword) {
-    return Response.json({ error: "keyword is required." }, { status: 400 });
+  const normalized = normalizePolicyRuleBody(body);
+  if ("error" in normalized) {
+    return Response.json({ error: normalized.error }, { status: 400 });
   }
 
   try {
-    const keyword = await addWatchKeyword(body.keyword, new Date());
+    const keyword = await addWatchKeyword(normalized.keyword, new Date());
     return Response.json({ keyword });
   } catch (error) {
     if (error instanceof PolicyRuleError) {
@@ -122,12 +156,13 @@ export async function DELETE(request: Request) {
     }
     throw error;
   }
-  if (!body.keyword) {
-    return Response.json({ error: "keyword is required." }, { status: 400 });
+  const normalized = normalizePolicyRuleBody(body);
+  if ("error" in normalized) {
+    return Response.json({ error: normalized.error }, { status: 400 });
   }
 
   try {
-    const keyword = await removeWatchKeyword(body.keyword);
+    const keyword = await removeWatchKeyword(normalized.keyword);
     return Response.json({ keyword });
   } catch (error) {
     if (error instanceof PolicyRuleError) {

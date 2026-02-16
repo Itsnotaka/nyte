@@ -9,12 +9,61 @@ import { enforceRateLimit, RateLimitError } from "@/lib/server/rate-limit";
 import { createRateLimitResponse } from "@/lib/server/rate-limit-response";
 
 type FeedbackBody = {
-  itemId?: string;
-  rating?: FeedbackRating;
-  note?: string;
+  itemId?: unknown;
+  rating?: unknown;
+  note?: unknown;
 };
 
 const allowedRatings: FeedbackRating[] = ["positive", "negative"];
+
+type NormalizedFeedbackBody =
+  | {
+      error: string;
+    }
+  | {
+      itemId: string;
+      rating: FeedbackRating;
+      note?: string;
+    };
+
+function normalizeFeedbackBody(body: FeedbackBody): NormalizedFeedbackBody {
+  if (body.itemId === undefined) {
+    return {
+      error: "itemId is required.",
+    };
+  }
+
+  if (typeof body.itemId !== "string") {
+    return {
+      error: "itemId must be a string.",
+    };
+  }
+
+  const itemId = body.itemId.trim();
+  if (!itemId) {
+    return {
+      error: "itemId is required.",
+    };
+  }
+
+  if (typeof body.rating !== "string" || !allowedRatings.includes(body.rating as FeedbackRating)) {
+    return {
+      error: "rating must be positive or negative.",
+    };
+  }
+
+  if (body.note !== undefined && typeof body.note !== "string") {
+    return {
+      error: "note must be a string.",
+    };
+  }
+
+  return {
+    itemId,
+    rating: body.rating as FeedbackRating,
+    note: body.note?.trim() || undefined,
+  };
+}
 
 export async function POST(request: Request) {
   try {
@@ -49,16 +98,18 @@ export async function POST(request: Request) {
     }
     throw error;
   }
-  const itemId = body.itemId?.trim();
-  if (!itemId) {
-    return Response.json({ error: "itemId is required." }, { status: 400 });
-  }
-  if (!body.rating || !allowedRatings.includes(body.rating)) {
-    return Response.json({ error: "rating must be positive or negative." }, { status: 400 });
+  const normalized = normalizeFeedbackBody(body);
+  if ("error" in normalized) {
+    return Response.json({ error: normalized.error }, { status: 400 });
   }
 
   try {
-    const result = await recordFeedback(itemId, body.rating, body.note, new Date());
+    const result = await recordFeedback(
+      normalized.itemId,
+      normalized.rating,
+      normalized.note,
+      new Date(),
+    );
     return Response.json(result);
   } catch (error) {
     if (error instanceof FeedbackError) {

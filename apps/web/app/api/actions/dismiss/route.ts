@@ -9,8 +9,41 @@ import { enforceRateLimit, RateLimitError } from "@/lib/server/rate-limit";
 import { createRateLimitResponse } from "@/lib/server/rate-limit-response";
 
 type DismissBody = {
-  itemId?: string;
+  itemId?: unknown;
 };
+
+type NormalizedDismissBody =
+  | {
+      error: string;
+    }
+  | {
+      itemId: string;
+    };
+
+function normalizeDismissBody(body: DismissBody): NormalizedDismissBody {
+  if (body.itemId === undefined) {
+    return {
+      error: "itemId is required.",
+    };
+  }
+
+  if (typeof body.itemId !== "string") {
+    return {
+      error: "itemId must be a string.",
+    };
+  }
+
+  const itemId = body.itemId.trim();
+  if (!itemId) {
+    return {
+      error: "itemId is required.",
+    };
+  }
+
+  return {
+    itemId,
+  };
+}
 
 export async function POST(request: Request) {
   try {
@@ -45,13 +78,13 @@ export async function POST(request: Request) {
     }
     throw error;
   }
-  const itemId = body.itemId?.trim();
-  if (!itemId) {
-    return Response.json({ error: "itemId is required." }, { status: 400 });
+  const normalized = normalizeDismissBody(body);
+  if ("error" in normalized) {
+    return Response.json({ error: normalized.error }, { status: 400 });
   }
 
   try {
-    const result = await dismissWorkItem(itemId, new Date());
+    const result = await dismissWorkItem(normalized.itemId, new Date());
     return Response.json(result);
   } catch (error) {
     if (error instanceof DismissError) {

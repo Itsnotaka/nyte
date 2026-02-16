@@ -9,9 +9,50 @@ import { enforceRateLimit, RateLimitError } from "@/lib/server/rate-limit";
 import { createRateLimitResponse } from "@/lib/server/rate-limit-response";
 
 type ApproveBody = {
-  itemId?: string;
-  idempotencyKey?: string;
+  itemId?: unknown;
+  idempotencyKey?: unknown;
 };
+
+type NormalizedApproveBody =
+  | {
+      error: string;
+    }
+  | {
+      itemId: string;
+      idempotencyKey?: string;
+    };
+
+function normalizeApproveBody(body: ApproveBody): NormalizedApproveBody {
+  if (body.itemId === undefined) {
+    return {
+      error: "itemId is required.",
+    };
+  }
+
+  if (typeof body.itemId !== "string") {
+    return {
+      error: "itemId must be a string.",
+    };
+  }
+
+  const itemId = body.itemId.trim();
+  if (!itemId) {
+    return {
+      error: "itemId is required.",
+    };
+  }
+
+  if (body.idempotencyKey !== undefined && typeof body.idempotencyKey !== "string") {
+    return {
+      error: "idempotencyKey must be a string.",
+    };
+  }
+
+  return {
+    itemId,
+    idempotencyKey: body.idempotencyKey?.trim() || undefined,
+  };
+}
 
 export async function POST(request: Request) {
   try {
@@ -46,14 +87,18 @@ export async function POST(request: Request) {
     }
     throw error;
   }
-  const itemId = body.itemId?.trim();
-  if (!itemId) {
-    return Response.json({ error: "itemId is required." }, { status: 400 });
+  const normalized = normalizeApproveBody(body);
+  if ("error" in normalized) {
+    return Response.json({ error: normalized.error }, { status: 400 });
   }
-  const idempotencyKey = request.headers.get("x-idempotency-key") ?? body.idempotencyKey;
+  const idempotencyKey = request.headers.get("x-idempotency-key") ?? normalized.idempotencyKey;
 
   try {
-    const result = await approveWorkItem(itemId, new Date(), idempotencyKey ?? undefined);
+    const result = await approveWorkItem(
+      normalized.itemId,
+      new Date(),
+      idempotencyKey ?? undefined,
+    );
     return Response.json(result);
   } catch (error) {
     if (error instanceof ApprovalError) {

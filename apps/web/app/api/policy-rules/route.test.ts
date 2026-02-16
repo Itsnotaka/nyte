@@ -115,6 +115,18 @@ describe("policy rules route", () => {
     expect(body.error).toContain("keyword is required");
   });
 
+  it("returns 400 when keyword is not a string", async () => {
+    const response = await POST(
+      buildRequest("http://localhost/api/policy-rules", "POST", {
+        keyword: 123,
+      }),
+    );
+    const body = (await response.json()) as { error: string };
+
+    expect(response.status).toBe(400);
+    expect(body.error).toContain("keyword must be a string");
+  });
+
   it("returns 400 for malformed json body", async () => {
     const response = await POST(
       new Request("http://localhost/api/policy-rules", {
@@ -219,6 +231,18 @@ describe("policy rules route", () => {
 
     expect(response.status).toBe(415);
     expect(body.error).toContain("application/json");
+  });
+
+  it("returns 400 when keyword is not a string on delete", async () => {
+    const response = await DELETE(
+      buildRequest("http://localhost/api/policy-rules", "DELETE", {
+        keyword: 123,
+      }),
+    );
+    const body = (await response.json()) as { error: string };
+
+    expect(response.status).toBe(400);
+    expect(body.error).toContain("keyword must be a string");
   });
 
   it("accepts structured +json content-type on delete", async () => {

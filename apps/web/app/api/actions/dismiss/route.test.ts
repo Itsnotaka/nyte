@@ -108,6 +108,18 @@ describe("POST /api/actions/dismiss", () => {
     expect(body.error).toContain("itemId is required");
   });
 
+  it("returns 400 when itemId is not a string", async () => {
+    const response = await POST(
+      buildRequest({
+        itemId: 123,
+      }),
+    );
+    const body = (await response.json()) as { error: string };
+
+    expect(response.status).toBe(400);
+    expect(body.error).toContain("itemId must be a string");
+  });
+
   it("returns 400 for malformed json body", async () => {
     const response = await POST(
       new Request("http://localhost/api/actions/dismiss", {

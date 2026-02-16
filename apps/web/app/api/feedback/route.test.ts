@@ -118,6 +118,19 @@ describe("POST /api/feedback", () => {
     expect(body.error).toContain("itemId is required");
   });
 
+  it("returns 400 when itemId is not a string", async () => {
+    const response = await POST(
+      buildRequest({
+        itemId: 123,
+        rating: "positive",
+      }),
+    );
+    const body = (await response.json()) as { error: string };
+
+    expect(response.status).toBe(400);
+    expect(body.error).toContain("itemId must be a string");
+  });
+
   it("returns 400 for malformed json body", async () => {
     const response = await POST(
       new Request("http://localhost/api/feedback", {
@@ -219,6 +232,23 @@ describe("POST /api/feedback", () => {
 
     expect(response.status).toBe(409);
     expect(body.error).toContain("processed items");
+  });
+
+  it("returns 400 when note is not a string", async () => {
+    await persistSignals(mockIntakeSignals, new Date("2026-02-10T10:00:00.000Z"));
+    await approveWorkItem("w_renewal", new Date("2026-02-10T10:05:00.000Z"));
+
+    const response = await POST(
+      buildRequest({
+        itemId: "w_renewal",
+        rating: "positive",
+        note: 7,
+      }),
+    );
+    const body = (await response.json()) as { error: string };
+
+    expect(response.status).toBe(400);
+    expect(body.error).toContain("note must be a string");
   });
 
   it("returns 404 for unknown item", async () => {

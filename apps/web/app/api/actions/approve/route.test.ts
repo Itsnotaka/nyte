@@ -111,6 +111,18 @@ describe("POST /api/actions/approve", () => {
     expect(body.error).toContain("itemId is required");
   });
 
+  it("returns 400 when itemId is not a string", async () => {
+    const response = await POST(
+      buildRequest({
+        itemId: 123,
+      }),
+    );
+    const body = (await response.json()) as { error: string };
+
+    expect(response.status).toBe(400);
+    expect(body.error).toContain("itemId must be a string");
+  });
+
   it("returns 400 for malformed json body", async () => {
     const response = await POST(
       new Request("http://localhost/api/actions/approve", {
@@ -220,6 +232,21 @@ describe("POST /api/actions/approve", () => {
 
     expect(response.status).toBe(200);
     expect(body.execution.idempotencyKey).toBe("approve-key-123");
+  });
+
+  it("returns 400 when idempotencyKey in body is not a string", async () => {
+    await persistSignals(mockIntakeSignals, new Date("2026-02-10T10:00:00.000Z"));
+
+    const response = await POST(
+      buildRequest({
+        itemId: "w_renewal",
+        idempotencyKey: 42,
+      }),
+    );
+    const body = (await response.json()) as { error: string };
+
+    expect(response.status).toBe(400);
+    expect(body.error).toContain("idempotencyKey must be a string");
   });
 
   it("returns 404 for unknown item", async () => {
