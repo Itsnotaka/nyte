@@ -120,6 +120,34 @@ describe("google connection rotate route", () => {
     expect(lastResponse?.headers.get("Retry-After")).toBeTruthy();
   });
 
+  it("returns 500 when stored secret payload is invalid", async () => {
+    const now = new Date("2026-02-11T10:00:00.000Z");
+    await db.insert(users).values({
+      id: "local-user",
+      email: "local-user@nyte.dev",
+      name: "Local Nyte User",
+      createdAt: now,
+      updatedAt: now,
+    });
+    await db.insert(connectedAccounts).values({
+      id: "connection:google",
+      userId: "local-user",
+      provider: "google",
+      providerAccountId: "google-broken",
+      scopes: "https://www.googleapis.com/auth/gmail.readonly",
+      accessToken: "not-a-valid-encrypted-payload",
+      refreshToken: "not-a-valid-encrypted-payload",
+      connectedAt: now,
+      updatedAt: now,
+    });
+
+    const response = await POST(buildRequest(undefined, "192.0.2.92"));
+    const body = (await response.json()) as { error: string };
+
+    expect(response.status).toBe(500);
+    expect(body.error).toContain("Failed to rotate");
+  });
+
   it("returns 401 when authz is enforced and session missing", async () => {
     process.env.NYTE_REQUIRE_AUTH = "true";
     const response = await POST(buildRequest());
