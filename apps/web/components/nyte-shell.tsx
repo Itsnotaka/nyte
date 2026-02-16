@@ -25,7 +25,6 @@ import {
   type WorkItemWithAction,
 } from "@/lib/domain/actions";
 import { authClient } from "@/lib/auth-client";
-import { executeProposedAction } from "@/lib/domain/execution";
 import { mockIntakeSignals } from "@/lib/domain/mock-intake";
 import { createNeedsYouQueue, GATE_LABEL, type WorkItem } from "@/lib/domain/triage";
 import { Badge } from "@workspace/ui/@/components/ui/badge";
@@ -79,6 +78,20 @@ type ActivityEntry = {
   at: string;
 };
 
+type PollResponse = {
+  cursor: string;
+  needsYou: WorkItem[];
+};
+
+type ApproveResponse = {
+  execution: {
+    status: "executed";
+    destination: "gmail_drafts" | "google_calendar" | "refund_queue";
+    providerReference: string;
+    executedAt: string;
+  };
+};
+
 const navBlueprint = [
   { id: "needs-you", label: "Needs You", icon: BellDotIcon },
   { id: "drafts", label: "Drafts", icon: DraftingCompassIcon },
@@ -108,13 +121,18 @@ export function NyteShell() {
     () => withToolCalls(createNeedsYouQueue(mockIntakeSignals, REFERENCE_NOW)),
     [],
   );
+  const [queueItems, setQueueItems] = React.useState<WorkItemWithAction[]>(seededItems);
   const [activeNav, setActiveNav] = React.useState<NavId>("needs-you");
   const [handledIds, setHandledIds] = React.useState<Set<string>>(new Set());
   const [savedDrafts, setSavedDrafts] = React.useState<DraftEntry[]>([]);
   const [activityFeed, setActivityFeed] = React.useState<ActivityEntry[]>([]);
   const [connectionError, setConnectionError] = React.useState<string | null>(null);
+  const [syncError, setSyncError] = React.useState<string | null>(null);
+  const [actionError, setActionError] = React.useState<string | null>(null);
+  const [isSyncing, setIsSyncing] = React.useState(false);
+  const [isApproving, setIsApproving] = React.useState(false);
   const [activeItem, setActiveItem] = React.useState<WorkItemWithAction | null>(
-    seededItems.at(0) ?? null,
+    queueItems.at(0) ?? null,
   );
   const [editableAction, setEditableAction] = React.useState<ToolCallPayload | null>(
     activeItem ? clonePayload(activeItem.proposedAction) : null,
@@ -122,8 +140,8 @@ export function NyteShell() {
   const { data: session, isPending: isSessionPending } = authClient.useSession();
 
   const needsYouItems = React.useMemo(
-    () => seededItems.filter((item) => !handledIds.has(item.id)),
-    [handledIds, seededItems],
+    () => queueItems.filter((item) => !handledIds.has(item.id)),
+    [handledIds, queueItems],
   );
   const needsYouCount = needsYouItems.length;
   const processedCount = activityFeed.length;
@@ -145,6 +163,7 @@ export function NyteShell() {
   );
 
   const openItem = React.useCallback((item: WorkItemWithAction) => {
+    setActionError(null);
     setActiveItem(item);
     setEditableAction(clonePayload(item.proposedAction));
   }, []);
@@ -156,8 +175,9 @@ export function NyteShell() {
 
   const dismissItem = React.useCallback(
     (itemId: string) => {
+      setActionError(null);
       setHandledIds((current) => new Set(current).add(itemId));
-      const item = seededItems.find((entry) => entry.id === itemId);
+      const item = queueItems.find((entry) => entry.id === itemId);
       if (item) {
         setActivityFeed((current) => [
           {
@@ -176,13 +196,16 @@ export function NyteShell() {
         closeDrawer();
       }
     },
-    [activeItem?.id, closeDrawer, seededItems],
+    [activeItem?.id, closeDrawer, queueItems],
   );
 
-  const approveActiveItem = React.useCallback(() => {
+  const approveActiveItem = React.useCallback(async () => {
     if (!activeItem || !editableAction) {
       return;
     }
+
+    setActionError(null);
+    setIsApproving(true);
 
     if (editableAction.kind === "gmail.createDraft") {
       setSavedDrafts((current) => [
@@ -195,22 +218,76 @@ export function NyteShell() {
       ]);
     }
 
-    const execution = executeProposedAction(editableAction);
-    setActivityFeed((current) => [
-      {
-        id: `${activeItem.id}:${execution.providerReference}`,
-        itemId: activeItem.id,
-        actor: activeItem.actor,
-        action: activeItem.actionLabel,
-        status: execution.status,
-        detail: `${execution.destination} • ${execution.providerReference}`,
-        at: execution.executedAt,
-      },
-      ...current,
-    ]);
-    setHandledIds((current) => new Set(current).add(activeItem.id));
-    closeDrawer();
+    try {
+      const response = await fetch("/api/actions/approve", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          itemId: activeItem.id,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorBody = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(errorBody?.error ?? "Unable to approve action.");
+      }
+
+      const result = (await response.json()) as ApproveResponse;
+      setActivityFeed((current) => [
+        {
+          id: `${activeItem.id}:${result.execution.providerReference}`,
+          itemId: activeItem.id,
+          actor: activeItem.actor,
+          action: activeItem.actionLabel,
+          status: result.execution.status,
+          detail: `${result.execution.destination} • ${result.execution.providerReference}`,
+          at: result.execution.executedAt,
+        },
+        ...current,
+      ]);
+      setHandledIds((current) => new Set(current).add(activeItem.id));
+      closeDrawer();
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : "Unable to approve action.");
+    } finally {
+      setIsApproving(false);
+    }
   }, [activeItem, closeDrawer, editableAction]);
+
+  const syncQueue = React.useCallback(async () => {
+    setSyncError(null);
+    setIsSyncing(true);
+    try {
+      const response = await fetch("/api/sync/poll");
+      if (!response.ok) {
+        throw new Error("Unable to poll mailbox signals.");
+      }
+
+      const data = (await response.json()) as PollResponse;
+      const syncedQueue = withToolCalls(data.needsYou);
+      setQueueItems(syncedQueue);
+      setHandledIds(new Set());
+      if (activeItem) {
+        const refreshedItem = syncedQueue.find((item) => item.id === activeItem.id);
+        if (refreshedItem) {
+          setActiveItem(refreshedItem);
+          setEditableAction(clonePayload(refreshedItem.proposedAction));
+        } else {
+          closeDrawer();
+        }
+      }
+    } catch (error) {
+      setSyncError(error instanceof Error ? error.message : "Unable to sync queue.");
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [activeItem, closeDrawer]);
+
+  React.useEffect(() => {
+    void syncQueue();
+  }, [syncQueue]);
 
   const connectGoogle = React.useCallback(async () => {
     setConnectionError(null);
@@ -296,6 +373,10 @@ export function NyteShell() {
             <div className="w-full space-y-2">
               <div className="flex items-center gap-2">
                 <Input defaultValue="Gmail draft an email to our largest customer about the renewal timeline and next steps" />
+                <Button variant="outline" onClick={() => void syncQueue()} disabled={isSyncing}>
+                  <RefreshCwIcon className={isSyncing ? "animate-spin" : ""} />
+                  Sync
+                </Button>
                 <Button>Go</Button>
               </div>
               <div className="text-muted-foreground flex items-center gap-2 text-xs">
@@ -303,6 +384,7 @@ export function NyteShell() {
                 <Badge variant="secondary">Gmail</Badge>
                 <Badge variant="secondary">Calendar</Badge>
               </div>
+              {syncError ? <p className="text-destructive text-xs">{syncError}</p> : null}
             </div>
           </header>
           <ToolIntentLegend />
@@ -654,15 +736,20 @@ export function NyteShell() {
               </div>
 
               <SheetFooter className="sm:flex-row sm:justify-between">
-                <div className="text-muted-foreground flex items-center gap-2 text-xs">
-                  <Clock3Icon className="size-3.5" />
-                  strict-gate validated
+                <div className="space-y-1">
+                  <div className="text-muted-foreground flex items-center gap-2 text-xs">
+                    <Clock3Icon className="size-3.5" />
+                    strict-gate validated
+                  </div>
+                  {actionError ? <p className="text-destructive text-xs">{actionError}</p> : null}
                 </div>
                 <div className="flex items-center gap-2">
                   <Button variant="outline" onClick={() => dismissItem(activeItem.id)}>
                     Dismiss
                   </Button>
-                  <Button onClick={approveActiveItem}>{activeItem.cta}</Button>
+                  <Button onClick={() => void approveActiveItem()} disabled={isApproving}>
+                    {isApproving ? "Approving..." : activeItem.cta}
+                  </Button>
                 </div>
               </SheetFooter>
             </>

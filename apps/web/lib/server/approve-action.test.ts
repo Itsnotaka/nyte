@@ -1,0 +1,56 @@
+import { beforeEach, describe, expect, it } from "vitest";
+import {
+  calendarEvents,
+  connectedAccounts,
+  db,
+  ensureDbSchema,
+  gateEvaluations,
+  gmailDrafts,
+  proposedActions,
+  users,
+  workItems,
+} from "@workspace/db";
+
+import { mockIntakeSignals } from "../domain/mock-intake";
+import { approveWorkItem } from "./approve-action";
+import { persistSignals } from "./queue-store";
+
+async function resetDb() {
+  await ensureDbSchema();
+  await db.delete(calendarEvents);
+  await db.delete(gmailDrafts);
+  await db.delete(proposedActions);
+  await db.delete(gateEvaluations);
+  await db.delete(workItems);
+  await db.delete(connectedAccounts);
+  await db.delete(users);
+}
+
+describe("approveWorkItem", () => {
+  beforeEach(async () => {
+    await resetDb();
+  });
+
+  it("executes gmail draft action and records provider draft id", async () => {
+    await persistSignals(mockIntakeSignals, new Date("2026-01-20T12:00:00.000Z"));
+
+    const result = await approveWorkItem("w_renewal", new Date("2026-01-20T12:05:00.000Z"));
+
+    expect(result.execution.destination).toBe("gmail_drafts");
+
+    const draftRows = await db.select().from(gmailDrafts);
+    expect(draftRows).toHaveLength(1);
+    expect(draftRows[0]?.providerDraftId).toBe(result.execution.providerReference);
+  });
+
+  it("executes calendar action and records provider event id", async () => {
+    await persistSignals(mockIntakeSignals, new Date("2026-01-20T12:00:00.000Z"));
+
+    const result = await approveWorkItem("w_board", new Date("2026-01-20T12:05:00.000Z"));
+
+    expect(result.execution.destination).toBe("google_calendar");
+    const eventRows = await db.select().from(calendarEvents);
+    expect(eventRows).toHaveLength(1);
+    expect(eventRows[0]?.providerEventId).toBe(result.execution.providerReference);
+  });
+});
