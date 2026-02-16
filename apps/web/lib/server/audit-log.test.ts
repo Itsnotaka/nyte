@@ -76,4 +76,23 @@ describe("audit log recording", () => {
     expect(logs).toHaveLength(2);
     expect(new Set(logs.map((entry) => entry.id)).size).toBe(2);
   });
+
+  it("gracefully handles malformed payload json in stored rows", async () => {
+    await db.insert(auditLogs).values({
+      id: "audit:bad-json",
+      userId: null,
+      action: "malformed.payload",
+      targetType: "work_item",
+      targetId: "w_bad",
+      payloadJson: "{bad-json",
+      createdAt: new Date("2026-01-20T12:11:00.000Z"),
+    });
+
+    const logs = await listAuditLogsByTarget("work_item", "w_bad", 10);
+    expect(logs).toHaveLength(1);
+    expect(logs[0]?.payload).toEqual({
+      parseError: true,
+      rawPayload: "{bad-json",
+    });
+  });
 });

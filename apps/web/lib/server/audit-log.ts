@@ -57,6 +57,24 @@ function toIso(value: unknown): string {
   return new Date().toISOString();
 }
 
+function safeParsePayload(payloadJson: string): Record<string, unknown> {
+  try {
+    const parsed = JSON.parse(payloadJson) as unknown;
+    if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
+      return parsed as Record<string, unknown>;
+    }
+
+    return {
+      value: parsed,
+    };
+  } catch {
+    return {
+      parseError: true,
+      rawPayload: payloadJson,
+    };
+  }
+}
+
 export async function listAuditLogs(limit = 100, offset = 0): Promise<AuditLogEntry[]> {
   await ensureDbSchema();
 
@@ -95,7 +113,7 @@ function toAuditLogEntry(row: typeof auditLogs.$inferSelect): AuditLogEntry {
     action: row.action,
     targetType: row.targetType,
     targetId: row.targetId,
-    payload: JSON.parse(row.payloadJson) as Record<string, unknown>,
+    payload: safeParsePayload(row.payloadJson),
     createdAt: toIso(row.createdAt),
   };
 }
