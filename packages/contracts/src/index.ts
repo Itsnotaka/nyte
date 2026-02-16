@@ -238,3 +238,79 @@ export function isRuntimeCommand(value: unknown): value is RuntimeCommand {
 
   return isFeedbackPayload(value.payload);
 }
+
+function isRuntimeErrorCode(value: unknown): value is RuntimeErrorResult["code"] {
+  return (
+    value === "bad_request" ||
+    value === "unauthorized" ||
+    value === "not_found" ||
+    value === "conflict" ||
+    value === "internal"
+  );
+}
+
+function isIngestResultPayload(value: unknown): value is RuntimeIngestResult["result"] {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return isNonEmptyString(value.cursor) && typeof value.queuedCount === "number";
+}
+
+function isApproveResultPayload(value: unknown): value is RuntimeApproveResult["result"] {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return isNonEmptyString(value.itemId) && typeof value.idempotent === "boolean";
+}
+
+function isDismissResultPayload(value: unknown): value is RuntimeDismissResult["result"] {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return isNonEmptyString(value.itemId);
+}
+
+function isFeedbackResultPayload(value: unknown): value is RuntimeFeedbackResult["result"] {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return (
+    isNonEmptyString(value.itemId) && (value.rating === "positive" || value.rating === "negative")
+  );
+}
+
+export function isRuntimeCommandResult(value: unknown): value is RuntimeCommandResult {
+  if (!isRecord(value) || !isNonEmptyString(value.requestId)) {
+    return false;
+  }
+
+  if (value.status === "error") {
+    return isRuntimeErrorCode(value.code) && isNonEmptyString(value.message);
+  }
+
+  if (value.status !== "accepted") {
+    return false;
+  }
+
+  if (!isRuntimeCommandType(value.type) || !isNonEmptyString(value.receivedAt)) {
+    return false;
+  }
+
+  if (value.type === "runtime.ingest") {
+    return isIngestResultPayload(value.result);
+  }
+
+  if (value.type === "runtime.approve") {
+    return isApproveResultPayload(value.result);
+  }
+
+  if (value.type === "runtime.dismiss") {
+    return isDismissResultPayload(value.result);
+  }
+
+  return isFeedbackResultPayload(value.result);
+}

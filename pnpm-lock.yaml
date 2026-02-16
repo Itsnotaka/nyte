@@ -60,6 +60,9 @@ importers:
       '@workspace/application':
         specifier: workspace:^
         version: link:../../packages/application
+      '@workspace/contracts':
+        specifier: workspace:^
+        version: link:../../packages/contracts
       '@workspace/db':
         specifier: workspace:^
         version: link:../../packages/db
