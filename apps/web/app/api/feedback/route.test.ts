@@ -122,6 +122,23 @@ describe("POST /api/feedback", () => {
     expect(body.error).toContain("Invalid JSON body");
   });
 
+  it("returns 415 for non-json content-type", async () => {
+    const response = await POST(
+      new Request("http://localhost/api/feedback", {
+        method: "POST",
+        headers: {
+          "content-type": "text/plain",
+          "x-forwarded-for": "192.0.2.46",
+        },
+        body: "itemId=w_renewal&rating=positive",
+      }),
+    );
+    const body = (await response.json()) as { error: string };
+
+    expect(response.status).toBe(415);
+    expect(body.error).toContain("application/json");
+  });
+
   it("returns 409 for unprocessed item feedback attempt", async () => {
     await persistSignals(mockIntakeSignals, new Date("2026-02-10T10:00:00.000Z"));
 

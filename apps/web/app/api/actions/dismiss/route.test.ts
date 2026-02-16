@@ -113,6 +113,23 @@ describe("POST /api/actions/dismiss", () => {
     expect(body.error).toContain("Invalid JSON body");
   });
 
+  it("returns 415 for non-json content-type", async () => {
+    const response = await POST(
+      new Request("http://localhost/api/actions/dismiss", {
+        method: "POST",
+        headers: {
+          "content-type": "text/plain",
+          "x-forwarded-for": "198.51.100.46",
+        },
+        body: "itemId=w_board",
+      }),
+    );
+    const body = (await response.json()) as { error: string };
+
+    expect(response.status).toBe(415);
+    expect(body.error).toContain("application/json");
+  });
+
   it("returns idempotent true on repeated dismiss", async () => {
     await persistSignals(mockIntakeSignals, new Date("2026-02-10T10:00:00.000Z"));
 

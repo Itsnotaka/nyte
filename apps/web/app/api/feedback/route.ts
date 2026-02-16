@@ -1,6 +1,10 @@
 import { FeedbackError, recordFeedback, type FeedbackRating } from "@/lib/server/feedback";
 import { AuthorizationError, requireAuthorizedSession } from "@/lib/server/authz";
-import { InvalidJsonBodyError, readJsonBody } from "@/lib/server/json-body";
+import {
+  InvalidJsonBodyError,
+  readJsonBody,
+  UnsupportedMediaTypeError,
+} from "@/lib/server/json-body";
 import { enforceRateLimit, RateLimitError } from "@/lib/server/rate-limit";
 import { createRateLimitResponse } from "@/lib/server/rate-limit-response";
 
@@ -36,6 +40,10 @@ export async function POST(request: Request) {
   try {
     body = await readJsonBody<FeedbackBody>(request);
   } catch (error) {
+    if (error instanceof UnsupportedMediaTypeError) {
+      return Response.json({ error: error.message }, { status: 415 });
+    }
+
     if (error instanceof InvalidJsonBodyError) {
       return Response.json({ error: error.message }, { status: 400 });
     }

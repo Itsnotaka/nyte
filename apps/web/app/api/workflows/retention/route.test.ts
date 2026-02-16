@@ -143,6 +143,23 @@ describe("workflow retention route", () => {
     expect(body.error).toContain("Invalid JSON body");
   });
 
+  it("returns 415 for non-json content-type", async () => {
+    const response = await POST(
+      new Request("http://localhost/api/workflows/retention", {
+        method: "POST",
+        headers: {
+          "content-type": "text/plain",
+          "x-forwarded-for": "203.0.113.18",
+        },
+        body: "days=14",
+      }),
+    );
+    const body = (await response.json()) as { error: string };
+
+    expect(response.status).toBe(415);
+    expect(body.error).toContain("application/json");
+  });
+
   it("returns 429 when update rate limit is exceeded", async () => {
     let lastResponse: Response | null = null;
     for (let index = 0; index < 21; index += 1) {

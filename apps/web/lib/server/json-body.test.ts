@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { InvalidJsonBodyError, readJsonBody, readOptionalJsonBody } from "./json-body";
+import {
+  InvalidJsonBodyError,
+  readJsonBody,
+  readOptionalJsonBody,
+  UnsupportedMediaTypeError,
+} from "./json-body";
 
 describe("readJsonBody", () => {
   it("parses valid json payload", async () => {
@@ -28,6 +33,18 @@ describe("readJsonBody", () => {
     });
 
     await expect(readJsonBody(request)).rejects.toBeInstanceOf(InvalidJsonBodyError);
+  });
+
+  it("throws UnsupportedMediaTypeError for non-json content-type", async () => {
+    const request = new Request("http://localhost/test", {
+      method: "POST",
+      headers: {
+        "content-type": "text/plain",
+      },
+      body: "value=42",
+    });
+
+    await expect(readJsonBody(request)).rejects.toBeInstanceOf(UnsupportedMediaTypeError);
   });
 });
 
@@ -83,5 +100,19 @@ describe("readOptionalJsonBody", () => {
     });
 
     await expect(readOptionalJsonBody(request, {})).rejects.toBeInstanceOf(InvalidJsonBodyError);
+  });
+
+  it("throws UnsupportedMediaTypeError for non-json non-empty body", async () => {
+    const request = new Request("http://localhost/test", {
+      method: "POST",
+      headers: {
+        "content-type": "text/plain",
+      },
+      body: "payload",
+    });
+
+    await expect(readOptionalJsonBody(request, {})).rejects.toBeInstanceOf(
+      UnsupportedMediaTypeError,
+    );
   });
 });

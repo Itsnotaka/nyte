@@ -137,6 +137,23 @@ describe("google connection route", () => {
     expect(body.error).toContain("Invalid JSON body");
   });
 
+  it("returns 415 for non-json content-type with non-empty body", async () => {
+    const response = await POST(
+      new Request("http://localhost/api/connections/google", {
+        method: "POST",
+        headers: {
+          "content-type": "text/plain",
+          "x-forwarded-for": "198.51.100.94",
+        },
+        body: "providerAccountId=google-raw",
+      }),
+    );
+    const body = (await response.json()) as { error: string };
+
+    expect(response.status).toBe(415);
+    expect(body.error).toContain("application/json");
+  });
+
   it("returns 429 when mutate rate limit is exceeded", async () => {
     let lastResponse: Response | null = null;
     for (let index = 0; index < 21; index += 1) {

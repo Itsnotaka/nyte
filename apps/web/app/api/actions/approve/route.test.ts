@@ -115,6 +115,23 @@ describe("POST /api/actions/approve", () => {
     expect(body.error).toContain("Invalid JSON body");
   });
 
+  it("returns 415 for non-json content-type", async () => {
+    const response = await POST(
+      new Request("http://localhost/api/actions/approve", {
+        method: "POST",
+        headers: {
+          "content-type": "text/plain",
+          "x-forwarded-for": "203.0.113.46",
+        },
+        body: "itemId=w_renewal",
+      }),
+    );
+    const body = (await response.json()) as { error: string };
+
+    expect(response.status).toBe(415);
+    expect(body.error).toContain("application/json");
+  });
+
   it("propagates explicit idempotency key from header", async () => {
     await persistSignals(mockIntakeSignals, new Date("2026-02-10T10:00:00.000Z"));
 

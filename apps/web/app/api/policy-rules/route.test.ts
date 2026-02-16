@@ -132,6 +132,23 @@ describe("policy rules route", () => {
     expect(body.error).toContain("Invalid JSON body");
   });
 
+  it("returns 415 for non-json content-type", async () => {
+    const response = await POST(
+      new Request("http://localhost/api/policy-rules", {
+        method: "POST",
+        headers: {
+          "content-type": "text/plain",
+          "x-forwarded-for": "203.0.113.91",
+        },
+        body: "keyword=raw",
+      }),
+    );
+    const body = (await response.json()) as { error: string };
+
+    expect(response.status).toBe(415);
+    expect(body.error).toContain("application/json");
+  });
+
   it("returns 400 for malformed json body on delete", async () => {
     const response = await DELETE(
       new Request("http://localhost/api/policy-rules", {
