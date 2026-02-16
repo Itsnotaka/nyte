@@ -25,6 +25,7 @@ import {
   type WorkItemWithAction,
 } from "@/lib/domain/actions";
 import { authClient } from "@/lib/auth-client";
+import { executeProposedAction } from "@/lib/domain/execution";
 import { mockIntakeSignals } from "@/lib/domain/mock-intake";
 import { createNeedsYouQueue, GATE_LABEL, type WorkItem } from "@/lib/domain/triage";
 import { Badge } from "@workspace/ui/@/components/ui/badge";
@@ -68,6 +69,15 @@ const REFERENCE_NOW = new Date("2026-01-20T12:00:00.000Z");
 
 type NavId = "needs-you" | "drafts" | "processed" | "connections" | "rules";
 type DraftEntry = GmailCreateDraftToolCall & { id: string; actor: string };
+type ActivityEntry = {
+  id: string;
+  itemId: string;
+  actor: string;
+  action: string;
+  status: "executed" | "dismissed";
+  detail: string;
+  at: string;
+};
 
 const navBlueprint = [
   { id: "needs-you", label: "Needs You", icon: BellDotIcon },
@@ -101,6 +111,7 @@ export function NyteShell() {
   const [activeNav, setActiveNav] = React.useState<NavId>("needs-you");
   const [handledIds, setHandledIds] = React.useState<Set<string>>(new Set());
   const [savedDrafts, setSavedDrafts] = React.useState<DraftEntry[]>([]);
+  const [activityFeed, setActivityFeed] = React.useState<ActivityEntry[]>([]);
   const [connectionError, setConnectionError] = React.useState<string | null>(null);
   const [activeItem, setActiveItem] = React.useState<WorkItemWithAction | null>(
     seededItems.at(0) ?? null,
@@ -115,7 +126,7 @@ export function NyteShell() {
     [handledIds, seededItems],
   );
   const needsYouCount = needsYouItems.length;
-  const processedCount = handledIds.size;
+  const processedCount = activityFeed.length;
 
   const navItems = React.useMemo(
     () =>
@@ -146,11 +157,26 @@ export function NyteShell() {
   const dismissItem = React.useCallback(
     (itemId: string) => {
       setHandledIds((current) => new Set(current).add(itemId));
+      const item = seededItems.find((entry) => entry.id === itemId);
+      if (item) {
+        setActivityFeed((current) => [
+          {
+            id: `${itemId}:dismissed`,
+            itemId,
+            actor: item.actor,
+            action: item.actionLabel,
+            status: "dismissed",
+            detail: "Dismissed from Needs You queue.",
+            at: new Date().toISOString(),
+          },
+          ...current,
+        ]);
+      }
       if (activeItem?.id === itemId) {
         closeDrawer();
       }
     },
-    [activeItem?.id, closeDrawer],
+    [activeItem?.id, closeDrawer, seededItems],
   );
 
   const approveActiveItem = React.useCallback(() => {
@@ -169,6 +195,19 @@ export function NyteShell() {
       ]);
     }
 
+    const execution = executeProposedAction(editableAction);
+    setActivityFeed((current) => [
+      {
+        id: `${activeItem.id}:${execution.providerReference}`,
+        itemId: activeItem.id,
+        actor: activeItem.actor,
+        action: activeItem.actionLabel,
+        status: execution.status,
+        detail: `${execution.destination} • ${execution.providerReference}`,
+        at: execution.executedAt,
+      },
+      ...current,
+    ]);
     setHandledIds((current) => new Set(current).add(activeItem.id));
     closeDrawer();
   }, [activeItem, closeDrawer, editableAction]);
@@ -364,8 +403,32 @@ export function NyteShell() {
                 <CardHeader>
                   <CardTitle>Processed activity</CardTitle>
                 </CardHeader>
-                <CardContent className="text-muted-foreground text-sm">
-                  {processedCount} items were processed from the triage queue this session.
+                <CardContent className="space-y-3">
+                  <p className="text-muted-foreground text-sm">
+                    {processedCount} items were processed from the triage queue this session.
+                  </p>
+                  {activityFeed.length > 0 ? (
+                    <div className="space-y-2">
+                      {activityFeed.map((entry) => (
+                        <div
+                          key={entry.id}
+                          className="bg-muted/40 border-border rounded-lg border px-3 py-2"
+                        >
+                          <div className="flex items-center gap-2 text-sm">
+                            <Badge variant={entry.status === "executed" ? "secondary" : "outline"}>
+                              {entry.status}
+                            </Badge>
+                            <span className="font-medium">{entry.actor}</span>
+                          </div>
+                          <p className="text-muted-foreground mt-1 text-xs">{entry.detail}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-muted-foreground text-xs">
+                      No actions have been processed yet.
+                    </p>
+                  )}
                 </CardContent>
               </Card>
             ) : null}
