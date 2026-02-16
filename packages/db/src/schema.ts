@@ -102,3 +102,15 @@ export const workflowEvents = sqliteTable("workflow_events", {
   payloadJson: text("payload_json").notNull(),
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
 });
+
+export const feedbackEntries = sqliteTable("feedback_entries", {
+  id: text("id").primaryKey(),
+  workItemId: text("work_item_id")
+    .notNull()
+    .unique()
+    .references(() => workItems.id),
+  rating: text("rating").notNull(),
+  note: text("note"),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+});

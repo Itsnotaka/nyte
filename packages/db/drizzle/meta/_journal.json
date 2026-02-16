@@ -15,6 +15,13 @@
       "when": 1771212851990,
       "tag": "0001_cheerful_red_hulk",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1771213502948,
+      "tag": "0002_fantastic_toro",
+      "breakpoints": true
     }
   ]
 }

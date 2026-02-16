@@ -8,7 +8,7 @@ type WorkflowLogEvent = {
 
 type RecordRunInput = {
   workItemId: string;
-  phase: "ingest" | "approve" | "dismiss";
+  phase: "ingest" | "approve" | "dismiss" | "feedback";
   status: "completed";
   events: WorkflowLogEvent[];
   now?: Date;

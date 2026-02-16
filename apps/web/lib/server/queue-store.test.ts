@@ -4,6 +4,7 @@ import {
   connectedAccounts,
   db,
   ensureDbSchema,
+  feedbackEntries,
   gateEvaluations,
   gmailDrafts,
   proposedActions,
@@ -20,6 +21,7 @@ async function resetDb() {
   await ensureDbSchema();
   await db.delete(calendarEvents);
   await db.delete(gmailDrafts);
+  await db.delete(feedbackEntries);
   await db.delete(workflowEvents);
   await db.delete(workflowRuns);
   await db.delete(proposedActions);

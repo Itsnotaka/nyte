@@ -3,6 +3,7 @@ import {
   calendarEvents,
   db,
   ensureDbSchema,
+  feedbackEntries,
   gateEvaluations,
   gmailDrafts,
   proposedActions,
@@ -20,6 +21,7 @@ export type ProcessedEntry = {
   status: "executed" | "dismissed";
   detail: string;
   at: string;
+  feedback: "positive" | "negative" | null;
 };
 
 export type DashboardData = {
@@ -172,6 +174,14 @@ async function loadDrafts(): Promise<DraftEntry[]> {
 }
 
 async function loadProcessed(): Promise<ProcessedEntry[]> {
+  const feedbackRows = await db.select().from(feedbackEntries);
+  const feedbackByItem = new Map(
+    feedbackRows.map((entry) => [
+      entry.workItemId,
+      (entry.rating as "positive" | "negative" | null) ?? null,
+    ]),
+  );
+
   const rows = await db
     .select()
     .from(workItems)
@@ -200,6 +210,7 @@ async function loadProcessed(): Promise<ProcessedEntry[]> {
         status: "dismissed",
         detail: "Dismissed from Needs You queue.",
         at: toIso(row.updatedAt),
+        feedback: feedbackByItem.get(row.id) ?? null,
       });
       continue;
     }
@@ -233,6 +244,7 @@ async function loadProcessed(): Promise<ProcessedEntry[]> {
       status: "executed",
       detail,
       at: toIso(row.updatedAt),
+      feedback: feedbackByItem.get(row.id) ?? null,
     });
   }
 

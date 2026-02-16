@@ -14,6 +14,8 @@ import {
   RefreshCwIcon,
   ShieldAlertIcon,
   SparklesIcon,
+  ThumbsDownIcon,
+  ThumbsUpIcon,
   TextSearchIcon,
   WalletIcon,
 } from "lucide-react";
@@ -76,6 +78,7 @@ type ActivityEntry = {
   status: "executed" | "dismissed";
   detail: string;
   at: string;
+  feedback: "positive" | "negative" | null;
 };
 
 type PollResponse = {
@@ -102,6 +105,12 @@ type DismissResponse = {
   idempotent: boolean;
 };
 
+type FeedbackResponse = {
+  itemId: string;
+  rating: "positive" | "negative";
+  notedAt: string;
+};
+
 type WorkflowTimelineResponse = {
   itemId: string;
   timeline: Array<{
@@ -125,6 +134,8 @@ type MetricsResponse = {
   interruptionPrecision: number;
   approvalRate: number;
   medianDecisionMinutes: number;
+  feedbackCount: number;
+  positiveFeedbackRate: number;
   gateHitCounts: {
     decision: number;
     time: number;
@@ -174,6 +185,7 @@ export function NyteShell() {
   const [isSyncing, setIsSyncing] = React.useState(false);
   const [isApproving, setIsApproving] = React.useState(false);
   const [isDismissingId, setIsDismissingId] = React.useState<string | null>(null);
+  const [isSubmittingFeedbackId, setIsSubmittingFeedbackId] = React.useState<string | null>(null);
   const [syncCursor, setSyncCursor] = React.useState<string | null>(null);
   const [workflowTimeline, setWorkflowTimeline] = React.useState<
     WorkflowTimelineResponse["timeline"]
@@ -486,6 +498,44 @@ export function NyteShell() {
     setWatchRules((current) => current.filter((entry) => entry !== rule));
   }, []);
 
+  const submitFeedback = React.useCallback(
+    async (itemId: string, rating: "positive" | "negative") => {
+      setActionError(null);
+      setIsSubmittingFeedbackId(itemId);
+      setActivityFeed((current) =>
+        current.map((entry) => (entry.itemId === itemId ? { ...entry, feedback: rating } : entry)),
+      );
+
+      try {
+        const response = await fetch("/api/feedback", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({
+            itemId,
+            rating,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorBody = (await response.json().catch(() => null)) as { error?: string } | null;
+          throw new Error(errorBody?.error ?? "Unable to record feedback.");
+        }
+
+        (await response.json()) as FeedbackResponse;
+        await refreshDashboard();
+        await refreshMetrics();
+      } catch (error) {
+        setActionError(error instanceof Error ? error.message : "Unable to record feedback.");
+        await refreshDashboard();
+      } finally {
+        setIsSubmittingFeedbackId(null);
+      }
+    },
+    [refreshDashboard, refreshMetrics],
+  );
+
   return (
     <SidebarProvider>
       <Sidebar variant="inset">
@@ -672,11 +722,33 @@ export function NyteShell() {
                           key={entry.id}
                           className="bg-muted/40 border-border rounded-lg border px-3 py-2"
                         >
-                          <div className="flex items-center gap-2 text-sm">
-                            <Badge variant={entry.status === "executed" ? "secondary" : "outline"}>
-                              {entry.status}
-                            </Badge>
-                            <span className="font-medium">{entry.actor}</span>
+                          <div className="flex items-center justify-between gap-2 text-sm">
+                            <div className="flex items-center gap-2">
+                              <Badge
+                                variant={entry.status === "executed" ? "secondary" : "outline"}
+                              >
+                                {entry.status}
+                              </Badge>
+                              <span className="font-medium">{entry.actor}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Button
+                                size="sm"
+                                variant={entry.feedback === "positive" ? "secondary" : "outline"}
+                                disabled={isSubmittingFeedbackId === entry.itemId}
+                                onClick={() => void submitFeedback(entry.itemId, "positive")}
+                              >
+                                <ThumbsUpIcon />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant={entry.feedback === "negative" ? "secondary" : "outline"}
+                                disabled={isSubmittingFeedbackId === entry.itemId}
+                                onClick={() => void submitFeedback(entry.itemId, "negative")}
+                              >
+                                <ThumbsDownIcon />
+                              </Button>
+                            </div>
                           </div>
                           <p className="text-muted-foreground mt-1 text-xs">{entry.detail}</p>
                         </div>
@@ -732,7 +804,7 @@ export function NyteShell() {
                       <p className="text-destructive text-sm">{metricsError}</p>
                     ) : metrics ? (
                       <>
-                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                           <div className="bg-muted/40 border-border rounded-lg border px-3 py-2">
                             <p className="text-muted-foreground text-xs">Interruption precision</p>
                             <p className="text-lg font-semibold">
@@ -752,6 +824,14 @@ export function NyteShell() {
                           <div className="bg-muted/40 border-border rounded-lg border px-3 py-2">
                             <p className="text-muted-foreground text-xs">Awaiting decisions</p>
                             <p className="text-lg font-semibold">{metrics.awaitingCount}</p>
+                          </div>
+                          <div className="bg-muted/40 border-border rounded-lg border px-3 py-2">
+                            <p className="text-muted-foreground text-xs">Feedback coverage</p>
+                            <p className="text-lg font-semibold">{metrics.feedbackCount}</p>
+                          </div>
+                          <div className="bg-muted/40 border-border rounded-lg border px-3 py-2">
+                            <p className="text-muted-foreground text-xs">Positive feedback rate</p>
+                            <p className="text-lg font-semibold">{metrics.positiveFeedbackRate}%</p>
                           </div>
                         </div>
                         <div className="space-y-2">

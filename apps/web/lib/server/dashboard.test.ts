@@ -4,6 +4,7 @@ import {
   connectedAccounts,
   db,
   ensureDbSchema,
+  feedbackEntries,
   gateEvaluations,
   gmailDrafts,
   proposedActions,
@@ -17,12 +18,14 @@ import { mockIntakeSignals } from "../domain/mock-intake";
 import { approveWorkItem } from "./approve-action";
 import { getDashboardData } from "./dashboard";
 import { dismissWorkItem } from "./dismiss-action";
+import { recordFeedback } from "./feedback";
 import { persistSignals } from "./queue-store";
 
 async function resetDb() {
   await ensureDbSchema();
   await db.delete(calendarEvents);
   await db.delete(gmailDrafts);
+  await db.delete(feedbackEntries);
   await db.delete(workflowEvents);
   await db.delete(workflowRuns);
   await db.delete(proposedActions);
@@ -41,6 +44,7 @@ describe("getDashboardData", () => {
     await persistSignals(mockIntakeSignals, new Date("2026-01-20T12:00:00.000Z"));
     await approveWorkItem("w_renewal", new Date("2026-01-20T12:05:00.000Z"));
     await dismissWorkItem("w_board", new Date("2026-01-20T12:10:00.000Z"));
+    await recordFeedback("w_renewal", "positive", undefined, new Date("2026-01-20T12:11:00.000Z"));
 
     const dashboard = await getDashboardData();
 
@@ -48,6 +52,9 @@ describe("getDashboardData", () => {
     expect(dashboard.drafts.map((draft) => draft.id)).toContain("w_renewal");
     expect(dashboard.processed.map((entry) => entry.itemId)).toEqual(
       expect.arrayContaining(["w_renewal", "w_board"]),
+    );
+    expect(dashboard.processed.find((entry) => entry.itemId === "w_renewal")?.feedback).toBe(
+      "positive",
     );
   });
 });

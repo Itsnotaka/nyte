@@ -117,6 +117,18 @@ async function runBootstrap() {
       FOREIGN KEY(run_id) REFERENCES workflow_runs(id)
     )
   `);
+
+  await db.run(sql`
+    CREATE TABLE IF NOT EXISTS feedback_entries (
+      id TEXT PRIMARY KEY NOT NULL,
+      work_item_id TEXT NOT NULL UNIQUE,
+      rating TEXT NOT NULL,
+      note TEXT,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+      FOREIGN KEY(work_item_id) REFERENCES work_items(id)
+    )
+  `);
 }
 
 export async function ensureDbSchema() {

@@ -16,9 +16,7 @@ import {
 
 import { mockIntakeSignals } from "../domain/mock-intake";
 import { approveWorkItem } from "./approve-action";
-import { dismissWorkItem } from "./dismiss-action";
 import { recordFeedback } from "./feedback";
-import { getMetricsSnapshot } from "./metrics";
 import { persistSignals } from "./queue-store";
 
 async function resetDb() {
@@ -35,33 +33,34 @@ async function resetDb() {
   await db.delete(users);
 }
 
-describe("getMetricsSnapshot", () => {
+describe("recordFeedback", () => {
   beforeEach(async () => {
     await resetDb();
   });
 
-  it("computes queue, precision, and timing metrics from persisted data", async () => {
+  it("records and updates feedback for processed items", async () => {
     await persistSignals(mockIntakeSignals, new Date("2026-01-20T12:00:00.000Z"));
     await approveWorkItem("w_renewal", new Date("2026-01-20T12:05:00.000Z"));
-    await dismissWorkItem("w_board", new Date("2026-01-20T12:10:00.000Z"));
-    await recordFeedback(
+
+    const first = await recordFeedback(
       "w_renewal",
       "positive",
-      "Great draft",
-      new Date("2026-01-20T12:11:00.000Z"),
+      "Draft was accurate and ready to send.",
+      new Date("2026-01-20T12:06:00.000Z"),
+    );
+    const second = await recordFeedback(
+      "w_renewal",
+      "negative",
+      "Need a shorter opener.",
+      new Date("2026-01-20T12:07:00.000Z"),
     );
 
-    const snapshot = await getMetricsSnapshot(new Date("2026-01-20T12:15:00.000Z"));
+    expect(first.rating).toBe("positive");
+    expect(second.rating).toBe("negative");
 
-    expect(snapshot.awaitingCount).toBe(1);
-    expect(snapshot.completedCount).toBe(1);
-    expect(snapshot.dismissedCount).toBe(1);
-    expect(snapshot.interruptionPrecision).toBe(50);
-    expect(snapshot.approvalRate).toBe(33.3);
-    expect(snapshot.medianDecisionMinutes).toBe(7.5);
-    expect(snapshot.feedbackCount).toBe(1);
-    expect(snapshot.positiveFeedbackRate).toBe(100);
-    expect(snapshot.gateHitCounts.decision).toBeGreaterThan(0);
-    expect(snapshot.gateHitCounts.impact).toBeGreaterThan(0);
+    const rows = await db.select().from(feedbackEntries);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.rating).toBe("negative");
+    expect(rows[0]?.note).toContain("shorter opener");
   });
 });

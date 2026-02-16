@@ -1,5 +1,5 @@
 import { and, eq } from "drizzle-orm";
-import { db, ensureDbSchema, gateEvaluations, workItems } from "@workspace/db";
+import { db, ensureDbSchema, feedbackEntries, gateEvaluations, workItems } from "@workspace/db";
 
 const GATES = ["decision", "time", "relationship", "impact", "watch"] as const;
 type GateKey = (typeof GATES)[number];
@@ -12,6 +12,8 @@ export type MetricsSnapshot = {
   interruptionPrecision: number;
   approvalRate: number;
   medianDecisionMinutes: number;
+  feedbackCount: number;
+  positiveFeedbackRate: number;
   gateHitCounts: Record<GateKey, number>;
 };
 
@@ -55,6 +57,7 @@ export async function getMetricsSnapshot(now = new Date()): Promise<MetricsSnaps
   await ensureDbSchema();
 
   const rows = await db.select().from(workItems);
+  const feedbackRows = await db.select().from(feedbackEntries);
 
   let awaitingCount = 0;
   let completedCount = 0;
@@ -82,6 +85,7 @@ export async function getMetricsSnapshot(now = new Date()): Promise<MetricsSnaps
 
   const totalSurfaced = awaitingCount + completedCount + dismissedCount;
   const decisions = completedCount + dismissedCount;
+  const positiveFeedback = feedbackRows.filter((entry) => entry.rating === "positive").length;
 
   const gateHitCounts = Object.fromEntries(GATES.map((gate) => [gate, 0])) as Record<
     GateKey,
@@ -103,6 +107,8 @@ export async function getMetricsSnapshot(now = new Date()): Promise<MetricsSnaps
     interruptionPrecision: toPercent(completedCount, decisions),
     approvalRate: toPercent(completedCount, totalSurfaced),
     medianDecisionMinutes: median(decisionMinutes),
+    feedbackCount: feedbackRows.length,
+    positiveFeedbackRate: toPercent(positiveFeedback, feedbackRows.length),
     gateHitCounts,
   };
 }
