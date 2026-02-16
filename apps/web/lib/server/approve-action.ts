@@ -23,8 +23,72 @@ function parsePayload(payloadJson: string): ToolCallPayload {
   return JSON.parse(payloadJson) as ToolCallPayload;
 }
 
+function toIso(value: unknown): string {
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+
+  if (typeof value === "number") {
+    return new Date(value).toISOString();
+  }
+
+  return new Date().toISOString();
+}
+
+async function resolveExecutionSnapshot(
+  proposalId: string,
+  payload: ToolCallPayload,
+  updatedAt: unknown,
+) {
+  if (payload.kind === "gmail.createDraft") {
+    const draftRows = await db
+      .select()
+      .from(gmailDrafts)
+      .where(eq(gmailDrafts.actionId, proposalId))
+      .limit(1);
+    const draft = draftRows.at(0);
+    return {
+      status: "executed" as const,
+      destination: "gmail_drafts" as const,
+      providerReference:
+        draft?.providerDraftId ??
+        executeProposedAction(payload, new Date(toIso(updatedAt))).providerReference,
+      executedAt: toIso(draft?.syncedAt ?? updatedAt),
+    };
+  }
+
+  if (payload.kind === "google-calendar.createEvent") {
+    const eventRows = await db
+      .select()
+      .from(calendarEvents)
+      .where(eq(calendarEvents.actionId, proposalId))
+      .limit(1);
+    const event = eventRows.at(0);
+    return {
+      status: "executed" as const,
+      destination: "google_calendar" as const,
+      providerReference:
+        event?.providerEventId ??
+        executeProposedAction(payload, new Date(toIso(updatedAt))).providerReference,
+      executedAt: toIso(event?.syncedAt ?? updatedAt),
+    };
+  }
+
+  const execution = executeProposedAction(payload, new Date(toIso(updatedAt)));
+  return execution;
+}
+
 export async function approveWorkItem(itemId: string, now = new Date()) {
   await ensureDbSchema();
+
+  const itemRows = await db.select().from(workItems).where(eq(workItems.id, itemId)).limit(1);
+  const workItem = itemRows.at(0);
+  if (!workItem) {
+    throw new ApprovalError("Work item not found.");
+  }
+  if (workItem.status === "dismissed") {
+    throw new ApprovalError("Work item is dismissed and cannot be approved.");
+  }
 
   const action = await db
     .select()
@@ -38,6 +102,16 @@ export async function approveWorkItem(itemId: string, now = new Date()) {
   }
 
   const payload = parsePayload(proposal.payloadJson);
+  if (workItem.status === "completed" || proposal.status === "executed") {
+    const execution = await resolveExecutionSnapshot(proposal.id, payload, workItem.updatedAt);
+    return {
+      itemId,
+      payload,
+      execution,
+      idempotent: true,
+    };
+  }
+
   const execution = executeProposedAction(payload, now);
 
   await db
@@ -128,5 +202,6 @@ export async function approveWorkItem(itemId: string, now = new Date()) {
     itemId,
     payload,
     execution,
+    idempotent: false,
   };
 }

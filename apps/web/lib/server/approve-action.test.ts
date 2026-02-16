@@ -57,4 +57,18 @@ describe("approveWorkItem", () => {
     expect(eventRows).toHaveLength(1);
     expect(eventRows[0]?.providerEventId).toBe(result.execution.providerReference);
   });
+
+  it("returns idempotent response for duplicate approval requests", async () => {
+    await persistSignals(mockIntakeSignals, new Date("2026-01-20T12:00:00.000Z"));
+
+    const first = await approveWorkItem("w_renewal", new Date("2026-01-20T12:05:00.000Z"));
+    const second = await approveWorkItem("w_renewal", new Date("2026-01-20T12:07:00.000Z"));
+
+    expect(first.idempotent).toBe(false);
+    expect(second.idempotent).toBe(true);
+    expect(second.execution.providerReference).toBe(first.execution.providerReference);
+
+    const draftRows = await db.select().from(gmailDrafts);
+    expect(draftRows).toHaveLength(1);
+  });
 });

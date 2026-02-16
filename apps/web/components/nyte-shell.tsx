@@ -86,6 +86,7 @@ type PollResponse = {
 };
 
 type ApproveResponse = {
+  idempotent: boolean;
   execution: {
     status: "executed";
     destination: "gmail_drafts" | "google_calendar" | "refund_queue";
@@ -98,6 +99,7 @@ type DismissResponse = {
   itemId: string;
   status: "dismissed";
   dismissedAt: string;
+  idempotent: boolean;
 };
 
 type WorkflowTimelineResponse = {

@@ -15,7 +15,8 @@ export async function POST(request: Request) {
     return Response.json(result);
   } catch (error) {
     if (error instanceof ApprovalError) {
-      return Response.json({ error: error.message }, { status: 404 });
+      const status = error.message.includes("not found") ? 404 : 409;
+      return Response.json({ error: error.message }, { status });
     }
 
     return Response.json({ error: "Failed to approve work item." }, { status: 500 });

@@ -13,8 +13,20 @@ export async function dismissWorkItem(itemId: string, now = new Date()) {
   await ensureDbSchema();
 
   const existing = await db.select().from(workItems).where(eq(workItems.id, itemId)).limit(1);
-  if (!existing.at(0)) {
+  const item = existing.at(0);
+  if (!item) {
     throw new DismissError("Work item not found.");
+  }
+  if (item.status === "completed") {
+    throw new DismissError("Completed work item cannot be dismissed.");
+  }
+  if (item.status === "dismissed") {
+    return {
+      itemId,
+      status: "dismissed" as const,
+      dismissedAt: now.toISOString(),
+      idempotent: true,
+    };
   }
 
   await db
@@ -52,5 +64,6 @@ export async function dismissWorkItem(itemId: string, now = new Date()) {
     itemId,
     status: "dismissed" as const,
     dismissedAt: now.toISOString(),
+    idempotent: false,
   };
 }

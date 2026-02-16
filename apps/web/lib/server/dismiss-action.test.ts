@@ -47,4 +47,14 @@ describe("dismissWorkItem", () => {
     expect(item.find((row) => row.id === "w_renewal")?.status).toBe("dismissed");
     expect(action.find((row) => row.workItemId === "w_renewal")?.status).toBe("dismissed");
   });
+
+  it("returns idempotent response when dismissing same item twice", async () => {
+    await persistSignals(mockIntakeSignals, new Date("2026-01-20T12:00:00.000Z"));
+
+    const first = await dismissWorkItem("w_renewal", new Date("2026-01-20T12:05:00.000Z"));
+    const second = await dismissWorkItem("w_renewal", new Date("2026-01-20T12:10:00.000Z"));
+
+    expect(first.idempotent).toBe(false);
+    expect(second.idempotent).toBe(true);
+  });
 });
