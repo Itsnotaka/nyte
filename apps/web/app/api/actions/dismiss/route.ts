@@ -4,8 +4,12 @@ import { createJsonBodyErrorResponse, isJsonObject, readJsonBody } from "@/lib/s
 import { rateLimitRequest } from "@/lib/server/rate-limit";
 import { createRateLimitResponse } from "@/lib/server/rate-limit-response";
 import { dispatchRuntimeCommand } from "@/lib/server/runtime-client";
+import {
+  createRuntimeCommandContext,
+  runtimeErrorStatus,
+  shouldDelegateRuntimeCommand,
+} from "@/lib/server/runtime-delegation";
 import { ResultAsync } from "neverthrow";
-import { randomUUID } from "node:crypto";
 
 type DismissBody = {
   itemId?: unknown;
@@ -44,32 +48,6 @@ function normalizeDismissBody(body: DismissBody): NormalizedDismissBody {
   };
 }
 
-function shouldDelegateDismissToRuntime() {
-  return process.env.NYTE_RUNTIME_DELEGATE_DISMISS?.trim().toLowerCase() === "true";
-}
-
-function runtimeErrorStatus(
-  code: "bad_request" | "unauthorized" | "not_found" | "conflict" | "internal",
-) {
-  if (code === "bad_request") {
-    return 400;
-  }
-
-  if (code === "unauthorized") {
-    return 401;
-  }
-
-  if (code === "not_found") {
-    return 404;
-  }
-
-  if (code === "conflict") {
-    return 409;
-  }
-
-  return 500;
-}
-
 export async function POST(request: Request) {
   const authorization = await requireAuthorizedSession(request);
   if (authorization.isErr()) {
@@ -98,15 +76,10 @@ export async function POST(request: Request) {
     return Response.json({ error: normalized.error }, { status: 400 });
   }
 
-  if (shouldDelegateDismissToRuntime()) {
+  if (shouldDelegateRuntimeCommand("NYTE_RUNTIME_DELEGATE_DISMISS")) {
     const runtimeResult = await dispatchRuntimeCommand({
       type: "runtime.dismiss",
-      context: {
-        userId: "local-user",
-        requestId: randomUUID(),
-        source: "web",
-        issuedAt: new Date().toISOString(),
-      },
+      context: createRuntimeCommandContext(),
       payload: {
         itemId: normalized.itemId,
       },

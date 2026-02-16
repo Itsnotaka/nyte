@@ -6,35 +6,13 @@ import { persistSignals } from "@/lib/server/queue-store";
 import { rateLimitRequest } from "@/lib/server/rate-limit";
 import { createRateLimitResponse } from "@/lib/server/rate-limit-response";
 import { dispatchRuntimeCommand } from "@/lib/server/runtime-client";
+import {
+  createRuntimeCommandContext,
+  runtimeErrorStatus,
+  shouldDelegateRuntimeCommand,
+} from "@/lib/server/runtime-delegation";
 import { pruneWorkflowHistoryIfDue } from "@/lib/server/workflow-retention";
 import { ResultAsync } from "neverthrow";
-import { randomUUID } from "node:crypto";
-
-function shouldDelegateSyncToRuntime() {
-  return process.env.NYTE_RUNTIME_DELEGATE_SYNC?.trim().toLowerCase() === "true";
-}
-
-function runtimeErrorStatus(
-  code: "bad_request" | "unauthorized" | "not_found" | "conflict" | "internal",
-) {
-  if (code === "bad_request") {
-    return 400;
-  }
-
-  if (code === "unauthorized") {
-    return 401;
-  }
-
-  if (code === "not_found") {
-    return 404;
-  }
-
-  if (code === "conflict") {
-    return 409;
-  }
-
-  return 500;
-}
 
 export async function GET(request: Request) {
   const authorization = await requireAuthorizedSession(request);
@@ -60,15 +38,12 @@ export async function GET(request: Request) {
     return Response.json({ error: "Failed to load watch keywords." }, { status: 500 });
   }
 
-  if (shouldDelegateSyncToRuntime()) {
+  if (shouldDelegateRuntimeCommand("NYTE_RUNTIME_DELEGATE_SYNC")) {
     const runtimeResult = await dispatchRuntimeCommand({
       type: "runtime.ingest",
-      context: {
-        userId: "local-user",
-        requestId: randomUUID(),
-        source: "web",
-        issuedAt: now.toISOString(),
-      },
+      context: createRuntimeCommandContext({
+        now,
+      }),
       payload: {
         cursor,
         watchKeywords: watchKeywords.value,

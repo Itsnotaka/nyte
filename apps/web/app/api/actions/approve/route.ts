@@ -4,8 +4,12 @@ import { createJsonBodyErrorResponse, isJsonObject, readJsonBody } from "@/lib/s
 import { rateLimitRequest } from "@/lib/server/rate-limit";
 import { createRateLimitResponse } from "@/lib/server/rate-limit-response";
 import { dispatchRuntimeCommand } from "@/lib/server/runtime-client";
+import {
+  createRuntimeCommandContext,
+  runtimeErrorStatus,
+  shouldDelegateRuntimeCommand,
+} from "@/lib/server/runtime-delegation";
 import { ResultAsync } from "neverthrow";
-import { randomUUID } from "node:crypto";
 
 type ApproveBody = {
   itemId?: unknown;
@@ -53,32 +57,6 @@ function normalizeApproveBody(body: ApproveBody): NormalizedApproveBody {
   };
 }
 
-function shouldDelegateApproveToRuntime() {
-  return process.env.NYTE_RUNTIME_DELEGATE_APPROVE?.trim().toLowerCase() === "true";
-}
-
-function runtimeErrorStatus(
-  code: "bad_request" | "unauthorized" | "not_found" | "conflict" | "internal",
-) {
-  if (code === "bad_request") {
-    return 400;
-  }
-
-  if (code === "unauthorized") {
-    return 401;
-  }
-
-  if (code === "not_found") {
-    return 404;
-  }
-
-  if (code === "conflict") {
-    return 409;
-  }
-
-  return 500;
-}
-
 export async function POST(request: Request) {
   const authorization = await requireAuthorizedSession(request);
   if (authorization.isErr()) {
@@ -108,15 +86,10 @@ export async function POST(request: Request) {
   }
   const idempotencyKey = request.headers.get("x-idempotency-key") ?? normalized.idempotencyKey;
 
-  if (shouldDelegateApproveToRuntime()) {
+  if (shouldDelegateRuntimeCommand("NYTE_RUNTIME_DELEGATE_APPROVE")) {
     const runtimeResult = await dispatchRuntimeCommand({
       type: "runtime.approve",
-      context: {
-        userId: "local-user",
-        requestId: randomUUID(),
-        source: "web",
-        issuedAt: new Date().toISOString(),
-      },
+      context: createRuntimeCommandContext(),
       payload: {
         itemId: normalized.itemId,
         idempotencyKey: idempotencyKey ?? undefined,
