@@ -1,3 +1,4 @@
+import { eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   auditLogs,
@@ -177,6 +178,26 @@ describe("POST /api/actions/approve", () => {
 
     expect(response.status).toBe(404);
     expect(body.error).toContain("not found");
+  });
+
+  it("returns 409 when stored proposed action payload is invalid", async () => {
+    await persistSignals(mockIntakeSignals, new Date("2026-02-10T10:00:00.000Z"));
+    await db
+      .update(proposedActions)
+      .set({
+        payloadJson: "{bad-json",
+      })
+      .where(eq(proposedActions.workItemId, "w_renewal"));
+
+    const response = await POST(
+      buildRequest({
+        itemId: "w_renewal",
+      }),
+    );
+    const body = (await response.json()) as { error: string };
+
+    expect(response.status).toBe(409);
+    expect(body.error).toContain("payload is invalid");
   });
 
   it("returns 429 when action approve limit is exceeded", async () => {

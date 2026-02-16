@@ -1,3 +1,4 @@
+import { eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   auditLogs,
@@ -17,7 +18,7 @@ import {
 } from "@workspace/db";
 
 import { mockIntakeSignals } from "../domain/mock-intake";
-import { approveWorkItem } from "./approve-action";
+import { ApprovalError, approveWorkItem } from "./approve-action";
 import { persistSignals } from "./queue-store";
 
 async function resetDb() {
@@ -87,5 +88,19 @@ describe("approveWorkItem", () => {
 
     const draftRows = await db.select().from(gmailDrafts);
     expect(draftRows).toHaveLength(1);
+  });
+
+  it("throws ApprovalError when persisted action payload is malformed", async () => {
+    await persistSignals(mockIntakeSignals, new Date("2026-01-20T12:00:00.000Z"));
+    await db
+      .update(proposedActions)
+      .set({
+        payloadJson: "{bad-json",
+      })
+      .where(eq(proposedActions.workItemId, "w_renewal"));
+
+    await expect(
+      approveWorkItem("w_renewal", new Date("2026-01-20T12:05:00.000Z")),
+    ).rejects.toThrow(ApprovalError);
   });
 });
