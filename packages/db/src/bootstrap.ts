@@ -5,6 +5,8 @@ import { db } from "./client";
 let schemaReady: Promise<void> | null = null;
 
 async function runBootstrap() {
+  await db.run(sql`PRAGMA busy_timeout = 5000`);
+
   await db.run(sql`
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY NOT NULL,
