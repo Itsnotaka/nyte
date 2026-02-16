@@ -61,6 +61,24 @@ export type WorkflowTimelineEntry = {
   }>;
 };
 
+function safeParsePayload(payloadJson: string): Record<string, unknown> {
+  try {
+    const parsed = JSON.parse(payloadJson) as unknown;
+    if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
+      return parsed as Record<string, unknown>;
+    }
+
+    return {
+      value: parsed,
+    };
+  } catch {
+    return {
+      parseError: true,
+      rawPayload: payloadJson,
+    };
+  }
+}
+
 function toIso(value: unknown): string {
   if (value instanceof Date) {
     return value.toISOString();
@@ -97,7 +115,7 @@ export async function getWorkflowTimeline(workItemId: string): Promise<WorkflowT
       at: toIso(run.createdAt),
       events: events.map((event) => ({
         kind: event.kind,
-        payload: JSON.parse(event.payloadJson) as Record<string, unknown>,
+        payload: safeParsePayload(event.payloadJson),
         at: toIso(event.createdAt),
       })),
     });

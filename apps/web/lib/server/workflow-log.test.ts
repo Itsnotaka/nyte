@@ -82,4 +82,33 @@ describe("getWorkflowTimeline", () => {
     expect(matchingRunIds).toContain(firstRunId);
     expect(matchingRunIds).toContain(secondRunId);
   });
+
+  it("gracefully handles malformed workflow event payload json", async () => {
+    await persistSignals(mockIntakeSignals, new Date("2026-01-20T12:00:00.000Z"));
+    const runId = await recordWorkflowRun({
+      workItemId: "w_renewal",
+      phase: "feedback",
+      status: "completed",
+      events: [],
+      now: new Date("2026-01-20T12:00:02.000Z"),
+    });
+
+    await db.insert(workflowEvents).values({
+      id: `${runId}:malformed`,
+      runId,
+      kind: "feedback.recorded",
+      payloadJson: "{bad-json",
+      createdAt: new Date("2026-01-20T12:00:02.000Z"),
+    });
+
+    const timeline = await getWorkflowTimeline("w_renewal");
+    const feedbackRun = timeline.find((entry) => entry.runId === runId);
+    const malformedEvent = feedbackRun?.events.find((event) => event.kind === "feedback.recorded");
+
+    expect(feedbackRun).toBeTruthy();
+    expect(malformedEvent?.payload).toEqual({
+      parseError: true,
+      rawPayload: "{bad-json",
+    });
+  });
 });
