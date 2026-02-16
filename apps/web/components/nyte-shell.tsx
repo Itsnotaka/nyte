@@ -17,6 +17,8 @@ import {
   WalletIcon,
 } from "lucide-react";
 
+import { mockIntakeSignals } from "@/lib/domain/mock-intake";
+import { createNeedsYouQueue, GATE_LABEL, type WorkItem } from "@/lib/domain/triage";
 import { Badge } from "@workspace/ui/@/components/ui/badge";
 import { Button } from "@workspace/ui/@/components/ui/button";
 import {
@@ -54,85 +56,17 @@ import {
 } from "@workspace/ui/@/components/ui/sidebar";
 import { Textarea } from "@workspace/ui/@/components/ui/textarea";
 
-type Gate = "decision" | "time" | "relationship" | "impact" | "watch";
-type WorkType = "draft" | "calendar" | "refund";
-
-type WorkItem = {
-  id: string;
-  type: WorkType;
-  source: "Gmail" | "Google Calendar";
-  actor: string;
-  summary: string;
-  context: string;
-  actionLabel: string;
-  secondaryLabel: string;
-  cta: "Save draft" | "Create event" | "Queue refund";
-  gates: Gate[];
-  preview: string;
-};
-
-const needsYouItems: WorkItem[] = [
-  {
-    id: "w_renewal",
-    type: "draft",
-    source: "Gmail",
-    actor: "David Kim",
-    summary: "Sent over the signed term sheet and asked for countersignature confirmation.",
-    context: "Relationship context: strategic customer. Tone needs executive confidence.",
-    actionLabel: "Review draft reply",
-    secondaryLabel: "Dismiss",
-    cta: "Save draft",
-    gates: ["decision", "relationship", "impact"],
-    preview:
-      "Hi David — thanks for sending this through. I reviewed the terms and we are aligned to countersign by EOD...",
-  },
-  {
-    id: "w_board",
-    type: "calendar",
-    source: "Google Calendar",
-    actor: "Rachel Torres",
-    summary: "Invited you to Quarterly Board Sync and requested updated agenda focus.",
-    context: "Time context: meeting starts this week. Requires your decision on attendance + prep.",
-    actionLabel: "Open scheduling form",
-    secondaryLabel: "Decline",
-    cta: "Create event",
-    gates: ["time", "decision", "watch"],
-    preview:
-      "Proposed slot: Wed Jan 22, 2:00 PM. Agenda draft includes growth metrics and GTM follow-up.",
-  },
-  {
-    id: "w_refund",
-    type: "refund",
-    source: "Gmail",
-    actor: "Joe",
-    summary: "Requested a refund because Notion integration is still unavailable.",
-    context: "Impact context: customer trust risk if unresolved within 24 hours.",
-    actionLabel: "Prepare refund response",
-    secondaryLabel: "Dismiss",
-    cta: "Queue refund",
-    gates: ["impact", "time"],
-    preview:
-      "Refund amount: $20. Draft includes apology, refund timing, and integration roadmap update.",
-  },
-];
+const REFERENCE_NOW = new Date("2026-01-20T12:00:00.000Z");
 
 const navItems = [
-  { id: "needs-you", label: "Needs You", icon: BellDotIcon, count: 3 },
+  { id: "needs-you", label: "Needs You", icon: BellDotIcon },
   { id: "drafts", label: "Drafts", icon: DraftingCompassIcon, count: 8 },
   { id: "processed", label: "Processed", icon: Layers2Icon, count: 27 },
   { id: "connections", label: "Connections", icon: RefreshCwIcon, count: undefined },
   { id: "rules", label: "Rules", icon: ShieldAlertIcon, count: undefined },
 ] as const;
 
-const gateLabel: Record<Gate, string> = {
-  decision: "Decision",
-  time: "Time",
-  relationship: "Relationship",
-  impact: "Impact",
-  watch: "Watch",
-};
-
-function sourceIcon(type: WorkType) {
+function sourceIcon(type: WorkItem["type"]) {
   if (type === "calendar") {
     return <CalendarClockIcon className="size-4" />;
   }
@@ -145,8 +79,13 @@ function sourceIcon(type: WorkType) {
 }
 
 export function NyteShell() {
+  const needsYouItems = React.useMemo(
+    () => createNeedsYouQueue(mockIntakeSignals, REFERENCE_NOW),
+    [],
+  );
+  const needsYouCount = needsYouItems.length;
   const [activeNav, setActiveNav] = React.useState<(typeof navItems)[number]["id"]>("needs-you");
-  const [activeItem, setActiveItem] = React.useState<WorkItem | null>(needsYouItems[0] ?? null);
+  const [activeItem, setActiveItem] = React.useState<WorkItem | null>(needsYouItems.at(0) ?? null);
 
   return (
     <SidebarProvider>
@@ -168,6 +107,7 @@ export function NyteShell() {
               <SidebarMenu>
                 {navItems.map((item) => {
                   const Icon = item.icon;
+                  const badgeCount = item.id === "needs-you" ? needsYouCount : item.count;
 
                   return (
                     <SidebarMenuItem key={item.id}>
@@ -178,8 +118,8 @@ export function NyteShell() {
                         <Icon />
                         <span>{item.label}</span>
                       </SidebarMenuButton>
-                      {item.count !== undefined ? (
-                        <SidebarMenuBadge>{item.count}</SidebarMenuBadge>
+                      {badgeCount !== undefined ? (
+                        <SidebarMenuBadge>{badgeCount}</SidebarMenuBadge>
                       ) : null}
                     </SidebarMenuItem>
                   );
@@ -232,7 +172,7 @@ export function NyteShell() {
                   <div className="flex flex-wrap items-center gap-2">
                     {item.gates.map((gate) => (
                       <Badge key={gate} variant="secondary">
-                        {gateLabel[gate]}
+                        {GATE_LABEL[gate]}
                       </Badge>
                     ))}
                   </div>
