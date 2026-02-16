@@ -45,6 +45,7 @@ describe("approveWorkItem", () => {
     const result = await approveWorkItem("w_renewal", new Date("2026-01-20T12:05:00.000Z"));
 
     expect(result.execution.destination).toBe("gmail_drafts");
+    expect(result.execution.idempotencyKey).toContain("exec_");
 
     const draftRows = await db.select().from(gmailDrafts);
     expect(draftRows).toHaveLength(1);
@@ -57,6 +58,7 @@ describe("approveWorkItem", () => {
     const result = await approveWorkItem("w_board", new Date("2026-01-20T12:05:00.000Z"));
 
     expect(result.execution.destination).toBe("google_calendar");
+    expect(result.execution.idempotencyKey).toContain("exec_");
     const eventRows = await db.select().from(calendarEvents);
     expect(eventRows).toHaveLength(1);
     expect(eventRows[0]?.providerEventId).toBe(result.execution.providerReference);
@@ -65,12 +67,21 @@ describe("approveWorkItem", () => {
   it("returns idempotent response for duplicate approval requests", async () => {
     await persistSignals(mockIntakeSignals, new Date("2026-01-20T12:00:00.000Z"));
 
-    const first = await approveWorkItem("w_renewal", new Date("2026-01-20T12:05:00.000Z"));
-    const second = await approveWorkItem("w_renewal", new Date("2026-01-20T12:07:00.000Z"));
+    const first = await approveWorkItem(
+      "w_renewal",
+      new Date("2026-01-20T12:05:00.000Z"),
+      "approve:w_renewal",
+    );
+    const second = await approveWorkItem(
+      "w_renewal",
+      new Date("2026-01-20T12:07:00.000Z"),
+      "approve:w_renewal",
+    );
 
     expect(first.idempotent).toBe(false);
     expect(second.idempotent).toBe(true);
     expect(second.execution.providerReference).toBe(first.execution.providerReference);
+    expect(second.execution.idempotencyKey).toBe("approve:w_renewal");
 
     const draftRows = await db.select().from(gmailDrafts);
     expect(draftRows).toHaveLength(1);

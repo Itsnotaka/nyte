@@ -16,6 +16,7 @@ describe("executeProposedAction", () => {
 
     expect(result.destination).toBe("gmail_drafts");
     expect(result.providerReference).toContain("gmail_drafts_");
+    expect(result.idempotencyKey).toContain("exec_");
     expect(result.executedAt).toBe("2026-01-20T12:00:00.000Z");
   });
 
@@ -42,5 +43,20 @@ describe("executeProposedAction", () => {
     });
 
     expect(result.destination).toBe("refund_queue");
+  });
+
+  it("accepts explicit idempotency key override", () => {
+    const result = executeProposedAction(
+      {
+        kind: "gmail.createDraft",
+        to: ["david.kim@example.com"],
+        subject: "Re: renewal",
+        body: "Draft body",
+      },
+      new Date("2026-01-20T12:00:00.000Z"),
+      { idempotencyKey: "custom-key-1" },
+    );
+
+    expect(result.idempotencyKey).toBe("custom-key-1");
   });
 });

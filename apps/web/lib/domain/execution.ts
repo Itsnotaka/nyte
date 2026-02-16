@@ -6,6 +6,7 @@ export type ExecutionResult = {
   status: "executed";
   destination: ActionDestination;
   providerReference: string;
+  idempotencyKey: string;
   executedAt: string;
 };
 
@@ -50,15 +51,29 @@ function payloadSeed(payload: ToolCallPayload): string {
   ].join("|");
 }
 
-export function executeProposedAction(payload: ToolCallPayload, now = new Date()): ExecutionResult {
+function defaultIdempotencyKey(payload: ToolCallPayload): string {
+  return `exec_${deterministicHash(payloadSeed(payload))}`;
+}
+
+type ExecutionOptions = {
+  idempotencyKey?: string;
+};
+
+export function executeProposedAction(
+  payload: ToolCallPayload,
+  now = new Date(),
+  options: ExecutionOptions = {},
+): ExecutionResult {
   const destination = prefixes[payload.kind];
   const seed = payloadSeed(payload);
   const providerReference = `${destination}_${deterministicHash(seed)}`;
+  const idempotencyKey = options.idempotencyKey ?? defaultIdempotencyKey(payload);
 
   return {
     status: "executed",
     destination,
     providerReference,
+    idempotencyKey,
     executedAt: now.toISOString(),
   };
 }

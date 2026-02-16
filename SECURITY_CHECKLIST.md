@@ -22,7 +22,7 @@ This checklist documents current security controls and remaining hardening tasks
 - [x] Approve action path has idempotent duplicate protection.
 - [x] Dismiss action path has idempotent duplicate protection.
 - [x] Duplicate side effects prevented for Gmail draft / Calendar event persistence through deterministic provider references and upsert behavior.
-- [ ] Add explicit idempotency key propagation for future external provider calls.
+- [x] Add explicit idempotency key propagation for future external provider calls (`/api/actions/approve` accepts and records idempotency keys).
 
 ## Auditability + trust
 

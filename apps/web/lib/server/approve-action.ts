@@ -39,6 +39,7 @@ async function resolveExecutionSnapshot(
   proposalId: string,
   payload: ToolCallPayload,
   updatedAt: unknown,
+  idempotencyKey?: string,
 ) {
   if (payload.kind === "gmail.createDraft") {
     const draftRows = await db
@@ -52,7 +53,10 @@ async function resolveExecutionSnapshot(
       destination: "gmail_drafts" as const,
       providerReference:
         draft?.providerDraftId ??
-        executeProposedAction(payload, new Date(toIso(updatedAt))).providerReference,
+        executeProposedAction(payload, new Date(toIso(updatedAt)), { idempotencyKey })
+          .providerReference,
+      idempotencyKey:
+        idempotencyKey ?? executeProposedAction(payload, new Date(toIso(updatedAt))).idempotencyKey,
       executedAt: toIso(draft?.syncedAt ?? updatedAt),
     };
   }
@@ -69,16 +73,21 @@ async function resolveExecutionSnapshot(
       destination: "google_calendar" as const,
       providerReference:
         event?.providerEventId ??
-        executeProposedAction(payload, new Date(toIso(updatedAt))).providerReference,
+        executeProposedAction(payload, new Date(toIso(updatedAt)), { idempotencyKey })
+          .providerReference,
+      idempotencyKey:
+        idempotencyKey ?? executeProposedAction(payload, new Date(toIso(updatedAt))).idempotencyKey,
       executedAt: toIso(event?.syncedAt ?? updatedAt),
     };
   }
 
-  const execution = executeProposedAction(payload, new Date(toIso(updatedAt)));
+  const execution = executeProposedAction(payload, new Date(toIso(updatedAt)), {
+    idempotencyKey,
+  });
   return execution;
 }
 
-export async function approveWorkItem(itemId: string, now = new Date()) {
+export async function approveWorkItem(itemId: string, now = new Date(), idempotencyKey?: string) {
   await ensureDbSchema();
 
   const itemRows = await db.select().from(workItems).where(eq(workItems.id, itemId)).limit(1);
@@ -103,7 +112,12 @@ export async function approveWorkItem(itemId: string, now = new Date()) {
 
   const payload = parsePayload(proposal.payloadJson);
   if (workItem.status === "completed" || proposal.status === "executed") {
-    const execution = await resolveExecutionSnapshot(proposal.id, payload, workItem.updatedAt);
+    const execution = await resolveExecutionSnapshot(
+      proposal.id,
+      payload,
+      workItem.updatedAt,
+      idempotencyKey,
+    );
     return {
       itemId,
       payload,
@@ -112,7 +126,9 @@ export async function approveWorkItem(itemId: string, now = new Date()) {
     };
   }
 
-  const execution = executeProposedAction(payload, now);
+  const execution = executeProposedAction(payload, now, {
+    idempotencyKey,
+  });
 
   await db.transaction(async (tx) => {
     await tx
@@ -196,6 +212,7 @@ export async function approveWorkItem(itemId: string, now = new Date()) {
           payload: {
             destination: execution.destination,
             providerReference: execution.providerReference,
+            idempotencyKey: execution.idempotencyKey,
           },
         },
       ],

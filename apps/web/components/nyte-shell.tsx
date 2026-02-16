@@ -94,6 +94,7 @@ type ApproveResponse = {
     status: "executed";
     destination: "gmail_drafts" | "google_calendar" | "refund_queue";
     providerReference: string;
+    idempotencyKey: string;
     executedAt: string;
   };
 };
@@ -441,13 +442,16 @@ export function NyteShell() {
     setIsApproving(true);
 
     try {
+      const idempotencyKey = `approve:${activeItem.id}`;
       const response = await fetch("/api/actions/approve", {
         method: "POST",
         headers: {
           "content-type": "application/json",
+          "x-idempotency-key": idempotencyKey,
         },
         body: JSON.stringify({
           itemId: activeItem.id,
+          idempotencyKey,
         }),
       });
 

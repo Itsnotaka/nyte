@@ -3,6 +3,7 @@ import { enforceRateLimit, RateLimitError } from "@/lib/server/rate-limit";
 
 type ApproveBody = {
   itemId?: string;
+  idempotencyKey?: string;
 };
 
 export async function POST(request: Request) {
@@ -27,9 +28,10 @@ export async function POST(request: Request) {
   if (!body.itemId) {
     return Response.json({ error: "itemId is required." }, { status: 400 });
   }
+  const idempotencyKey = request.headers.get("x-idempotency-key") ?? body.idempotencyKey;
 
   try {
-    const result = await approveWorkItem(body.itemId, new Date());
+    const result = await approveWorkItem(body.itemId, new Date(), idempotencyKey ?? undefined);
     return Response.json(result);
   } catch (error) {
     if (error instanceof ApprovalError) {
