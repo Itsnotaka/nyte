@@ -90,6 +90,7 @@ describe("GET /api/admin/trust", () => {
         rateLimitMode: "auto" | "memory" | "unkey";
         rateLimitProvider: "unkey" | "memory";
         unkeyRateLimitConfigured: boolean;
+        unkeyRateLimitActive: boolean;
       };
     };
 
@@ -100,6 +101,7 @@ describe("GET /api/admin/trust", () => {
     expect(body.security.rateLimitMode).toBe("auto");
     expect(body.security.rateLimitProvider).toBe("memory");
     expect(body.security.unkeyRateLimitConfigured).toBe(false);
+    expect(body.security.unkeyRateLimitActive).toBe(false);
   });
 
   it("returns 429 when trust read limit is exceeded", async () => {

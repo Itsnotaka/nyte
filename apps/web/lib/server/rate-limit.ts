@@ -128,6 +128,10 @@ export function isUnkeyRateLimitConfigured() {
   return Boolean(getConfiguredUnkeyRootKey());
 }
 
+export function isUnkeyRateLimitActive() {
+  return getRateLimitProvider() === "unkey";
+}
+
 export function getRateLimitConfigSignature() {
   const mode = getRateLimitMode();
   const rootKey = getConfiguredUnkeyRootKey();

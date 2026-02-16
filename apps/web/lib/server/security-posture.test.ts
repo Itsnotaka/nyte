@@ -15,6 +15,7 @@ describe("evaluateSecurityPosture", () => {
         rateLimitMode: "auto",
         rateLimitProvider: "memory",
         unkeyRateLimitConfigured: false,
+        unkeyRateLimitActive: false,
       },
       googleConnection: {
         connected: false,
@@ -42,6 +43,7 @@ describe("evaluateSecurityPosture", () => {
         rateLimitMode: "auto",
         rateLimitProvider: "unkey",
         unkeyRateLimitConfigured: true,
+        unkeyRateLimitActive: true,
       },
       googleConnection: {
         connected: true,
@@ -69,6 +71,7 @@ describe("evaluateSecurityPosture", () => {
         rateLimitMode: "auto",
         rateLimitProvider: "memory",
         unkeyRateLimitConfigured: false,
+        unkeyRateLimitActive: false,
       },
       googleConnection: {
         connected: true,
@@ -98,6 +101,7 @@ describe("evaluateSecurityPosture", () => {
         rateLimitMode: "unkey",
         rateLimitProvider: "memory",
         unkeyRateLimitConfigured: false,
+        unkeyRateLimitActive: false,
       },
       googleConnection: {
         connected: true,
@@ -127,6 +131,7 @@ describe("evaluateSecurityPosture", () => {
         rateLimitMode: "memory",
         rateLimitProvider: "memory",
         unkeyRateLimitConfigured: true,
+        unkeyRateLimitActive: false,
       },
       googleConnection: {
         connected: true,
@@ -156,6 +161,7 @@ describe("evaluateSecurityPosture", () => {
         rateLimitMode: "memory",
         rateLimitProvider: "memory",
         unkeyRateLimitConfigured: false,
+        unkeyRateLimitActive: false,
       },
       googleConnection: {
         connected: true,

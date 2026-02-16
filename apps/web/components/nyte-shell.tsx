@@ -161,6 +161,7 @@ type TrustReportResponse = {
     rateLimitMode: "auto" | "memory" | "unkey";
     rateLimitProvider: "unkey" | "memory";
     unkeyRateLimitConfigured: boolean;
+    unkeyRateLimitActive: boolean;
   };
   posture: {
     status: "ok" | "warning";
@@ -1406,6 +1407,10 @@ export function NyteShell() {
                             ? "configured"
                             : "fallback"}
                           )
+                        </p>
+                        <p>
+                          unkey limiter active:{" "}
+                          {trustReport.security.unkeyRateLimitActive ? "yes" : "no"}
                         </p>
                         <p>recent audit events: {trustReport.audit.recentCount}</p>
                         <p>latest audit action: {trustReport.audit.latestAction ?? "none"}</p>

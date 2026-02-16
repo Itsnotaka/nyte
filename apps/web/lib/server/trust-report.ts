@@ -9,6 +9,7 @@ import { listAuditLogs } from "./audit-log";
 import {
   getRateLimitMode,
   getRateLimitProvider,
+  isUnkeyRateLimitActive,
   isUnkeyRateLimitConfigured,
   type RateLimitMode,
   type RateLimitProvider,
@@ -31,6 +32,7 @@ export type TrustReport = {
     rateLimitMode: RateLimitMode;
     rateLimitProvider: RateLimitProvider;
     unkeyRateLimitConfigured: boolean;
+    unkeyRateLimitActive: boolean;
   };
   posture: SecurityPosture;
   audit: {
@@ -69,6 +71,7 @@ export async function getTrustReport(now = new Date()): Promise<TrustReport> {
       rateLimitMode,
       rateLimitProvider,
       unkeyRateLimitConfigured: isUnkeyRateLimitConfigured(),
+      unkeyRateLimitActive: isUnkeyRateLimitActive(),
     },
     audit: {
       recentCount: recentAuditLogs.length,

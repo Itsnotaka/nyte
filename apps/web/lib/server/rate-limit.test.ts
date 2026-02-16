@@ -4,6 +4,7 @@ import {
   getRateLimitConfigSignature,
   getRateLimitMode,
   getRateLimitProvider,
+  isUnkeyRateLimitActive,
   isUnkeyRateLimitConfigured,
   rateLimitRequest,
   resetRateLimitState,
@@ -146,6 +147,7 @@ describe("rateLimitRequest", () => {
 
     expect(getRateLimitProvider()).toBe("memory");
     expect(isUnkeyRateLimitConfigured()).toBe(false);
+    expect(isUnkeyRateLimitActive()).toBe(false);
     expect(getRateLimitConfigSignature()).toBe("memory:auto");
     expect(getRateLimitMode()).toBe("auto");
   });
@@ -155,6 +157,7 @@ describe("rateLimitRequest", () => {
 
     expect(getRateLimitProvider()).toBe("unkey");
     expect(isUnkeyRateLimitConfigured()).toBe(true);
+    expect(isUnkeyRateLimitActive()).toBe(true);
     expect(getRateLimitConfigSignature()).toMatch(/^unkey:auto:[a-f0-9]{12}$/);
     expect(getRateLimitMode()).toBe("auto");
   });
@@ -164,6 +167,7 @@ describe("rateLimitRequest", () => {
 
     expect(getRateLimitProvider()).toBe("memory");
     expect(isUnkeyRateLimitConfigured()).toBe(false);
+    expect(isUnkeyRateLimitActive()).toBe(false);
     expect(getRateLimitConfigSignature()).toBe("memory:auto");
   });
 
@@ -183,6 +187,7 @@ describe("rateLimitRequest", () => {
 
     expect(getRateLimitMode()).toBe("memory");
     expect(getRateLimitProvider()).toBe("memory");
+    expect(isUnkeyRateLimitActive()).toBe(false);
     expect(getRateLimitConfigSignature()).toBe("memory:forced");
   });
 
@@ -192,6 +197,7 @@ describe("rateLimitRequest", () => {
 
     expect(getRateLimitMode()).toBe("unkey");
     expect(getRateLimitProvider()).toBe("unkey");
+    expect(isUnkeyRateLimitActive()).toBe(true);
     expect(getRateLimitConfigSignature()).toMatch(/^unkey:unkey:[a-f0-9]{12}$/);
   });
 
@@ -201,6 +207,7 @@ describe("rateLimitRequest", () => {
 
     expect(getRateLimitMode()).toBe("unkey");
     expect(getRateLimitProvider()).toBe("memory");
+    expect(isUnkeyRateLimitActive()).toBe(false);
     expect(getRateLimitConfigSignature()).toBe("unkey:missing-key");
   });
 

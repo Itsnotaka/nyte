@@ -112,6 +112,7 @@ describe("getTrustReport", () => {
     expect(report.security.rateLimitMode).toBe("auto");
     expect(report.security.rateLimitProvider).toBe("unkey");
     expect(report.security.unkeyRateLimitConfigured).toBe(true);
+    expect(report.security.unkeyRateLimitActive).toBe(true);
     expect(report.posture.status).toBe("ok");
     expect(report.posture.warnings).toHaveLength(0);
     expect(report.audit.recentCount).toBeGreaterThan(0);
@@ -126,6 +127,7 @@ describe("getTrustReport", () => {
     expect(report.security.rateLimitMode).toBe("auto");
     expect(report.security.rateLimitProvider).toBe("memory");
     expect(report.security.unkeyRateLimitConfigured).toBe(false);
+    expect(report.security.unkeyRateLimitActive).toBe(false);
     expect(report.posture.status).toBe("warning");
     expect(report.posture.warnings).toContain(
       "UNKEY_ROOT_KEY is not configured; using in-process fallback rate limiter.",
@@ -140,6 +142,7 @@ describe("getTrustReport", () => {
     expect(report.security.rateLimitMode).toBe("auto");
     expect(report.security.rateLimitProvider).toBe("memory");
     expect(report.security.unkeyRateLimitConfigured).toBe(false);
+    expect(report.security.unkeyRateLimitActive).toBe(false);
   });
 
   it("reports explicit memory mode override when configured", async () => {
@@ -151,6 +154,7 @@ describe("getTrustReport", () => {
     expect(report.security.rateLimitMode).toBe("memory");
     expect(report.security.rateLimitProvider).toBe("memory");
     expect(report.security.unkeyRateLimitConfigured).toBe(true);
+    expect(report.security.unkeyRateLimitActive).toBe(false);
     expect(report.posture.warnings).toContain(
       "NYTE_RATE_LIMIT_MODE is set to memory; using in-process rate limiter.",
     );
@@ -165,6 +169,7 @@ describe("getTrustReport", () => {
     expect(report.security.rateLimitMode).toBe("memory");
     expect(report.security.rateLimitProvider).toBe("memory");
     expect(report.security.unkeyRateLimitConfigured).toBe(false);
+    expect(report.security.unkeyRateLimitActive).toBe(false);
     expect(report.posture.warnings).toContain(
       "NYTE_RATE_LIMIT_MODE is set to memory; using in-process rate limiter.",
     );
@@ -182,6 +187,7 @@ describe("getTrustReport", () => {
     expect(report.security.rateLimitMode).toBe("unkey");
     expect(report.security.rateLimitProvider).toBe("memory");
     expect(report.security.unkeyRateLimitConfigured).toBe(false);
+    expect(report.security.unkeyRateLimitActive).toBe(false);
     expect(report.posture.warnings).toContain(
       "NYTE_RATE_LIMIT_MODE is set to unkey but UNKEY_ROOT_KEY is not configured.",
     );
@@ -194,12 +200,14 @@ describe("getTrustReport", () => {
 
     expect(memoryModeReport.security.rateLimitMode).toBe("memory");
     expect(memoryModeReport.security.rateLimitProvider).toBe("memory");
+    expect(memoryModeReport.security.unkeyRateLimitActive).toBe(false);
 
     process.env.NYTE_RATE_LIMIT_MODE = " UnKeY ";
     const unkeyModeReport = await getTrustReport(new Date("2026-01-20T12:10:00.000Z"));
 
     expect(unkeyModeReport.security.rateLimitMode).toBe("unkey");
     expect(unkeyModeReport.security.rateLimitProvider).toBe("unkey");
+    expect(unkeyModeReport.security.unkeyRateLimitActive).toBe(true);
   });
 
   it("normalizes invalid mode values to auto in trust telemetry", async () => {
@@ -209,11 +217,13 @@ describe("getTrustReport", () => {
 
     expect(reportWithKey.security.rateLimitMode).toBe("auto");
     expect(reportWithKey.security.rateLimitProvider).toBe("unkey");
+    expect(reportWithKey.security.unkeyRateLimitActive).toBe(true);
 
     delete process.env.UNKEY_ROOT_KEY;
     const reportWithoutKey = await getTrustReport(new Date("2026-01-20T12:10:00.000Z"));
 
     expect(reportWithoutKey.security.rateLimitMode).toBe("auto");
     expect(reportWithoutKey.security.rateLimitProvider).toBe("memory");
+    expect(reportWithoutKey.security.unkeyRateLimitActive).toBe(false);
   });
 });
