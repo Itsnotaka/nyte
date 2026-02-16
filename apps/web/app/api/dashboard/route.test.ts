@@ -1,3 +1,4 @@
+import { eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   auditLogs,
@@ -17,6 +18,7 @@ import {
 } from "@workspace/db";
 
 import { mockIntakeSignals } from "@/lib/domain/mock-intake";
+import { approveWorkItem } from "@/lib/server/approve-action";
 import { persistSignals } from "@/lib/server/queue-store";
 import { resetRateLimitState } from "@/lib/server/rate-limit";
 
@@ -99,5 +101,29 @@ describe("GET /api/dashboard", () => {
     expect(lastResponse).not.toBeNull();
     expect(lastResponse?.status).toBe(429);
     expect(lastResponse?.headers.get("Retry-After")).toBeTruthy();
+  });
+
+  it("returns resilient processed detail when stored action payload is malformed", async () => {
+    await persistSignals(mockIntakeSignals, new Date("2026-02-11T09:00:00.000Z"));
+    await approveWorkItem("w_renewal", new Date("2026-02-11T09:05:00.000Z"));
+    await db
+      .update(proposedActions)
+      .set({
+        payloadJson: "{bad-json",
+      })
+      .where(eq(proposedActions.workItemId, "w_renewal"));
+
+    const response = await GET(buildRequest());
+    const body = (await response.json()) as {
+      processed: Array<{
+        itemId: string;
+        detail: string;
+      }>;
+    };
+
+    expect(response.status).toBe(200);
+    expect(body.processed.find((entry) => entry.itemId === "w_renewal")?.detail).toBe(
+      "action_payload • unreadable",
+    );
   });
 });
