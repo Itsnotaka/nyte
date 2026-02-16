@@ -9,6 +9,8 @@ import {
 
 const originalRuntimeUrl = process.env.NYTE_RUNTIME_URL;
 const originalRuntimeAuthToken = process.env.NYTE_RUNTIME_AUTH_TOKEN;
+const originalRuntimeTimeoutMs = process.env.NYTE_RUNTIME_TIMEOUT_MS;
+const originalRuntimeMaxAttempts = process.env.NYTE_RUNTIME_MAX_ATTEMPTS;
 
 const baseCommand: RuntimeCommand = {
   type: "runtime.approve",
@@ -34,6 +36,18 @@ afterEach(() => {
     delete process.env.NYTE_RUNTIME_AUTH_TOKEN;
   } else {
     process.env.NYTE_RUNTIME_AUTH_TOKEN = originalRuntimeAuthToken;
+  }
+
+  if (originalRuntimeTimeoutMs === undefined) {
+    delete process.env.NYTE_RUNTIME_TIMEOUT_MS;
+  } else {
+    process.env.NYTE_RUNTIME_TIMEOUT_MS = originalRuntimeTimeoutMs;
+  }
+
+  if (originalRuntimeMaxAttempts === undefined) {
+    delete process.env.NYTE_RUNTIME_MAX_ATTEMPTS;
+  } else {
+    process.env.NYTE_RUNTIME_MAX_ATTEMPTS = originalRuntimeMaxAttempts;
   }
 });
 
@@ -298,6 +312,48 @@ describe("dispatchRuntimeCommand", () => {
     expect(result.error).toBeInstanceOf(RuntimeCommandDispatchError);
     expect(result.error.message).toContain("socket hang up");
     expect(callCount).toBe(3);
+  });
+
+  it("uses NYTE_RUNTIME_MAX_ATTEMPTS when options omit maxAttempts", async () => {
+    process.env.NYTE_RUNTIME_MAX_ATTEMPTS = "3";
+    let callCount = 0;
+    const fetchImpl: typeof fetch = async () => {
+      callCount += 1;
+      throw new Error("temporary network error");
+    };
+
+    const result = await dispatchRuntimeCommand(baseCommand, {
+      runtimeBaseUrl: "https://runtime.nyte.dev",
+      fetchImpl,
+    });
+
+    expect(result.isErr()).toBe(true);
+    expect(callCount).toBe(3);
+  });
+
+  it("uses NYTE_RUNTIME_TIMEOUT_MS when timeout option is omitted", async () => {
+    process.env.NYTE_RUNTIME_TIMEOUT_MS = "250";
+    const fetchImpl: typeof fetch = async (_input, init) => {
+      return new Promise<Response>((_, reject) => {
+        init?.signal?.addEventListener("abort", () => {
+          reject(new DOMException("Aborted", "AbortError"));
+        });
+      });
+    };
+
+    const result = await dispatchRuntimeCommand(baseCommand, {
+      runtimeBaseUrl: "https://runtime.nyte.dev",
+      fetchImpl,
+      maxAttempts: 1,
+    });
+
+    expect(result.isErr()).toBe(true);
+    if (result.isOk()) {
+      return;
+    }
+
+    expect(result.error).toBeInstanceOf(RuntimeCommandDispatchError);
+    expect(result.error.message).toContain("timed out after 250ms");
   });
 
   it("does not retry non-retryable 400 responses", async () => {

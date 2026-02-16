@@ -68,6 +68,24 @@ function normalizeRuntimeAuthToken(value: string | undefined) {
   return normalized;
 }
 
+function resolveNumericEnvValue(value: string | undefined): number | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  const normalized = value.trim();
+  if (!normalized) {
+    return undefined;
+  }
+
+  const parsed = Number.parseInt(normalized, 10);
+  if (Number.isNaN(parsed)) {
+    return undefined;
+  }
+
+  return parsed;
+}
+
 function resolveRuntimeTimeoutMs(value: number | undefined): number {
   if (typeof value !== "number" || !Number.isFinite(value)) {
     return 15_000;
@@ -240,8 +258,12 @@ export function dispatchRuntimeCommand(
     const runtimeAuthToken = normalizeRuntimeAuthToken(
       options.runtimeAuthToken ?? process.env.NYTE_RUNTIME_AUTH_TOKEN,
     );
-    const timeoutMs = resolveRuntimeTimeoutMs(options.timeoutMs);
-    const maxAttempts = resolveRuntimeMaxAttempts(options.maxAttempts);
+    const timeoutMs = resolveRuntimeTimeoutMs(
+      options.timeoutMs ?? resolveNumericEnvValue(process.env.NYTE_RUNTIME_TIMEOUT_MS),
+    );
+    const maxAttempts = resolveRuntimeMaxAttempts(
+      options.maxAttempts ?? resolveNumericEnvValue(process.env.NYTE_RUNTIME_MAX_ATTEMPTS),
+    );
     const headers: Record<string, string> = {
       "content-type": "application/json",
     };
