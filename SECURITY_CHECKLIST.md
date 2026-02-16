@@ -18,6 +18,7 @@ This checklist documents current security controls and remaining hardening tasks
 - [x] Feedback capture stores rating + optional note only.
 - [x] Add configurable retention policy for workflow event payloads (`/api/workflows/retention` + `/api/workflows/prune`).
 - [x] Apply no-store API caching + baseline security headers through middleware.
+- [x] Apply baseline CSP (`Content-Security-Policy`) and frame/object restrictions at proxy layer.
 
 ## Execution safety
 

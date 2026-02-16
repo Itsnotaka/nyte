@@ -10,6 +10,7 @@ describe("applySecurityHeaders", () => {
     expect(headers.get("X-Content-Type-Options")).toBe("nosniff");
     expect(headers.get("X-Frame-Options")).toBe("DENY");
     expect(headers.get("Referrer-Policy")).toBe("strict-origin-when-cross-origin");
+    expect(headers.get("Content-Security-Policy")).toContain("object-src 'none'");
     expect(headers.get("Permissions-Policy")).toContain("camera=()");
     expect(headers.get("Cross-Origin-Opener-Policy")).toBe("same-origin");
     expect(headers.get("Cache-Control")).toBeNull();
