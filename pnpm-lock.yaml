@@ -41,6 +41,9 @@ importers:
       '@workspace/domain':
         specifier: workspace:^
         version: link:../../packages/domain
+      '@workspace/integrations':
+        specifier: workspace:^
+        version: link:../../packages/integrations
       '@workspace/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -138,6 +141,10 @@ importers:
         version: 5.9.3
 
   packages/integrations:
+    dependencies:
+      '@workspace/domain':
+        specifier: workspace:*
+        version: link:../domain
     devDependencies:
       '@workspace/typescript-config':
         specifier: workspace:*

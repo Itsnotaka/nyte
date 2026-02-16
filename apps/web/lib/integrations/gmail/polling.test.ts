@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { pollGmailIngestion } from "./polling";
+import { pollGmailIngestion } from "@workspace/integrations/gmail/polling";
 
 describe("pollGmailIngestion", () => {
   it("returns all mock snapshots on first poll", () => {

@@ -4,10 +4,14 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./gmail/polling": "./src/gmail/polling.ts"
   },
   "scripts": {
     "typecheck": "tsgo --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@workspace/domain": "workspace:*"
   },
   "devDependencies": {
     "@workspace/typescript-config": "workspace:*",

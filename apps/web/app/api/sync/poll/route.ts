@@ -1,4 +1,4 @@
-import { pollGmailIngestion } from "@/lib/integrations/gmail/polling";
+import { pollGmailIngestion } from "@workspace/integrations/gmail/polling";
 import { createAuthorizationErrorResponse, requireAuthorizedSession } from "@/lib/server/authz";
 import { getDashboardData } from "@/lib/server/dashboard";
 import { listWatchKeywords } from "@/lib/server/policy-rules";

@@ -16,6 +16,7 @@
     "@unkey/ratelimit": "^2.1.4",
     "@workspace/db": "workspace:^",
     "@workspace/domain": "workspace:^",
+    "@workspace/integrations": "workspace:^",
     "@workspace/ui": "workspace:*",
     "better-auth": "^1.4.18",
     "drizzle-orm": "^0.45.1",
