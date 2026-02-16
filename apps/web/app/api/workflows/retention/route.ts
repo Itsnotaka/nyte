@@ -3,18 +3,35 @@ import {
   setWorkflowRetentionDays,
   WorkflowRetentionError,
 } from "@/lib/server/workflow-retention";
+import { AuthorizationError, requireAuthorizedSession } from "@/lib/server/authz";
 import { enforceRateLimit, RateLimitError } from "@/lib/server/rate-limit";
 
 type RetentionBody = {
   days?: number;
 };
 
-export async function GET() {
+export async function GET(request: Request) {
+  try {
+    await requireAuthorizedSession(request);
+  } catch (error) {
+    if (error instanceof AuthorizationError) {
+      return Response.json({ error: error.message }, { status: 401 });
+    }
+  }
+
   const retention = await getWorkflowRetentionDays();
   return Response.json(retention);
 }
 
 export async function POST(request: Request) {
+  try {
+    await requireAuthorizedSession(request);
+  } catch (error) {
+    if (error instanceof AuthorizationError) {
+      return Response.json({ error: error.message }, { status: 401 });
+    }
+  }
+
   try {
     enforceRateLimit(request, "workflows:retention:update", {
       limit: 20,

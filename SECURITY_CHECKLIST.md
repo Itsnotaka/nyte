@@ -33,5 +33,5 @@ This checklist documents current security controls and remaining hardening tasks
 ## Operational follow-ups (post-MVP)
 
 - [ ] Rotate and manage encryption keys via secrets manager.
-- [ ] Add request-level authz checks for all action endpoints once multi-user session gating is enabled.
+- [x] Add request-level authz checks for action and sensitive data endpoints (enforced in production or with `NYTE_REQUIRE_AUTH=true`).
 - [x] Add baseline in-memory rate limiting on mutable APIs (`actions`, `feedback`, `policy-rules`, `connections`).

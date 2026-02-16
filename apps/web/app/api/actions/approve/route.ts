@@ -1,4 +1,5 @@
 import { ApprovalError, approveWorkItem } from "@/lib/server/approve-action";
+import { AuthorizationError, requireAuthorizedSession } from "@/lib/server/authz";
 import { enforceRateLimit, RateLimitError } from "@/lib/server/rate-limit";
 
 type ApproveBody = {
@@ -7,6 +8,14 @@ type ApproveBody = {
 };
 
 export async function POST(request: Request) {
+  try {
+    await requireAuthorizedSession(request);
+  } catch (error) {
+    if (error instanceof AuthorizationError) {
+      return Response.json({ error: error.message }, { status: 401 });
+    }
+  }
+
   try {
     enforceRateLimit(request, "actions:approve", {
       limit: 30,

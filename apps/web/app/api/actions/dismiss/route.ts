@@ -1,4 +1,5 @@
 import { dismissWorkItem, DismissError } from "@/lib/server/dismiss-action";
+import { AuthorizationError, requireAuthorizedSession } from "@/lib/server/authz";
 import { enforceRateLimit, RateLimitError } from "@/lib/server/rate-limit";
 
 type DismissBody = {
@@ -6,6 +7,14 @@ type DismissBody = {
 };
 
 export async function POST(request: Request) {
+  try {
+    await requireAuthorizedSession(request);
+  } catch (error) {
+    if (error instanceof AuthorizationError) {
+      return Response.json({ error: error.message }, { status: 401 });
+    }
+  }
+
   try {
     enforceRateLimit(request, "actions:dismiss", {
       limit: 30,

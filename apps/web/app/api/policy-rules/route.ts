@@ -4,18 +4,34 @@ import {
   PolicyRuleError,
   removeWatchKeyword,
 } from "@/lib/server/policy-rules";
+import { AuthorizationError, requireAuthorizedSession } from "@/lib/server/authz";
 import { enforceRateLimit, RateLimitError } from "@/lib/server/rate-limit";
 
 type PolicyRuleBody = {
   keyword?: string;
 };
 
-export async function GET() {
+export async function GET(request: Request) {
+  try {
+    await requireAuthorizedSession(request);
+  } catch (error) {
+    if (error instanceof AuthorizationError) {
+      return Response.json({ error: error.message }, { status: 401 });
+    }
+  }
   const keywords = await listWatchKeywords();
   return Response.json({ watchKeywords: keywords });
 }
 
 export async function POST(request: Request) {
+  try {
+    await requireAuthorizedSession(request);
+  } catch (error) {
+    if (error instanceof AuthorizationError) {
+      return Response.json({ error: error.message }, { status: 401 });
+    }
+  }
+
   try {
     enforceRateLimit(request, "policy-rules:mutate", {
       limit: 20,
@@ -50,6 +66,14 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+  try {
+    await requireAuthorizedSession(request);
+  } catch (error) {
+    if (error instanceof AuthorizationError) {
+      return Response.json({ error: error.message }, { status: 401 });
+    }
+  }
+
   try {
     enforceRateLimit(request, "policy-rules:mutate", {
       limit: 20,
