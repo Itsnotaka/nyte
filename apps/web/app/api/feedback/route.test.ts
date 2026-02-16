@@ -53,9 +53,15 @@ function buildRequest(body: Record<string, unknown>, headers?: HeadersInit) {
 
 describe("POST /api/feedback", () => {
   const originalRequireAuth = process.env.NYTE_REQUIRE_AUTH;
+  const originalRuntimeDelegateFeedback = process.env.NYTE_RUNTIME_DELEGATE_FEEDBACK;
+  const originalRuntimeUrl = process.env.NYTE_RUNTIME_URL;
+  const originalFetch = globalThis.fetch;
 
   beforeEach(async () => {
     process.env.NYTE_REQUIRE_AUTH = "false";
+    delete process.env.NYTE_RUNTIME_DELEGATE_FEEDBACK;
+    delete process.env.NYTE_RUNTIME_URL;
+    globalThis.fetch = originalFetch;
     resetRateLimitState();
     await resetDb();
   });
@@ -63,10 +69,23 @@ describe("POST /api/feedback", () => {
   afterEach(() => {
     if (originalRequireAuth === undefined) {
       delete process.env.NYTE_REQUIRE_AUTH;
-      return;
+    } else {
+      process.env.NYTE_REQUIRE_AUTH = originalRequireAuth;
     }
 
-    process.env.NYTE_REQUIRE_AUTH = originalRequireAuth;
+    if (originalRuntimeDelegateFeedback === undefined) {
+      delete process.env.NYTE_RUNTIME_DELEGATE_FEEDBACK;
+    } else {
+      process.env.NYTE_RUNTIME_DELEGATE_FEEDBACK = originalRuntimeDelegateFeedback;
+    }
+
+    if (originalRuntimeUrl === undefined) {
+      delete process.env.NYTE_RUNTIME_URL;
+    } else {
+      process.env.NYTE_RUNTIME_URL = originalRuntimeUrl;
+    }
+
+    globalThis.fetch = originalFetch;
   });
 
   it("stores feedback for a completed item", async () => {
@@ -266,6 +285,60 @@ describe("POST /api/feedback", () => {
 
     expect(response.status).toBe(400);
     expect(body.error).toContain("note must be a string");
+  });
+
+  it("returns 502 when feedback delegation is enabled without runtime url", async () => {
+    process.env.NYTE_RUNTIME_DELEGATE_FEEDBACK = "true";
+    delete process.env.NYTE_RUNTIME_URL;
+
+    const response = await POST(
+      buildRequest({
+        itemId: "w_renewal",
+        rating: "positive",
+      }),
+    );
+    const body = (await response.json()) as { error: string };
+
+    expect(response.status).toBe(502);
+    expect(body.error).toContain("NYTE_RUNTIME_URL is required");
+  });
+
+  it("returns delegated feedback ack when runtime delegation is enabled", async () => {
+    process.env.NYTE_RUNTIME_DELEGATE_FEEDBACK = "true";
+    process.env.NYTE_RUNTIME_URL = "https://runtime.nyte.dev";
+    globalThis.fetch = async () =>
+      new Response(
+        JSON.stringify({
+          status: "accepted",
+          type: "runtime.feedback",
+          requestId: "req_feedback_123",
+          receivedAt: "2026-02-16T12:00:00.000Z",
+          result: {
+            itemId: "w_renewal",
+            rating: "positive",
+          },
+        }),
+        { status: 200 },
+      );
+
+    const response = await POST(
+      buildRequest({
+        itemId: "w_renewal",
+        rating: "positive",
+      }),
+    );
+    const body = (await response.json()) as {
+      itemId: string;
+      rating: "positive" | "negative";
+      delegated: boolean;
+      requestId: string;
+    };
+
+    expect(response.status).toBe(200);
+    expect(body.itemId).toBe("w_renewal");
+    expect(body.rating).toBe("positive");
+    expect(body.delegated).toBe(true);
+    expect(body.requestId).toBe("req_feedback_123");
   });
 
   it("returns 404 for unknown item", async () => {

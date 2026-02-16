@@ -3,7 +3,9 @@ import { createAuthorizationErrorResponse, requireAuthorizedSession } from "@/li
 import { createJsonBodyErrorResponse, isJsonObject, readJsonBody } from "@/lib/server/json-body";
 import { rateLimitRequest } from "@/lib/server/rate-limit";
 import { createRateLimitResponse } from "@/lib/server/rate-limit-response";
+import { dispatchRuntimeCommand } from "@/lib/server/runtime-client";
 import { ResultAsync } from "neverthrow";
+import { randomUUID } from "node:crypto";
 
 type FeedbackBody = {
   itemId?: unknown;
@@ -62,6 +64,32 @@ function normalizeFeedbackBody(body: FeedbackBody): NormalizedFeedbackBody {
   };
 }
 
+function shouldDelegateFeedbackToRuntime() {
+  return process.env.NYTE_RUNTIME_DELEGATE_FEEDBACK?.trim().toLowerCase() === "true";
+}
+
+function runtimeErrorStatus(
+  code: "bad_request" | "unauthorized" | "not_found" | "conflict" | "internal",
+) {
+  if (code === "bad_request") {
+    return 400;
+  }
+
+  if (code === "unauthorized") {
+    return 401;
+  }
+
+  if (code === "not_found") {
+    return 404;
+  }
+
+  if (code === "conflict") {
+    return 409;
+  }
+
+  return 500;
+}
+
 export async function POST(request: Request) {
   const authorization = await requireAuthorizedSession(request);
   if (authorization.isErr()) {
@@ -88,6 +116,49 @@ export async function POST(request: Request) {
   const normalized = normalizeFeedbackBody(body);
   if ("error" in normalized) {
     return Response.json({ error: normalized.error }, { status: 400 });
+  }
+
+  if (shouldDelegateFeedbackToRuntime()) {
+    const runtimeResult = await dispatchRuntimeCommand({
+      type: "runtime.feedback",
+      context: {
+        userId: "local-user",
+        requestId: randomUUID(),
+        source: "web",
+        issuedAt: new Date().toISOString(),
+      },
+      payload: {
+        itemId: normalized.itemId,
+        rating: normalized.rating,
+        note: normalized.note,
+      },
+    });
+
+    if (runtimeResult.isErr()) {
+      return Response.json({ error: runtimeResult.error.message }, { status: 502 });
+    }
+
+    if (runtimeResult.value.status === "error") {
+      return Response.json(
+        { error: runtimeResult.value.message },
+        { status: runtimeErrorStatus(runtimeResult.value.code) },
+      );
+    }
+
+    if (runtimeResult.value.type !== "runtime.feedback") {
+      return Response.json(
+        { error: "Runtime service returned an unexpected command result type." },
+        { status: 502 },
+      );
+    }
+
+    return Response.json({
+      itemId: runtimeResult.value.result.itemId,
+      rating: runtimeResult.value.result.rating,
+      notedAt: runtimeResult.value.receivedAt,
+      delegated: true,
+      requestId: runtimeResult.value.requestId,
+    });
   }
 
   const result = await ResultAsync.fromPromise(
