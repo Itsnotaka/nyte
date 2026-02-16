@@ -1,3 +1,4 @@
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -8,7 +9,7 @@ import * as schema from "./schema";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const defaultDbPath = path.resolve(__dirname, "../data/nyte.sqlite");
+const defaultDbPath = path.join(os.tmpdir(), "nyte-dev.sqlite");
 
 const resolvedDbPath = process.env.DATABASE_URL
   ? path.resolve(process.env.DATABASE_URL)

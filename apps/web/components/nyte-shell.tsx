@@ -24,6 +24,7 @@ import {
   type ToolCallPayload,
   type WorkItemWithAction,
 } from "@/lib/domain/actions";
+import { authClient } from "@/lib/auth-client";
 import { mockIntakeSignals } from "@/lib/domain/mock-intake";
 import { createNeedsYouQueue, GATE_LABEL, type WorkItem } from "@/lib/domain/triage";
 import { Badge } from "@workspace/ui/@/components/ui/badge";
@@ -100,12 +101,14 @@ export function NyteShell() {
   const [activeNav, setActiveNav] = React.useState<NavId>("needs-you");
   const [handledIds, setHandledIds] = React.useState<Set<string>>(new Set());
   const [savedDrafts, setSavedDrafts] = React.useState<DraftEntry[]>([]);
+  const [connectionError, setConnectionError] = React.useState<string | null>(null);
   const [activeItem, setActiveItem] = React.useState<WorkItemWithAction | null>(
     seededItems.at(0) ?? null,
   );
   const [editableAction, setEditableAction] = React.useState<ToolCallPayload | null>(
     activeItem ? clonePayload(activeItem.proposedAction) : null,
   );
+  const { data: session, isPending: isSessionPending } = authClient.useSession();
 
   const needsYouItems = React.useMemo(
     () => seededItems.filter((item) => !handledIds.has(item.id)),
@@ -169,6 +172,31 @@ export function NyteShell() {
     setHandledIds((current) => new Set(current).add(activeItem.id));
     closeDrawer();
   }, [activeItem, closeDrawer, editableAction]);
+
+  const connectGoogle = React.useCallback(async () => {
+    setConnectionError(null);
+    try {
+      await authClient.signIn.social({
+        provider: "google",
+        callbackURL: "/",
+      });
+    } catch (error) {
+      setConnectionError(
+        error instanceof Error ? error.message : "Unable to connect Google account.",
+      );
+    }
+  }, []);
+
+  const disconnectGoogle = React.useCallback(async () => {
+    setConnectionError(null);
+    try {
+      await authClient.signOut();
+    } catch (error) {
+      setConnectionError(
+        error instanceof Error ? error.message : "Unable to disconnect Google account.",
+      );
+    }
+  }, []);
 
   return (
     <SidebarProvider>
@@ -347,9 +375,25 @@ export function NyteShell() {
                 <CardHeader>
                   <CardTitle>Connections</CardTitle>
                 </CardHeader>
-                <CardContent className="text-muted-foreground text-sm">
-                  Google auth foundation is configured. Connect Gmail + Calendar through Better
-                  Auth.
+                <CardContent className="space-y-3">
+                  <p className="text-muted-foreground text-sm">
+                    Google auth foundation is configured for Gmail (read + draft) and Calendar event
+                    creation.
+                  </p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant={session ? "secondary" : "outline"}>
+                      {session ? "Connected" : "Not connected"}
+                    </Badge>
+                    <Button
+                      disabled={isSessionPending}
+                      onClick={session ? disconnectGoogle : connectGoogle}
+                    >
+                      {session ? "Disconnect Google" : "Connect Google"}
+                    </Button>
+                  </div>
+                  {connectionError ? (
+                    <p className="text-destructive text-xs">{connectionError}</p>
+                  ) : null}
                 </CardContent>
               </Card>
             ) : null}
