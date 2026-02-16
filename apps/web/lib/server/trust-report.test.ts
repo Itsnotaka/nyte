@@ -122,4 +122,13 @@ describe("getTrustReport", () => {
       "UNKEY_ROOT_KEY is not configured; using in-process fallback rate limiter.",
     );
   });
+
+  it("treats whitespace-only Unkey root key as not configured", async () => {
+    process.env.UNKEY_ROOT_KEY = "   ";
+
+    const report = await getTrustReport(new Date("2026-01-20T12:10:00.000Z"));
+
+    expect(report.security.rateLimitProvider).toBe("memory");
+    expect(report.security.unkeyRateLimitConfigured).toBe(false);
+  });
 });

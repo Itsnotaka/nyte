@@ -54,4 +54,32 @@ describe("evaluateSecurityPosture", () => {
     expect(posture.status).toBe("ok");
     expect(posture.warnings).toHaveLength(0);
   });
+
+  it("warns when Unkey root key is not configured", () => {
+    const posture = evaluateSecurityPosture({
+      security: {
+        authzEnforced: true,
+        authSecretConfigured: true,
+        authSecretSource: "env",
+        tokenEncryptionKeyConfigured: true,
+        tokenEncryptionKeySource: "env",
+        hasPreviousTokenKey: true,
+        rateLimitProvider: "memory",
+        unkeyRateLimitConfigured: false,
+      },
+      googleConnection: {
+        connected: true,
+        provider: "google",
+        providerAccountId: "acct_123",
+        scopes: ["https://www.googleapis.com/auth/gmail.readonly"],
+        connectedAt: "2026-01-20T12:00:00.000Z",
+        updatedAt: "2026-01-20T12:00:00.000Z",
+      },
+    });
+
+    expect(posture.status).toBe("warning");
+    expect(posture.warnings).toContain(
+      "UNKEY_ROOT_KEY is not configured; using in-process fallback rate limiter.",
+    );
+  });
 });
