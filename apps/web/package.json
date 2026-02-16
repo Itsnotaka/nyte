@@ -13,11 +13,13 @@
     "test:server": "vitest run --dir lib/server"
   },
   "dependencies": {
+    "@unkey/ratelimit": "^2.1.4",
     "@workspace/db": "workspace:^",
     "@workspace/ui": "workspace:*",
     "better-auth": "^1.4.18",
     "drizzle-orm": "^0.45.1",
     "lucide-react": "^0.563.0",
+    "neverthrow": "^8.2.0",
     "next": "16.1.6",
     "next-themes": "^0.4.6",
     "react": "^19.2.4",
