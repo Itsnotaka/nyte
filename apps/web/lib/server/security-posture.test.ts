@@ -143,4 +143,35 @@ describe("evaluateSecurityPosture", () => {
       "NYTE_RATE_LIMIT_MODE is set to memory; using in-process rate limiter.",
     );
   });
+
+  it("prefers explicit memory-mode warning over missing-key fallback warning", () => {
+    const posture = evaluateSecurityPosture({
+      security: {
+        authzEnforced: true,
+        authSecretConfigured: true,
+        authSecretSource: "env",
+        tokenEncryptionKeyConfigured: true,
+        tokenEncryptionKeySource: "env",
+        hasPreviousTokenKey: true,
+        rateLimitMode: "memory",
+        rateLimitProvider: "memory",
+        unkeyRateLimitConfigured: false,
+      },
+      googleConnection: {
+        connected: true,
+        provider: "google",
+        providerAccountId: "acct_123",
+        scopes: ["https://www.googleapis.com/auth/gmail.readonly"],
+        connectedAt: "2026-01-20T12:00:00.000Z",
+        updatedAt: "2026-01-20T12:00:00.000Z",
+      },
+    });
+
+    expect(posture.warnings).toContain(
+      "NYTE_RATE_LIMIT_MODE is set to memory; using in-process rate limiter.",
+    );
+    expect(posture.warnings).not.toContain(
+      "UNKEY_ROOT_KEY is not configured; using in-process fallback rate limiter.",
+    );
+  });
 });

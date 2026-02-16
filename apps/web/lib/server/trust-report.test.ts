@@ -156,6 +156,23 @@ describe("getTrustReport", () => {
     );
   });
 
+  it("reports explicit memory mode override without key as forced-memory posture", async () => {
+    delete process.env.UNKEY_ROOT_KEY;
+    process.env.NYTE_RATE_LIMIT_MODE = "memory";
+
+    const report = await getTrustReport(new Date("2026-01-20T12:10:00.000Z"));
+
+    expect(report.security.rateLimitMode).toBe("memory");
+    expect(report.security.rateLimitProvider).toBe("memory");
+    expect(report.security.unkeyRateLimitConfigured).toBe(false);
+    expect(report.posture.warnings).toContain(
+      "NYTE_RATE_LIMIT_MODE is set to memory; using in-process rate limiter.",
+    );
+    expect(report.posture.warnings).not.toContain(
+      "UNKEY_ROOT_KEY is not configured; using in-process fallback rate limiter.",
+    );
+  });
+
   it("reports forced unkey mode with memory fallback when key is missing", async () => {
     delete process.env.UNKEY_ROOT_KEY;
     process.env.NYTE_RATE_LIMIT_MODE = "unkey";
