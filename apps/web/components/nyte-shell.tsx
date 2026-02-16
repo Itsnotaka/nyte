@@ -168,6 +168,21 @@ type TrustReportResponse = {
   };
 };
 
+type AuditLogEntry = {
+  id: string;
+  userId: string | null;
+  action: string;
+  targetType: string;
+  targetId: string;
+  payload: Record<string, unknown>;
+  createdAt: string;
+};
+
+type AuditLogsResponse = {
+  count: number;
+  rows: AuditLogEntry[];
+};
+
 type WorkflowTimelineResponse = {
   itemId: string;
   timeline: Array<{
@@ -271,6 +286,9 @@ export function NyteShell() {
   const [trustReport, setTrustReport] = React.useState<TrustReportResponse | null>(null);
   const [isTrustReportLoading, setIsTrustReportLoading] = React.useState(false);
   const [trustReportError, setTrustReportError] = React.useState<string | null>(null);
+  const [auditLogs, setAuditLogs] = React.useState<AuditLogEntry[]>([]);
+  const [isAuditLogsLoading, setIsAuditLogsLoading] = React.useState(false);
+  const [auditLogsError, setAuditLogsError] = React.useState<string | null>(null);
   const [activeItem, setActiveItem] = React.useState<WorkItemWithAction | null>(
     queueItems.at(0) ?? null,
   );
@@ -426,6 +444,24 @@ export function NyteShell() {
       setTrustReportError(error instanceof Error ? error.message : "Unable to load trust report.");
     } finally {
       setIsTrustReportLoading(false);
+    }
+  }, []);
+
+  const refreshAuditLogs = React.useCallback(async () => {
+    setAuditLogsError(null);
+    setIsAuditLogsLoading(true);
+    try {
+      const response = await fetch("/api/admin/audit?limit=12");
+      if (!response.ok) {
+        throw new Error("Unable to load audit logs.");
+      }
+
+      const payload = (await response.json()) as AuditLogsResponse;
+      setAuditLogs(payload.rows);
+    } catch (error) {
+      setAuditLogsError(error instanceof Error ? error.message : "Unable to load audit logs.");
+    } finally {
+      setIsAuditLogsLoading(false);
     }
   }, []);
 
@@ -605,7 +641,9 @@ export function NyteShell() {
     void refreshGoogleConnection();
     void refreshWorkflowRetention();
     void refreshTrustReport();
+    void refreshAuditLogs();
   }, [
+    refreshAuditLogs,
     refreshGoogleConnection,
     refreshMetrics,
     refreshTrustReport,
@@ -643,6 +681,16 @@ export function NyteShell() {
       );
     });
   }, [googleConnection?.connected, persistGoogleConnection, session]);
+
+  const trustReportGeneratedAt = trustReport?.generatedAt;
+
+  React.useEffect(() => {
+    if (!trustReportGeneratedAt) {
+      return;
+    }
+
+    void refreshAuditLogs();
+  }, [refreshAuditLogs, trustReportGeneratedAt]);
 
   const connectGoogle = React.useCallback(async () => {
     setConnectionError(null);
@@ -1404,6 +1452,46 @@ export function NyteShell() {
                         Pruned {pruneResult.prunedRuns} run(s) older than {pruneResult.cutoff}.
                       </p>
                     ) : null}
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Recent audit log</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        disabled={isAuditLogsLoading}
+                        onClick={() => void refreshAuditLogs()}
+                      >
+                        Refresh audit log
+                      </Button>
+                    </div>
+                    {isAuditLogsLoading ? (
+                      <p className="text-muted-foreground text-xs">Loading audit log…</p>
+                    ) : null}
+                    {auditLogsError ? (
+                      <p className="text-destructive text-xs">{auditLogsError}</p>
+                    ) : null}
+                    {auditLogs.length > 0 ? (
+                      <div className="space-y-2">
+                        {auditLogs.map((entry) => (
+                          <div
+                            key={entry.id}
+                            className="bg-muted/40 border-border rounded-lg border px-3 py-2 text-xs"
+                          >
+                            <p className="font-medium">{entry.action}</p>
+                            <p className="text-muted-foreground">
+                              {entry.targetType}:{entry.targetId}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-muted-foreground text-xs">No audit events captured yet.</p>
+                    )}
                   </CardContent>
                 </Card>
               </div>
