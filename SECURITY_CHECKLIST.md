@@ -17,6 +17,7 @@ This checklist documents current security controls and remaining hardening tasks
 - [x] Workflow timeline events store structured payloads (no raw mailbox bodies outside required summary/preview fields).
 - [x] Feedback capture stores rating + optional note only.
 - [x] Add configurable retention policy for workflow event payloads (`/api/workflows/retention` + `/api/workflows/prune`).
+- [x] Apply no-store API caching + baseline security headers through middleware.
 
 ## Execution safety
 
