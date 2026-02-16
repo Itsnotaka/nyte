@@ -53,9 +53,15 @@ function buildRequest(body: Record<string, unknown>, headers?: HeadersInit) {
 
 describe("POST /api/actions/approve", () => {
   const originalRequireAuth = process.env.NYTE_REQUIRE_AUTH;
+  const originalRuntimeDelegateApprove = process.env.NYTE_RUNTIME_DELEGATE_APPROVE;
+  const originalRuntimeUrl = process.env.NYTE_RUNTIME_URL;
+  const originalFetch = globalThis.fetch;
 
   beforeEach(async () => {
     process.env.NYTE_REQUIRE_AUTH = "false";
+    delete process.env.NYTE_RUNTIME_DELEGATE_APPROVE;
+    delete process.env.NYTE_RUNTIME_URL;
+    globalThis.fetch = originalFetch;
     resetRateLimitState();
     await resetDb();
   });
@@ -63,10 +69,23 @@ describe("POST /api/actions/approve", () => {
   afterEach(() => {
     if (originalRequireAuth === undefined) {
       delete process.env.NYTE_REQUIRE_AUTH;
-      return;
+    } else {
+      process.env.NYTE_REQUIRE_AUTH = originalRequireAuth;
     }
 
-    process.env.NYTE_REQUIRE_AUTH = originalRequireAuth;
+    if (originalRuntimeDelegateApprove === undefined) {
+      delete process.env.NYTE_RUNTIME_DELEGATE_APPROVE;
+    } else {
+      process.env.NYTE_RUNTIME_DELEGATE_APPROVE = originalRuntimeDelegateApprove;
+    }
+
+    if (originalRuntimeUrl === undefined) {
+      delete process.env.NYTE_RUNTIME_URL;
+    } else {
+      process.env.NYTE_RUNTIME_URL = originalRuntimeUrl;
+    }
+
+    globalThis.fetch = originalFetch;
   });
 
   it("approves a seeded work item", async () => {
@@ -264,6 +283,60 @@ describe("POST /api/actions/approve", () => {
 
     expect(response.status).toBe(400);
     expect(body.error).toContain("idempotencyKey must be a string");
+  });
+
+  it("returns 502 when approve delegation is enabled without runtime url", async () => {
+    process.env.NYTE_RUNTIME_DELEGATE_APPROVE = "true";
+    delete process.env.NYTE_RUNTIME_URL;
+    await persistSignals(mockIntakeSignals, new Date("2026-02-10T10:00:00.000Z"));
+
+    const response = await POST(
+      buildRequest({
+        itemId: "w_renewal",
+      }),
+    );
+    const body = (await response.json()) as { error: string };
+
+    expect(response.status).toBe(502);
+    expect(body.error).toContain("NYTE_RUNTIME_URL is required");
+  });
+
+  it("returns delegated approve ack when runtime delegation is enabled", async () => {
+    process.env.NYTE_RUNTIME_DELEGATE_APPROVE = "true";
+    process.env.NYTE_RUNTIME_URL = "https://runtime.nyte.dev";
+    await persistSignals(mockIntakeSignals, new Date("2026-02-10T10:00:00.000Z"));
+    globalThis.fetch = async () =>
+      new Response(
+        JSON.stringify({
+          status: "accepted",
+          type: "runtime.approve",
+          requestId: "req_approve_123",
+          receivedAt: "2026-02-16T12:00:00.000Z",
+          result: {
+            itemId: "w_renewal",
+            idempotent: false,
+          },
+        }),
+        { status: 200 },
+      );
+
+    const response = await POST(
+      buildRequest({
+        itemId: "w_renewal",
+      }),
+    );
+    const body = (await response.json()) as {
+      itemId: string;
+      idempotent: boolean;
+      delegated: boolean;
+      requestId: string;
+    };
+
+    expect(response.status).toBe(200);
+    expect(body.itemId).toBe("w_renewal");
+    expect(body.idempotent).toBe(false);
+    expect(body.delegated).toBe(true);
+    expect(body.requestId).toBe("req_approve_123");
   });
 
   it("returns 404 for unknown item", async () => {

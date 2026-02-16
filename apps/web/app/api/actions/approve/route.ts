@@ -3,7 +3,9 @@ import { createAuthorizationErrorResponse, requireAuthorizedSession } from "@/li
 import { createJsonBodyErrorResponse, isJsonObject, readJsonBody } from "@/lib/server/json-body";
 import { rateLimitRequest } from "@/lib/server/rate-limit";
 import { createRateLimitResponse } from "@/lib/server/rate-limit-response";
+import { dispatchRuntimeCommand } from "@/lib/server/runtime-client";
 import { ResultAsync } from "neverthrow";
+import { randomUUID } from "node:crypto";
 
 type ApproveBody = {
   itemId?: unknown;
@@ -51,6 +53,32 @@ function normalizeApproveBody(body: ApproveBody): NormalizedApproveBody {
   };
 }
 
+function shouldDelegateApproveToRuntime() {
+  return process.env.NYTE_RUNTIME_DELEGATE_APPROVE?.trim().toLowerCase() === "true";
+}
+
+function runtimeErrorStatus(
+  code: "bad_request" | "unauthorized" | "not_found" | "conflict" | "internal",
+) {
+  if (code === "bad_request") {
+    return 400;
+  }
+
+  if (code === "unauthorized") {
+    return 401;
+  }
+
+  if (code === "not_found") {
+    return 404;
+  }
+
+  if (code === "conflict") {
+    return 409;
+  }
+
+  return 500;
+}
+
 export async function POST(request: Request) {
   const authorization = await requireAuthorizedSession(request);
   if (authorization.isErr()) {
@@ -79,6 +107,47 @@ export async function POST(request: Request) {
     return Response.json({ error: normalized.error }, { status: 400 });
   }
   const idempotencyKey = request.headers.get("x-idempotency-key") ?? normalized.idempotencyKey;
+
+  if (shouldDelegateApproveToRuntime()) {
+    const runtimeResult = await dispatchRuntimeCommand({
+      type: "runtime.approve",
+      context: {
+        userId: "local-user",
+        requestId: randomUUID(),
+        source: "web",
+        issuedAt: new Date().toISOString(),
+      },
+      payload: {
+        itemId: normalized.itemId,
+        idempotencyKey: idempotencyKey ?? undefined,
+      },
+    });
+
+    if (runtimeResult.isErr()) {
+      return Response.json({ error: runtimeResult.error.message }, { status: 502 });
+    }
+
+    if (runtimeResult.value.status === "error") {
+      return Response.json(
+        { error: runtimeResult.value.message },
+        { status: runtimeErrorStatus(runtimeResult.value.code) },
+      );
+    }
+
+    if (runtimeResult.value.type !== "runtime.approve") {
+      return Response.json(
+        { error: "Runtime service returned an unexpected command result type." },
+        { status: 502 },
+      );
+    }
+
+    return Response.json({
+      itemId: runtimeResult.value.result.itemId,
+      idempotent: runtimeResult.value.result.idempotent,
+      delegated: true,
+      requestId: runtimeResult.value.requestId,
+    });
+  }
 
   const result = await ResultAsync.fromPromise(
     approveWorkItem(normalized.itemId, new Date(), idempotencyKey ?? undefined),
