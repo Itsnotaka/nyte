@@ -19,7 +19,7 @@ import {
   TextSearchIcon,
   WalletIcon,
 } from "lucide-react";
-import { errAsync, okAsync, ResultAsync } from "neverthrow";
+import { ResultAsync } from "neverthrow";
 
 import {
   withToolCalls,
@@ -28,6 +28,7 @@ import {
   type WorkItemWithAction,
 } from "@/lib/domain/actions";
 import { authClient } from "@/lib/auth-client";
+import { fetchJsonResult } from "@/lib/client/fetch-json-result";
 import { mockIntakeSignals } from "@/lib/domain/mock-intake";
 import { createNeedsYouQueue, GATE_LABEL, type WorkItem } from "@/lib/domain/triage";
 import { Badge } from "@workspace/ui/@/components/ui/badge";
@@ -251,53 +252,12 @@ function clonePayload<T extends ToolCallPayload>(payload: T): T {
   return JSON.parse(JSON.stringify(payload)) as T;
 }
 
-function toErrorMessage(error: unknown, fallback: string): string {
+function createAsyncActionError(error: unknown, fallback: string): Error {
   if (error instanceof Error && error.message.trim().length > 0) {
-    return error.message;
+    return error;
   }
 
-  return fallback;
-}
-
-function createRequestError(error: unknown, fallback: string): Error {
-  return new Error(toErrorMessage(error, fallback));
-}
-
-function parseErrorMessage(response: Response, fallback: string) {
-  return ResultAsync.fromPromise(response.json() as Promise<unknown>, () => fallback)
-    .map((payload) => {
-      if (typeof payload !== "object" || payload === null) {
-        return fallback;
-      }
-
-      const message = Reflect.get(payload, "error");
-      if (typeof message !== "string" || message.trim().length === 0) {
-        return fallback;
-      }
-
-      return message;
-    })
-    .orElse(() => okAsync(fallback));
-}
-
-function fetchJsonResult<T>(
-  input: RequestInfo | URL,
-  init: RequestInit | undefined,
-  fallbackMessage: string,
-): ResultAsync<T, Error> {
-  return ResultAsync.fromPromise(fetch(input, init), (error) =>
-    createRequestError(error, fallbackMessage),
-  ).andThen((response) => {
-    if (!response.ok) {
-      return parseErrorMessage(response, fallbackMessage).andThen((message) =>
-        errAsync(new Error(message)),
-      );
-    }
-
-    return ResultAsync.fromPromise(response.json() as Promise<T>, (error) =>
-      createRequestError(error, fallbackMessage),
-    );
-  });
+  return new Error(fallback);
 }
 
 export function NyteShell() {
@@ -801,7 +761,7 @@ export function NyteShell() {
         provider: "google",
         callbackURL: "/",
       }),
-      (error) => createRequestError(error, "Unable to connect Google account."),
+      (error) => createAsyncActionError(error, "Unable to connect Google account."),
     );
 
     if (result.isErr()) {
@@ -827,7 +787,7 @@ export function NyteShell() {
 
     setGoogleConnection(disconnectResult.value);
     const signOutResult = await ResultAsync.fromPromise(authClient.signOut(), (error) =>
-      createRequestError(error, "Unable to disconnect Google account."),
+      createAsyncActionError(error, "Unable to disconnect Google account."),
     );
     if (signOutResult.isErr()) {
       setConnectionError(signOutResult.error.message);
