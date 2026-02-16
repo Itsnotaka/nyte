@@ -1,5 +1,7 @@
 import { getWorkflowTimeline } from "@/lib/server/workflow-log";
 import { AuthorizationError, requireAuthorizedSession } from "@/lib/server/authz";
+import { enforceRateLimit, RateLimitError } from "@/lib/server/rate-limit";
+import { createRateLimitResponse } from "@/lib/server/rate-limit-response";
 
 type Params = {
   params: Promise<{
@@ -13,6 +15,17 @@ export async function GET(request: Request, { params }: Params) {
   } catch (error) {
     if (error instanceof AuthorizationError) {
       return Response.json({ error: error.message }, { status: 401 });
+    }
+  }
+
+  try {
+    enforceRateLimit(request, "workflows:item:read", {
+      limit: 120,
+      windowMs: 60_000,
+    });
+  } catch (error) {
+    if (error instanceof RateLimitError) {
+      return createRateLimitResponse(error);
     }
   }
 

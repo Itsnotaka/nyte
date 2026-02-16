@@ -19,6 +19,7 @@ import {
 import { mockIntakeSignals } from "@/lib/domain/mock-intake";
 import { approveWorkItem } from "@/lib/server/approve-action";
 import { persistSignals } from "@/lib/server/queue-store";
+import { resetRateLimitState } from "@/lib/server/rate-limit";
 
 import { GET } from "./route";
 
@@ -51,6 +52,7 @@ describe("GET /api/metrics", () => {
 
   beforeEach(async () => {
     process.env.NYTE_REQUIRE_AUTH = "false";
+    resetRateLimitState();
     await resetDb();
   });
 
@@ -89,5 +91,16 @@ describe("GET /api/metrics", () => {
 
     expect(response.status).toBe(401);
     expect(body.error).toContain("Authentication required");
+  });
+
+  it("returns 429 when metrics read rate limit is exceeded", async () => {
+    let lastResponse: Response | null = null;
+    for (let index = 0; index < 121; index += 1) {
+      lastResponse = await GET(buildRequest());
+    }
+
+    expect(lastResponse).not.toBeNull();
+    expect(lastResponse?.status).toBe(429);
+    expect(lastResponse?.headers.get("Retry-After")).toBeTruthy();
   });
 });
