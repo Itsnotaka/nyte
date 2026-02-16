@@ -18,6 +18,7 @@ import {
 
 import { recordWorkflowRun } from "./workflow-log";
 import {
+  WorkflowRetentionError,
   getWorkflowRetentionDays,
   pruneWorkflowHistoryIfDue,
   pruneWorkflowHistory,
@@ -56,6 +57,12 @@ describe("workflow retention policy", () => {
     const updated = await getWorkflowRetentionDays();
     expect(updated.days).toBe(14);
     expect(updated.source).toBe("policy");
+  });
+
+  it("rejects non-integer retention day values", async () => {
+    await expect(
+      setWorkflowRetentionDays(14.5, new Date("2026-01-20T12:00:00.000Z")),
+    ).rejects.toThrow(WorkflowRetentionError);
   });
 
   it("prunes stale workflow runs older than configured retention", async () => {

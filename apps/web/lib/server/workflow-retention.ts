@@ -42,11 +42,11 @@ export class WorkflowRetentionError extends Error {
 }
 
 function normalizeDays(input: number) {
-  if (!Number.isFinite(input) || input < 1 || input > 365) {
-    throw new WorkflowRetentionError("Retention days must be between 1 and 365.");
+  if (!Number.isInteger(input) || input < 1 || input > 365) {
+    throw new WorkflowRetentionError("Retention days must be a whole number between 1 and 365.");
   }
 
-  return Math.floor(input);
+  return input;
 }
 
 export async function getWorkflowRetentionDays() {
