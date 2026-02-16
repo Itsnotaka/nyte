@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import {
   createRuntimeCommandContext,
+  resolveRuntimeRequestId,
   runtimeErrorStatus,
   shouldDelegateRuntimeCommand,
 } from "./runtime-delegation";
@@ -57,5 +58,25 @@ describe("createRuntimeCommandContext", () => {
       source: "web",
       issuedAt: "2026-02-16T12:00:00.000Z",
     });
+  });
+});
+
+describe("resolveRuntimeRequestId", () => {
+  it("uses x-request-id when present", () => {
+    const request = new Request("https://nyte.dev/api/sync/poll", {
+      headers: {
+        "x-request-id": " req_123 ",
+      },
+    });
+
+    expect(resolveRuntimeRequestId(request)).toBe("req_123");
+  });
+
+  it("falls back to generated uuid when header is missing", () => {
+    const request = new Request("https://nyte.dev/api/sync/poll");
+
+    const requestId = resolveRuntimeRequestId(request);
+    expect(typeof requestId).toBe("string");
+    expect(requestId.length).toBeGreaterThan(0);
   });
 });

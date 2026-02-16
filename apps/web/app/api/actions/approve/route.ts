@@ -6,6 +6,8 @@ import { createRateLimitResponse } from "@/lib/server/rate-limit-response";
 import { dispatchRuntimeCommand } from "@/lib/server/runtime-client";
 import {
   createRuntimeCommandContext,
+  recordRuntimeDelegationAudit,
+  resolveRuntimeRequestId,
   runtimeErrorStatus,
   shouldDelegateRuntimeCommand,
 } from "@/lib/server/runtime-delegation";
@@ -87,9 +89,12 @@ export async function POST(request: Request) {
   const idempotencyKey = request.headers.get("x-idempotency-key") ?? normalized.idempotencyKey;
 
   if (shouldDelegateRuntimeCommand("NYTE_RUNTIME_DELEGATE_APPROVE")) {
+    const runtimeRequestId = resolveRuntimeRequestId(request);
     const runtimeResult = await dispatchRuntimeCommand({
       type: "runtime.approve",
-      context: createRuntimeCommandContext(),
+      context: createRuntimeCommandContext({
+        requestId: runtimeRequestId,
+      }),
       payload: {
         itemId: normalized.itemId,
         idempotencyKey: idempotencyKey ?? undefined,
@@ -97,10 +102,23 @@ export async function POST(request: Request) {
     });
 
     if (runtimeResult.isErr()) {
+      await recordRuntimeDelegationAudit({
+        commandType: "runtime.approve",
+        outcome: "dispatch_error",
+        requestId: runtimeRequestId,
+        message: runtimeResult.error.message,
+      });
       return Response.json({ error: runtimeResult.error.message }, { status: 502 });
     }
 
     if (runtimeResult.value.status === "error") {
+      await recordRuntimeDelegationAudit({
+        commandType: "runtime.approve",
+        outcome: "runtime_error",
+        requestId: runtimeResult.value.requestId,
+        code: runtimeResult.value.code,
+        message: runtimeResult.value.message,
+      });
       return Response.json(
         { error: runtimeResult.value.message },
         { status: runtimeErrorStatus(runtimeResult.value.code) },
@@ -108,11 +126,23 @@ export async function POST(request: Request) {
     }
 
     if (runtimeResult.value.type !== "runtime.approve") {
+      await recordRuntimeDelegationAudit({
+        commandType: "runtime.approve",
+        outcome: "invalid_result",
+        requestId: runtimeResult.value.requestId,
+        message: "Runtime service returned an unexpected command result type.",
+      });
       return Response.json(
         { error: "Runtime service returned an unexpected command result type." },
         { status: 502 },
       );
     }
+
+    await recordRuntimeDelegationAudit({
+      commandType: "runtime.approve",
+      outcome: "accepted",
+      requestId: runtimeResult.value.requestId,
+    });
 
     return Response.json({
       itemId: runtimeResult.value.result.itemId,

@@ -18,6 +18,7 @@ import {
 import { mockIntakeSignals } from "@workspace/domain/mock-intake";
 
 import { approveWorkItem } from "./approve-action";
+import { recordAuditLog } from "./audit-log";
 import { upsertGoogleConnection } from "./connections";
 import { addWatchKeyword } from "./policy-rules";
 import { persistSignals } from "./queue-store";
@@ -225,5 +226,33 @@ describe("getTrustReport", () => {
     expect(reportWithoutKey.security.rateLimitMode).toBe("auto");
     expect(reportWithoutKey.security.rateLimitProvider).toBe("memory");
     expect(reportWithoutKey.security.unkeyRateLimitActive).toBe(false);
+  });
+
+  it("summarizes recent runtime delegation audit events", async () => {
+    await recordAuditLog({
+      action: "runtime.delegate.approve.accepted",
+      targetType: "runtime_command",
+      targetId: "req_accept_1",
+      payload: {},
+      now: new Date("2026-01-20T12:00:00.000Z"),
+    });
+    await recordAuditLog({
+      action: "runtime.delegate.feedback.runtime_error",
+      targetType: "runtime_command",
+      targetId: "req_error_1",
+      payload: {},
+      now: new Date("2026-01-20T12:01:00.000Z"),
+    });
+
+    const report = await getTrustReport(new Date("2026-01-20T12:10:00.000Z"));
+
+    expect(report.runtimeDelegation).toEqual({
+      recentCount: 2,
+      acceptedCount: 1,
+      errorCount: 1,
+      latestCommand: "feedback",
+      latestOutcome: "runtime_error",
+      latestRequestId: "req_error_1",
+    });
   });
 });

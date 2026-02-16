@@ -8,6 +8,8 @@ import { createRateLimitResponse } from "@/lib/server/rate-limit-response";
 import { dispatchRuntimeCommand } from "@/lib/server/runtime-client";
 import {
   createRuntimeCommandContext,
+  recordRuntimeDelegationAudit,
+  resolveRuntimeRequestId,
   runtimeErrorStatus,
   shouldDelegateRuntimeCommand,
 } from "@/lib/server/runtime-delegation";
@@ -39,9 +41,11 @@ export async function GET(request: Request) {
   }
 
   if (shouldDelegateRuntimeCommand("NYTE_RUNTIME_DELEGATE_SYNC")) {
+    const runtimeRequestId = resolveRuntimeRequestId(request);
     const runtimeResult = await dispatchRuntimeCommand({
       type: "runtime.ingest",
       context: createRuntimeCommandContext({
+        requestId: runtimeRequestId,
         now,
       }),
       payload: {
@@ -51,10 +55,23 @@ export async function GET(request: Request) {
     });
 
     if (runtimeResult.isErr()) {
+      await recordRuntimeDelegationAudit({
+        commandType: "runtime.ingest",
+        outcome: "dispatch_error",
+        requestId: runtimeRequestId,
+        message: runtimeResult.error.message,
+      });
       return Response.json({ error: runtimeResult.error.message }, { status: 502 });
     }
 
     if (runtimeResult.value.status === "error") {
+      await recordRuntimeDelegationAudit({
+        commandType: "runtime.ingest",
+        outcome: "runtime_error",
+        requestId: runtimeResult.value.requestId,
+        code: runtimeResult.value.code,
+        message: runtimeResult.value.message,
+      });
       return Response.json(
         { error: runtimeResult.value.message },
         { status: runtimeErrorStatus(runtimeResult.value.code) },
@@ -62,11 +79,23 @@ export async function GET(request: Request) {
     }
 
     if (runtimeResult.value.type !== "runtime.ingest") {
+      await recordRuntimeDelegationAudit({
+        commandType: "runtime.ingest",
+        outcome: "invalid_result",
+        requestId: runtimeResult.value.requestId,
+        message: "Runtime service returned an unexpected command result type.",
+      });
       return Response.json(
         { error: "Runtime service returned an unexpected command result type." },
         { status: 502 },
       );
     }
+
+    await recordRuntimeDelegationAudit({
+      commandType: "runtime.ingest",
+      outcome: "accepted",
+      requestId: runtimeResult.value.requestId,
+    });
 
     const dashboard = await ResultAsync.fromPromise(getDashboardData(), () => {
       return new Error("Failed to load dashboard.");

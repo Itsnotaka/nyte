@@ -94,6 +94,14 @@ export type TrustReport = {
     recentCount: number;
     latestAction: string | null;
   };
+  runtimeDelegation: {
+    recentCount: number;
+    acceptedCount: number;
+    errorCount: number;
+    latestCommand: string | null;
+    latestOutcome: string | null;
+    latestRequestId: string | null;
+  };
 };
 
 export async function getTrustReport(
@@ -141,6 +149,25 @@ export async function getTrustReport(
       recentCount: recentAuditLogs.length,
       latestAction: recentAuditLogs[0]?.action ?? null,
     },
+    runtimeDelegation: (() => {
+      const events = recentAuditLogs.filter((entry) =>
+        entry.action.startsWith("runtime.delegate."),
+      );
+      const acceptedCount = events.filter((entry) => entry.action.endsWith(".accepted")).length;
+      const latest = events[0];
+      const segments = latest?.action.split(".") ?? [];
+      const latestCommand = segments[2] ?? null;
+      const latestOutcome = segments[3] ?? null;
+
+      return {
+        recentCount: events.length,
+        acceptedCount,
+        errorCount: events.length - acceptedCount,
+        latestCommand,
+        latestOutcome,
+        latestRequestId: latest?.targetId ?? null,
+      };
+    })(),
   };
 
   return {
