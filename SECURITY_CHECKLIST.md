@@ -4,7 +4,7 @@ This checklist documents current security controls and remaining hardening tasks
 
 ## Runtime + secrets
 
-- [x] `BETTER_AUTH_SECRET` configured with production fallback guardrails in auth setup.
+- [x] `BETTER_AUTH_SECRET` is required in production (`runtime-secrets` helper enforces fail-fast behavior).
 - [x] OAuth provider config is only enabled when required credentials are present.
 - [x] Added token encryption helpers (`apps/web/lib/server/token-crypto.ts`) using AES-256-GCM with authenticated encryption.
 - [x] Added tests for token encryption round-trip and tamper detection.

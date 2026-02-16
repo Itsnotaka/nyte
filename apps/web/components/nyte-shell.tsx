@@ -153,7 +153,9 @@ type TrustReportResponse = {
   security: {
     authzEnforced: boolean;
     betterAuthSecretConfigured: boolean;
+    betterAuthSecretSource: "env" | "dev-fallback";
     tokenEncryptionKeyConfigured: boolean;
+    tokenEncryptionKeySource: "env" | "dev-fallback";
     hasPreviousTokenKey: boolean;
   };
 };
@@ -1314,14 +1316,12 @@ export function NyteShell() {
                           authz mode: {trustReport.security.authzEnforced ? "enforced" : "relaxed"}
                         </p>
                         <p>
-                          secret posture:{" "}
-                          {trustReport.security.betterAuthSecretConfigured
-                            ? "auth secret set"
-                            : "auth secret fallback"}
-                          {" / "}
-                          {trustReport.security.tokenEncryptionKeyConfigured
-                            ? "token key set"
-                            : "token key fallback"}
+                          secret posture: auth ({trustReport.security.betterAuthSecretSource}) /
+                          token ({trustReport.security.tokenEncryptionKeySource})
+                        </p>
+                        <p>
+                          previous token key available:{" "}
+                          {trustReport.security.hasPreviousTokenKey ? "yes" : "no"}
                         </p>
                       </div>
                     ) : null}

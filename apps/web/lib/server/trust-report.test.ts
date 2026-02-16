@@ -90,6 +90,8 @@ describe("getTrustReport", () => {
     expect(report.googleConnection.providerAccountId).toBe("acct_trust");
     expect(report.security.authzEnforced).toBe(true);
     expect(report.security.betterAuthSecretConfigured).toBe(true);
+    expect(report.security.betterAuthSecretSource).toBe("env");
     expect(report.security.tokenEncryptionKeyConfigured).toBe(true);
+    expect(report.security.tokenEncryptionKeySource).toBe("env");
   });
 });
