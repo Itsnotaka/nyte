@@ -120,6 +120,27 @@ describe("google connection route", () => {
     expect(body.providerAccountId).toContain("google-");
   });
 
+  it("normalizes connection payload fields before persistence", async () => {
+    const response = await POST(
+      buildRequest("POST", {
+        providerAccountId: "  google-normalized  ",
+        accessToken: "  token-value  ",
+        refreshToken: "  refresh-value  ",
+        scopes: [" gmail.readonly ", "gmail.readonly", " calendar.events "],
+      }),
+    );
+    const body = (await response.json()) as {
+      connected: boolean;
+      providerAccountId: string | null;
+      scopes: string[];
+    };
+
+    expect(response.status).toBe(200);
+    expect(body.connected).toBe(true);
+    expect(body.providerAccountId).toBe("google-normalized");
+    expect(body.scopes).toEqual(["gmail.readonly", "calendar.events"]);
+  });
+
   it("returns 400 for malformed json body", async () => {
     const response = await POST(
       new Request("http://localhost/api/connections/google", {
@@ -152,6 +173,54 @@ describe("google connection route", () => {
 
     expect(response.status).toBe(415);
     expect(body.error).toContain("application/json");
+  });
+
+  it("returns 400 when providerAccountId is not a string", async () => {
+    const response = await POST(
+      buildRequest("POST", {
+        providerAccountId: 123,
+      }),
+    );
+    const body = (await response.json()) as { error: string };
+
+    expect(response.status).toBe(400);
+    expect(body.error).toContain("providerAccountId must be a string");
+  });
+
+  it("returns 400 when scopes is not an array", async () => {
+    const response = await POST(
+      buildRequest("POST", {
+        scopes: "gmail.readonly",
+      }),
+    );
+    const body = (await response.json()) as { error: string };
+
+    expect(response.status).toBe(400);
+    expect(body.error).toContain("scopes must be an array");
+  });
+
+  it("returns 400 when scopes contains non-string values", async () => {
+    const response = await POST(
+      buildRequest("POST", {
+        scopes: ["gmail.readonly", 7],
+      }),
+    );
+    const body = (await response.json()) as { error: string };
+
+    expect(response.status).toBe(400);
+    expect(body.error).toContain("non-empty string values");
+  });
+
+  it("returns 400 when scopes contains empty strings", async () => {
+    const response = await POST(
+      buildRequest("POST", {
+        scopes: ["   "],
+      }),
+    );
+    const body = (await response.json()) as { error: string };
+
+    expect(response.status).toBe(400);
+    expect(body.error).toContain("non-empty string values");
   });
 
   it("accepts structured +json content-type for connection payload", async () => {
