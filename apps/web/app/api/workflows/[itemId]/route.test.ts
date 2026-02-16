@@ -112,4 +112,16 @@ describe("GET /api/workflows/[itemId]", () => {
     expect(lastResponse?.status).toBe(429);
     expect(lastResponse?.headers.get("Retry-After")).toBeTruthy();
   });
+
+  it("returns 400 when route itemId is whitespace-only", async () => {
+    const response = await GET(buildRequest(), {
+      params: Promise.resolve({
+        itemId: "   ",
+      }),
+    });
+    const body = (await response.json()) as { error: string };
+
+    expect(response.status).toBe(400);
+    expect(body.error).toContain("itemId is required");
+  });
 });

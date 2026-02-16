@@ -30,9 +30,14 @@ export async function GET(request: Request, { params }: Params) {
   }
 
   const { itemId } = await params;
-  const timeline = await getWorkflowTimeline(itemId);
+  const normalizedItemId = itemId.trim();
+  if (!normalizedItemId) {
+    return Response.json({ error: "itemId is required." }, { status: 400 });
+  }
+
+  const timeline = await getWorkflowTimeline(normalizedItemId);
   return Response.json({
-    itemId,
+    itemId: normalizedItemId,
     timeline,
   });
 }
