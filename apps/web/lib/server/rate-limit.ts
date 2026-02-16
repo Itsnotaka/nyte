@@ -45,13 +45,14 @@ type RateLimitOptions = {
 
 class MemoryRatelimiter implements Ratelimiter {
   constructor(
+    private readonly partitionKey: string,
     private readonly namespace: string,
     private readonly maxRequests: number,
     private readonly windowMs: number,
   ) {}
 
   async limit(identifier: string): Promise<RatelimitResponse> {
-    const key = `${this.namespace}:${this.maxRequests}:${this.windowMs}:${identifier}`;
+    const key = `${this.partitionKey}:${this.namespace}:${this.maxRequests}:${this.windowMs}:${identifier}`;
     const now = Date.now();
     const existing = memoryBuckets.get(key);
     const resetAt = now + this.windowMs;
@@ -180,7 +181,7 @@ function getRatelimiter(scope: string, limit: number, windowMs: number): Ratelim
             reset: Date.now() + windowMs,
           }),
         })
-      : new MemoryRatelimiter(namespace, limit, windowMs);
+      : new MemoryRatelimiter(configSignature, namespace, limit, windowMs);
 
   ratelimiterCache.set(cacheKey, ratelimiter);
   return ratelimiter;

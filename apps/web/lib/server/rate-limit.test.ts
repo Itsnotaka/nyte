@@ -223,4 +223,55 @@ describe("rateLimitRequest", () => {
     expect(getRateLimitMode()).toBe("unkey");
     expect(getRateLimitProvider()).toBe("unkey");
   });
+
+  it("isolates fallback counters when mode toggles from auto to forced-unkey without key", async () => {
+    const request = new Request("http://localhost:3000/api/actions/approve", {
+      headers: {
+        "x-forwarded-for": "10.0.0.44",
+      },
+    });
+
+    const autoFirst = await rateLimitRequest(request, "approve", {
+      limit: 1,
+      windowMs: 60_000,
+    });
+    const autoSecond = await rateLimitRequest(request, "approve", {
+      limit: 1,
+      windowMs: 60_000,
+    });
+
+    process.env.NYTE_RATE_LIMIT_MODE = "unkey";
+    const forcedUnkeyWithoutKey = await rateLimitRequest(request, "approve", {
+      limit: 1,
+      windowMs: 60_000,
+    });
+
+    expect(autoFirst.isOk()).toBe(true);
+    expect(autoSecond.isErr()).toBe(true);
+    expect(forcedUnkeyWithoutKey.isOk()).toBe(true);
+  });
+
+  it("uses memory limiter when memory mode is forced with Unkey key present", async () => {
+    process.env.UNKEY_ROOT_KEY = "unkey-test-key";
+    process.env.NYTE_RATE_LIMIT_MODE = "memory";
+
+    const request = new Request("http://localhost:3000/api/actions/approve", {
+      headers: {
+        "x-forwarded-for": "10.0.0.55",
+      },
+    });
+
+    const first = await rateLimitRequest(request, "approve", {
+      limit: 1,
+      windowMs: 60_000,
+    });
+    const second = await rateLimitRequest(request, "approve", {
+      limit: 1,
+      windowMs: 60_000,
+    });
+
+    expect(first.isOk()).toBe(true);
+    expect(second.isErr()).toBe(true);
+    expect(getRateLimitProvider()).toBe("memory");
+  });
 });
