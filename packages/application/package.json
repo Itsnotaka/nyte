@@ -17,6 +17,7 @@
     "./runtime-secrets": "./src/runtime-secrets.ts",
     "./security-posture": "./src/security-posture.ts",
     "./token-crypto": "./src/token-crypto.ts",
+    "./trust-report": "./src/trust-report.ts",
     "./workflow-log": "./src/workflow-log.ts",
     "./workflow-retention": "./src/workflow-retention.ts"
   },

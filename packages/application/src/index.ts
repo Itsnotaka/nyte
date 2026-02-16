@@ -15,5 +15,6 @@ export * from "./policy-rules";
 export * from "./runtime-secrets";
 export * from "./security-posture";
 export * from "./token-crypto";
+export * from "./trust-report";
 export * from "./workflow-log";
 export * from "./workflow-retention";
