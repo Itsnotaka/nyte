@@ -133,6 +133,8 @@ describe("GET /api/admin/trust", () => {
       security: {
         rateLimitMode: "auto" | "memory" | "unkey";
         rateLimitProvider: "unkey" | "memory";
+        unkeyRateLimitConfigured: boolean;
+        unkeyRateLimitActive: boolean;
       };
       posture: {
         warnings: string[];
@@ -142,6 +144,8 @@ describe("GET /api/admin/trust", () => {
     expect(response.status).toBe(200);
     expect(body.security.rateLimitMode).toBe("unkey");
     expect(body.security.rateLimitProvider).toBe("memory");
+    expect(body.security.unkeyRateLimitConfigured).toBe(false);
+    expect(body.security.unkeyRateLimitActive).toBe(false);
     expect(body.posture.warnings).toContain(
       "NYTE_RATE_LIMIT_MODE is set to unkey but UNKEY_ROOT_KEY is not configured.",
     );
@@ -156,6 +160,8 @@ describe("GET /api/admin/trust", () => {
       security: {
         rateLimitMode: "auto" | "memory" | "unkey";
         rateLimitProvider: "unkey" | "memory";
+        unkeyRateLimitConfigured: boolean;
+        unkeyRateLimitActive: boolean;
       };
       posture: {
         warnings: string[];
@@ -165,6 +171,8 @@ describe("GET /api/admin/trust", () => {
     expect(response.status).toBe(200);
     expect(body.security.rateLimitMode).toBe("memory");
     expect(body.security.rateLimitProvider).toBe("memory");
+    expect(body.security.unkeyRateLimitConfigured).toBe(true);
+    expect(body.security.unkeyRateLimitActive).toBe(false);
     expect(body.posture.warnings).toContain(
       "NYTE_RATE_LIMIT_MODE is set to memory; using in-process rate limiter.",
     );
@@ -179,12 +187,16 @@ describe("GET /api/admin/trust", () => {
       security: {
         rateLimitMode: "auto" | "memory" | "unkey";
         rateLimitProvider: "unkey" | "memory";
+        unkeyRateLimitConfigured: boolean;
+        unkeyRateLimitActive: boolean;
       };
     };
 
     expect(forcedMemoryResponse.status).toBe(200);
     expect(forcedMemoryBody.security.rateLimitMode).toBe("memory");
     expect(forcedMemoryBody.security.rateLimitProvider).toBe("memory");
+    expect(forcedMemoryBody.security.unkeyRateLimitConfigured).toBe(true);
+    expect(forcedMemoryBody.security.unkeyRateLimitActive).toBe(false);
 
     delete process.env.UNKEY_ROOT_KEY;
     process.env.NYTE_RATE_LIMIT_MODE = "in-valid-mode";
@@ -193,11 +205,15 @@ describe("GET /api/admin/trust", () => {
       security: {
         rateLimitMode: "auto" | "memory" | "unkey";
         rateLimitProvider: "unkey" | "memory";
+        unkeyRateLimitConfigured: boolean;
+        unkeyRateLimitActive: boolean;
       };
     };
 
     expect(normalizedAutoResponse.status).toBe(200);
     expect(normalizedAutoBody.security.rateLimitMode).toBe("auto");
     expect(normalizedAutoBody.security.rateLimitProvider).toBe("memory");
+    expect(normalizedAutoBody.security.unkeyRateLimitConfigured).toBe(false);
+    expect(normalizedAutoBody.security.unkeyRateLimitActive).toBe(false);
   });
 });

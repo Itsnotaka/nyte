@@ -225,6 +225,7 @@ describe("rateLimitRequest", () => {
 
     expect(getRateLimitMode()).toBe("auto");
     expect(getRateLimitProvider()).toBe("memory");
+    expect(isUnkeyRateLimitActive()).toBe(false);
     expect(getRateLimitConfigSignature()).toBe("memory:auto");
   });
 
