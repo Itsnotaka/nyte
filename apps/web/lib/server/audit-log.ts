@@ -57,22 +57,33 @@ function toIso(value: unknown): string {
   return new Date().toISOString();
 }
 
-export async function listAuditLogs(limit = 100): Promise<AuditLogEntry[]> {
+export async function listAuditLogs(limit = 100, offset = 0): Promise<AuditLogEntry[]> {
   await ensureDbSchema();
 
-  const rows = await db.select().from(auditLogs).orderBy(desc(auditLogs.createdAt)).limit(limit);
+  const rows = await db
+    .select()
+    .from(auditLogs)
+    .orderBy(desc(auditLogs.createdAt))
+    .limit(limit)
+    .offset(offset);
 
   return rows.map(toAuditLogEntry);
 }
 
-export async function listAuditLogsByTarget(targetType: string, targetId: string, limit = 100) {
+export async function listAuditLogsByTarget(
+  targetType: string,
+  targetId: string,
+  limit = 100,
+  offset = 0,
+) {
   await ensureDbSchema();
   const rows = await db
     .select()
     .from(auditLogs)
     .where(and(eq(auditLogs.targetType, targetType), eq(auditLogs.targetId, targetId)))
     .orderBy(desc(auditLogs.createdAt))
-    .limit(limit);
+    .limit(limit)
+    .offset(offset);
 
   return rows.map(toAuditLogEntry);
 }

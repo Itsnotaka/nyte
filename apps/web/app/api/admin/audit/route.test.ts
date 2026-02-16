@@ -63,14 +63,56 @@ describe("GET /api/admin/audit", () => {
     const response = await GET(buildRequest("http://localhost/api/admin/audit?limit=2"));
     const body = (await response.json()) as {
       count: number;
+      limit: number;
+      offset: number;
       rows: Array<{ action: string; targetId: string }>;
     };
 
     expect(response.status).toBe(200);
     expect(body.count).toBe(2);
+    expect(body.limit).toBe(2);
+    expect(body.offset).toBe(0);
     expect(body.rows).toHaveLength(2);
     expect(body.rows[0]?.action).toBe("event.three");
     expect(body.rows[1]?.action).toBe("event.two");
+  });
+
+  it("supports pagination with offset", async () => {
+    await recordAuditLog({
+      action: "event.one",
+      targetType: "work_item",
+      targetId: "w_1",
+      payload: {},
+      now: new Date("2026-02-10T10:00:00.000Z"),
+    });
+    await recordAuditLog({
+      action: "event.two",
+      targetType: "work_item",
+      targetId: "w_2",
+      payload: {},
+      now: new Date("2026-02-10T10:01:00.000Z"),
+    });
+    await recordAuditLog({
+      action: "event.three",
+      targetType: "work_item",
+      targetId: "w_3",
+      payload: {},
+      now: new Date("2026-02-10T10:02:00.000Z"),
+    });
+
+    const response = await GET(buildRequest("http://localhost/api/admin/audit?limit=1&offset=1"));
+    const body = (await response.json()) as {
+      count: number;
+      limit: number;
+      offset: number;
+      rows: Array<{ action: string }>;
+    };
+
+    expect(response.status).toBe(200);
+    expect(body.count).toBe(1);
+    expect(body.limit).toBe(1);
+    expect(body.offset).toBe(1);
+    expect(body.rows[0]?.action).toBe("event.two");
   });
 
   it("filters rows by targetType and targetId", async () => {
@@ -94,11 +136,15 @@ describe("GET /api/admin/audit", () => {
     );
     const body = (await response.json()) as {
       count: number;
+      limit: number;
+      offset: number;
       rows: Array<{ action: string; targetId: string }>;
     };
 
     expect(response.status).toBe(200);
     expect(body.count).toBe(1);
+    expect(body.limit).toBe(10);
+    expect(body.offset).toBe(0);
     expect(body.rows[0]?.targetId).toBe("w_match");
   });
 

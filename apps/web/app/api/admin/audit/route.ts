@@ -35,14 +35,18 @@ export async function GET(request: Request) {
 
   const limit = Number(url.searchParams.get("limit") ?? "100");
   const safeLimit = Number.isFinite(limit) && limit > 0 ? Math.min(Math.floor(limit), 500) : 100;
+  const offset = Number(url.searchParams.get("offset") ?? "0");
+  const safeOffset = Number.isFinite(offset) && offset >= 0 ? Math.floor(offset) : 0;
 
   const rows =
     targetType && targetId
-      ? await listAuditLogsByTarget(targetType, targetId, safeLimit)
-      : await listAuditLogs(safeLimit);
+      ? await listAuditLogsByTarget(targetType, targetId, safeLimit, safeOffset)
+      : await listAuditLogs(safeLimit, safeOffset);
 
   return Response.json({
     count: rows.length,
+    limit: safeLimit,
+    offset: safeOffset,
     rows,
   });
 }
