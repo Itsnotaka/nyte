@@ -52,7 +52,7 @@ function buildRequest(
   return new Request(url, {
     method: "POST",
     headers,
-    body: body ? JSON.stringify(body) : undefined,
+    body: body === undefined ? undefined : JSON.stringify(body),
   });
 }
 
@@ -118,6 +118,86 @@ describe("google connection rotate route", () => {
     expect(lastResponse).not.toBeNull();
     expect(lastResponse?.status).toBe(429);
     expect(lastResponse?.headers.get("Retry-After")).toBeTruthy();
+  });
+
+  it("returns 400 for malformed json body", async () => {
+    const response = await POST(
+      new Request("http://localhost/api/connections/google/rotate", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-forwarded-for": "192.0.2.93",
+        },
+        body: "{bad-json",
+      }),
+    );
+    const body = (await response.json()) as { error: string };
+
+    expect(response.status).toBe(400);
+    expect(body.error).toContain("Invalid JSON body");
+  });
+
+  it("returns 415 for non-json content-type with non-empty body", async () => {
+    const response = await POST(
+      new Request("http://localhost/api/connections/google/rotate", {
+        method: "POST",
+        headers: {
+          "content-type": "text/plain",
+          "x-forwarded-for": "192.0.2.94",
+        },
+        body: "payload",
+      }),
+    );
+    const body = (await response.json()) as { error: string };
+
+    expect(response.status).toBe(415);
+    expect(body.error).toContain("application/json");
+  });
+
+  it("returns 400 when unexpected payload fields are provided", async () => {
+    const response = await POST(
+      buildRequest({
+        rotate: true,
+      }),
+    );
+    const body = (await response.json()) as { error: string };
+
+    expect(response.status).toBe(400);
+    expect(body.error).toContain("does not accept request payload fields");
+  });
+
+  it("accepts empty structured +json payload", async () => {
+    const response = await POST(
+      new Request("http://localhost/api/connections/google/rotate", {
+        method: "POST",
+        headers: {
+          "content-type": "application/merge-patch+json",
+          "x-forwarded-for": "192.0.2.95",
+        },
+        body: JSON.stringify({}),
+      }),
+    );
+    const body = (await response.json()) as { rotated: boolean };
+
+    expect(response.status).toBe(200);
+    expect(body.rotated).toBe(false);
+  });
+
+  it("accepts empty UTF-8 BOM prefixed json payload", async () => {
+    const response = await POST(
+      new Request("http://localhost/api/connections/google/rotate", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-forwarded-for": "192.0.2.96",
+        },
+        body: `\ufeff${JSON.stringify({})}`,
+      }),
+    );
+    const body = (await response.json()) as { rotated: boolean };
+
+    expect(response.status).toBe(200);
+    expect(body.rotated).toBe(false);
   });
 
   it("returns 500 when stored secret payload is invalid", async () => {
