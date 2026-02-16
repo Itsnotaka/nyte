@@ -8,7 +8,7 @@ This checklist documents current security controls and remaining hardening tasks
 - [x] OAuth provider config is only enabled when required credentials are present.
 - [x] Added token encryption helpers (`apps/web/lib/server/token-crypto.ts`) using AES-256-GCM with authenticated encryption.
 - [x] Added tests for token encryption round-trip and tamper detection.
-- [ ] Wire encrypted token storage into connected account persistence when OAuth token writes are enabled in runtime flows.
+- [x] Wire encrypted token storage into connected account persistence (`/api/connections/google` uses encrypted writes).
 
 ## Data minimization + PII handling
 

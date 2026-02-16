@@ -115,6 +115,15 @@ type PolicyRulesResponse = {
   watchKeywords: string[];
 };
 
+type GoogleConnectionResponse = {
+  connected: boolean;
+  provider: "google";
+  providerAccountId: string | null;
+  scopes: string[];
+  connectedAt: string | null;
+  updatedAt: string | null;
+};
+
 type WorkflowTimelineResponse = {
   itemId: string;
   timeline: Array<{
@@ -184,6 +193,10 @@ export function NyteShell() {
   const [savedDrafts, setSavedDrafts] = React.useState<DraftEntry[]>([]);
   const [activityFeed, setActivityFeed] = React.useState<ActivityEntry[]>([]);
   const [connectionError, setConnectionError] = React.useState<string | null>(null);
+  const [googleConnection, setGoogleConnection] = React.useState<GoogleConnectionResponse | null>(
+    null,
+  );
+  const [isConnectionLoading, setIsConnectionLoading] = React.useState(false);
   const [syncError, setSyncError] = React.useState<string | null>(null);
   const [actionError, setActionError] = React.useState<string | null>(null);
   const [isSyncing, setIsSyncing] = React.useState(false);
@@ -298,6 +311,26 @@ export function NyteShell() {
       setRulesError(error instanceof Error ? error.message : "Unable to load watch rules.");
     } finally {
       setIsRulesLoading(false);
+    }
+  }, []);
+
+  const refreshGoogleConnection = React.useCallback(async () => {
+    setConnectionError(null);
+    setIsConnectionLoading(true);
+    try {
+      const response = await fetch("/api/connections/google");
+      if (!response.ok) {
+        throw new Error("Unable to load Google connection.");
+      }
+
+      const payload = (await response.json()) as GoogleConnectionResponse;
+      setGoogleConnection(payload);
+    } catch (error) {
+      setConnectionError(
+        error instanceof Error ? error.message : "Unable to load Google connection.",
+      );
+    } finally {
+      setIsConnectionLoading(false);
     }
   }, []);
 
@@ -461,7 +494,37 @@ export function NyteShell() {
     void syncQueue();
     void refreshMetrics();
     void refreshWatchRules();
-  }, [refreshMetrics, refreshWatchRules, syncQueue]);
+    void refreshGoogleConnection();
+  }, [refreshGoogleConnection, refreshMetrics, refreshWatchRules, syncQueue]);
+
+  const persistGoogleConnection = React.useCallback(async () => {
+    const response = await fetch("/api/connections/google", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({}),
+    });
+    if (!response.ok) {
+      const errorBody = (await response.json().catch(() => null)) as { error?: string } | null;
+      throw new Error(errorBody?.error ?? "Unable to persist Google connection.");
+    }
+
+    const payload = (await response.json()) as GoogleConnectionResponse;
+    setGoogleConnection(payload);
+  }, []);
+
+  React.useEffect(() => {
+    if (!session || googleConnection?.connected) {
+      return;
+    }
+
+    void persistGoogleConnection().catch((error) => {
+      setConnectionError(
+        error instanceof Error ? error.message : "Unable to persist Google connection.",
+      );
+    });
+  }, [googleConnection?.connected, persistGoogleConnection, session]);
 
   const connectGoogle = React.useCallback(async () => {
     setConnectionError(null);
@@ -480,6 +543,16 @@ export function NyteShell() {
   const disconnectGoogle = React.useCallback(async () => {
     setConnectionError(null);
     try {
+      const response = await fetch("/api/connections/google", {
+        method: "DELETE",
+      });
+      if (!response.ok) {
+        const errorBody = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(errorBody?.error ?? "Unable to disconnect Google connection.");
+      }
+
+      const payload = (await response.json()) as GoogleConnectionResponse;
+      setGoogleConnection(payload);
       await authClient.signOut();
     } catch (error) {
       setConnectionError(
@@ -821,20 +894,45 @@ export function NyteShell() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <p className="text-muted-foreground text-sm">
-                    Google auth foundation is configured for Gmail (read + draft) and Calendar event
-                    creation.
+                    Google auth is configured for Gmail (read + draft) and Calendar event creation.
+                    Connection credentials are persisted server-side with encrypted token storage.
                   </p>
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge variant={session ? "secondary" : "outline"}>
-                      {session ? "Connected" : "Not connected"}
+                      {session ? "OAuth session active" : "OAuth session inactive"}
+                    </Badge>
+                    <Badge variant={googleConnection?.connected ? "secondary" : "outline"}>
+                      {googleConnection?.connected
+                        ? "Token vault connected"
+                        : "Token vault inactive"}
                     </Badge>
                     <Button
-                      disabled={isSessionPending}
+                      disabled={isSessionPending || isConnectionLoading}
                       onClick={session ? disconnectGoogle : connectGoogle}
                     >
                       {session ? "Disconnect Google" : "Connect Google"}
                     </Button>
+                    <Button
+                      variant="outline"
+                      disabled={isConnectionLoading}
+                      onClick={() => void refreshGoogleConnection()}
+                    >
+                      Refresh status
+                    </Button>
                   </div>
+                  {isConnectionLoading ? (
+                    <p className="text-muted-foreground text-xs">Refreshing connection status…</p>
+                  ) : null}
+                  {googleConnection?.connected ? (
+                    <div className="bg-muted/40 border-border rounded-lg border px-3 py-2 text-xs">
+                      <p className="font-medium">
+                        Connected account: {googleConnection.providerAccountId}
+                      </p>
+                      <p className="text-muted-foreground">
+                        Scopes: {googleConnection.scopes.join(", ")}
+                      </p>
+                    </div>
+                  ) : null}
                   {connectionError ? (
                     <p className="text-destructive text-xs">{connectionError}</p>
                   ) : null}
