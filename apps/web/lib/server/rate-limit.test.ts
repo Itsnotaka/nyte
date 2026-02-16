@@ -181,6 +181,32 @@ describe("rateLimitRequest", () => {
     expect(one).not.toBe(two);
   });
 
+  it("produces distinct signatures for auto and forced-unkey modes with same key", () => {
+    process.env.UNKEY_ROOT_KEY = "shared-unkey-key";
+    delete process.env.NYTE_RATE_LIMIT_MODE;
+    const autoSignature = getRateLimitConfigSignature();
+
+    process.env.NYTE_RATE_LIMIT_MODE = "unkey";
+    const forcedUnkeySignature = getRateLimitConfigSignature();
+
+    expect(autoSignature).toMatch(/^unkey:auto:[a-f0-9]{12}$/);
+    expect(forcedUnkeySignature).toMatch(/^unkey:unkey:[a-f0-9]{12}$/);
+    expect(autoSignature).not.toBe(forcedUnkeySignature);
+  });
+
+  it("produces distinct signatures for auto-memory and forced-memory modes", () => {
+    delete process.env.UNKEY_ROOT_KEY;
+    delete process.env.NYTE_RATE_LIMIT_MODE;
+    const autoSignature = getRateLimitConfigSignature();
+
+    process.env.NYTE_RATE_LIMIT_MODE = "memory";
+    const forcedMemorySignature = getRateLimitConfigSignature();
+
+    expect(autoSignature).toBe("memory:auto");
+    expect(forcedMemorySignature).toBe("memory:forced");
+    expect(autoSignature).not.toBe(forcedMemorySignature);
+  });
+
   it("allows explicit memory mode override", () => {
     process.env.UNKEY_ROOT_KEY = "unkey-test-key";
     process.env.NYTE_RATE_LIMIT_MODE = "memory";
