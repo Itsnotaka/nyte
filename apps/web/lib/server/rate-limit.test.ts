@@ -146,7 +146,7 @@ describe("rateLimitRequest", () => {
 
     expect(getRateLimitProvider()).toBe("memory");
     expect(isUnkeyRateLimitConfigured()).toBe(false);
-    expect(getRateLimitConfigSignature()).toBe("memory");
+    expect(getRateLimitConfigSignature()).toBe("memory:auto");
     expect(getRateLimitMode()).toBe("auto");
   });
 
@@ -155,7 +155,7 @@ describe("rateLimitRequest", () => {
 
     expect(getRateLimitProvider()).toBe("unkey");
     expect(isUnkeyRateLimitConfigured()).toBe(true);
-    expect(getRateLimitConfigSignature()).toMatch(/^unkey:[a-f0-9]{12}$/);
+    expect(getRateLimitConfigSignature()).toMatch(/^unkey:auto:[a-f0-9]{12}$/);
     expect(getRateLimitMode()).toBe("auto");
   });
 
@@ -164,7 +164,7 @@ describe("rateLimitRequest", () => {
 
     expect(getRateLimitProvider()).toBe("memory");
     expect(isUnkeyRateLimitConfigured()).toBe(false);
-    expect(getRateLimitConfigSignature()).toBe("memory");
+    expect(getRateLimitConfigSignature()).toBe("memory:auto");
   });
 
   it("produces distinct signatures when Unkey key changes", () => {
@@ -183,6 +183,7 @@ describe("rateLimitRequest", () => {
 
     expect(getRateLimitMode()).toBe("memory");
     expect(getRateLimitProvider()).toBe("memory");
+    expect(getRateLimitConfigSignature()).toBe("memory:forced");
   });
 
   it("allows explicit unkey mode override", () => {
@@ -191,6 +192,7 @@ describe("rateLimitRequest", () => {
 
     expect(getRateLimitMode()).toBe("unkey");
     expect(getRateLimitProvider()).toBe("unkey");
+    expect(getRateLimitConfigSignature()).toMatch(/^unkey:unkey:[a-f0-9]{12}$/);
   });
 
   it("falls back to memory when unkey mode is forced without key", () => {
@@ -199,6 +201,7 @@ describe("rateLimitRequest", () => {
 
     expect(getRateLimitMode()).toBe("unkey");
     expect(getRateLimitProvider()).toBe("memory");
+    expect(getRateLimitConfigSignature()).toBe("unkey:missing-key");
   });
 
   it("normalizes unknown mode values to auto", () => {

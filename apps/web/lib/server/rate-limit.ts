@@ -128,13 +128,18 @@ export function isUnkeyRateLimitConfigured() {
 }
 
 export function getRateLimitConfigSignature() {
+  const mode = getRateLimitMode();
   const rootKey = getConfiguredUnkeyRootKey();
+  if (mode === "memory") {
+    return "memory:forced";
+  }
+
   if (!rootKey) {
-    return "memory";
+    return mode === "unkey" ? "unkey:missing-key" : "memory:auto";
   }
 
   const fingerprint = createHash("sha256").update(rootKey).digest("hex").slice(0, 12);
-  return `unkey:${fingerprint}`;
+  return `unkey:${mode}:${fingerprint}`;
 }
 
 function getRatelimiter(scope: string, limit: number, windowMs: number): Ratelimiter {
