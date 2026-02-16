@@ -152,6 +152,33 @@ describe("POST /api/feedback", () => {
     expect(body.error).toContain("application/json");
   });
 
+  it("accepts structured +json content-type", async () => {
+    await persistSignals(mockIntakeSignals, new Date("2026-02-10T10:00:00.000Z"));
+    await approveWorkItem("w_renewal", new Date("2026-02-10T10:05:00.000Z"));
+
+    const response = await POST(
+      new Request("http://localhost/api/feedback", {
+        method: "POST",
+        headers: {
+          "content-type": "application/merge-patch+json",
+          "x-forwarded-for": "192.0.2.47",
+        },
+        body: JSON.stringify({
+          itemId: "w_renewal",
+          rating: "positive",
+        }),
+      }),
+    );
+    const body = (await response.json()) as {
+      itemId: string;
+      rating: "positive" | "negative";
+    };
+
+    expect(response.status).toBe(200);
+    expect(body.itemId).toBe("w_renewal");
+    expect(body.rating).toBe("positive");
+  });
+
   it("returns 409 for unprocessed item feedback attempt", async () => {
     await persistSignals(mockIntakeSignals, new Date("2026-02-10T10:00:00.000Z"));
 

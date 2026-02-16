@@ -149,6 +149,25 @@ describe("policy rules route", () => {
     expect(body.error).toContain("application/json");
   });
 
+  it("accepts structured +json content-type for create", async () => {
+    const response = await POST(
+      new Request("http://localhost/api/policy-rules", {
+        method: "POST",
+        headers: {
+          "content-type": "application/merge-patch+json",
+          "x-forwarded-for": "203.0.113.93",
+        },
+        body: JSON.stringify({
+          keyword: "structured-json-keyword",
+        }),
+      }),
+    );
+    const body = (await response.json()) as { keyword: string };
+
+    expect(response.status).toBe(200);
+    expect(body.keyword).toBe("structured-json-keyword");
+  });
+
   it("returns 400 for malformed json body on delete", async () => {
     const response = await DELETE(
       new Request("http://localhost/api/policy-rules", {
@@ -181,6 +200,31 @@ describe("policy rules route", () => {
 
     expect(response.status).toBe(415);
     expect(body.error).toContain("application/json");
+  });
+
+  it("accepts structured +json content-type on delete", async () => {
+    await POST(
+      buildRequest("http://localhost/api/policy-rules", "POST", {
+        keyword: "structured-delete",
+      }),
+    );
+
+    const response = await DELETE(
+      new Request("http://localhost/api/policy-rules", {
+        method: "DELETE",
+        headers: {
+          "content-type": "application/merge-patch+json",
+          "x-forwarded-for": "203.0.113.94",
+        },
+        body: JSON.stringify({
+          keyword: "structured-delete",
+        }),
+      }),
+    );
+    const body = (await response.json()) as { keyword: string };
+
+    expect(response.status).toBe(200);
+    expect(body.keyword).toBe("structured-delete");
   });
 
   it("returns 429 when mutate rate limit is exceeded", async () => {
