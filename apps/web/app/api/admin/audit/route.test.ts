@@ -181,6 +181,29 @@ describe("GET /api/admin/audit", () => {
     expect(lastResponse?.headers.get("Retry-After")).toBeTruthy();
   });
 
+  it("normalizes invalid pagination inputs", async () => {
+    await recordAuditLog({
+      action: "event.one",
+      targetType: "work_item",
+      targetId: "w_1",
+      payload: {},
+    });
+
+    const response = await GET(
+      buildRequest("http://localhost/api/admin/audit?limit=1000&offset=-10"),
+    );
+    const body = (await response.json()) as {
+      limit: number;
+      offset: number;
+      count: number;
+    };
+
+    expect(response.status).toBe(200);
+    expect(body.limit).toBe(500);
+    expect(body.offset).toBe(0);
+    expect(body.count).toBe(1);
+  });
+
   it("returns 401 when authz is enforced and no session is present", async () => {
     process.env.NYTE_REQUIRE_AUTH = "true";
     const response = await GET(buildRequest("http://localhost/api/admin/audit"));
