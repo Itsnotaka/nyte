@@ -1,1 +1,1 @@
-export * from "@workspace/application/metrics";
+export * from "@nyte/application/metrics";

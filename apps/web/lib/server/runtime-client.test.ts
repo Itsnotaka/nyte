@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import type { RuntimeCommand } from "@workspace/contracts";
+import type { RuntimeCommand } from "@nyte/contracts";
 
 import {
   dispatchRuntimeCommand,

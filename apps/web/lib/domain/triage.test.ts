@@ -5,7 +5,7 @@ import {
   evaluateNeedsYou,
   toWorkItem,
   type IntakeSignal,
-} from "@workspace/domain/triage";
+} from "@nyte/domain/triage";
 
 const BASE_SIGNAL: IntakeSignal = {
   id: "test",

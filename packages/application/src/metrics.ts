@@ -1,5 +1,5 @@
 import { and, eq } from "drizzle-orm";
-import { db, ensureDbSchema, feedbackEntries, gateEvaluations, workItems } from "@workspace/db";
+import { db, ensureDbSchema, feedbackEntries, gateEvaluations, workItems } from "@nyte/db";
 
 const GATES = ["decision", "time", "relationship", "impact", "watch"] as const;
 type GateKey = (typeof GATES)[number];

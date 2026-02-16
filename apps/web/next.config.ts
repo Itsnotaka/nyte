@@ -1,11 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   transpilePackages: [
-    "@workspace/application",
-    "@workspace/contracts",
-    "@workspace/domain",
-    "@workspace/integrations",
-    "@workspace/ui",
+    "@nyte/application",
+    "@nyte/contracts",
+    "@nyte/domain",
+    "@nyte/integrations",
+    "@nyte/ui",
   ],
 };
 

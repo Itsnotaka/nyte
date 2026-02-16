@@ -1,7 +1,7 @@
-import { createAuthorizationErrorResponse, requireAuthorizedSession } from "@/lib/server/authz";
-import { rateLimitRequest } from "@/lib/server/rate-limit";
-import { createRateLimitResponse } from "@/lib/server/rate-limit-response";
-import { getTrustReport } from "@/lib/server/trust-report";
+import { createAuthorizationErrorResponse, requireAuthorizedSession } from "~/lib/server/authz";
+import { rateLimitRequest } from "~/lib/server/rate-limit";
+import { createRateLimitResponse } from "~/lib/server/rate-limit-response";
+import { getTrustReport } from "~/lib/server/trust-report";
 import { ResultAsync } from "neverthrow";
 
 export async function GET(request: Request) {

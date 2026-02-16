@@ -3,11 +3,11 @@ import {
   listWatchKeywords,
   PolicyRuleError,
   removeWatchKeyword,
-} from "@/lib/server/policy-rules";
-import { createAuthorizationErrorResponse, requireAuthorizedSession } from "@/lib/server/authz";
-import { createJsonBodyErrorResponse, isJsonObject, readJsonBody } from "@/lib/server/json-body";
-import { rateLimitRequest } from "@/lib/server/rate-limit";
-import { createRateLimitResponse } from "@/lib/server/rate-limit-response";
+} from "~/lib/server/policy-rules";
+import { createAuthorizationErrorResponse, requireAuthorizedSession } from "~/lib/server/authz";
+import { createJsonBodyErrorResponse, isJsonObject, readJsonBody } from "~/lib/server/json-body";
+import { rateLimitRequest } from "~/lib/server/rate-limit";
+import { createRateLimitResponse } from "~/lib/server/rate-limit-response";
 import { ResultAsync } from "neverthrow";
 
 type PolicyRuleBody = {

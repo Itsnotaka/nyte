@@ -6,9 +6,9 @@ import {
   gmailDrafts,
   proposedActions,
   workItems,
-} from "@workspace/db";
-import { type ToolCallPayload } from "@workspace/domain/actions";
-import { executeProposedAction } from "@workspace/domain/execution";
+} from "@nyte/db";
+import { type ToolCallPayload } from "@nyte/domain/actions";
+import { executeProposedAction } from "@nyte/domain/execution";
 import { Result } from "neverthrow";
 
 import { recordAuditLog } from "./audit-log";

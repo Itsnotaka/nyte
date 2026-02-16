@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { ApprovalError } from "@workspace/application/approve-action";
-import type { RuntimeCommand } from "@workspace/contracts";
+import { ApprovalError } from "@nyte/application/approve-action";
+import type { RuntimeCommand } from "@nyte/contracts";
 
 import {
   createRuntimeCommandHandler,

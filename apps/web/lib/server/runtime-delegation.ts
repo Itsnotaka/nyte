@@ -3,7 +3,7 @@ import type {
   RuntimeCommandContext,
   RuntimeCommandType,
   RuntimeErrorResult,
-} from "@workspace/contracts";
+} from "@nyte/contracts";
 import { ResultAsync } from "neverthrow";
 import { recordAuditLog } from "./audit-log";
 

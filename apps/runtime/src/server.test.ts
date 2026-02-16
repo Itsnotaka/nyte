@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import type { RuntimeCommand, RuntimeCommandResult } from "@workspace/contracts";
+import type { RuntimeCommand, RuntimeCommandResult } from "@nyte/contracts";
 
 import { createRuntimeServerWithOptions } from "./server.js";
 

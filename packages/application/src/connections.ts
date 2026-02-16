@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
-import { connectedAccounts, db, ensureDbSchema, users } from "@workspace/db";
+import { connectedAccounts, db, ensureDbSchema, users } from "@nyte/db";
 
 import { recordAuditLog } from "./audit-log";
 import { decryptSecret, encryptSecret } from "./token-crypto";

@@ -1,1 +1,1 @@
-export * from "@workspace/application/workflow-log";
+export * from "@nyte/application/workflow-log";

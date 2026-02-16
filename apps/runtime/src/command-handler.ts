@@ -1,13 +1,9 @@
-import { ApprovalError, approveWorkItem } from "@workspace/application/approve-action";
-import { dismissWorkItem, DismissError } from "@workspace/application/dismiss-action";
-import { FeedbackError, recordFeedback } from "@workspace/application/feedback";
-import { persistSignals } from "@workspace/application/queue-store";
-import type {
-  RuntimeCommand,
-  RuntimeCommandResult,
-  RuntimeErrorResult,
-} from "@workspace/contracts";
-import { pollGmailIngestion } from "@workspace/integrations/gmail/polling";
+import { ApprovalError, approveWorkItem } from "@nyte/application/approve-action";
+import { dismissWorkItem, DismissError } from "@nyte/application/dismiss-action";
+import { FeedbackError, recordFeedback } from "@nyte/application/feedback";
+import { persistSignals } from "@nyte/application/queue-store";
+import type { RuntimeCommand, RuntimeCommandResult, RuntimeErrorResult } from "@nyte/contracts";
+import { pollGmailIngestion } from "@nyte/integrations/gmail/polling";
 import { Result, ResultAsync } from "neverthrow";
 
 export type RuntimeCommandHandlerDeps = {

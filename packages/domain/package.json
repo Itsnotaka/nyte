@@ -1,5 +1,5 @@
 {
-  "name": "@workspace/domain",
+  "name": "@nyte/domain",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -14,7 +14,7 @@
     "typecheck": "tsgo --noEmit -p tsconfig.json"
   },
   "devDependencies": {
-    "@workspace/typescript-config": "workspace:*",
+    "@nyte/tsconfig": "workspace:*",
     "typescript": "^5.9.3"
   }
 }

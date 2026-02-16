@@ -1,9 +1,9 @@
 {
-  "extends": "@workspace/typescript-config/react-library.json",
+  "extends": "@nyte/tsconfig/react-library.json",
   "compilerOptions": {
     "paths": {
-      "@/*": ["./@/*", "./src/*"],
-      "@workspace/ui/*": ["./src/*"]
+      "~/*": ["./~/*"],
+      "@nyte/ui/*": ["./src/*"]
     }
   },
   "include": ["."],

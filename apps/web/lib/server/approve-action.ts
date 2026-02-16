@@ -1,1 +1,1 @@
-export * from "@workspace/application/approve-action";
+export * from "@nyte/application/approve-action";

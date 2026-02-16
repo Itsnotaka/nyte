@@ -1,12 +1,12 @@
-import { createAuthorizationErrorResponse, requireAuthorizedSession } from "@/lib/server/authz";
-import { rotateGoogleConnectionSecrets } from "@/lib/server/connections";
+import { createAuthorizationErrorResponse, requireAuthorizedSession } from "~/lib/server/authz";
+import { rotateGoogleConnectionSecrets } from "~/lib/server/connections";
 import {
   createJsonBodyErrorResponse,
   isJsonObject,
   readOptionalJsonBody,
-} from "@/lib/server/json-body";
-import { rateLimitRequest } from "@/lib/server/rate-limit";
-import { createRateLimitResponse } from "@/lib/server/rate-limit-response";
+} from "~/lib/server/json-body";
+import { rateLimitRequest } from "~/lib/server/rate-limit";
+import { createRateLimitResponse } from "~/lib/server/rate-limit-response";
 import { ResultAsync } from "neverthrow";
 
 export async function POST(request: Request) {

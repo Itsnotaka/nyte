@@ -1,19 +1,12 @@
 import { eq } from "drizzle-orm";
-import {
-  db,
-  ensureDbSchema,
-  gateEvaluations,
-  proposedActions,
-  users,
-  workItems,
-} from "@workspace/db";
-import { createToolCallPayload } from "@workspace/domain/actions";
+import { db, ensureDbSchema, gateEvaluations, proposedActions, users, workItems } from "@nyte/db";
+import { createToolCallPayload } from "@nyte/domain/actions";
 import {
   evaluateNeedsYou,
   toWorkItem,
   type IntakeSignal,
   type WorkItem,
-} from "@workspace/domain/triage";
+} from "@nyte/domain/triage";
 
 import { recordAuditLog } from "./audit-log";
 import { recordWorkflowRun } from "./workflow-log";

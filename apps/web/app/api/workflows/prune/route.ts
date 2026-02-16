@@ -1,12 +1,12 @@
-import { createAuthorizationErrorResponse, requireAuthorizedSession } from "@/lib/server/authz";
+import { createAuthorizationErrorResponse, requireAuthorizedSession } from "~/lib/server/authz";
 import {
   createJsonBodyErrorResponse,
   isJsonObject,
   readOptionalJsonBody,
-} from "@/lib/server/json-body";
-import { rateLimitRequest } from "@/lib/server/rate-limit";
-import { createRateLimitResponse } from "@/lib/server/rate-limit-response";
-import { pruneWorkflowHistory } from "@/lib/server/workflow-retention";
+} from "~/lib/server/json-body";
+import { rateLimitRequest } from "~/lib/server/rate-limit";
+import { createRateLimitResponse } from "~/lib/server/rate-limit-response";
+import { pruneWorkflowHistory } from "~/lib/server/workflow-retention";
 import { ResultAsync } from "neverthrow";
 
 export async function POST(request: Request) {

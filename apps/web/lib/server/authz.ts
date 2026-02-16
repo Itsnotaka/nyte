@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth";
+import { auth } from "~/lib/auth";
 import { errAsync, okAsync, ResultAsync } from "neverthrow";
 
 export class AuthorizationError extends Error {

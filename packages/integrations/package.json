@@ -1,5 +1,5 @@
 {
-  "name": "@workspace/integrations",
+  "name": "@nyte/integrations",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -11,10 +11,10 @@
     "typecheck": "tsgo --noEmit -p tsconfig.json"
   },
   "dependencies": {
-    "@workspace/domain": "workspace:*"
+    "@nyte/domain": "workspace:*"
   },
   "devDependencies": {
-    "@workspace/typescript-config": "workspace:*",
+    "@nyte/tsconfig": "workspace:*",
     "typescript": "^5.9.3"
   }
 }

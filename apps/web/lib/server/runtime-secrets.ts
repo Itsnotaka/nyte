@@ -1,1 +1,1 @@
-export * from "@workspace/application/runtime-secrets";
+export * from "@nyte/application/runtime-secrets";

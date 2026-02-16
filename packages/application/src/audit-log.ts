@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { and, count, desc, eq } from "drizzle-orm";
-import { auditLogs, db, ensureDbSchema } from "@workspace/db";
+import { auditLogs, db, ensureDbSchema } from "@nyte/db";
 import { Result } from "neverthrow";
 
 type AuditExecutor = Pick<typeof db, "insert">;

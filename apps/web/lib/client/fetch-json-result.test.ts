@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { fetchJsonResult } from "@/lib/client/fetch-json-result";
+import { fetchJsonResult } from "~/lib/client/fetch-json-result";
 
 describe("fetchJsonResult", () => {
   it("returns parsed payload when request succeeds", async () => {

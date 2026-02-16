@@ -1,12 +1,12 @@
-import { createAuthorizationErrorResponse, requireAuthorizedSession } from "@/lib/server/authz";
+import { createAuthorizationErrorResponse, requireAuthorizedSession } from "~/lib/server/authz";
 import {
   countAuditLogs,
   countAuditLogsByTarget,
   listAuditLogs,
   listAuditLogsByTarget,
-} from "@/lib/server/audit-log";
-import { rateLimitRequest } from "@/lib/server/rate-limit";
-import { createRateLimitResponse } from "@/lib/server/rate-limit-response";
+} from "~/lib/server/audit-log";
+import { rateLimitRequest } from "~/lib/server/rate-limit";
+import { createRateLimitResponse } from "~/lib/server/rate-limit-response";
 import { ResultAsync } from "neverthrow";
 
 export async function GET(request: Request) {

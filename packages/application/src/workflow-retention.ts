@@ -7,7 +7,7 @@ import {
   users,
   workflowEvents,
   workflowRuns,
-} from "@workspace/db";
+} from "@nyte/db";
 
 import { recordAuditLog } from "./audit-log";
 

@@ -13,13 +13,13 @@
     "test:server": "vitest run --dir lib/server"
   },
   "dependencies": {
+    "@nyte/application": "workspace:^",
+    "@nyte/contracts": "workspace:^",
+    "@nyte/db": "workspace:^",
+    "@nyte/domain": "workspace:^",
+    "@nyte/integrations": "workspace:^",
+    "@nyte/ui": "workspace:*",
     "@unkey/ratelimit": "^2.1.4",
-    "@workspace/application": "workspace:^",
-    "@workspace/contracts": "workspace:^",
-    "@workspace/db": "workspace:^",
-    "@workspace/domain": "workspace:^",
-    "@workspace/integrations": "workspace:^",
-    "@workspace/ui": "workspace:*",
     "better-auth": "^1.4.18",
     "drizzle-orm": "^0.45.1",
     "lucide-react": "^0.563.0",
@@ -30,11 +30,11 @@
     "react-dom": "^19.2.4"
   },
   "devDependencies": {
+    "@nyte/tsconfig": "workspace:*",
     "@tailwindcss/postcss": "^4.1.18",
     "@types/node": "^25.1.0",
     "@types/react": "^19.2.10",
     "@types/react-dom": "^19.2.3",
-    "@workspace/typescript-config": "workspace:*",
     "typescript": "^5.9.3",
     "vitest": "^4.0.18"
   }

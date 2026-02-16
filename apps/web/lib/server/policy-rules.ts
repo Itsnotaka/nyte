@@ -1,1 +1,1 @@
-export * from "@workspace/application/policy-rules";
+export * from "@nyte/application/policy-rules";

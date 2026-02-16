@@ -6,9 +6,9 @@ import {
   type GmailCreateDraftToolCall,
   type ToolCallPayload,
   type WorkItemWithAction,
-} from "@workspace/domain/actions";
-import { mockIntakeSignals } from "@workspace/domain/mock-intake";
-import { createNeedsYouQueue, GATE_LABEL, type WorkItem } from "@workspace/domain/triage";
+} from "@nyte/domain/actions";
+import { mockIntakeSignals } from "@nyte/domain/mock-intake";
+import { createNeedsYouQueue, GATE_LABEL, type WorkItem } from "@nyte/domain/triage";
 import {
   BellDotIcon,
   CalendarCheck2Icon,
@@ -29,18 +29,18 @@ import {
 } from "lucide-react";
 import { ResultAsync } from "neverthrow";
 
-import { authClient } from "@/lib/auth-client";
-import { fetchJsonResult } from "@/lib/client/fetch-json-result";
-import { Badge } from "@workspace/ui/@/components/ui/badge";
-import { Button } from "@workspace/ui/@/components/ui/button";
+import { authClient } from "~/lib/auth-client";
+import { fetchJsonResult } from "~/lib/client/fetch-json-result";
+import { Badge } from "@nyte/ui/~/components/ui/badge";
+import { Button } from "@nyte/ui/~/components/ui/button";
 import {
   Card,
   CardContent,
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@workspace/ui/@/components/ui/card";
-import { Input } from "@workspace/ui/@/components/ui/input";
+} from "@nyte/ui/~/components/ui/card";
+import { Input } from "@nyte/ui/~/components/ui/input";
 import {
   Sheet,
   SheetContent,
@@ -48,7 +48,7 @@ import {
   SheetFooter,
   SheetHeader,
   SheetTitle,
-} from "@workspace/ui/@/components/ui/sheet";
+} from "@nyte/ui/~/components/ui/sheet";
 import {
   Sidebar,
   SidebarContent,
@@ -65,8 +65,8 @@ import {
   SidebarProvider,
   SidebarSeparator,
   SidebarTrigger,
-} from "@workspace/ui/@/components/ui/sidebar";
-import { Textarea } from "@workspace/ui/@/components/ui/textarea";
+} from "@nyte/ui/~/components/ui/sidebar";
+import { Textarea } from "@nyte/ui/~/components/ui/textarea";
 
 const REFERENCE_NOW = new Date("2026-01-20T12:00:00.000Z");
 

@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { asc, desc, eq } from "drizzle-orm";
-import { db, ensureDbSchema, workflowEvents, workflowRuns } from "@workspace/db";
+import { db, ensureDbSchema, workflowEvents, workflowRuns } from "@nyte/db";
 import { Result } from "neverthrow";
 
 type WorkflowLogEvent = {

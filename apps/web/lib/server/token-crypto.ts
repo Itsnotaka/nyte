@@ -1,1 +1,1 @@
-export * from "@workspace/application/token-crypto";
+export * from "@nyte/application/token-crypto";

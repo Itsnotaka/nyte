@@ -1,1 +1,1 @@
-export * from "@workspace/application/connections";
+export * from "@nyte/application/connections";

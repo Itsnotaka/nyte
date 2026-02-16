@@ -1,1 +1,1 @@
-export * from "@workspace/application/security-posture";
+export * from "@nyte/application/security-posture";

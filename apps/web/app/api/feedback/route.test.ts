@@ -15,12 +15,12 @@ import {
   workflowEvents,
   workflowRuns,
   workItems,
-} from "@workspace/db";
-import { mockIntakeSignals } from "@workspace/domain/mock-intake";
+} from "@nyte/db";
+import { mockIntakeSignals } from "@nyte/domain/mock-intake";
 
-import { approveWorkItem } from "@/lib/server/approve-action";
-import { resetRateLimitState } from "@/lib/server/rate-limit";
-import { persistSignals } from "@/lib/server/queue-store";
+import { approveWorkItem } from "~/lib/server/approve-action";
+import { resetRateLimitState } from "~/lib/server/rate-limit";
+import { persistSignals } from "~/lib/server/queue-store";
 
 import { POST } from "./route";
 

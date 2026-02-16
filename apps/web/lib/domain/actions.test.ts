@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { createToolCallPayload, withToolCalls } from "@workspace/domain/actions";
-import type { WorkItem } from "@workspace/domain/triage";
+import { createToolCallPayload, withToolCalls } from "@nyte/domain/actions";
+import type { WorkItem } from "@nyte/domain/triage";
 
 const BASE_ITEM: WorkItem = {
   id: "base",

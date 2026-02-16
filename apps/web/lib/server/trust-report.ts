@@ -1,7 +1,7 @@
 import {
   getTrustReport as getApplicationTrustReport,
   type TrustReport,
-} from "@workspace/application/trust-report";
+} from "@nyte/application/trust-report";
 import {
   getRateLimitMode,
   getRateLimitProvider,

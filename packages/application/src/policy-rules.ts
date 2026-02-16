@@ -1,5 +1,5 @@
 import { and, desc, eq } from "drizzle-orm";
-import { db, ensureDbSchema, policyRules, users } from "@workspace/db";
+import { db, ensureDbSchema, policyRules, users } from "@nyte/db";
 
 import { recordAuditLog } from "./audit-log";
 

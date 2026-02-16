@@ -5,7 +5,7 @@ import {
   type RuntimeCommand,
   type RuntimeCommandResult,
   type RuntimeCommandType,
-} from "@workspace/contracts";
+} from "@nyte/contracts";
 
 import { handleRuntimeCommand } from "./command-handler.js";
 

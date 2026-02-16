@@ -1,1 +1,1 @@
-export * from "@workspace/application/dismiss-action";
+export * from "@nyte/application/dismiss-action";

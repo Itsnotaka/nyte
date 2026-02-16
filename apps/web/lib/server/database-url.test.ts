@@ -3,7 +3,7 @@ import os from "node:os";
 
 import { describe, expect, it } from "vitest";
 
-import { resolveDatabaseUrl } from "@workspace/db/client";
+import { resolveDatabaseUrl } from "@nyte/db/client";
 
 describe("resolveDatabaseUrl", () => {
   it("defaults to temp sqlite file when DATABASE_URL is absent", () => {

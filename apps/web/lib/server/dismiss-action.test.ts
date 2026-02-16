@@ -14,8 +14,8 @@ import {
   workflowEvents,
   workflowRuns,
   workItems,
-} from "@workspace/db";
-import { mockIntakeSignals } from "@workspace/domain/mock-intake";
+} from "@nyte/db";
+import { mockIntakeSignals } from "@nyte/domain/mock-intake";
 
 import { dismissWorkItem } from "./dismiss-action";
 import { persistSignals } from "./queue-store";

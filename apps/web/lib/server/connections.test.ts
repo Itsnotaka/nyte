@@ -14,7 +14,7 @@ import {
   workflowEvents,
   workflowRuns,
   workItems,
-} from "@workspace/db";
+} from "@nyte/db";
 
 import { decryptSecret } from "./token-crypto";
 import {

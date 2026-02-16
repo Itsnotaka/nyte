@@ -15,9 +15,9 @@ import {
   workflowEvents,
   workflowRuns,
   workItems,
-} from "@workspace/db";
+} from "@nyte/db";
 
-import { resetWorkflowRetentionState } from "@/lib/server/workflow-retention";
+import { resetWorkflowRetentionState } from "~/lib/server/workflow-retention";
 
 import { GET } from "./route";
 

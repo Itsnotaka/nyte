@@ -1,1 +1,1 @@
-export * from "@workspace/application/queue-store";
+export * from "@nyte/application/queue-store";

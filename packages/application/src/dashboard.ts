@@ -8,9 +8,9 @@ import {
   gmailDrafts,
   proposedActions,
   workItems,
-} from "@workspace/db";
-import type { ToolCallPayload, WorkItemWithAction } from "@workspace/domain/actions";
-import type { WorkItem } from "@workspace/domain/triage";
+} from "@nyte/db";
+import type { ToolCallPayload, WorkItemWithAction } from "@nyte/domain/actions";
+import type { WorkItem } from "@nyte/domain/triage";
 import { Result } from "neverthrow";
 
 export type ProcessedEntry = {

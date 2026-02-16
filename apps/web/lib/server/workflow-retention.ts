@@ -1,1 +1,1 @@
-export * from "@workspace/application/workflow-retention";
+export * from "@nyte/application/workflow-retention";

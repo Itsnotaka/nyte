@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { auditLogs, db, ensureDbSchema } from "@workspace/db";
+import { auditLogs, db, ensureDbSchema } from "@nyte/db";
 
-import { recordAuditLog } from "@/lib/server/audit-log";
-import { resetRateLimitState } from "@/lib/server/rate-limit";
+import { recordAuditLog } from "~/lib/server/audit-log";
+import { resetRateLimitState } from "~/lib/server/rate-limit";
 
 import { GET } from "./route";
 

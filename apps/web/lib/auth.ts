@@ -1,7 +1,7 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
-import { db } from "@workspace/db";
+import { db } from "@nyte/db";
 import { getAuthSecret } from "./server/runtime-secrets";
 
 const gmailScopes = [

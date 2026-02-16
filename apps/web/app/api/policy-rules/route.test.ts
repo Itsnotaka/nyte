@@ -14,9 +14,9 @@ import {
   workflowEvents,
   workflowRuns,
   workItems,
-} from "@workspace/db";
+} from "@nyte/db";
 
-import { resetRateLimitState } from "@/lib/server/rate-limit";
+import { resetRateLimitState } from "~/lib/server/rate-limit";
 
 import { DELETE, GET, POST } from "./route";
 

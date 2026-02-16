@@ -2,7 +2,7 @@ import {
   isRuntimeCommandResult,
   type RuntimeCommand,
   type RuntimeCommandResult,
-} from "@workspace/contracts";
+} from "@nyte/contracts";
 import { errAsync, okAsync, ResultAsync } from "neverthrow";
 
 export class RuntimeClientConfigurationError extends Error {

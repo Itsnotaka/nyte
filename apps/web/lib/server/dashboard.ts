@@ -1,1 +1,1 @@
-export * from "@workspace/application/dashboard";
+export * from "@nyte/application/dashboard";
