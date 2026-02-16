@@ -26,6 +26,7 @@ This checklist documents current security controls and remaining hardening tasks
 - [x] Dismiss action path has idempotent duplicate protection.
 - [x] Duplicate side effects prevented for Gmail draft / Calendar event persistence through deterministic provider references and upsert behavior.
 - [x] Add explicit idempotency key propagation for future external provider calls (`/api/actions/approve` accepts and records idempotency keys).
+- [x] Mutable JSON APIs reject malformed request bodies with explicit 400 responses (instead of implicit 500s).
 
 ## Auditability + trust
 
@@ -39,3 +40,4 @@ This checklist documents current security controls and remaining hardening tasks
 - [ ] Rotate and manage encryption keys via secrets manager.
 - [x] Add request-level authz checks for action and sensitive data endpoints (enforced in production or with `NYTE_REQUIRE_AUTH=true`).
 - [x] Add baseline in-memory rate limiting on mutable APIs (`actions`, `feedback`, `policy-rules`, `connections`).
+- [x] Add baseline read-rate limits on high-frequency/sensitive read APIs (`sync/poll`, dashboard/metrics/workflow/admin/policy/connections reads).

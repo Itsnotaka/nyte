@@ -58,7 +58,9 @@ Nyte is implemented as a **design-first supervisor console**:
 
 - Session authorization enforcement for sensitive routes.
 - In-memory rate limiting on mutable operations.
+- In-memory rate limiting on high-frequency/sensitive read routes (sync + supervisor/admin reads).
 - Standardized 429 payload + `Retry-After` response header.
+- Malformed JSON payload hardening: mutable APIs now return explicit 400 for invalid bodies.
 - AES-256-GCM token encryption with key rotation compatibility.
 - Credential re-key endpoint for stored Google connection secrets.
 - Proxy-applied security headers:
