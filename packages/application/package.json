@@ -12,6 +12,7 @@
     "./dismiss-action": "./src/dismiss-action.ts",
     "./feedback": "./src/feedback.ts",
     "./metrics": "./src/metrics.ts",
+    "./policy-rules": "./src/policy-rules.ts",
     "./queue-store": "./src/queue-store.ts",
     "./token-crypto": "./src/token-crypto.ts",
     "./workflow-log": "./src/workflow-log.ts",

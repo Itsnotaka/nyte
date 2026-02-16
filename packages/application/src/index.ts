@@ -11,6 +11,7 @@ export * from "./connections";
 export * from "./dismiss-action";
 export * from "./feedback";
 export * from "./queue-store";
+export * from "./policy-rules";
 export * from "./token-crypto";
 export * from "./workflow-log";
 export * from "./workflow-retention";
