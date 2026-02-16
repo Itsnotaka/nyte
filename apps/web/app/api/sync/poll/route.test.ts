@@ -176,4 +176,45 @@ describe("GET /api/sync/poll", () => {
     expect(body.signals).toEqual([]);
     expect(Array.isArray(body.needsYou)).toBe(true);
   });
+
+  it("recovers from transient runtime outage during delegated sync", async () => {
+    process.env.NYTE_RUNTIME_DELEGATE_SYNC = "true";
+    process.env.NYTE_RUNTIME_URL = "https://runtime.nyte.dev";
+    let callCount = 0;
+    globalThis.fetch = async () => {
+      callCount += 1;
+      if (callCount === 1) {
+        return new Response(JSON.stringify({ error: "Runtime temporarily unavailable." }), {
+          status: 503,
+        });
+      }
+
+      return new Response(
+        JSON.stringify({
+          status: "accepted",
+          type: "runtime.ingest",
+          requestId: "req_123_retry",
+          receivedAt: "2026-02-16T12:00:01.000Z",
+          result: {
+            cursor: "2026-02-16T11:59:00.000Z",
+            queuedCount: 2,
+          },
+        }),
+        { status: 200 },
+      );
+    };
+
+    const response = await GET(buildRequest());
+    const body = (await response.json()) as {
+      cursor: string;
+      signals: Array<unknown>;
+      needsYou: Array<unknown>;
+    };
+
+    expect(response.status).toBe(200);
+    expect(body.cursor).toBe("2026-02-16T11:59:00.000Z");
+    expect(body.signals).toEqual([]);
+    expect(Array.isArray(body.needsYou)).toBe(true);
+    expect(callCount).toBe(2);
+  });
 });

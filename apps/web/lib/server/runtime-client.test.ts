@@ -243,6 +243,88 @@ describe("dispatchRuntimeCommand", () => {
     expect(result.error.message).toContain("timed out after 250ms");
   });
 
+  it("retries transient runtime 503 responses and returns accepted payload", async () => {
+    let callCount = 0;
+    const fetchImpl: typeof fetch = async () => {
+      callCount += 1;
+      if (callCount === 1) {
+        return new Response(JSON.stringify({ error: "Runtime temporarily unavailable." }), {
+          status: 503,
+        });
+      }
+
+      return new Response(
+        JSON.stringify({
+          status: "accepted",
+          type: "runtime.approve",
+          requestId: "req_retry_123",
+          receivedAt: "2026-02-16T12:00:01.000Z",
+          result: {
+            itemId: "w_123",
+            idempotent: false,
+          },
+        }),
+        { status: 200 },
+      );
+    };
+
+    const result = await dispatchRuntimeCommand(baseCommand, {
+      runtimeBaseUrl: "https://runtime.nyte.dev",
+      fetchImpl,
+    });
+
+    expect(result.isOk()).toBe(true);
+    expect(callCount).toBe(2);
+  });
+
+  it("retries retryable transport failures up to max attempts", async () => {
+    let callCount = 0;
+    const fetchImpl: typeof fetch = async () => {
+      callCount += 1;
+      throw new Error("socket hang up");
+    };
+
+    const result = await dispatchRuntimeCommand(baseCommand, {
+      runtimeBaseUrl: "https://runtime.nyte.dev",
+      maxAttempts: 3,
+      fetchImpl,
+    });
+
+    expect(result.isErr()).toBe(true);
+    if (result.isOk()) {
+      return;
+    }
+
+    expect(result.error).toBeInstanceOf(RuntimeCommandDispatchError);
+    expect(result.error.message).toContain("socket hang up");
+    expect(callCount).toBe(3);
+  });
+
+  it("does not retry non-retryable 400 responses", async () => {
+    let callCount = 0;
+    const fetchImpl: typeof fetch = async () => {
+      callCount += 1;
+      return new Response(JSON.stringify({ error: "Bad runtime command." }), {
+        status: 400,
+      });
+    };
+
+    const result = await dispatchRuntimeCommand(baseCommand, {
+      runtimeBaseUrl: "https://runtime.nyte.dev",
+      maxAttempts: 4,
+      fetchImpl,
+    });
+
+    expect(result.isErr()).toBe(true);
+    if (result.isOk()) {
+      return;
+    }
+
+    expect(result.error).toBeInstanceOf(RuntimeCommandDispatchError);
+    expect(result.error.message).toBe("Bad runtime command.");
+    expect(callCount).toBe(1);
+  });
+
   it("maps non-ok runtime responses into dispatch errors", async () => {
     const fetchImpl: typeof fetch = async () => {
       return new Response(JSON.stringify({ error: "Runtime unavailable." }), {
