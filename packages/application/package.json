@@ -14,6 +14,8 @@
     "./metrics": "./src/metrics.ts",
     "./policy-rules": "./src/policy-rules.ts",
     "./queue-store": "./src/queue-store.ts",
+    "./runtime-secrets": "./src/runtime-secrets.ts",
+    "./security-posture": "./src/security-posture.ts",
     "./token-crypto": "./src/token-crypto.ts",
     "./workflow-log": "./src/workflow-log.ts",
     "./workflow-retention": "./src/workflow-retention.ts"
