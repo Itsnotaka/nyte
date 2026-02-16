@@ -15,6 +15,7 @@ import {
   workflowRuns,
   workItems,
 } from "@workspace/db";
+import { mockIntakeSignals } from "@workspace/domain/mock-intake";
 
 import { approveWorkItem } from "./approve-action";
 import { upsertGoogleConnection } from "./connections";
@@ -22,7 +23,6 @@ import { addWatchKeyword } from "./policy-rules";
 import { persistSignals } from "./queue-store";
 import { getTrustReport } from "./trust-report";
 import { setWorkflowRetentionDays } from "./workflow-retention";
-import { mockIntakeSignals } from "../domain/mock-intake";
 
 const originalTokenKey = process.env.NYTE_TOKEN_ENCRYPTION_KEY;
 const originalAuthSecret = process.env.BETTER_AUTH_SECRET;

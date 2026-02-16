@@ -15,8 +15,8 @@ import {
   workflowRuns,
   workItems,
 } from "@workspace/db";
+import { mockIntakeSignals } from "@workspace/domain/mock-intake";
 
-import { mockIntakeSignals } from "../domain/mock-intake";
 import { approveWorkItem } from "./approve-action";
 import {
   countAuditLogs,

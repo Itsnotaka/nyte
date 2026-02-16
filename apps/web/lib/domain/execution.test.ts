@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { executeProposedAction } from "./execution";
+import { executeProposedAction } from "@workspace/domain/execution";
 
 describe("executeProposedAction", () => {
   it("routes gmail draft payloads to gmail_drafts destination", () => {

@@ -7,10 +7,9 @@ import {
   proposedActions,
   workItems,
 } from "@workspace/db";
+import { type ToolCallPayload } from "@workspace/domain/actions";
+import { executeProposedAction } from "@workspace/domain/execution";
 import { Result } from "neverthrow";
-
-import { type ToolCallPayload } from "../domain/actions";
-import { executeProposedAction } from "../domain/execution";
 import { recordAuditLog } from "./audit-log";
 import { recordWorkflowRun } from "./workflow-log";
 

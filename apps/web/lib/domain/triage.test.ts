@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { createNeedsYouQueue, evaluateNeedsYou, toWorkItem, type IntakeSignal } from "./triage";
+import {
+  createNeedsYouQueue,
+  evaluateNeedsYou,
+  toWorkItem,
+  type IntakeSignal,
+} from "@workspace/domain/triage";
 
 const BASE_SIGNAL: IntakeSignal = {
   id: "test",

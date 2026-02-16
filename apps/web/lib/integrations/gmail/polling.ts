@@ -1,4 +1,4 @@
-import type { IntakeIntent, IntakeSignal } from "@/lib/domain/triage";
+import type { IntakeIntent, IntakeSignal } from "@workspace/domain/triage";
 
 export type GmailThreadSnapshot = {
   id: string;

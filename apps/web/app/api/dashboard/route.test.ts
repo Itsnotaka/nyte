@@ -16,8 +16,8 @@ import {
   workflowRuns,
   workItems,
 } from "@workspace/db";
+import { mockIntakeSignals } from "@workspace/domain/mock-intake";
 
-import { mockIntakeSignals } from "@/lib/domain/mock-intake";
 import { approveWorkItem } from "@/lib/server/approve-action";
 import { persistSignals } from "@/lib/server/queue-store";
 import { resetRateLimitState } from "@/lib/server/rate-limit";

@@ -7,9 +7,13 @@ import {
   users,
   workItems,
 } from "@workspace/db";
-
-import { createToolCallPayload } from "../domain/actions";
-import { evaluateNeedsYou, toWorkItem, type IntakeSignal, type WorkItem } from "../domain/triage";
+import { createToolCallPayload } from "@workspace/domain/actions";
+import {
+  evaluateNeedsYou,
+  toWorkItem,
+  type IntakeSignal,
+  type WorkItem,
+} from "@workspace/domain/triage";
 import { recordAuditLog } from "./audit-log";
 import { recordWorkflowRun } from "./workflow-log";
 

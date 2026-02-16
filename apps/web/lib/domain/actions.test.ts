@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { createToolCallPayload, withToolCalls } from "./actions";
-import type { WorkItem } from "./triage";
+import { createToolCallPayload, withToolCalls } from "@workspace/domain/actions";
+import type { WorkItem } from "@workspace/domain/triage";
 
 const BASE_ITEM: WorkItem = {
   id: "base",

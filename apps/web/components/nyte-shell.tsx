@@ -2,6 +2,14 @@
 
 import * as React from "react";
 import {
+  withToolCalls,
+  type GmailCreateDraftToolCall,
+  type ToolCallPayload,
+  type WorkItemWithAction,
+} from "@workspace/domain/actions";
+import { mockIntakeSignals } from "@workspace/domain/mock-intake";
+import { createNeedsYouQueue, GATE_LABEL, type WorkItem } from "@workspace/domain/triage";
+import {
   BellDotIcon,
   CalendarCheck2Icon,
   CalendarClockIcon,
@@ -21,16 +29,8 @@ import {
 } from "lucide-react";
 import { ResultAsync } from "neverthrow";
 
-import {
-  withToolCalls,
-  type GmailCreateDraftToolCall,
-  type ToolCallPayload,
-  type WorkItemWithAction,
-} from "@/lib/domain/actions";
 import { authClient } from "@/lib/auth-client";
 import { fetchJsonResult } from "@/lib/client/fetch-json-result";
-import { mockIntakeSignals } from "@/lib/domain/mock-intake";
-import { createNeedsYouQueue, GATE_LABEL, type WorkItem } from "@/lib/domain/triage";
 import { Badge } from "@workspace/ui/@/components/ui/badge";
 import { Button } from "@workspace/ui/@/components/ui/button";
 import {

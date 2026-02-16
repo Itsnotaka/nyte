@@ -9,10 +9,9 @@ import {
   proposedActions,
   workItems,
 } from "@workspace/db";
+import type { ToolCallPayload, WorkItemWithAction } from "@workspace/domain/actions";
+import type { WorkItem } from "@workspace/domain/triage";
 import { Result } from "neverthrow";
-
-import type { ToolCallPayload, WorkItemWithAction } from "../domain/actions";
-import type { WorkItem } from "../domain/triage";
 
 export type ProcessedEntry = {
   id: string;
