@@ -153,8 +153,8 @@ type TrustReportResponse = {
   metrics: MetricsResponse;
   security: {
     authzEnforced: boolean;
-    betterAuthSecretConfigured: boolean;
-    betterAuthSecretSource: "env" | "dev-fallback";
+    authSecretConfigured: boolean;
+    authSecretSource: "env" | "dev-fallback";
     tokenEncryptionKeyConfigured: boolean;
     tokenEncryptionKeySource: "env" | "dev-fallback";
     hasPreviousTokenKey: boolean;
@@ -1389,8 +1389,8 @@ export function NyteShell() {
                           authz mode: {trustReport.security.authzEnforced ? "enforced" : "relaxed"}
                         </p>
                         <p>
-                          secret posture: auth ({trustReport.security.betterAuthSecretSource}) /
-                          token ({trustReport.security.tokenEncryptionKeySource})
+                          secret posture: auth ({trustReport.security.authSecretSource}) / token (
+                          {trustReport.security.tokenEncryptionKeySource})
                         </p>
                         <p>
                           previous token key available:{" "}

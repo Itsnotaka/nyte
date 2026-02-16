@@ -57,8 +57,9 @@ Nyte is implemented as a **design-first supervisor console**:
 ### Security and reliability hardening
 
 - Session authorization enforcement for sensitive routes.
-- In-memory rate limiting on mutable operations.
-- In-memory rate limiting on high-frequency/sensitive read routes (sync + supervisor/admin reads).
+- Package-backed rate limiting on mutable operations (`@unkey/ratelimit`).
+- Package-backed rate limiting on high-frequency/sensitive read routes (sync + supervisor/admin reads).
+- Deterministic in-process limiter fallback when `UNKEY_ROOT_KEY` is not set (local/test reliability).
 - Standardized 429 payload + `Retry-After` response header.
 - Malformed JSON payload hardening: mutable APIs now return explicit 400 for invalid bodies.
 - AES-256-GCM token encryption with key rotation compatibility.
@@ -107,3 +108,8 @@ Focused local test runs are also available:
 - No autonomous email sending.
 - Gmail + Google Calendar only.
 - Human-in-the-loop approvals for externally impactful actions.
+
+## Runtime environment notes
+
+- `UNKEY_ROOT_KEY` enables the Unkey-backed global rate limiter path.
+- Without `UNKEY_ROOT_KEY`, the app uses a deterministic in-process limiter fallback for local development and test runs.

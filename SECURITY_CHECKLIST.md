@@ -39,5 +39,6 @@ This checklist documents current security controls and remaining hardening tasks
 
 - [ ] Rotate and manage encryption keys via secrets manager.
 - [x] Add request-level authz checks for action and sensitive data endpoints (enforced in production or with `NYTE_REQUIRE_AUTH=true`).
-- [x] Add baseline in-memory rate limiting on mutable APIs (`actions`, `feedback`, `policy-rules`, `connections`).
-- [x] Add baseline read-rate limits on high-frequency/sensitive read APIs (`sync/poll`, dashboard/metrics/workflow/admin/policy/connections reads).
+- [x] Add package-backed rate limiting on mutable APIs via `@unkey/ratelimit` (`actions`, `feedback`, `policy-rules`, `connections`).
+- [x] Add package-backed read-rate limits on high-frequency/sensitive read APIs (`sync/poll`, dashboard/metrics/workflow/admin/policy/connections reads).
+- [x] Support deterministic in-process fallback limiter when `UNKEY_ROOT_KEY` is not configured (local/test resilience).
