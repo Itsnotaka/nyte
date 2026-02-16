@@ -8,6 +8,7 @@
     "./audit-log": "./src/audit-log.ts",
     "./dashboard": "./src/dashboard.ts",
     "./dismiss-action": "./src/dismiss-action.ts",
+    "./feedback": "./src/feedback.ts",
     "./metrics": "./src/metrics.ts",
     "./queue-store": "./src/queue-store.ts",
     "./workflow-log": "./src/workflow-log.ts"
