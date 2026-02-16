@@ -316,6 +316,52 @@ describe("POST /api/actions/dismiss", () => {
     expect(body.requestId).toBe("req_dismiss_123");
   });
 
+  it("recovers from transient runtime outage during delegated dismiss", async () => {
+    process.env.NYTE_RUNTIME_DELEGATE_DISMISS = "true";
+    process.env.NYTE_RUNTIME_URL = "https://runtime.nyte.dev";
+    let callCount = 0;
+    globalThis.fetch = async () => {
+      callCount += 1;
+      if (callCount === 1) {
+        return new Response(JSON.stringify({ error: "Runtime temporarily unavailable." }), {
+          status: 503,
+        });
+      }
+
+      return new Response(
+        JSON.stringify({
+          status: "accepted",
+          type: "runtime.dismiss",
+          requestId: "req_dismiss_retry_123",
+          receivedAt: "2026-02-16T12:00:01.000Z",
+          result: {
+            itemId: "w_board",
+          },
+        }),
+        { status: 200 },
+      );
+    };
+
+    const response = await POST(
+      buildRequest({
+        itemId: "w_board",
+      }),
+    );
+    const body = (await response.json()) as {
+      itemId: string;
+      status: string;
+      delegated: boolean;
+      requestId: string;
+    };
+
+    expect(response.status).toBe(200);
+    expect(body.itemId).toBe("w_board");
+    expect(body.status).toBe("dismissed");
+    expect(body.delegated).toBe(true);
+    expect(body.requestId).toBe("req_dismiss_retry_123");
+    expect(callCount).toBe(2);
+  });
+
   it("returns 404 for unknown item", async () => {
     const response = await POST(
       buildRequest({
