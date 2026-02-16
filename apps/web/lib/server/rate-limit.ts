@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { Ratelimit, type Ratelimiter, type RatelimitResponse } from "@unkey/ratelimit";
 import { errAsync, okAsync, ResultAsync } from "neverthrow";
 
@@ -10,6 +11,7 @@ type Bucket = {
 
 const memoryBuckets = new Map<string, Bucket>();
 const ratelimiterCache = new Map<string, Ratelimiter>();
+let ratelimiterConfigSignature: string | null = null;
 
 export class RateLimitError extends Error {
   retryAfterSeconds?: number;
@@ -106,9 +108,25 @@ export function isUnkeyRateLimitConfigured() {
   return Boolean(getConfiguredUnkeyRootKey());
 }
 
+export function getRateLimitConfigSignature() {
+  const rootKey = getConfiguredUnkeyRootKey();
+  if (!rootKey) {
+    return "memory";
+  }
+
+  const fingerprint = createHash("sha256").update(rootKey).digest("hex").slice(0, 12);
+  return `unkey:${fingerprint}`;
+}
+
 function getRatelimiter(scope: string, limit: number, windowMs: number): Ratelimiter {
   const provider = getRateLimitProvider();
-  const cacheKey = `${provider}:${scope}:${limit}:${windowMs}`;
+  const configSignature = getRateLimitConfigSignature();
+  if (ratelimiterConfigSignature !== configSignature) {
+    ratelimiterCache.clear();
+    ratelimiterConfigSignature = configSignature;
+  }
+
+  const cacheKey = `${configSignature}:${provider}:${scope}:${limit}:${windowMs}`;
   const existing = ratelimiterCache.get(cacheKey);
   if (existing) {
     return existing;
@@ -169,4 +187,5 @@ export function rateLimitRequest(
 export function resetRateLimitState() {
   memoryBuckets.clear();
   ratelimiterCache.clear();
+  ratelimiterConfigSignature = null;
 }

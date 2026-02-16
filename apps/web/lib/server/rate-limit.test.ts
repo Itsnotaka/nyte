@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  getRateLimitConfigSignature,
   getRateLimitProvider,
   isUnkeyRateLimitConfigured,
   rateLimitRequest,
@@ -118,6 +119,7 @@ describe("rateLimitRequest", () => {
 
     expect(getRateLimitProvider()).toBe("memory");
     expect(isUnkeyRateLimitConfigured()).toBe(false);
+    expect(getRateLimitConfigSignature()).toBe("memory");
   });
 
   it("reports Unkey provider when root key is configured", () => {
@@ -125,6 +127,7 @@ describe("rateLimitRequest", () => {
 
     expect(getRateLimitProvider()).toBe("unkey");
     expect(isUnkeyRateLimitConfigured()).toBe(true);
+    expect(getRateLimitConfigSignature()).toMatch(/^unkey:[a-f0-9]{12}$/);
   });
 
   it("treats whitespace-only root key as not configured", () => {
@@ -132,5 +135,16 @@ describe("rateLimitRequest", () => {
 
     expect(getRateLimitProvider()).toBe("memory");
     expect(isUnkeyRateLimitConfigured()).toBe(false);
+    expect(getRateLimitConfigSignature()).toBe("memory");
+  });
+
+  it("produces distinct signatures when Unkey key changes", () => {
+    process.env.UNKEY_ROOT_KEY = "unkey-key-one";
+    const one = getRateLimitConfigSignature();
+
+    process.env.UNKEY_ROOT_KEY = "unkey-key-two";
+    const two = getRateLimitConfigSignature();
+
+    expect(one).not.toBe(two);
   });
 });
