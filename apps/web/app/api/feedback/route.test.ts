@@ -105,6 +105,21 @@ describe("POST /api/feedback", () => {
     expect(body.error).toContain("rating must be positive or negative");
   });
 
+  it("returns 409 for unprocessed item feedback attempt", async () => {
+    await persistSignals(mockIntakeSignals, new Date("2026-02-10T10:00:00.000Z"));
+
+    const response = await POST(
+      buildRequest({
+        itemId: "w_board",
+        rating: "positive",
+      }),
+    );
+    const body = (await response.json()) as { error: string };
+
+    expect(response.status).toBe(409);
+    expect(body.error).toContain("processed items");
+  });
+
   it("returns 404 for unknown item", async () => {
     const response = await POST(
       buildRequest({

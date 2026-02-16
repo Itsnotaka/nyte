@@ -96,6 +96,29 @@ describe("POST /api/actions/dismiss", () => {
     expect(body.error).toContain("itemId is required");
   });
 
+  it("returns idempotent true on repeated dismiss", async () => {
+    await persistSignals(mockIntakeSignals, new Date("2026-02-10T10:00:00.000Z"));
+
+    await POST(
+      buildRequest({
+        itemId: "w_board",
+      }),
+    );
+    const secondResponse = await POST(
+      buildRequest({
+        itemId: "w_board",
+      }),
+    );
+    const secondBody = (await secondResponse.json()) as {
+      status: string;
+      idempotent: boolean;
+    };
+
+    expect(secondResponse.status).toBe(200);
+    expect(secondBody.status).toBe("dismissed");
+    expect(secondBody.idempotent).toBe(true);
+  });
+
   it("returns 404 for unknown item", async () => {
     const response = await POST(
       buildRequest({
