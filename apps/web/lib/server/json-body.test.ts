@@ -44,6 +44,18 @@ describe("readOptionalJsonBody", () => {
     expect(body.value).toBe("fallback");
   });
 
+  it("returns fallback when body is whitespace-only", async () => {
+    const request = new Request("http://localhost/test", {
+      method: "POST",
+      body: "   \n\t",
+    });
+
+    const body = await readOptionalJsonBody<{ value: string }>(request, {
+      value: "fallback",
+    });
+    expect(body.value).toBe("fallback");
+  });
+
   it("parses valid payload when body is present", async () => {
     const request = new Request("http://localhost/test", {
       method: "POST",
