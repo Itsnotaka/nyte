@@ -34,4 +34,4 @@ This checklist documents current security controls and remaining hardening tasks
 
 - [ ] Rotate and manage encryption keys via secrets manager.
 - [ ] Add request-level authz checks for all action endpoints once multi-user session gating is enabled.
-- [ ] Add rate limiting and abuse protections on mutable APIs.
+- [x] Add baseline in-memory rate limiting on mutable APIs (`actions`, `feedback`, `policy-rules`, `connections`).

@@ -3,6 +3,7 @@ import {
   getGoogleConnectionStatus,
   upsertGoogleConnection,
 } from "@/lib/server/connections";
+import { enforceRateLimit, RateLimitError } from "@/lib/server/rate-limit";
 
 type ConnectBody = {
   providerAccountId?: string;
@@ -17,6 +18,23 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  try {
+    enforceRateLimit(request, "connections:google:mutate", {
+      limit: 20,
+      windowMs: 60_000,
+    });
+  } catch (error) {
+    if (error instanceof RateLimitError) {
+      return Response.json(
+        {
+          error: error.message,
+          retryAfterSeconds: error.retryAfterSeconds,
+        },
+        { status: 429 },
+      );
+    }
+  }
+
   const body = (await request.json().catch(() => ({}))) as ConnectBody;
   const status = await upsertGoogleConnection(
     {
@@ -31,7 +49,24 @@ export async function POST(request: Request) {
   return Response.json(status);
 }
 
-export async function DELETE() {
+export async function DELETE(request: Request) {
+  try {
+    enforceRateLimit(request, "connections:google:mutate", {
+      limit: 20,
+      windowMs: 60_000,
+    });
+  } catch (error) {
+    if (error instanceof RateLimitError) {
+      return Response.json(
+        {
+          error: error.message,
+          retryAfterSeconds: error.retryAfterSeconds,
+        },
+        { status: 429 },
+      );
+    }
+  }
+
   const status = await disconnectGoogleConnection();
   return Response.json(status);
 }
