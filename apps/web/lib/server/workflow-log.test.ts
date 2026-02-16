@@ -19,7 +19,7 @@ import {
 import { mockIntakeSignals } from "../domain/mock-intake";
 import { approveWorkItem } from "./approve-action";
 import { persistSignals } from "./queue-store";
-import { getWorkflowTimeline } from "./workflow-log";
+import { getWorkflowTimeline, recordWorkflowRun } from "./workflow-log";
 
 async function resetDb() {
   await ensureDbSchema();
@@ -52,5 +52,34 @@ describe("getWorkflowTimeline", () => {
     expect(timeline.map((entry) => entry.phase)).toEqual(
       expect.arrayContaining(["ingest", "approve"]),
     );
+  });
+
+  it("creates unique run ids for same work item and timestamp", async () => {
+    await persistSignals(mockIntakeSignals, new Date("2026-01-20T12:00:00.000Z"));
+    const now = new Date("2026-01-20T12:00:01.000Z");
+
+    const firstRunId = await recordWorkflowRun({
+      workItemId: "w_renewal",
+      phase: "feedback",
+      status: "completed",
+      events: [],
+      now,
+    });
+    const secondRunId = await recordWorkflowRun({
+      workItemId: "w_renewal",
+      phase: "feedback",
+      status: "completed",
+      events: [],
+      now,
+    });
+
+    expect(firstRunId).not.toBe(secondRunId);
+
+    const timeline = await getWorkflowTimeline("w_renewal");
+    const matchingRunIds = timeline
+      .filter((entry) => entry.phase === "feedback")
+      .map((entry) => entry.runId);
+    expect(matchingRunIds).toContain(firstRunId);
+    expect(matchingRunIds).toContain(secondRunId);
   });
 });

@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { asc, desc, eq } from "drizzle-orm";
 import { db, ensureDbSchema, workflowEvents, workflowRuns } from "@workspace/db";
 
@@ -23,7 +24,7 @@ export async function recordWorkflowRun({
   now = new Date(),
   executor = db,
 }: RecordRunInput) {
-  const runId = `${workItemId}:${phase}:${now.getTime()}`;
+  const runId = `${workItemId}:${phase}:${now.getTime()}:${randomUUID()}`;
   await executor.insert(workflowRuns).values({
     id: runId,
     workItemId,
