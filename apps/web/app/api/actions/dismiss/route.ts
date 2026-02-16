@@ -45,12 +45,13 @@ export async function POST(request: Request) {
     }
     throw error;
   }
-  if (!body.itemId) {
+  const itemId = body.itemId?.trim();
+  if (!itemId) {
     return Response.json({ error: "itemId is required." }, { status: 400 });
   }
 
   try {
-    const result = await dismissWorkItem(body.itemId, new Date());
+    const result = await dismissWorkItem(itemId, new Date());
     return Response.json(result);
   } catch (error) {
     if (error instanceof DismissError) {

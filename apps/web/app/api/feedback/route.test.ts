@@ -105,6 +105,19 @@ describe("POST /api/feedback", () => {
     expect(body.error).toContain("rating must be positive or negative");
   });
 
+  it("returns 400 when itemId is whitespace-only", async () => {
+    const response = await POST(
+      buildRequest({
+        itemId: "   ",
+        rating: "positive",
+      }),
+    );
+    const body = (await response.json()) as { error: string };
+
+    expect(response.status).toBe(400);
+    expect(body.error).toContain("itemId is required");
+  });
+
   it("returns 400 for malformed json body", async () => {
     const response = await POST(
       new Request("http://localhost/api/feedback", {

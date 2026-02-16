@@ -49,7 +49,8 @@ export async function POST(request: Request) {
     }
     throw error;
   }
-  if (!body.itemId) {
+  const itemId = body.itemId?.trim();
+  if (!itemId) {
     return Response.json({ error: "itemId is required." }, { status: 400 });
   }
   if (!body.rating || !allowedRatings.includes(body.rating)) {
@@ -57,7 +58,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const result = await recordFeedback(body.itemId, body.rating, body.note, new Date());
+    const result = await recordFeedback(itemId, body.rating, body.note, new Date());
     return Response.json(result);
   } catch (error) {
     if (error instanceof FeedbackError) {

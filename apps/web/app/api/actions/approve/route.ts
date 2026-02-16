@@ -46,13 +46,14 @@ export async function POST(request: Request) {
     }
     throw error;
   }
-  if (!body.itemId) {
+  const itemId = body.itemId?.trim();
+  if (!itemId) {
     return Response.json({ error: "itemId is required." }, { status: 400 });
   }
   const idempotencyKey = request.headers.get("x-idempotency-key") ?? body.idempotencyKey;
 
   try {
-    const result = await approveWorkItem(body.itemId, new Date(), idempotencyKey ?? undefined);
+    const result = await approveWorkItem(itemId, new Date(), idempotencyKey ?? undefined);
     return Response.json(result);
   } catch (error) {
     if (error instanceof ApprovalError) {
