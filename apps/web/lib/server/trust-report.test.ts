@@ -201,4 +201,19 @@ describe("getTrustReport", () => {
     expect(unkeyModeReport.security.rateLimitMode).toBe("unkey");
     expect(unkeyModeReport.security.rateLimitProvider).toBe("unkey");
   });
+
+  it("normalizes invalid mode values to auto in trust telemetry", async () => {
+    process.env.UNKEY_ROOT_KEY = "trust-report-unkey-root-key";
+    process.env.NYTE_RATE_LIMIT_MODE = "invalid-mode";
+    const reportWithKey = await getTrustReport(new Date("2026-01-20T12:10:00.000Z"));
+
+    expect(reportWithKey.security.rateLimitMode).toBe("auto");
+    expect(reportWithKey.security.rateLimitProvider).toBe("unkey");
+
+    delete process.env.UNKEY_ROOT_KEY;
+    const reportWithoutKey = await getTrustReport(new Date("2026-01-20T12:10:00.000Z"));
+
+    expect(reportWithoutKey.security.rateLimitMode).toBe("auto");
+    expect(reportWithoutKey.security.rateLimitProvider).toBe("memory");
+  });
 });

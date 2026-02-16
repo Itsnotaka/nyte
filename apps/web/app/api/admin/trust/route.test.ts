@@ -167,4 +167,35 @@ describe("GET /api/admin/trust", () => {
       "NYTE_RATE_LIMIT_MODE is set to memory; using in-process rate limiter.",
     );
   });
+
+  it("normalizes mode values from environment before trust payload rendering", async () => {
+    process.env.UNKEY_ROOT_KEY = "trust-route-unkey-key";
+    process.env.NYTE_RATE_LIMIT_MODE = " MeMoRy ";
+
+    const forcedMemoryResponse = await GET(buildRequest("http://localhost/api/admin/trust"));
+    const forcedMemoryBody = (await forcedMemoryResponse.json()) as {
+      security: {
+        rateLimitMode: "auto" | "memory" | "unkey";
+        rateLimitProvider: "unkey" | "memory";
+      };
+    };
+
+    expect(forcedMemoryResponse.status).toBe(200);
+    expect(forcedMemoryBody.security.rateLimitMode).toBe("memory");
+    expect(forcedMemoryBody.security.rateLimitProvider).toBe("memory");
+
+    delete process.env.UNKEY_ROOT_KEY;
+    process.env.NYTE_RATE_LIMIT_MODE = "in-valid-mode";
+    const normalizedAutoResponse = await GET(buildRequest("http://localhost/api/admin/trust"));
+    const normalizedAutoBody = (await normalizedAutoResponse.json()) as {
+      security: {
+        rateLimitMode: "auto" | "memory" | "unkey";
+        rateLimitProvider: "unkey" | "memory";
+      };
+    };
+
+    expect(normalizedAutoResponse.status).toBe(200);
+    expect(normalizedAutoBody.security.rateLimitMode).toBe("auto");
+    expect(normalizedAutoBody.security.rateLimitProvider).toBe("memory");
+  });
 });

@@ -212,6 +212,15 @@ describe("rateLimitRequest", () => {
     expect(getRateLimitProvider()).toBe("unkey");
   });
 
+  it("normalizes unknown mode values to auto without Unkey key", () => {
+    delete process.env.UNKEY_ROOT_KEY;
+    process.env.NYTE_RATE_LIMIT_MODE = "invalid-mode";
+
+    expect(getRateLimitMode()).toBe("auto");
+    expect(getRateLimitProvider()).toBe("memory");
+    expect(getRateLimitConfigSignature()).toBe("memory:auto");
+  });
+
   it("normalizes whitespace and casing in mode values", () => {
     process.env.UNKEY_ROOT_KEY = "unkey-test-key";
     process.env.NYTE_RATE_LIMIT_MODE = "  MEMORY  ";
