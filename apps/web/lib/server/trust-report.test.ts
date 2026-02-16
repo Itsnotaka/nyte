@@ -93,5 +93,7 @@ describe("getTrustReport", () => {
     expect(report.security.betterAuthSecretSource).toBe("env");
     expect(report.security.tokenEncryptionKeyConfigured).toBe(true);
     expect(report.security.tokenEncryptionKeySource).toBe("env");
+    expect(report.posture.status).toBe("ok");
+    expect(report.posture.warnings).toHaveLength(0);
   });
 });

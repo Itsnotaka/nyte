@@ -158,6 +158,10 @@ type TrustReportResponse = {
     tokenEncryptionKeySource: "env" | "dev-fallback";
     hasPreviousTokenKey: boolean;
   };
+  posture: {
+    status: "ok" | "warning";
+    warnings: string[];
+  };
 };
 
 type WorkflowTimelineResponse = {
@@ -1294,6 +1298,13 @@ export function NyteShell() {
                           generated {new Date(trustReport.generatedAt).toLocaleTimeString()}
                         </Badge>
                       ) : null}
+                      {trustReport ? (
+                        <Badge
+                          variant={trustReport.posture.status === "ok" ? "secondary" : "outline"}
+                        >
+                          posture: {trustReport.posture.status}
+                        </Badge>
+                      ) : null}
                     </div>
                     {isTrustReportLoading ? (
                       <p className="text-muted-foreground text-xs">Loading trust report…</p>
@@ -1302,7 +1313,7 @@ export function NyteShell() {
                       <p className="text-destructive text-xs">{trustReportError}</p>
                     ) : null}
                     {trustReport ? (
-                      <div className="bg-muted/40 border-border space-y-1 rounded-lg border px-3 py-2 text-xs">
+                      <div className="bg-muted/40 border-border space-y-2 rounded-lg border px-3 py-2 text-xs">
                         <p>watch rules: {trustReport.watchRuleCount}</p>
                         <p>
                           retention: {trustReport.retention.days} day(s) (
@@ -1323,6 +1334,16 @@ export function NyteShell() {
                           previous token key available:{" "}
                           {trustReport.security.hasPreviousTokenKey ? "yes" : "no"}
                         </p>
+                        {trustReport.posture.warnings.length > 0 ? (
+                          <div className="space-y-1">
+                            <p className="font-medium">warnings</p>
+                            <ul className="list-disc space-y-1 pl-4">
+                              {trustReport.posture.warnings.map((warning) => (
+                                <li key={warning}>{warning}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        ) : null}
                       </div>
                     ) : null}
                   </CardContent>

@@ -4,6 +4,7 @@ import { listWatchKeywords } from "./policy-rules";
 import { getWorkflowRetentionDays } from "./workflow-retention";
 import { shouldEnforceAuthz } from "./authz";
 import { getBetterAuthSecret, getTokenEncryptionKeySource } from "./runtime-secrets";
+import { evaluateSecurityPosture, type SecurityPosture } from "./security-posture";
 
 export type TrustReport = {
   generatedAt: string;
@@ -20,6 +21,7 @@ export type TrustReport = {
     tokenEncryptionKeySource: "env" | "dev-fallback";
     hasPreviousTokenKey: boolean;
   };
+  posture: SecurityPosture;
 };
 
 export async function getTrustReport(now = new Date()): Promise<TrustReport> {
@@ -32,7 +34,7 @@ export async function getTrustReport(now = new Date()): Promise<TrustReport> {
     getGoogleConnectionStatus(),
   ]);
 
-  return {
+  const report = {
     generatedAt: now.toISOString(),
     metrics,
     retention,
@@ -47,5 +49,10 @@ export async function getTrustReport(now = new Date()): Promise<TrustReport> {
       tokenEncryptionKeySource,
       hasPreviousTokenKey: Boolean(process.env.NYTE_TOKEN_ENCRYPTION_KEY_PREVIOUS),
     },
+  };
+
+  return {
+    ...report,
+    posture: evaluateSecurityPosture(report),
   };
 }
