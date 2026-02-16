@@ -1,20 +1,33 @@
 import os from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 import { createClient } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
 
 import * as schema from "./schema";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 const defaultDbPath = path.join(os.tmpdir(), "nyte-dev.sqlite");
 
-const resolvedDbPath = process.env.DATABASE_URL
-  ? path.resolve(process.env.DATABASE_URL)
-  : defaultDbPath;
-const dbUrl = resolvedDbPath.startsWith("file:") ? resolvedDbPath : `file:${resolvedDbPath}`;
+const URL_SCHEME_PATTERN = /^[a-z][a-z\d+.-]*:/i;
+
+export function resolveDatabaseUrl(rawDatabaseUrl = process.env.DATABASE_URL): string {
+  const normalized = rawDatabaseUrl?.trim();
+  if (!normalized) {
+    return `file:${defaultDbPath}`;
+  }
+
+  if (normalized.startsWith("file:")) {
+    return normalized;
+  }
+
+  if (URL_SCHEME_PATTERN.test(normalized)) {
+    return normalized;
+  }
+
+  return `file:${path.resolve(normalized)}`;
+}
+
+const dbUrl = resolveDatabaseUrl();
 const sqlite = createClient({ url: dbUrl });
 
 export const db = drizzle(sqlite, { schema });
