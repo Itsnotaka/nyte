@@ -1,5 +1,5 @@
 import { FeedbackError, recordFeedback, type FeedbackRating } from "@/lib/server/feedback";
-import { AuthorizationError, requireAuthorizedSession } from "@/lib/server/authz";
+import { requireAuthorizedSessionOr401 } from "@/lib/server/authz";
 import {
   InvalidJsonBodyError,
   isJsonObject,
@@ -67,12 +67,9 @@ function normalizeFeedbackBody(body: FeedbackBody): NormalizedFeedbackBody {
 }
 
 export async function POST(request: Request) {
-  try {
-    await requireAuthorizedSession(request);
-  } catch (error) {
-    if (error instanceof AuthorizationError) {
-      return Response.json({ error: error.message }, { status: 401 });
-    }
+  const authorizationResponse = await requireAuthorizedSessionOr401(request);
+  if (authorizationResponse) {
+    return authorizationResponse;
   }
 
   try {

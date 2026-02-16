@@ -29,3 +29,21 @@ export async function requireAuthorizedSession(request: Request) {
 
   return session;
 }
+
+type RequireAuthorizedSession = (request: Request) => Promise<unknown>;
+
+export async function requireAuthorizedSessionOr401(
+  request: Request,
+  requireSession: RequireAuthorizedSession = requireAuthorizedSession,
+) {
+  try {
+    await requireSession(request);
+  } catch (error) {
+    if (error instanceof AuthorizationError) {
+      return Response.json({ error: error.message }, { status: 401 });
+    }
+    throw error;
+  }
+
+  return null;
+}

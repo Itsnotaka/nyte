@@ -1,5 +1,5 @@
 import { pollGmailIngestion } from "@/lib/integrations/gmail/polling";
-import { AuthorizationError, requireAuthorizedSession } from "@/lib/server/authz";
+import { requireAuthorizedSessionOr401 } from "@/lib/server/authz";
 import { getDashboardData } from "@/lib/server/dashboard";
 import { listWatchKeywords } from "@/lib/server/policy-rules";
 import { persistSignals } from "@/lib/server/queue-store";
@@ -8,12 +8,9 @@ import { createRateLimitResponse } from "@/lib/server/rate-limit-response";
 import { pruneWorkflowHistoryIfDue } from "@/lib/server/workflow-retention";
 
 export async function GET(request: Request) {
-  try {
-    await requireAuthorizedSession(request);
-  } catch (error) {
-    if (error instanceof AuthorizationError) {
-      return Response.json({ error: error.message }, { status: 401 });
-    }
+  const authorizationResponse = await requireAuthorizedSessionOr401(request);
+  if (authorizationResponse) {
+    return authorizationResponse;
   }
 
   try {

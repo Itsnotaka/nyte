@@ -1,6 +1,6 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { shouldEnforceAuthz } from "./authz";
+import { AuthorizationError, requireAuthorizedSessionOr401, shouldEnforceAuthz } from "./authz";
 
 const originalNodeEnv = process.env.NODE_ENV;
 const originalRequireAuth = process.env.NYTE_REQUIRE_AUTH;
@@ -40,5 +40,35 @@ describe("shouldEnforceAuthz", () => {
     setNodeEnv("development");
     delete process.env.NYTE_REQUIRE_AUTH;
     expect(shouldEnforceAuthz()).toBe(false);
+  });
+});
+
+describe("requireAuthorizedSessionOr401", () => {
+  const request = new Request("http://localhost/api/dashboard");
+
+  it("returns null when authorization succeeds", async () => {
+    const response = await requireAuthorizedSessionOr401(request, vi.fn().mockResolvedValue({}));
+
+    expect(response).toBeNull();
+  });
+
+  it("returns 401 response on authorization errors", async () => {
+    const response = await requireAuthorizedSessionOr401(
+      request,
+      vi.fn().mockRejectedValue(new AuthorizationError("Authentication required.")),
+    );
+    const body = (await response?.json()) as { error: string };
+
+    expect(response).toBeDefined();
+    expect(response?.status).toBe(401);
+    expect(body.error).toContain("Authentication required");
+  });
+
+  it("rethrows non-authorization failures", async () => {
+    const failure = new Error("session provider unavailable");
+
+    await expect(
+      requireAuthorizedSessionOr401(request, vi.fn().mockRejectedValue(failure)),
+    ).rejects.toThrow("session provider unavailable");
   });
 });

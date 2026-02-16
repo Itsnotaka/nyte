@@ -3,7 +3,7 @@ import {
   setWorkflowRetentionDays,
   WorkflowRetentionError,
 } from "@/lib/server/workflow-retention";
-import { AuthorizationError, requireAuthorizedSession } from "@/lib/server/authz";
+import { requireAuthorizedSessionOr401 } from "@/lib/server/authz";
 import {
   InvalidJsonBodyError,
   isJsonObject,
@@ -44,12 +44,9 @@ function normalizeRetentionBody(body: RetentionBody): NormalizedRetentionBody {
 }
 
 export async function GET(request: Request) {
-  try {
-    await requireAuthorizedSession(request);
-  } catch (error) {
-    if (error instanceof AuthorizationError) {
-      return Response.json({ error: error.message }, { status: 401 });
-    }
+  const authorizationResponse = await requireAuthorizedSessionOr401(request);
+  if (authorizationResponse) {
+    return authorizationResponse;
   }
 
   try {
@@ -68,12 +65,9 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  try {
-    await requireAuthorizedSession(request);
-  } catch (error) {
-    if (error instanceof AuthorizationError) {
-      return Response.json({ error: error.message }, { status: 401 });
-    }
+  const authorizationResponse = await requireAuthorizedSessionOr401(request);
+  if (authorizationResponse) {
+    return authorizationResponse;
   }
 
   try {

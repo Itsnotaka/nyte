@@ -1,5 +1,5 @@
 import { ApprovalError, approveWorkItem } from "@/lib/server/approve-action";
-import { AuthorizationError, requireAuthorizedSession } from "@/lib/server/authz";
+import { requireAuthorizedSessionOr401 } from "@/lib/server/authz";
 import {
   InvalidJsonBodyError,
   isJsonObject,
@@ -56,12 +56,9 @@ function normalizeApproveBody(body: ApproveBody): NormalizedApproveBody {
 }
 
 export async function POST(request: Request) {
-  try {
-    await requireAuthorizedSession(request);
-  } catch (error) {
-    if (error instanceof AuthorizationError) {
-      return Response.json({ error: error.message }, { status: 401 });
-    }
+  const authorizationResponse = await requireAuthorizedSessionOr401(request);
+  if (authorizationResponse) {
+    return authorizationResponse;
   }
 
   try {

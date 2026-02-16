@@ -1,4 +1,4 @@
-import { AuthorizationError, requireAuthorizedSession } from "@/lib/server/authz";
+import { requireAuthorizedSessionOr401 } from "@/lib/server/authz";
 import {
   countAuditLogs,
   countAuditLogsByTarget,
@@ -9,12 +9,9 @@ import { enforceRateLimit, RateLimitError } from "@/lib/server/rate-limit";
 import { createRateLimitResponse } from "@/lib/server/rate-limit-response";
 
 export async function GET(request: Request) {
-  try {
-    await requireAuthorizedSession(request);
-  } catch (error) {
-    if (error instanceof AuthorizationError) {
-      return Response.json({ error: error.message }, { status: 401 });
-    }
+  const authorizationResponse = await requireAuthorizedSessionOr401(request);
+  if (authorizationResponse) {
+    return authorizationResponse;
   }
 
   try {

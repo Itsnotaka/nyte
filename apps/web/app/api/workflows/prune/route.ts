@@ -1,4 +1,4 @@
-import { AuthorizationError, requireAuthorizedSession } from "@/lib/server/authz";
+import { requireAuthorizedSessionOr401 } from "@/lib/server/authz";
 import {
   InvalidJsonBodyError,
   isJsonObject,
@@ -10,12 +10,9 @@ import { createRateLimitResponse } from "@/lib/server/rate-limit-response";
 import { pruneWorkflowHistory } from "@/lib/server/workflow-retention";
 
 export async function POST(request: Request) {
-  try {
-    await requireAuthorizedSession(request);
-  } catch (error) {
-    if (error instanceof AuthorizationError) {
-      return Response.json({ error: error.message }, { status: 401 });
-    }
+  const authorizationResponse = await requireAuthorizedSessionOr401(request);
+  if (authorizationResponse) {
+    return authorizationResponse;
   }
 
   try {
