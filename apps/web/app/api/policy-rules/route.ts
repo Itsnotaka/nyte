@@ -21,6 +21,18 @@ export async function GET(request: Request) {
       return Response.json({ error: error.message }, { status: 401 });
     }
   }
+
+  try {
+    enforceRateLimit(request, "policy-rules:read", {
+      limit: 120,
+      windowMs: 60_000,
+    });
+  } catch (error) {
+    if (error instanceof RateLimitError) {
+      return createRateLimitResponse(error);
+    }
+  }
+
   const keywords = await listWatchKeywords();
   return Response.json({ watchKeywords: keywords });
 }

@@ -24,6 +24,17 @@ export async function GET(request: Request) {
     }
   }
 
+  try {
+    enforceRateLimit(request, "connections:google:read", {
+      limit: 120,
+      windowMs: 60_000,
+    });
+  } catch (error) {
+    if (error instanceof RateLimitError) {
+      return createRateLimitResponse(error);
+    }
+  }
+
   const status = await getGoogleConnectionStatus();
   return Response.json(status);
 }

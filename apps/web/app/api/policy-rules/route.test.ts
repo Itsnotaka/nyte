@@ -147,6 +147,24 @@ describe("policy rules route", () => {
     expect(lastResponse?.headers.get("Retry-After")).toBeTruthy();
   });
 
+  it("returns 429 when read rate limit is exceeded", async () => {
+    let lastResponse: Response | null = null;
+    for (let index = 0; index < 121; index += 1) {
+      lastResponse = await GET(
+        new Request("http://localhost/api/policy-rules", {
+          method: "GET",
+          headers: {
+            "x-forwarded-for": "203.0.113.180",
+          },
+        }),
+      );
+    }
+
+    expect(lastResponse).not.toBeNull();
+    expect(lastResponse?.status).toBe(429);
+    expect(lastResponse?.headers.get("Retry-After")).toBeTruthy();
+  });
+
   it("returns 401 when authz is enforced and no session exists", async () => {
     process.env.NYTE_REQUIRE_AUTH = "true";
     const response = await GET(buildRequest("http://localhost/api/policy-rules", "GET"));
