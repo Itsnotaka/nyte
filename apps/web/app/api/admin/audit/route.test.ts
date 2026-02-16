@@ -123,6 +123,30 @@ describe("GET /api/admin/audit", () => {
     expect(body.rows[0]?.action).toBe("event.two");
   });
 
+  it("returns empty page when offset exceeds total rows", async () => {
+    await recordAuditLog({
+      action: "event.one",
+      targetType: "work_item",
+      targetId: "w_1",
+      payload: {},
+      now: new Date("2026-02-10T10:00:00.000Z"),
+    });
+
+    const response = await GET(buildRequest("http://localhost/api/admin/audit?limit=10&offset=50"));
+    const body = (await response.json()) as {
+      count: number;
+      totalCount: number;
+      hasMore: boolean;
+      rows: Array<unknown>;
+    };
+
+    expect(response.status).toBe(200);
+    expect(body.count).toBe(0);
+    expect(body.totalCount).toBe(1);
+    expect(body.hasMore).toBe(false);
+    expect(body.rows).toHaveLength(0);
+  });
+
   it("filters rows by targetType and targetId", async () => {
     await recordAuditLog({
       action: "event.match",
