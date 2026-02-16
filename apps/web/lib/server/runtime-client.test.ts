@@ -8,6 +8,7 @@ import {
 } from "./runtime-client";
 
 const originalRuntimeUrl = process.env.NYTE_RUNTIME_URL;
+const originalRuntimeAuthToken = process.env.NYTE_RUNTIME_AUTH_TOKEN;
 
 const baseCommand: RuntimeCommand = {
   type: "runtime.approve",
@@ -28,6 +29,12 @@ afterEach(() => {
   } else {
     process.env.NYTE_RUNTIME_URL = originalRuntimeUrl;
   }
+
+  if (originalRuntimeAuthToken === undefined) {
+    delete process.env.NYTE_RUNTIME_AUTH_TOKEN;
+  } else {
+    process.env.NYTE_RUNTIME_AUTH_TOKEN = originalRuntimeAuthToken;
+  }
 });
 
 function toFetchUrl(input: Parameters<typeof fetch>[0]) {
@@ -40,6 +47,32 @@ function toFetchUrl(input: Parameters<typeof fetch>[0]) {
   }
 
   return input.url;
+}
+
+function readAuthorizationHeader(init: Parameters<typeof fetch>[1] | undefined) {
+  const headers = init?.headers;
+  if (!headers) {
+    return null;
+  }
+
+  if (headers instanceof Headers) {
+    return headers.get("authorization");
+  }
+
+  if (Array.isArray(headers)) {
+    const entry = headers.find(([key]) => key.toLowerCase() === "authorization");
+    return entry?.[1] ?? null;
+  }
+
+  if (typeof headers === "object") {
+    return (
+      (headers as Record<string, string>)["authorization"] ??
+      (headers as Record<string, string>)["Authorization"] ??
+      null
+    );
+  }
+
+  return null;
 }
 
 describe("dispatchRuntimeCommand", () => {
@@ -126,6 +159,64 @@ describe("dispatchRuntimeCommand", () => {
 
     expect(result.isOk()).toBe(true);
     expect(calledUrl).toBe("https://runtime.nyte.dev/runtime/ingest");
+  });
+
+  it("includes runtime auth token header when configured", async () => {
+    let authorizationHeader: string | null = null;
+    const fetchImpl: typeof fetch = async (_, init) => {
+      authorizationHeader = readAuthorizationHeader(init);
+      return new Response(
+        JSON.stringify({
+          status: "accepted",
+          type: "runtime.approve",
+          requestId: "req_123",
+          receivedAt: "2026-02-16T12:00:00.000Z",
+          result: {
+            itemId: "w_123",
+            idempotent: false,
+          },
+        }),
+        { status: 200 },
+      );
+    };
+
+    const result = await dispatchRuntimeCommand(baseCommand, {
+      runtimeBaseUrl: "https://runtime.nyte.dev",
+      runtimeAuthToken: "runtime-token-123",
+      fetchImpl,
+    });
+
+    expect(result.isOk()).toBe(true);
+    expect(authorizationHeader).toBe("Bearer runtime-token-123");
+  });
+
+  it("uses NYTE_RUNTIME_AUTH_TOKEN when runtime auth option is omitted", async () => {
+    process.env.NYTE_RUNTIME_AUTH_TOKEN = "env-runtime-token";
+    let authorizationHeader: string | null = null;
+    const fetchImpl: typeof fetch = async (_, init) => {
+      authorizationHeader = readAuthorizationHeader(init);
+      return new Response(
+        JSON.stringify({
+          status: "accepted",
+          type: "runtime.approve",
+          requestId: "req_123",
+          receivedAt: "2026-02-16T12:00:00.000Z",
+          result: {
+            itemId: "w_123",
+            idempotent: false,
+          },
+        }),
+        { status: 200 },
+      );
+    };
+
+    const result = await dispatchRuntimeCommand(baseCommand, {
+      runtimeBaseUrl: "https://runtime.nyte.dev",
+      fetchImpl,
+    });
+
+    expect(result.isOk()).toBe(true);
+    expect(authorizationHeader).toBe("Bearer env-runtime-token");
   });
 
   it("maps non-ok runtime responses into dispatch errors", async () => {

@@ -52,6 +52,34 @@ function resolvePort(value: string | undefined): number {
   return parsed;
 }
 
+function normalizeRuntimeAuthToken(value: string | undefined) {
+  const normalized = value?.trim();
+  if (!normalized) {
+    return null;
+  }
+
+  return normalized;
+}
+
+function getRuntimeAuthHeaderToken(request: IncomingMessage) {
+  const authorizationHeader = request.headers.authorization;
+  if (!authorizationHeader) {
+    return null;
+  }
+
+  const [scheme, token] = authorizationHeader.split(" ");
+  if (scheme !== "Bearer") {
+    return null;
+  }
+
+  const normalizedToken = token?.trim();
+  if (!normalizedToken) {
+    return null;
+  }
+
+  return normalizedToken;
+}
+
 const RUNTIME_COMMAND_ENDPOINTS: Record<RuntimeCommandType, string> = {
   "runtime.ingest": "/runtime/ingest",
   "runtime.approve": "/runtime/approve",
@@ -83,6 +111,12 @@ export function createRuntimeServer() {
     const routeType = request.method === "POST" ? resolveRouteType(request.url) : null;
     if (!routeType) {
       writeJson(response, 404, { error: "Not found." });
+      return;
+    }
+
+    const requiredAuthToken = normalizeRuntimeAuthToken(process.env.NYTE_RUNTIME_AUTH_TOKEN);
+    if (requiredAuthToken && getRuntimeAuthHeaderToken(request) !== requiredAuthToken) {
+      writeJson(response, 401, { error: "Unauthorized runtime command request." });
       return;
     }
 

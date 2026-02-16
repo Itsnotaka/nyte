@@ -21,6 +21,7 @@ export class RuntimeCommandDispatchError extends Error {
 
 type RuntimeClientOptions = {
   runtimeBaseUrl?: string;
+  runtimeAuthToken?: string;
   fetchImpl?: typeof fetch;
 };
 
@@ -51,6 +52,15 @@ function normalizeRuntimeBaseUrl(value: string | undefined) {
   }
 
   return normalized.replace(/\/+$/, "");
+}
+
+function normalizeRuntimeAuthToken(value: string | undefined) {
+  const normalized = value?.trim();
+  if (!normalized) {
+    return null;
+  }
+
+  return normalized;
 }
 
 function resolveRuntimeBaseUrl(
@@ -101,13 +111,20 @@ export function dispatchRuntimeCommand(
   return resolveRuntimeBaseUrl(options.runtimeBaseUrl).andThen((baseUrl) => {
     const fetchImpl = options.fetchImpl ?? fetch;
     const runtimeEndpoint = `${baseUrl}${runtimeCommandPath(command.type)}`;
+    const runtimeAuthToken = normalizeRuntimeAuthToken(
+      options.runtimeAuthToken ?? process.env.NYTE_RUNTIME_AUTH_TOKEN,
+    );
+    const headers: Record<string, string> = {
+      "content-type": "application/json",
+    };
+    if (runtimeAuthToken) {
+      headers.authorization = `Bearer ${runtimeAuthToken}`;
+    }
 
     return ResultAsync.fromPromise(
       fetchImpl(runtimeEndpoint, {
         method: "POST",
-        headers: {
-          "content-type": "application/json",
-        },
+        headers,
         body: JSON.stringify(command),
       }),
       (error) =>
