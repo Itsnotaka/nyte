@@ -46,6 +46,21 @@ describe("readJsonBody", () => {
 
     await expect(readJsonBody(request)).rejects.toBeInstanceOf(UnsupportedMediaTypeError);
   });
+
+  it("accepts structured json media types", async () => {
+    const request = new Request("http://localhost/test", {
+      method: "POST",
+      headers: {
+        "content-type": "application/merge-patch+json",
+      },
+      body: JSON.stringify({
+        value: 7,
+      }),
+    });
+
+    const body = await readJsonBody<{ value: number }>(request);
+    expect(body.value).toBe(7);
+  });
 });
 
 describe("readOptionalJsonBody", () => {

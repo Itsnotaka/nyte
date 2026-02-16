@@ -14,7 +14,16 @@ export class UnsupportedMediaTypeError extends Error {
 
 function isJsonContentType(request: Request) {
   const contentType = request.headers.get("content-type");
-  return typeof contentType === "string" && contentType.toLowerCase().includes("application/json");
+  if (typeof contentType !== "string") {
+    return false;
+  }
+
+  const mimeType = contentType.split(";")[0]?.trim().toLowerCase();
+  if (!mimeType) {
+    return false;
+  }
+
+  return mimeType === "application/json" || mimeType.endsWith("+json");
 }
 
 export async function readJsonBody<T>(request: Request): Promise<T> {
