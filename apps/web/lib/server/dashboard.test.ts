@@ -1,3 +1,4 @@
+import { eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   auditLogs,
@@ -59,6 +60,25 @@ describe("getDashboardData", () => {
     );
     expect(dashboard.processed.find((entry) => entry.itemId === "w_renewal")?.feedback).toBe(
       "positive",
+    );
+  });
+
+  it("skips malformed action payloads without breaking dashboard hydration", async () => {
+    await persistSignals(mockIntakeSignals, new Date("2026-01-20T12:00:00.000Z"));
+    await approveWorkItem("w_renewal", new Date("2026-01-20T12:05:00.000Z"));
+
+    await db
+      .update(proposedActions)
+      .set({
+        payloadJson: "{bad-json",
+      })
+      .where(eq(proposedActions.workItemId, "w_renewal"));
+
+    const dashboard = await getDashboardData();
+
+    expect(dashboard.needsYou.map((item) => item.id)).toContain("w_board");
+    expect(dashboard.processed.find((entry) => entry.itemId === "w_renewal")?.detail).toBe(
+      "action_payload • unreadable",
     );
   });
 });

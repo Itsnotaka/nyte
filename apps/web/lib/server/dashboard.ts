@@ -47,6 +47,12 @@ type ActionPresentation = {
   cta: WorkItem["cta"];
 };
 
+const TOOL_CALL_KINDS = new Set<ToolCallPayload["kind"]>([
+  "gmail.createDraft",
+  "google-calendar.createEvent",
+  "billing.queueRefund",
+]);
+
 function toIso(value: unknown): string {
   if (value instanceof Date) {
     return value.toISOString();
@@ -59,8 +65,22 @@ function toIso(value: unknown): string {
   return new Date().toISOString();
 }
 
-function parsePayload(payloadJson: string): ToolCallPayload {
-  return JSON.parse(payloadJson) as ToolCallPayload;
+function safeParsePayload(payloadJson: string): ToolCallPayload | null {
+  try {
+    const parsed = JSON.parse(payloadJson) as unknown;
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+      return null;
+    }
+
+    const kind = (parsed as { kind?: unknown }).kind;
+    if (typeof kind !== "string" || !TOOL_CALL_KINDS.has(kind as ToolCallPayload["kind"])) {
+      return null;
+    }
+
+    return parsed as ToolCallPayload;
+  } catch {
+    return null;
+  }
 }
 
 function presentationForAction(kind: ToolCallPayload["kind"]): ActionPresentation {
@@ -110,7 +130,10 @@ async function loadNeedsYouQueue(): Promise<WorkItemWithAction[]> {
       continue;
     }
 
-    const payload = parsePayload(proposal.payloadJson);
+    const payload = safeParsePayload(proposal.payloadJson);
+    if (!payload) {
+      continue;
+    }
     const presentation = presentationForAction(payload.kind);
 
     const gateRows = await db
@@ -155,7 +178,11 @@ async function loadDrafts(): Promise<DraftEntry[]> {
 
   return rows
     .map((row) => {
-      const payload = parsePayload(row.payloadJson);
+      const payload = safeParsePayload(row.payloadJson);
+      if (!payload) {
+        return null;
+      }
+
       if (payload.kind !== "gmail.createDraft") {
         return null;
       }
@@ -215,7 +242,21 @@ async function loadProcessed(): Promise<ProcessedEntry[]> {
       continue;
     }
 
-    const payload = parsePayload(action.payloadJson);
+    const payload = safeParsePayload(action.payloadJson);
+    if (!payload) {
+      processed.push({
+        id: `${row.id}:${action.id}`,
+        itemId: row.id,
+        actor: row.actor,
+        action: "Unknown action",
+        status: "executed",
+        detail: "action_payload • unreadable",
+        at: toIso(row.updatedAt),
+        feedback: feedbackByItem.get(row.id) ?? null,
+      });
+      continue;
+    }
+
     let detail = "Action executed.";
 
     if (payload.kind === "gmail.createDraft") {
