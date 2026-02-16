@@ -5,18 +5,21 @@
   "scripts": {
     "build": "turbo build",
     "dev": "turbo dev",
-    "lint": "turbo lint",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\""
+    "lint": "oxlint --type-aware",
+    "format": "oxfmt --check",
+    "typecheck": "tsgo --noEmit"
   },
   "devDependencies": {
-    "@workspace/eslint-config": "workspace:*",
+    "@typescript/native-preview": "7.0.0-dev.20260215.1",
     "@workspace/typescript-config": "workspace:*",
-    "prettier": "^3.8.1",
+    "oxfmt": "^0.32.0",
+    "oxlint": "^1.47.0",
+    "oxlint-tsgolint": "^0.13.0",
     "turbo": "^2.8.1",
     "typescript": "5.9.3"
   },
-  "packageManager": "pnpm@10.4.1",
   "engines": {
     "node": ">=20"
-  }
+  },
+  "packageManager": "pnpm@10.4.1"
 }
