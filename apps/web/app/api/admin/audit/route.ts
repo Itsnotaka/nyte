@@ -1,6 +1,7 @@
 import { AuthorizationError, requireAuthorizedSession } from "@/lib/server/authz";
 import { listAuditLogs, listAuditLogsByTarget } from "@/lib/server/audit-log";
 import { enforceRateLimit, RateLimitError } from "@/lib/server/rate-limit";
+import { createRateLimitResponse } from "@/lib/server/rate-limit-response";
 
 export async function GET(request: Request) {
   try {
@@ -18,13 +19,7 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     if (error instanceof RateLimitError) {
-      return Response.json(
-        {
-          error: error.message,
-          retryAfterSeconds: error.retryAfterSeconds,
-        },
-        { status: 429 },
-      );
+      return createRateLimitResponse(error);
     }
   }
 

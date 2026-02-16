@@ -6,6 +6,7 @@ import {
 } from "@/lib/server/policy-rules";
 import { AuthorizationError, requireAuthorizedSession } from "@/lib/server/authz";
 import { enforceRateLimit, RateLimitError } from "@/lib/server/rate-limit";
+import { createRateLimitResponse } from "@/lib/server/rate-limit-response";
 
 type PolicyRuleBody = {
   keyword?: string;
@@ -39,13 +40,7 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     if (error instanceof RateLimitError) {
-      return Response.json(
-        {
-          error: error.message,
-          retryAfterSeconds: error.retryAfterSeconds,
-        },
-        { status: 429 },
-      );
+      return createRateLimitResponse(error);
     }
   }
 
@@ -81,13 +76,7 @@ export async function DELETE(request: Request) {
     });
   } catch (error) {
     if (error instanceof RateLimitError) {
-      return Response.json(
-        {
-          error: error.message,
-          retryAfterSeconds: error.retryAfterSeconds,
-        },
-        { status: 429 },
-      );
+      return createRateLimitResponse(error);
     }
   }
 

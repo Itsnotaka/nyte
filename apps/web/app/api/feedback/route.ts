@@ -1,6 +1,7 @@
 import { FeedbackError, recordFeedback, type FeedbackRating } from "@/lib/server/feedback";
 import { AuthorizationError, requireAuthorizedSession } from "@/lib/server/authz";
 import { enforceRateLimit, RateLimitError } from "@/lib/server/rate-limit";
+import { createRateLimitResponse } from "@/lib/server/rate-limit-response";
 
 type FeedbackBody = {
   itemId?: string;
@@ -26,13 +27,7 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     if (error instanceof RateLimitError) {
-      return Response.json(
-        {
-          error: error.message,
-          retryAfterSeconds: error.retryAfterSeconds,
-        },
-        { status: 429 },
-      );
+      return createRateLimitResponse(error);
     }
   }
 
