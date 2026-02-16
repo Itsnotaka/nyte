@@ -142,6 +142,23 @@ describe("workflow prune route", () => {
     expect(body.error).toContain("does not accept request payload fields");
   });
 
+  it("returns 400 when request body is not a JSON object", async () => {
+    const response = await POST(
+      new Request("http://localhost/api/workflows/prune", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-forwarded-for": "198.51.100.21",
+        },
+        body: JSON.stringify([]),
+      }),
+    );
+    const body = (await response.json()) as { error: string };
+
+    expect(response.status).toBe(400);
+    expect(body.error).toContain("JSON object");
+  });
+
   it("accepts empty structured +json payload", async () => {
     const response = await POST(
       new Request("http://localhost/api/workflows/prune", {

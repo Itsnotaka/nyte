@@ -166,6 +166,23 @@ describe("google connection rotate route", () => {
     expect(body.error).toContain("does not accept request payload fields");
   });
 
+  it("returns 400 when request body is not a JSON object", async () => {
+    const response = await POST(
+      new Request("http://localhost/api/connections/google/rotate", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-forwarded-for": "192.0.2.97",
+        },
+        body: JSON.stringify([]),
+      }),
+    );
+    const body = (await response.json()) as { error: string };
+
+    expect(response.status).toBe(400);
+    expect(body.error).toContain("JSON object");
+  });
+
   it("accepts empty structured +json payload", async () => {
     const response = await POST(
       new Request("http://localhost/api/connections/google/rotate", {

@@ -1,6 +1,7 @@
 import { AuthorizationError, requireAuthorizedSession } from "@/lib/server/authz";
 import {
   InvalidJsonBodyError,
+  isJsonObject,
   readOptionalJsonBody,
   UnsupportedMediaTypeError,
 } from "@/lib/server/json-body";
@@ -40,6 +41,9 @@ export async function POST(request: Request) {
       return Response.json({ error: error.message }, { status: 400 });
     }
     throw error;
+  }
+  if (!isJsonObject(body)) {
+    return Response.json({ error: "Request body must be a JSON object." }, { status: 400 });
   }
 
   if (Object.keys(body).length > 0) {
