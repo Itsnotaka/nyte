@@ -22,6 +22,15 @@ describe("pollGmailIngestion", () => {
     expect(result.signals.map((signal) => signal.id)).toEqual(["gmail_board", "gmail_refund"]);
   });
 
+  it("treats invalid cursor as initial poll window", () => {
+    const result = pollGmailIngestion({
+      cursor: "cursor_123",
+      now: new Date("2026-01-20T12:00:00.000Z"),
+    });
+
+    expect(result.signals).toHaveLength(3);
+  });
+
   it("maps refund subject to refund_request intent", () => {
     const result = pollGmailIngestion({
       cursor: "2026-01-20T11:15:00.000Z",

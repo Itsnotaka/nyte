@@ -82,10 +82,11 @@ describe("GET /api/sync/poll", () => {
 
   it("accepts cursor query parameter", async () => {
     const response = await GET(buildRequest("http://localhost/api/sync/poll?cursor=cursor_123"));
-    const body = (await response.json()) as { cursor: string };
+    const body = (await response.json()) as { cursor: string; signals: Array<{ id: string }> };
 
     expect(response.status).toBe(200);
     expect(body.cursor).not.toBe("cursor_123");
+    expect(body.signals.length).toBeGreaterThan(0);
   });
 
   it("returns 401 when authz is enforced and session missing", async () => {

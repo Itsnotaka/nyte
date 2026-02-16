@@ -91,7 +91,10 @@ export function pollGmailIngestion({
   now = new Date(),
   watchKeywords = [],
 }: PollingInput): PollingResult {
-  const cursorTime = cursor ? new Date(cursor).getTime() : Number.NEGATIVE_INFINITY;
+  const parsedCursorTime = cursor ? new Date(cursor).getTime() : Number.NEGATIVE_INFINITY;
+  const cursorTime = Number.isFinite(parsedCursorTime)
+    ? parsedCursorTime
+    : Number.NEGATIVE_INFINITY;
   const freshSnapshots = mockGmailSnapshots.filter(
     (snapshot) => new Date(snapshot.receivedAt).getTime() > cursorTime,
   );
