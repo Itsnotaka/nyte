@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { eq } from "drizzle-orm";
 import {
   auditLogs,
   calendarEvents,
@@ -360,6 +361,43 @@ describe("POST /api/actions/dismiss", () => {
     expect(body.delegated).toBe(true);
     expect(body.requestId).toBe("req_dismiss_retry_123");
     expect(callCount).toBe(2);
+  });
+
+  it("returns 502 and writes delegation audit when dismiss runtime outage persists", async () => {
+    process.env.NYTE_RUNTIME_DELEGATE_DISMISS = "true";
+    process.env.NYTE_RUNTIME_URL = "https://runtime.nyte.dev";
+    let callCount = 0;
+    globalThis.fetch = async () => {
+      callCount += 1;
+      return new Response(JSON.stringify({ error: "Runtime temporarily unavailable." }), {
+        status: 503,
+      });
+    };
+
+    const response = await POST(
+      buildRequest(
+        {
+          itemId: "w_board",
+        },
+        {
+          "x-request-id": "req_dismiss_outage_1",
+        },
+      ),
+    );
+    const body = (await response.json()) as { error: string };
+
+    const runtimeAuditRows = await db
+      .select()
+      .from(auditLogs)
+      .where(eq(auditLogs.action, "runtime.delegate.dismiss.dispatch_error"));
+
+    expect(response.status).toBe(502);
+    expect(body.error).toBe("Runtime temporarily unavailable.");
+    expect(callCount).toBe(2);
+    expect(runtimeAuditRows.length).toBe(1);
+    expect(runtimeAuditRows[0]?.targetId).toBe("req_dismiss_outage_1");
+    expect(runtimeAuditRows[0]?.targetType).toBe("runtime_command");
+    expect(runtimeAuditRows[0]?.payloadJson).toContain("dispatch_error");
   });
 
   it("returns 404 for unknown item", async () => {
