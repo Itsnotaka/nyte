@@ -1,4 +1,4 @@
-import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 export const users = sqliteTable("users", {
   id: text("id").primaryKey(),
@@ -94,15 +94,26 @@ export const policyRules = sqliteTable("policy_rules", {
   updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
 });
 
-export const auditLogs = sqliteTable("audit_logs", {
-  id: text("id").primaryKey(),
-  userId: text("user_id"),
-  action: text("action").notNull(),
-  targetType: text("target_type").notNull(),
-  targetId: text("target_id").notNull(),
-  payloadJson: text("payload_json").notNull(),
-  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
-});
+export const auditLogs = sqliteTable(
+  "audit_logs",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id"),
+    action: text("action").notNull(),
+    targetType: text("target_type").notNull(),
+    targetId: text("target_id").notNull(),
+    payloadJson: text("payload_json").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => ({
+    targetLookupIdx: index("audit_logs_target_lookup_idx").on(
+      table.targetType,
+      table.targetId,
+      table.createdAt,
+    ),
+    createdAtIdx: index("audit_logs_created_at_idx").on(table.createdAt),
+  }),
+);
 
 export const workflowRuns = sqliteTable("workflow_runs", {
   id: text("id").primaryKey(),

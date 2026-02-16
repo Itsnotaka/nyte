@@ -133,6 +133,16 @@ async function runBootstrap() {
   `);
 
   await db.run(sql`
+    CREATE INDEX IF NOT EXISTS audit_logs_target_lookup_idx
+    ON audit_logs (target_type, target_id, created_at)
+  `);
+
+  await db.run(sql`
+    CREATE INDEX IF NOT EXISTS audit_logs_created_at_idx
+    ON audit_logs (created_at)
+  `);
+
+  await db.run(sql`
     CREATE TABLE IF NOT EXISTS workflow_events (
       id TEXT PRIMARY KEY NOT NULL,
       run_id TEXT NOT NULL,

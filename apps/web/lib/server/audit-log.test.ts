@@ -18,7 +18,7 @@ import {
 
 import { mockIntakeSignals } from "../domain/mock-intake";
 import { approveWorkItem } from "./approve-action";
-import { listAuditLogs, listAuditLogsByTarget } from "./audit-log";
+import { listAuditLogs, listAuditLogsByTarget, recordAuditLog } from "./audit-log";
 import { persistSignals } from "./queue-store";
 
 async function resetDb() {
@@ -53,5 +53,27 @@ describe("audit log recording", () => {
     const filtered = await listAuditLogsByTarget("work_item", "w_renewal", 50);
     expect(filtered.length).toBeGreaterThan(0);
     expect(filtered.every((entry) => entry.targetId === "w_renewal")).toBe(true);
+  });
+
+  it("creates unique ids when multiple logs share timestamp and target", async () => {
+    const now = new Date("2026-01-20T12:10:00.000Z");
+    await recordAuditLog({
+      action: "test.event",
+      targetType: "work_item",
+      targetId: "w_duplicate",
+      payload: {},
+      now,
+    });
+    await recordAuditLog({
+      action: "test.event",
+      targetType: "work_item",
+      targetId: "w_duplicate",
+      payload: {},
+      now,
+    });
+
+    const logs = await listAuditLogsByTarget("work_item", "w_duplicate", 10);
+    expect(logs).toHaveLength(2);
+    expect(new Set(logs.map((entry) => entry.id)).size).toBe(2);
   });
 });

@@ -1,4 +1,6 @@
-import { desc, eq } from "drizzle-orm";
+import { randomUUID } from "node:crypto";
+
+import { and, desc, eq } from "drizzle-orm";
 import { auditLogs, db, ensureDbSchema } from "@workspace/db";
 
 type AuditExecutor = Pick<typeof db, "insert">;
@@ -23,7 +25,7 @@ export async function recordAuditLog({
   executor = db,
 }: AuditLogInput) {
   await executor.insert(auditLogs).values({
-    id: `${targetType}:${targetId}:${action}:${now.getTime()}`,
+    id: `${targetType}:${targetId}:${action}:${now.getTime()}:${randomUUID()}`,
     userId,
     action,
     targetType,
@@ -60,15 +62,7 @@ export async function listAuditLogs(limit = 100): Promise<AuditLogEntry[]> {
 
   const rows = await db.select().from(auditLogs).orderBy(desc(auditLogs.createdAt)).limit(limit);
 
-  return rows.map((row) => ({
-    id: row.id,
-    userId: row.userId,
-    action: row.action,
-    targetType: row.targetType,
-    targetId: row.targetId,
-    payload: JSON.parse(row.payloadJson) as Record<string, unknown>,
-    createdAt: toIso(row.createdAt),
-  }));
+  return rows.map(toAuditLogEntry);
 }
 
 export async function listAuditLogsByTarget(targetType: string, targetId: string, limit = 100) {
@@ -76,19 +70,21 @@ export async function listAuditLogsByTarget(targetType: string, targetId: string
   const rows = await db
     .select()
     .from(auditLogs)
-    .where(eq(auditLogs.targetType, targetType))
+    .where(and(eq(auditLogs.targetType, targetType), eq(auditLogs.targetId, targetId)))
     .orderBy(desc(auditLogs.createdAt))
     .limit(limit);
 
-  return rows
-    .filter((row) => row.targetId === targetId)
-    .map((row) => ({
-      id: row.id,
-      userId: row.userId,
-      action: row.action,
-      targetType: row.targetType,
-      targetId: row.targetId,
-      payload: JSON.parse(row.payloadJson) as Record<string, unknown>,
-      createdAt: toIso(row.createdAt),
-    }));
+  return rows.map(toAuditLogEntry);
+}
+
+function toAuditLogEntry(row: typeof auditLogs.$inferSelect): AuditLogEntry {
+  return {
+    id: row.id,
+    userId: row.userId,
+    action: row.action,
+    targetType: row.targetType,
+    targetId: row.targetId,
+    payload: JSON.parse(row.payloadJson) as Record<string, unknown>,
+    createdAt: toIso(row.createdAt),
+  };
 }
