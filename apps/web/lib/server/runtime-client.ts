@@ -22,6 +22,7 @@ export class RuntimeCommandDispatchError extends Error {
 type RuntimeClientOptions = {
   runtimeBaseUrl?: string;
   runtimeAuthToken?: string;
+  timeoutMs?: number;
   fetchImpl?: typeof fetch;
 };
 
@@ -58,6 +59,23 @@ function normalizeRuntimeAuthToken(value: string | undefined) {
   const normalized = value?.trim();
   if (!normalized) {
     return null;
+  }
+
+  return normalized;
+}
+
+function resolveRuntimeTimeoutMs(value: number | undefined): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return 15_000;
+  }
+
+  const normalized = Math.trunc(value);
+  if (normalized < 250) {
+    return 250;
+  }
+
+  if (normalized > 60_000) {
+    return 60_000;
   }
 
   return normalized;
@@ -101,6 +119,43 @@ function readErrorMessage(response: Response, fallback: string) {
     .orElse(() => okAsync(fallback));
 }
 
+function performRuntimeFetch(
+  fetchImpl: typeof fetch,
+  runtimeEndpoint: string,
+  headers: Record<string, string>,
+  command: RuntimeCommand,
+  timeoutMs: number,
+) {
+  return ResultAsync.fromPromise(
+    new Promise<Response>((resolve, reject) => {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => {
+        controller.abort();
+      }, timeoutMs);
+
+      void fetchImpl(runtimeEndpoint, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(command),
+        signal: controller.signal,
+      })
+        .then(resolve, reject)
+        .finally(() => {
+          clearTimeout(timeout);
+        });
+    }),
+    (error) => {
+      if (error instanceof Error && error.name === "AbortError") {
+        return new RuntimeCommandDispatchError(
+          `Runtime service request timed out after ${timeoutMs}ms.`,
+        );
+      }
+
+      return new RuntimeCommandDispatchError(toMessage(error, "Failed to reach runtime service."));
+    },
+  );
+}
+
 export function dispatchRuntimeCommand(
   command: RuntimeCommand,
   options: RuntimeClientOptions = {},
@@ -114,6 +169,7 @@ export function dispatchRuntimeCommand(
     const runtimeAuthToken = normalizeRuntimeAuthToken(
       options.runtimeAuthToken ?? process.env.NYTE_RUNTIME_AUTH_TOKEN,
     );
+    const timeoutMs = resolveRuntimeTimeoutMs(options.timeoutMs);
     const headers: Record<string, string> = {
       "content-type": "application/json",
     };
@@ -121,34 +177,30 @@ export function dispatchRuntimeCommand(
       headers.authorization = `Bearer ${runtimeAuthToken}`;
     }
 
-    return ResultAsync.fromPromise(
-      fetchImpl(runtimeEndpoint, {
-        method: "POST",
-        headers,
-        body: JSON.stringify(command),
-      }),
-      (error) =>
-        new RuntimeCommandDispatchError(toMessage(error, "Failed to reach runtime service.")),
-    ).andThen((response) => {
-      if (!response.ok) {
-        return readErrorMessage(response, "Runtime service rejected command.").andThen((message) =>
-          errAsync(new RuntimeCommandDispatchError(message)),
-        );
-      }
-
-      return ResultAsync.fromPromise(response.json() as Promise<unknown>, (error) => {
-        return new RuntimeCommandDispatchError(
-          toMessage(error, "Runtime service returned an unreadable payload."),
-        );
-      }).andThen((payload) => {
-        if (!isRuntimeCommandResult(payload)) {
-          return errAsync(
-            new RuntimeCommandDispatchError("Runtime service returned an invalid command result."),
+    return performRuntimeFetch(fetchImpl, runtimeEndpoint, headers, command, timeoutMs).andThen(
+      (response) => {
+        if (!response.ok) {
+          return readErrorMessage(response, "Runtime service rejected command.").andThen(
+            (message) => errAsync(new RuntimeCommandDispatchError(message)),
           );
         }
 
-        return okAsync(payload);
-      });
-    });
+        return ResultAsync.fromPromise(response.json() as Promise<unknown>, (error) => {
+          return new RuntimeCommandDispatchError(
+            toMessage(error, "Runtime service returned an unreadable payload."),
+          );
+        }).andThen((payload) => {
+          if (!isRuntimeCommandResult(payload)) {
+            return errAsync(
+              new RuntimeCommandDispatchError(
+                "Runtime service returned an invalid command result.",
+              ),
+            );
+          }
+
+          return okAsync(payload);
+        });
+      },
+    );
   });
 }

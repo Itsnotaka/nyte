@@ -219,6 +219,30 @@ describe("dispatchRuntimeCommand", () => {
     expect(authorizationHeader).toBe("Bearer env-runtime-token");
   });
 
+  it("returns timeout dispatch error when runtime fetch exceeds timeout", async () => {
+    const fetchImpl: typeof fetch = async (_input, init) => {
+      return new Promise<Response>((_, reject) => {
+        init?.signal?.addEventListener("abort", () => {
+          reject(new DOMException("Aborted", "AbortError"));
+        });
+      });
+    };
+
+    const result = await dispatchRuntimeCommand(baseCommand, {
+      runtimeBaseUrl: "https://runtime.nyte.dev",
+      timeoutMs: 250,
+      fetchImpl,
+    });
+
+    expect(result.isErr()).toBe(true);
+    if (result.isOk()) {
+      return;
+    }
+
+    expect(result.error).toBeInstanceOf(RuntimeCommandDispatchError);
+    expect(result.error.message).toContain("timed out after 250ms");
+  });
+
   it("maps non-ok runtime responses into dispatch errors", async () => {
     const fetchImpl: typeof fetch = async () => {
       return new Response(JSON.stringify({ error: "Runtime unavailable." }), {
