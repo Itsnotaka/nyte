@@ -101,6 +101,42 @@ describe("google connection route", () => {
     expect(disconnectBody.connected).toBe(false);
   });
 
+  it("allows empty body and applies default connection payload", async () => {
+    const response = await POST(
+      new Request("http://localhost/api/connections/google", {
+        method: "POST",
+        headers: {
+          "x-forwarded-for": "198.51.100.92",
+        },
+      }),
+    );
+    const body = (await response.json()) as {
+      connected: boolean;
+      providerAccountId: string | null;
+    };
+
+    expect(response.status).toBe(200);
+    expect(body.connected).toBe(true);
+    expect(body.providerAccountId).toContain("google-");
+  });
+
+  it("returns 400 for malformed json body", async () => {
+    const response = await POST(
+      new Request("http://localhost/api/connections/google", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-forwarded-for": "198.51.100.93",
+        },
+        body: "{bad-json",
+      }),
+    );
+    const body = (await response.json()) as { error: string };
+
+    expect(response.status).toBe(400);
+    expect(body.error).toContain("Invalid JSON body");
+  });
+
   it("returns 429 when mutate rate limit is exceeded", async () => {
     let lastResponse: Response | null = null;
     for (let index = 0; index < 21; index += 1) {

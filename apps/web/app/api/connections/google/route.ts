@@ -4,6 +4,7 @@ import {
   upsertGoogleConnection,
 } from "@/lib/server/connections";
 import { AuthorizationError, requireAuthorizedSession } from "@/lib/server/authz";
+import { InvalidJsonBodyError, readOptionalJsonBody } from "@/lib/server/json-body";
 import { enforceRateLimit, RateLimitError } from "@/lib/server/rate-limit";
 import { createRateLimitResponse } from "@/lib/server/rate-limit-response";
 
@@ -47,7 +48,15 @@ export async function POST(request: Request) {
     }
   }
 
-  const body = (await request.json().catch(() => ({}))) as ConnectBody;
+  let body: ConnectBody;
+  try {
+    body = await readOptionalJsonBody<ConnectBody>(request, {});
+  } catch (error) {
+    if (error instanceof InvalidJsonBodyError) {
+      return Response.json({ error: error.message }, { status: 400 });
+    }
+    throw error;
+  }
   const status = await upsertGoogleConnection(
     {
       providerAccountId: body.providerAccountId,
