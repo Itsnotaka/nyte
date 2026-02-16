@@ -11,3 +11,4 @@ export * from "./dismiss-action";
 export * from "./feedback";
 export * from "./queue-store";
 export * from "./workflow-log";
+export * from "./workflow-retention";

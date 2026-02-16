@@ -12,7 +12,8 @@
     "./feedback": "./src/feedback.ts",
     "./metrics": "./src/metrics.ts",
     "./queue-store": "./src/queue-store.ts",
-    "./workflow-log": "./src/workflow-log.ts"
+    "./workflow-log": "./src/workflow-log.ts",
+    "./workflow-retention": "./src/workflow-retention.ts"
   },
   "scripts": {
     "typecheck": "tsgo --noEmit -p tsconfig.json"
