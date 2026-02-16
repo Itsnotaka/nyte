@@ -3,6 +3,7 @@ import { Ratelimit, type Ratelimiter, type RatelimitResponse } from "@unkey/rate
 import { errAsync, okAsync, ResultAsync } from "neverthrow";
 
 export type RateLimitProvider = "unkey" | "memory";
+export type RateLimitMode = "auto" | "memory" | "unkey";
 
 type Bucket = {
   count: number;
@@ -100,7 +101,25 @@ function getConfiguredUnkeyRootKey() {
   return rootKey ? rootKey : null;
 }
 
+export function getRateLimitMode(): RateLimitMode {
+  const configuredMode = process.env.NYTE_RATE_LIMIT_MODE?.trim().toLowerCase();
+  if (configuredMode === "memory" || configuredMode === "unkey") {
+    return configuredMode;
+  }
+
+  return "auto";
+}
+
 export function getRateLimitProvider(): RateLimitProvider {
+  const mode = getRateLimitMode();
+  if (mode === "memory") {
+    return "memory";
+  }
+
+  if (mode === "unkey") {
+    return getConfiguredUnkeyRootKey() ? "unkey" : "memory";
+  }
+
   return getConfiguredUnkeyRootKey() ? "unkey" : "memory";
 }
 

@@ -79,6 +79,7 @@ describe("GET /api/admin/trust", () => {
       };
       security: {
         authzEnforced: boolean;
+        rateLimitMode: "auto" | "memory" | "unkey";
         rateLimitProvider: "unkey" | "memory";
         unkeyRateLimitConfigured: boolean;
       };
@@ -88,6 +89,7 @@ describe("GET /api/admin/trust", () => {
     expect(body.generatedAt).toBeTruthy();
     expect(["ok", "warning"]).toContain(body.posture.status);
     expect(typeof body.security.authzEnforced).toBe("boolean");
+    expect(body.security.rateLimitMode).toBe("auto");
     expect(body.security.rateLimitProvider).toBe("memory");
     expect(body.security.unkeyRateLimitConfigured).toBe(false);
   });

@@ -7,8 +7,10 @@ import { getAuthSecret, getTokenEncryptionKeySource } from "./runtime-secrets";
 import { evaluateSecurityPosture, type SecurityPosture } from "./security-posture";
 import { listAuditLogs } from "./audit-log";
 import {
+  getRateLimitMode,
   getRateLimitProvider,
   isUnkeyRateLimitConfigured,
+  type RateLimitMode,
   type RateLimitProvider,
 } from "./rate-limit";
 
@@ -26,6 +28,7 @@ export type TrustReport = {
     tokenEncryptionKeyConfigured: boolean;
     tokenEncryptionKeySource: "env" | "dev-fallback";
     hasPreviousTokenKey: boolean;
+    rateLimitMode: RateLimitMode;
     rateLimitProvider: RateLimitProvider;
     unkeyRateLimitConfigured: boolean;
   };
@@ -39,6 +42,7 @@ export type TrustReport = {
 export async function getTrustReport(now = new Date()): Promise<TrustReport> {
   const authSecret = getAuthSecret();
   const tokenEncryptionKeySource = getTokenEncryptionKeySource();
+  const rateLimitMode = getRateLimitMode();
   const rateLimitProvider = getRateLimitProvider();
   const [metrics, retention, watchRules, googleConnection, recentAuditLogs] = await Promise.all([
     getMetricsSnapshot(now),
@@ -62,6 +66,7 @@ export async function getTrustReport(now = new Date()): Promise<TrustReport> {
       tokenEncryptionKeyConfigured: Boolean(process.env.NYTE_TOKEN_ENCRYPTION_KEY),
       tokenEncryptionKeySource,
       hasPreviousTokenKey: Boolean(process.env.NYTE_TOKEN_ENCRYPTION_KEY_PREVIOUS),
+      rateLimitMode,
       rateLimitProvider,
       unkeyRateLimitConfigured: isUnkeyRateLimitConfigured(),
     },

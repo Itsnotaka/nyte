@@ -114,3 +114,7 @@ Focused local test runs are also available:
 
 - `UNKEY_ROOT_KEY` enables the Unkey-backed global rate limiter path (whitespace-only values are treated as unset).
 - Without `UNKEY_ROOT_KEY`, the app uses a deterministic in-process limiter fallback for local development and test runs.
+- Optional `NYTE_RATE_LIMIT_MODE` override:
+  - `auto` (default): use Unkey when key is configured, otherwise memory fallback.
+  - `memory`: force in-process limiter even when Unkey key exists.
+  - `unkey`: prefer Unkey path; falls back to memory when key is missing.

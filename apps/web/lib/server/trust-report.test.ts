@@ -28,6 +28,7 @@ const originalTokenKey = process.env.NYTE_TOKEN_ENCRYPTION_KEY;
 const originalAuthSecret = process.env.BETTER_AUTH_SECRET;
 const originalRequireAuth = process.env.NYTE_REQUIRE_AUTH;
 const originalUnkeyRootKey = process.env.UNKEY_ROOT_KEY;
+const originalRateLimitMode = process.env.NYTE_RATE_LIMIT_MODE;
 
 async function resetDb() {
   await ensureDbSchema();
@@ -52,6 +53,7 @@ describe("getTrustReport", () => {
     process.env.BETTER_AUTH_SECRET = "test-secret";
     process.env.NYTE_REQUIRE_AUTH = "true";
     process.env.UNKEY_ROOT_KEY = "trust-report-unkey-root-key";
+    delete process.env.NYTE_RATE_LIMIT_MODE;
   });
 
   afterEach(() => {
@@ -74,6 +76,11 @@ describe("getTrustReport", () => {
       delete process.env.UNKEY_ROOT_KEY;
     } else {
       process.env.UNKEY_ROOT_KEY = originalUnkeyRootKey;
+    }
+    if (originalRateLimitMode === undefined) {
+      delete process.env.NYTE_RATE_LIMIT_MODE;
+    } else {
+      process.env.NYTE_RATE_LIMIT_MODE = originalRateLimitMode;
     }
   });
 
@@ -102,6 +109,7 @@ describe("getTrustReport", () => {
     expect(report.security.authSecretSource).toBe("env");
     expect(report.security.tokenEncryptionKeyConfigured).toBe(true);
     expect(report.security.tokenEncryptionKeySource).toBe("env");
+    expect(report.security.rateLimitMode).toBe("auto");
     expect(report.security.rateLimitProvider).toBe("unkey");
     expect(report.security.unkeyRateLimitConfigured).toBe(true);
     expect(report.posture.status).toBe("ok");
@@ -115,6 +123,7 @@ describe("getTrustReport", () => {
 
     const report = await getTrustReport(new Date("2026-01-20T12:10:00.000Z"));
 
+    expect(report.security.rateLimitMode).toBe("auto");
     expect(report.security.rateLimitProvider).toBe("memory");
     expect(report.security.unkeyRateLimitConfigured).toBe(false);
     expect(report.posture.status).toBe("warning");
@@ -128,7 +137,33 @@ describe("getTrustReport", () => {
 
     const report = await getTrustReport(new Date("2026-01-20T12:10:00.000Z"));
 
+    expect(report.security.rateLimitMode).toBe("auto");
     expect(report.security.rateLimitProvider).toBe("memory");
     expect(report.security.unkeyRateLimitConfigured).toBe(false);
+  });
+
+  it("reports explicit memory mode override when configured", async () => {
+    process.env.UNKEY_ROOT_KEY = "trust-report-unkey-root-key";
+    process.env.NYTE_RATE_LIMIT_MODE = "memory";
+
+    const report = await getTrustReport(new Date("2026-01-20T12:10:00.000Z"));
+
+    expect(report.security.rateLimitMode).toBe("memory");
+    expect(report.security.rateLimitProvider).toBe("memory");
+    expect(report.security.unkeyRateLimitConfigured).toBe(true);
+  });
+
+  it("reports forced unkey mode with memory fallback when key is missing", async () => {
+    delete process.env.UNKEY_ROOT_KEY;
+    process.env.NYTE_RATE_LIMIT_MODE = "unkey";
+
+    const report = await getTrustReport(new Date("2026-01-20T12:10:00.000Z"));
+
+    expect(report.security.rateLimitMode).toBe("unkey");
+    expect(report.security.rateLimitProvider).toBe("memory");
+    expect(report.security.unkeyRateLimitConfigured).toBe(false);
+    expect(report.posture.warnings).toContain(
+      "NYTE_RATE_LIMIT_MODE is set to unkey but UNKEY_ROOT_KEY is not configured.",
+    );
   });
 });

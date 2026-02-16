@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   getRateLimitConfigSignature,
+  getRateLimitMode,
   getRateLimitProvider,
   isUnkeyRateLimitConfigured,
   rateLimitRequest,
@@ -11,6 +12,7 @@ import {
 describe("rateLimitRequest", () => {
   beforeEach(() => {
     delete process.env.UNKEY_ROOT_KEY;
+    delete process.env.NYTE_RATE_LIMIT_MODE;
     resetRateLimitState();
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-02-16T00:00:01.000Z"));
@@ -120,6 +122,7 @@ describe("rateLimitRequest", () => {
     expect(getRateLimitProvider()).toBe("memory");
     expect(isUnkeyRateLimitConfigured()).toBe(false);
     expect(getRateLimitConfigSignature()).toBe("memory");
+    expect(getRateLimitMode()).toBe("auto");
   });
 
   it("reports Unkey provider when root key is configured", () => {
@@ -128,6 +131,7 @@ describe("rateLimitRequest", () => {
     expect(getRateLimitProvider()).toBe("unkey");
     expect(isUnkeyRateLimitConfigured()).toBe(true);
     expect(getRateLimitConfigSignature()).toMatch(/^unkey:[a-f0-9]{12}$/);
+    expect(getRateLimitMode()).toBe("auto");
   });
 
   it("treats whitespace-only root key as not configured", () => {
@@ -146,5 +150,37 @@ describe("rateLimitRequest", () => {
     const two = getRateLimitConfigSignature();
 
     expect(one).not.toBe(two);
+  });
+
+  it("allows explicit memory mode override", () => {
+    process.env.UNKEY_ROOT_KEY = "unkey-test-key";
+    process.env.NYTE_RATE_LIMIT_MODE = "memory";
+
+    expect(getRateLimitMode()).toBe("memory");
+    expect(getRateLimitProvider()).toBe("memory");
+  });
+
+  it("allows explicit unkey mode override", () => {
+    process.env.UNKEY_ROOT_KEY = "unkey-test-key";
+    process.env.NYTE_RATE_LIMIT_MODE = "unkey";
+
+    expect(getRateLimitMode()).toBe("unkey");
+    expect(getRateLimitProvider()).toBe("unkey");
+  });
+
+  it("falls back to memory when unkey mode is forced without key", () => {
+    delete process.env.UNKEY_ROOT_KEY;
+    process.env.NYTE_RATE_LIMIT_MODE = "unkey";
+
+    expect(getRateLimitMode()).toBe("unkey");
+    expect(getRateLimitProvider()).toBe("memory");
+  });
+
+  it("normalizes unknown mode values to auto", () => {
+    process.env.UNKEY_ROOT_KEY = "unkey-test-key";
+    process.env.NYTE_RATE_LIMIT_MODE = "invalid-mode";
+
+    expect(getRateLimitMode()).toBe("auto");
+    expect(getRateLimitProvider()).toBe("unkey");
   });
 });

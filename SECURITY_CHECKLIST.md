@@ -43,3 +43,4 @@ This checklist documents current security controls and remaining hardening tasks
 - [x] Add package-backed read-rate limits on high-frequency/sensitive read APIs (`sync/poll`, dashboard/metrics/workflow/admin/policy/connections reads).
 - [x] Support deterministic in-process fallback limiter when `UNKEY_ROOT_KEY` is not configured (local/test resilience).
 - [x] Surface active rate-limit provider and Unkey configuration posture in trust reporting.
+- [x] Support explicit rate-limit mode override via `NYTE_RATE_LIMIT_MODE` (`auto`/`memory`/`unkey`) with trust-posture visibility.

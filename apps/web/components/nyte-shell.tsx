@@ -158,6 +158,7 @@ type TrustReportResponse = {
     tokenEncryptionKeyConfigured: boolean;
     tokenEncryptionKeySource: "env" | "dev-fallback";
     hasPreviousTokenKey: boolean;
+    rateLimitMode: "auto" | "memory" | "unkey";
     rateLimitProvider: "unkey" | "memory";
     unkeyRateLimitConfigured: boolean;
   };
@@ -1399,7 +1400,8 @@ export function NyteShell() {
                           {trustReport.security.hasPreviousTokenKey ? "yes" : "no"}
                         </p>
                         <p>
-                          rate-limit provider: {trustReport.security.rateLimitProvider} (
+                          rate-limit mode/provider: {trustReport.security.rateLimitMode}/
+                          {trustReport.security.rateLimitProvider} (
                           {trustReport.security.unkeyRateLimitConfigured
                             ? "configured"
                             : "fallback"}

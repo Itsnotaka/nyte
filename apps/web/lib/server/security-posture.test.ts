@@ -12,6 +12,7 @@ describe("evaluateSecurityPosture", () => {
         tokenEncryptionKeyConfigured: false,
         tokenEncryptionKeySource: "dev-fallback",
         hasPreviousTokenKey: false,
+        rateLimitMode: "auto",
         rateLimitProvider: "memory",
         unkeyRateLimitConfigured: false,
       },
@@ -38,6 +39,7 @@ describe("evaluateSecurityPosture", () => {
         tokenEncryptionKeyConfigured: true,
         tokenEncryptionKeySource: "env",
         hasPreviousTokenKey: true,
+        rateLimitMode: "auto",
         rateLimitProvider: "unkey",
         unkeyRateLimitConfigured: true,
       },
@@ -64,6 +66,7 @@ describe("evaluateSecurityPosture", () => {
         tokenEncryptionKeyConfigured: true,
         tokenEncryptionKeySource: "env",
         hasPreviousTokenKey: true,
+        rateLimitMode: "auto",
         rateLimitProvider: "memory",
         unkeyRateLimitConfigured: false,
       },
@@ -80,6 +83,35 @@ describe("evaluateSecurityPosture", () => {
     expect(posture.status).toBe("warning");
     expect(posture.warnings).toContain(
       "UNKEY_ROOT_KEY is not configured; using in-process fallback rate limiter.",
+    );
+  });
+
+  it("warns when unkey mode is forced without key", () => {
+    const posture = evaluateSecurityPosture({
+      security: {
+        authzEnforced: true,
+        authSecretConfigured: true,
+        authSecretSource: "env",
+        tokenEncryptionKeyConfigured: true,
+        tokenEncryptionKeySource: "env",
+        hasPreviousTokenKey: true,
+        rateLimitMode: "unkey",
+        rateLimitProvider: "memory",
+        unkeyRateLimitConfigured: false,
+      },
+      googleConnection: {
+        connected: true,
+        provider: "google",
+        providerAccountId: "acct_123",
+        scopes: ["https://www.googleapis.com/auth/gmail.readonly"],
+        connectedAt: "2026-01-20T12:00:00.000Z",
+        updatedAt: "2026-01-20T12:00:00.000Z",
+      },
+    });
+
+    expect(posture.status).toBe("warning");
+    expect(posture.warnings).toContain(
+      "NYTE_RATE_LIMIT_MODE is set to unkey but UNKEY_ROOT_KEY is not configured.",
     );
   });
 });
