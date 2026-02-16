@@ -96,4 +96,21 @@ describe("GET /api/sync/poll", () => {
     expect(response.status).toBe(401);
     expect(body.error).toContain("Authentication required");
   });
+
+  it("returns 429 when sync poll rate limit is exceeded", async () => {
+    let lastResponse: Response | null = null;
+    for (let index = 0; index < 31; index += 1) {
+      lastResponse = await GET(
+        new Request("http://localhost/api/sync/poll", {
+          headers: {
+            "x-forwarded-for": "192.0.2.150",
+          },
+        }),
+      );
+    }
+
+    expect(lastResponse).not.toBeNull();
+    expect(lastResponse?.status).toBe(429);
+    expect(lastResponse?.headers.get("Retry-After")).toBeTruthy();
+  });
 });
