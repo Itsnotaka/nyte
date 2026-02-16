@@ -93,12 +93,17 @@ function normalizeNamespace(scope: string) {
   return `nyte-${scope.replace(/[^a-zA-Z0-9:_-]/g, "-")}`;
 }
 
+function getConfiguredUnkeyRootKey() {
+  const rootKey = process.env.UNKEY_ROOT_KEY?.trim();
+  return rootKey ? rootKey : null;
+}
+
 export function getRateLimitProvider(): RateLimitProvider {
-  return process.env.UNKEY_ROOT_KEY ? "unkey" : "memory";
+  return getConfiguredUnkeyRootKey() ? "unkey" : "memory";
 }
 
 export function isUnkeyRateLimitConfigured() {
-  return Boolean(process.env.UNKEY_ROOT_KEY);
+  return Boolean(getConfiguredUnkeyRootKey());
 }
 
 function getRatelimiter(scope: string, limit: number, windowMs: number): Ratelimiter {
@@ -113,7 +118,7 @@ function getRatelimiter(scope: string, limit: number, windowMs: number): Ratelim
   const ratelimiter =
     provider === "unkey"
       ? new Ratelimit({
-          rootKey: process.env.UNKEY_ROOT_KEY!,
+          rootKey: getConfiguredUnkeyRootKey()!,
           namespace,
           limit,
           duration: windowMs,

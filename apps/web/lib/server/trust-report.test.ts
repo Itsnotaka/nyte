@@ -109,4 +109,17 @@ describe("getTrustReport", () => {
     expect(report.audit.recentCount).toBeGreaterThan(0);
     expect(report.audit.latestAction).not.toBeNull();
   });
+
+  it("surfaces warning posture when Unkey root key is not configured", async () => {
+    delete process.env.UNKEY_ROOT_KEY;
+
+    const report = await getTrustReport(new Date("2026-01-20T12:10:00.000Z"));
+
+    expect(report.security.rateLimitProvider).toBe("memory");
+    expect(report.security.unkeyRateLimitConfigured).toBe(false);
+    expect(report.posture.status).toBe("warning");
+    expect(report.posture.warnings).toContain(
+      "UNKEY_ROOT_KEY is not configured; using in-process fallback rate limiter.",
+    );
+  });
 });

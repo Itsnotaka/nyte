@@ -112,5 +112,5 @@ Focused local test runs are also available:
 
 ## Runtime environment notes
 
-- `UNKEY_ROOT_KEY` enables the Unkey-backed global rate limiter path.
+- `UNKEY_ROOT_KEY` enables the Unkey-backed global rate limiter path (whitespace-only values are treated as unset).
 - Without `UNKEY_ROOT_KEY`, the app uses a deterministic in-process limiter fallback for local development and test runs.

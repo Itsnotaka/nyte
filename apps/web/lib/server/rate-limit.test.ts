@@ -126,4 +126,11 @@ describe("rateLimitRequest", () => {
     expect(getRateLimitProvider()).toBe("unkey");
     expect(isUnkeyRateLimitConfigured()).toBe(true);
   });
+
+  it("treats whitespace-only root key as not configured", () => {
+    process.env.UNKEY_ROOT_KEY = "   ";
+
+    expect(getRateLimitProvider()).toBe("memory");
+    expect(isUnkeyRateLimitConfigured()).toBe(false);
+  });
 });

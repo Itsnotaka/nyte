@@ -71,6 +71,8 @@ describe("GET /api/admin/trust", () => {
       };
       security: {
         authzEnforced: boolean;
+        rateLimitProvider: "unkey" | "memory";
+        unkeyRateLimitConfigured: boolean;
       };
     };
 
@@ -78,6 +80,8 @@ describe("GET /api/admin/trust", () => {
     expect(body.generatedAt).toBeTruthy();
     expect(["ok", "warning"]).toContain(body.posture.status);
     expect(typeof body.security.authzEnforced).toBe("boolean");
+    expect(["unkey", "memory"]).toContain(body.security.rateLimitProvider);
+    expect(typeof body.security.unkeyRateLimitConfigured).toBe("boolean");
   });
 
   it("returns 429 when trust read limit is exceeded", async () => {
