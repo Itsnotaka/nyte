@@ -16,13 +16,15 @@ export class RateLimitError extends Error {
 }
 
 function getClientAddress(request: Request) {
-  const forwarded = request.headers.get("x-forwarded-for");
-  if (forwarded) {
-    return forwarded.split(",")[0]?.trim() ?? "unknown";
+  const forwarded = request.headers.get("x-forwarded-for")?.split(",") ?? [];
+  const forwardedAddress = forwarded.map((entry) => entry.trim()).find(Boolean);
+  if (forwardedAddress) {
+    return forwardedAddress;
   }
 
-  const realIp = request.headers.get("x-real-ip");
-  return realIp ?? "unknown";
+  const realIp = request.headers.get("x-real-ip")?.split(",") ?? [];
+  const realIpAddress = realIp.map((entry) => entry.trim()).find(Boolean);
+  return realIpAddress ?? "unknown";
 }
 
 type RateLimitOptions = {
