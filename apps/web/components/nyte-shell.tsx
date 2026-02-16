@@ -144,6 +144,14 @@ type WorkflowPruneResponse = {
   triggeredBy: "manual" | "auto";
 };
 
+type TrustReportResponse = {
+  generatedAt: string;
+  watchRuleCount: number;
+  retention: WorkflowRetentionResponse;
+  googleConnection: GoogleConnectionResponse;
+  metrics: MetricsResponse;
+};
+
 type WorkflowTimelineResponse = {
   itemId: string;
   timeline: Array<{
@@ -244,6 +252,9 @@ export function NyteShell() {
   const [isRetentionLoading, setIsRetentionLoading] = React.useState(false);
   const [retentionError, setRetentionError] = React.useState<string | null>(null);
   const [pruneResult, setPruneResult] = React.useState<WorkflowPruneResponse | null>(null);
+  const [trustReport, setTrustReport] = React.useState<TrustReportResponse | null>(null);
+  const [isTrustReportLoading, setIsTrustReportLoading] = React.useState(false);
+  const [trustReportError, setTrustReportError] = React.useState<string | null>(null);
   const [activeItem, setActiveItem] = React.useState<WorkItemWithAction | null>(
     queueItems.at(0) ?? null,
   );
@@ -384,6 +395,24 @@ export function NyteShell() {
     }
   }, []);
 
+  const refreshTrustReport = React.useCallback(async () => {
+    setTrustReportError(null);
+    setIsTrustReportLoading(true);
+    try {
+      const response = await fetch("/api/admin/trust");
+      if (!response.ok) {
+        throw new Error("Unable to load trust report.");
+      }
+
+      const payload = (await response.json()) as TrustReportResponse;
+      setTrustReport(payload);
+    } catch (error) {
+      setTrustReportError(error instanceof Error ? error.message : "Unable to load trust report.");
+    } finally {
+      setIsTrustReportLoading(false);
+    }
+  }, []);
+
   const openItem = React.useCallback((item: WorkItemWithAction) => {
     setActionError(null);
     setActiveItem(item);
@@ -473,13 +502,14 @@ export function NyteShell() {
         }
         await refreshDashboard();
         await refreshMetrics();
+        await refreshTrustReport();
       } catch (error) {
         setActionError(error instanceof Error ? error.message : "Unable to dismiss item.");
       } finally {
         setIsDismissingId(null);
       }
     },
-    [activeItem?.id, closeDrawer, refreshDashboard, refreshMetrics],
+    [activeItem?.id, closeDrawer, refreshDashboard, refreshMetrics, refreshTrustReport],
   );
 
   const approveActiveItem = React.useCallback(async () => {
@@ -513,12 +543,20 @@ export function NyteShell() {
       closeDrawer();
       await refreshDashboard();
       await refreshMetrics();
+      await refreshTrustReport();
     } catch (error) {
       setActionError(error instanceof Error ? error.message : "Unable to approve action.");
     } finally {
       setIsApproving(false);
     }
-  }, [activeItem, closeDrawer, editableAction, refreshDashboard, refreshMetrics]);
+  }, [
+    activeItem,
+    closeDrawer,
+    editableAction,
+    refreshDashboard,
+    refreshMetrics,
+    refreshTrustReport,
+  ]);
 
   const syncQueue = React.useCallback(async () => {
     setSyncError(null);
@@ -536,12 +574,13 @@ export function NyteShell() {
       setSyncCursor(data.cursor);
       applyDashboard(data);
       await refreshMetrics();
+      await refreshTrustReport();
     } catch (error) {
       setSyncError(error instanceof Error ? error.message : "Unable to sync queue.");
     } finally {
       setIsSyncing(false);
     }
-  }, [applyDashboard, refreshMetrics, syncCursor]);
+  }, [applyDashboard, refreshMetrics, refreshTrustReport, syncCursor]);
 
   React.useEffect(() => {
     void syncQueue();
@@ -549,9 +588,11 @@ export function NyteShell() {
     void refreshWatchRules();
     void refreshGoogleConnection();
     void refreshWorkflowRetention();
+    void refreshTrustReport();
   }, [
     refreshGoogleConnection,
     refreshMetrics,
+    refreshTrustReport,
     refreshWatchRules,
     refreshWorkflowRetention,
     syncQueue,
@@ -572,7 +613,8 @@ export function NyteShell() {
 
     const payload = (await response.json()) as GoogleConnectionResponse;
     setGoogleConnection(payload);
-  }, []);
+    await refreshTrustReport();
+  }, [refreshTrustReport]);
 
   React.useEffect(() => {
     if (!session || googleConnection?.connected) {
@@ -617,12 +659,13 @@ export function NyteShell() {
       setGoogleConnection(payload);
       await authClient.signOut();
       setConnectionNotice("Disconnected Google OAuth and cleared encrypted credentials.");
+      await refreshTrustReport();
     } catch (error) {
       setConnectionError(
         error instanceof Error ? error.message : "Unable to disconnect Google account.",
       );
     }
-  }, []);
+  }, [refreshTrustReport]);
 
   const rotateConnectionSecrets = React.useCallback(async () => {
     setConnectionError(null);
@@ -644,6 +687,7 @@ export function NyteShell() {
           ? "Encrypted connection secrets were re-keyed using current key material."
           : "No connection secrets were found to rotate.",
       );
+      await refreshTrustReport();
     } catch (error) {
       setConnectionError(
         error instanceof Error ? error.message : "Unable to rotate encrypted secrets.",
@@ -651,7 +695,7 @@ export function NyteShell() {
     } finally {
       setIsRotatingConnectionSecrets(false);
     }
-  }, []);
+  }, [refreshTrustReport]);
 
   const addWatchRule = React.useCallback(async () => {
     const normalized = watchRuleInput.trim().toLowerCase();
@@ -678,12 +722,13 @@ export function NyteShell() {
 
       setWatchRuleInput("");
       await refreshWatchRules();
+      await refreshTrustReport();
     } catch (error) {
       setRulesError(error instanceof Error ? error.message : "Unable to add watch rule.");
     } finally {
       setIsRulesLoading(false);
     }
-  }, [refreshWatchRules, watchRuleInput]);
+  }, [refreshTrustReport, refreshWatchRules, watchRuleInput]);
 
   const removeWatchRule = React.useCallback(
     async (rule: string) => {
@@ -705,13 +750,14 @@ export function NyteShell() {
         }
 
         await refreshWatchRules();
+        await refreshTrustReport();
       } catch (error) {
         setRulesError(error instanceof Error ? error.message : "Unable to remove watch rule.");
       } finally {
         setIsRulesLoading(false);
       }
     },
-    [refreshWatchRules],
+    [refreshTrustReport, refreshWatchRules],
   );
 
   const saveWorkflowRetention = React.useCallback(async () => {
@@ -735,6 +781,7 @@ export function NyteShell() {
       const payload = (await response.json()) as WorkflowRetentionResponse;
       setRetentionDays(payload.days);
       setRetentionSource(payload.source);
+      await refreshTrustReport();
     } catch (error) {
       setRetentionError(
         error instanceof Error ? error.message : "Unable to update workflow retention.",
@@ -742,7 +789,7 @@ export function NyteShell() {
     } finally {
       setIsRetentionLoading(false);
     }
-  }, [retentionDays]);
+  }, [refreshTrustReport, retentionDays]);
 
   const pruneWorkflowHistoryNow = React.useCallback(async () => {
     setRetentionError(null);
@@ -766,6 +813,7 @@ export function NyteShell() {
       }
       await refreshMetrics();
       await refreshDashboard();
+      await refreshTrustReport();
     } catch (error) {
       setRetentionError(
         error instanceof Error ? error.message : "Unable to prune workflow history.",
@@ -773,7 +821,7 @@ export function NyteShell() {
     } finally {
       setIsRetentionLoading(false);
     }
-  }, [refreshDashboard, refreshMetrics]);
+  }, [refreshDashboard, refreshMetrics, refreshTrustReport]);
 
   const submitFeedback = React.useCallback(
     async (itemId: string, rating: "positive" | "negative") => {
@@ -803,6 +851,7 @@ export function NyteShell() {
         (await response.json()) as FeedbackResponse;
         await refreshDashboard();
         await refreshMetrics();
+        await refreshTrustReport();
       } catch (error) {
         setActionError(error instanceof Error ? error.message : "Unable to record feedback.");
         await refreshDashboard();
@@ -810,7 +859,7 @@ export function NyteShell() {
         setIsSubmittingFeedbackId(null);
       }
     },
-    [refreshDashboard, refreshMetrics],
+    [refreshDashboard, refreshMetrics, refreshTrustReport],
   );
 
   return (
@@ -1216,6 +1265,47 @@ export function NyteShell() {
                         No watch rules yet. Add one to tighten escalation.
                       </p>
                     )}
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Trust report snapshot</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button
+                        variant="outline"
+                        disabled={isTrustReportLoading}
+                        onClick={() => void refreshTrustReport()}
+                      >
+                        Refresh trust report
+                      </Button>
+                      {trustReport ? (
+                        <Badge variant="secondary">
+                          generated {new Date(trustReport.generatedAt).toLocaleTimeString()}
+                        </Badge>
+                      ) : null}
+                    </div>
+                    {isTrustReportLoading ? (
+                      <p className="text-muted-foreground text-xs">Loading trust report…</p>
+                    ) : null}
+                    {trustReportError ? (
+                      <p className="text-destructive text-xs">{trustReportError}</p>
+                    ) : null}
+                    {trustReport ? (
+                      <div className="bg-muted/40 border-border space-y-1 rounded-lg border px-3 py-2 text-xs">
+                        <p>watch rules: {trustReport.watchRuleCount}</p>
+                        <p>
+                          retention: {trustReport.retention.days} day(s) (
+                          {trustReport.retention.source})
+                        </p>
+                        <p>
+                          google vault:{" "}
+                          {trustReport.googleConnection.connected ? "connected" : "disconnected"}
+                        </p>
+                      </div>
+                    ) : null}
                   </CardContent>
                 </Card>
 
