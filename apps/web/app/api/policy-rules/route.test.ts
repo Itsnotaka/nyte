@@ -127,6 +127,23 @@ describe("policy rules route", () => {
     expect(body.error).toContain("keyword must be a string");
   });
 
+  it("returns 400 when create body is not a JSON object", async () => {
+    const response = await POST(
+      new Request("http://localhost/api/policy-rules", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-forwarded-for": "203.0.113.97",
+        },
+        body: JSON.stringify(["watch_keyword"]),
+      }),
+    );
+    const body = (await response.json()) as { error: string };
+
+    expect(response.status).toBe(400);
+    expect(body.error).toContain("JSON object");
+  });
+
   it("returns 400 for malformed json body", async () => {
     const response = await POST(
       new Request("http://localhost/api/policy-rules", {
@@ -243,6 +260,23 @@ describe("policy rules route", () => {
 
     expect(response.status).toBe(400);
     expect(body.error).toContain("keyword must be a string");
+  });
+
+  it("returns 400 when delete body is not a JSON object", async () => {
+    const response = await DELETE(
+      new Request("http://localhost/api/policy-rules", {
+        method: "DELETE",
+        headers: {
+          "content-type": "application/json",
+          "x-forwarded-for": "203.0.113.98",
+        },
+        body: JSON.stringify(["watch_keyword"]),
+      }),
+    );
+    const body = (await response.json()) as { error: string };
+
+    expect(response.status).toBe(400);
+    expect(body.error).toContain("JSON object");
   });
 
   it("accepts structured +json content-type on delete", async () => {

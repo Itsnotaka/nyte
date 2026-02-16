@@ -187,6 +187,23 @@ describe("google connection route", () => {
     expect(body.error).toContain("providerAccountId must be a string");
   });
 
+  it("returns 400 when request body is not a JSON object", async () => {
+    const response = await POST(
+      new Request("http://localhost/api/connections/google", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-forwarded-for": "198.51.100.97",
+        },
+        body: JSON.stringify(["google-account"]),
+      }),
+    );
+    const body = (await response.json()) as { error: string };
+
+    expect(response.status).toBe(400);
+    expect(body.error).toContain("JSON object");
+  });
+
   it("returns 400 when scopes is not an array", async () => {
     const response = await POST(
       buildRequest("POST", {

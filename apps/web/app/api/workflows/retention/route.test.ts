@@ -139,6 +139,23 @@ describe("workflow retention route", () => {
     expect(body.error).toContain("days must be a number");
   });
 
+  it("returns 400 when request body is not a JSON object", async () => {
+    const response = await POST(
+      new Request("http://localhost/api/workflows/retention", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-forwarded-for": "203.0.113.22",
+        },
+        body: JSON.stringify([14]),
+      }),
+    );
+    const body = (await response.json()) as { error: string };
+
+    expect(response.status).toBe(400);
+    expect(body.error).toContain("JSON object");
+  });
+
   it("rejects fractional retention day values", async () => {
     const response = await POST(
       buildRequest("http://localhost/api/workflows/retention", {

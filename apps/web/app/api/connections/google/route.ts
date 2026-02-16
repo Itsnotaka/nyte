@@ -6,6 +6,7 @@ import {
 import { AuthorizationError, requireAuthorizedSession } from "@/lib/server/authz";
 import {
   InvalidJsonBodyError,
+  isJsonObject,
   readOptionalJsonBody,
   UnsupportedMediaTypeError,
 } from "@/lib/server/json-body";
@@ -164,9 +165,9 @@ export async function POST(request: Request) {
     }
   }
 
-  let body: ConnectBody;
+  let rawBody: unknown;
   try {
-    body = await readOptionalJsonBody<ConnectBody>(request, {});
+    rawBody = await readOptionalJsonBody<unknown>(request, {});
   } catch (error) {
     if (error instanceof UnsupportedMediaTypeError) {
       return Response.json({ error: error.message }, { status: 415 });
@@ -177,6 +178,11 @@ export async function POST(request: Request) {
     }
     throw error;
   }
+  if (!isJsonObject(rawBody)) {
+    return Response.json({ error: "Request body must be a JSON object." }, { status: 400 });
+  }
+
+  const body = rawBody as ConnectBody;
   const normalizedBody = normalizeConnectBody(body);
   if ("error" in normalizedBody) {
     return Response.json({ error: normalizedBody.error }, { status: 400 });

@@ -131,6 +131,23 @@ describe("POST /api/feedback", () => {
     expect(body.error).toContain("itemId must be a string");
   });
 
+  it("returns 400 when request body is not a JSON object", async () => {
+    const response = await POST(
+      new Request("http://localhost/api/feedback", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-forwarded-for": "192.0.2.49",
+        },
+        body: JSON.stringify(["w_renewal", "positive"]),
+      }),
+    );
+    const body = (await response.json()) as { error: string };
+
+    expect(response.status).toBe(400);
+    expect(body.error).toContain("JSON object");
+  });
+
   it("returns 400 for malformed json body", async () => {
     const response = await POST(
       new Request("http://localhost/api/feedback", {

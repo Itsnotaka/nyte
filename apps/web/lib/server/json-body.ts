@@ -12,6 +12,10 @@ export class UnsupportedMediaTypeError extends Error {
   }
 }
 
+export function isJsonObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 function isJsonContentType(request: Request) {
   const contentType = request.headers.get("content-type");
   if (typeof contentType !== "string") {

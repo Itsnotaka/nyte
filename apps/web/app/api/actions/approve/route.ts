@@ -2,6 +2,7 @@ import { ApprovalError, approveWorkItem } from "@/lib/server/approve-action";
 import { AuthorizationError, requireAuthorizedSession } from "@/lib/server/authz";
 import {
   InvalidJsonBodyError,
+  isJsonObject,
   readJsonBody,
   UnsupportedMediaTypeError,
 } from "@/lib/server/json-body";
@@ -74,9 +75,9 @@ export async function POST(request: Request) {
     }
   }
 
-  let body: ApproveBody;
+  let rawBody: unknown;
   try {
-    body = await readJsonBody<ApproveBody>(request);
+    rawBody = await readJsonBody<unknown>(request);
   } catch (error) {
     if (error instanceof UnsupportedMediaTypeError) {
       return Response.json({ error: error.message }, { status: 415 });
@@ -87,6 +88,11 @@ export async function POST(request: Request) {
     }
     throw error;
   }
+  if (!isJsonObject(rawBody)) {
+    return Response.json({ error: "Request body must be a JSON object." }, { status: 400 });
+  }
+
+  const body = rawBody as ApproveBody;
   const normalized = normalizeApproveBody(body);
   if ("error" in normalized) {
     return Response.json({ error: normalized.error }, { status: 400 });
