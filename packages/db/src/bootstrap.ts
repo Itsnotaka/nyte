@@ -121,6 +121,18 @@ async function runBootstrap() {
   `);
 
   await db.run(sql`
+    CREATE TABLE IF NOT EXISTS audit_logs (
+      id TEXT PRIMARY KEY NOT NULL,
+      user_id TEXT,
+      action TEXT NOT NULL,
+      target_type TEXT NOT NULL,
+      target_id TEXT NOT NULL,
+      payload_json TEXT NOT NULL,
+      created_at INTEGER NOT NULL
+    )
+  `);
+
+  await db.run(sql`
     CREATE TABLE IF NOT EXISTS workflow_events (
       id TEXT PRIMARY KEY NOT NULL,
       run_id TEXT NOT NULL,

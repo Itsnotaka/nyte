@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
 import { db, ensureDbSchema, proposedActions, workItems } from "@workspace/db";
+import { recordAuditLog } from "./audit-log";
 import { recordWorkflowRun } from "./workflow-log";
 
 export class DismissError extends Error {
@@ -21,6 +22,14 @@ export async function dismissWorkItem(itemId: string, now = new Date()) {
     throw new DismissError("Completed work item cannot be dismissed.");
   }
   if (item.status === "dismissed") {
+    await recordAuditLog({
+      userId: item.userId,
+      action: "action.dismiss.idempotent",
+      targetType: "work_item",
+      targetId: itemId,
+      payload: {},
+      now,
+    });
     return {
       itemId,
       status: "dismissed" as const,
@@ -60,6 +69,16 @@ export async function dismissWorkItem(itemId: string, now = new Date()) {
           },
         },
       ],
+    });
+
+    await recordAuditLog({
+      userId: item.userId,
+      action: "action.dismiss",
+      targetType: "work_item",
+      targetId: itemId,
+      payload: {},
+      now,
+      executor: tx,
     });
   });
 

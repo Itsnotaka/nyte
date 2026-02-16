@@ -29,6 +29,7 @@ This checklist documents current security controls and remaining hardening tasks
 ## Auditability + trust
 
 - [x] Workflow runs/events persisted for ingest, approve, dismiss, and feedback phases.
+- [x] Sensitive mutations emit persistent audit log entries (`audit_logs` + `/api/admin/audit`).
 - [x] Processed item feedback captured and available for metrics.
 - [x] Supervisor metrics exposed via API and surfaced in rules view.
 

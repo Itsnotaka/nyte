@@ -5,6 +5,7 @@ import { getWorkflowRetentionDays } from "./workflow-retention";
 import { shouldEnforceAuthz } from "./authz";
 import { getBetterAuthSecret, getTokenEncryptionKeySource } from "./runtime-secrets";
 import { evaluateSecurityPosture, type SecurityPosture } from "./security-posture";
+import { listAuditLogs } from "./audit-log";
 
 export type TrustReport = {
   generatedAt: string;
@@ -22,16 +23,21 @@ export type TrustReport = {
     hasPreviousTokenKey: boolean;
   };
   posture: SecurityPosture;
+  audit: {
+    recentCount: number;
+    latestAction: string | null;
+  };
 };
 
 export async function getTrustReport(now = new Date()): Promise<TrustReport> {
   const betterAuthSecret = getBetterAuthSecret();
   const tokenEncryptionKeySource = getTokenEncryptionKeySource();
-  const [metrics, retention, watchRules, googleConnection] = await Promise.all([
+  const [metrics, retention, watchRules, googleConnection, recentAuditLogs] = await Promise.all([
     getMetricsSnapshot(now),
     getWorkflowRetentionDays(),
     listWatchKeywords(),
     getGoogleConnectionStatus(),
+    listAuditLogs(25),
   ]);
 
   const report = {
@@ -48,6 +54,10 @@ export async function getTrustReport(now = new Date()): Promise<TrustReport> {
       tokenEncryptionKeyConfigured: Boolean(process.env.NYTE_TOKEN_ENCRYPTION_KEY),
       tokenEncryptionKeySource,
       hasPreviousTokenKey: Boolean(process.env.NYTE_TOKEN_ENCRYPTION_KEY_PREVIOUS),
+    },
+    audit: {
+      recentCount: recentAuditLogs.length,
+      latestAction: recentAuditLogs[0]?.action ?? null,
     },
   };
 

@@ -1,5 +1,6 @@
 import { and, desc, eq } from "drizzle-orm";
 import { db, ensureDbSchema, policyRules, users } from "@workspace/db";
+import { recordAuditLog } from "./audit-log";
 
 const DEFAULT_USER_ID = "local-user";
 const DEFAULT_USER_EMAIL = "local-user@nyte.dev";
@@ -73,6 +74,17 @@ export async function addWatchKeyword(keyword: string, now = new Date()) {
       },
     });
 
+  await recordAuditLog({
+    userId: DEFAULT_USER_ID,
+    action: "policy.watch-keyword.added",
+    targetType: "policy_rule",
+    targetId: `watch:${normalized}`,
+    payload: {
+      keyword: normalized,
+    },
+    now,
+  });
+
   return normalized;
 }
 
@@ -85,5 +97,14 @@ export async function removeWatchKeyword(keyword: string) {
   }
 
   await db.delete(policyRules).where(eq(policyRules.id, `watch:${normalized}`));
+  await recordAuditLog({
+    userId: DEFAULT_USER_ID,
+    action: "policy.watch-keyword.removed",
+    targetType: "policy_rule",
+    targetId: `watch:${normalized}`,
+    payload: {
+      keyword: normalized,
+    },
+  });
   return normalized;
 }

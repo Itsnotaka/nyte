@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import {
+  auditLogs,
   calendarEvents,
   connectedAccounts,
   db,
@@ -24,6 +25,7 @@ async function resetDb() {
   await db.delete(feedbackEntries);
   await db.delete(workflowEvents);
   await db.delete(workflowRuns);
+  await db.delete(auditLogs);
   await db.delete(proposedActions);
   await db.delete(gateEvaluations);
   await db.delete(policyRules);

@@ -10,6 +10,7 @@ import {
 
 import { type ToolCallPayload } from "../domain/actions";
 import { executeProposedAction } from "../domain/execution";
+import { recordAuditLog } from "./audit-log";
 import { recordWorkflowRun } from "./workflow-log";
 
 export class ApprovalError extends Error {
@@ -118,6 +119,16 @@ export async function approveWorkItem(itemId: string, now = new Date(), idempote
       workItem.updatedAt,
       idempotencyKey,
     );
+    await recordAuditLog({
+      userId: workItem.userId,
+      action: "action.approve.idempotent",
+      targetType: "work_item",
+      targetId: itemId,
+      payload: {
+        idempotencyKey: execution.idempotencyKey,
+      },
+      now,
+    });
     return {
       itemId,
       payload,
@@ -216,6 +227,20 @@ export async function approveWorkItem(itemId: string, now = new Date(), idempote
           },
         },
       ],
+    });
+
+    await recordAuditLog({
+      userId: workItem.userId,
+      action: "action.approve",
+      targetType: "work_item",
+      targetId: itemId,
+      payload: {
+        destination: execution.destination,
+        providerReference: execution.providerReference,
+        idempotencyKey: execution.idempotencyKey,
+      },
+      now,
+      executor: tx,
     });
   });
 

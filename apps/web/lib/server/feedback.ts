@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
 import { db, ensureDbSchema, feedbackEntries, workItems } from "@workspace/db";
+import { recordAuditLog } from "./audit-log";
 import { recordWorkflowRun } from "./workflow-log";
 
 export type FeedbackRating = "positive" | "negative";
@@ -64,6 +65,18 @@ export async function recordFeedback(
           },
         },
       ],
+    });
+
+    await recordAuditLog({
+      userId: item.userId,
+      action: "feedback.recorded",
+      targetType: "work_item",
+      targetId: itemId,
+      payload: {
+        rating,
+      },
+      now,
+      executor: tx,
     });
   });
 

@@ -162,6 +162,10 @@ type TrustReportResponse = {
     status: "ok" | "warning";
     warnings: string[];
   };
+  audit: {
+    recentCount: number;
+    latestAction: string | null;
+  };
 };
 
 type WorkflowTimelineResponse = {
@@ -1334,6 +1338,8 @@ export function NyteShell() {
                           previous token key available:{" "}
                           {trustReport.security.hasPreviousTokenKey ? "yes" : "no"}
                         </p>
+                        <p>recent audit events: {trustReport.audit.recentCount}</p>
+                        <p>latest audit action: {trustReport.audit.latestAction ?? "none"}</p>
                         {trustReport.posture.warnings.length > 0 ? (
                           <div className="space-y-1">
                             <p className="font-medium">warnings</p>

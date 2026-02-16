@@ -3,6 +3,7 @@ import { connectedAccounts, db, ensureDbSchema, users } from "@workspace/db";
 import { randomUUID } from "node:crypto";
 
 import { decryptSecret, encryptSecret } from "./token-crypto";
+import { recordAuditLog } from "./audit-log";
 
 const DEFAULT_USER_ID = "local-user";
 const DEFAULT_USER_EMAIL = "local-user@nyte.dev";
@@ -124,12 +125,31 @@ export async function upsertGoogleConnection(
       },
     });
 
+  await recordAuditLog({
+    userId: DEFAULT_USER_ID,
+    action: "connection.google.upserted",
+    targetType: "connection",
+    targetId: "google",
+    payload: {
+      providerAccountId,
+      scopeCount: scopes.length,
+    },
+    now,
+  });
+
   return getGoogleConnectionStatus();
 }
 
 export async function disconnectGoogleConnection() {
   await ensureDbSchema();
   await db.delete(connectedAccounts).where(eq(connectedAccounts.id, "connection:google"));
+  await recordAuditLog({
+    userId: DEFAULT_USER_ID,
+    action: "connection.google.disconnected",
+    targetType: "connection",
+    targetId: "google",
+    payload: {},
+  });
   return getGoogleConnectionStatus();
 }
 
@@ -142,6 +162,16 @@ export async function rotateGoogleConnectionSecrets(now = new Date()) {
     .limit(1);
   const row = rows.at(0);
   if (!row) {
+    await recordAuditLog({
+      userId: DEFAULT_USER_ID,
+      action: "connection.google.rotate-skipped",
+      targetType: "connection",
+      targetId: "google",
+      payload: {
+        reason: "not_connected",
+      },
+      now,
+    });
     return {
       rotated: false as const,
       status: await getGoogleConnectionStatus(),
@@ -159,6 +189,15 @@ export async function rotateGoogleConnectionSecrets(now = new Date()) {
       updatedAt: now,
     })
     .where(eq(connectedAccounts.id, row.id));
+
+  await recordAuditLog({
+    userId: DEFAULT_USER_ID,
+    action: "connection.google.rotated",
+    targetType: "connection",
+    targetId: "google",
+    payload: {},
+    now,
+  });
 
   return {
     rotated: true as const,

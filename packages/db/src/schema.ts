@@ -94,6 +94,16 @@ export const policyRules = sqliteTable("policy_rules", {
   updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
 });
 
+export const auditLogs = sqliteTable("audit_logs", {
+  id: text("id").primaryKey(),
+  userId: text("user_id"),
+  action: text("action").notNull(),
+  targetType: text("target_type").notNull(),
+  targetId: text("target_id").notNull(),
+  payloadJson: text("payload_json").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+});
+
 export const workflowRuns = sqliteTable("workflow_runs", {
   id: text("id").primaryKey(),
   workItemId: text("work_item_id")

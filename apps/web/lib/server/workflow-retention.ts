@@ -7,6 +7,7 @@ import {
   workflowEvents,
   workflowRuns,
 } from "@workspace/db";
+import { recordAuditLog } from "./audit-log";
 
 const DEFAULT_USER_ID = "local-user";
 const DEFAULT_USER_EMAIL = "local-user@nyte.dev";
@@ -113,6 +114,17 @@ export async function setWorkflowRetentionDays(days: number, now = new Date()) {
       },
     });
 
+  await recordAuditLog({
+    userId: DEFAULT_USER_ID,
+    action: "workflow-retention.updated",
+    targetType: "policy_rule",
+    targetId: RETENTION_RULE_ID,
+    payload: {
+      days: normalized,
+    },
+    now,
+  });
+
   return {
     days: normalized,
     source: "policy" as const,
@@ -134,6 +146,19 @@ export async function pruneWorkflowHistory(now = new Date()) {
     await db.delete(workflowEvents).where(inArray(workflowEvents.runId, staleIds));
     await db.delete(workflowRuns).where(inArray(workflowRuns.id, staleIds));
   }
+
+  await recordAuditLog({
+    userId: DEFAULT_USER_ID,
+    action: "workflow-retention.pruned",
+    targetType: "workflow",
+    targetId: "runs",
+    payload: {
+      prunedRuns: staleIds.length,
+      cutoff: cutoff.toISOString(),
+      retentionDays: retention.days,
+    },
+    now,
+  });
 
   return {
     retentionDays: retention.days,

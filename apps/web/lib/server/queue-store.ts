@@ -10,6 +10,7 @@ import {
 
 import { createToolCallPayload } from "../domain/actions";
 import { evaluateNeedsYou, toWorkItem, type IntakeSignal, type WorkItem } from "../domain/triage";
+import { recordAuditLog } from "./audit-log";
 import { recordWorkflowRun } from "./workflow-log";
 
 const DEFAULT_USER_ID = "local-user";
@@ -121,6 +122,19 @@ async function upsertWorkItem(signal: IntakeSignal, now: Date): Promise<WorkItem
           },
         },
       ],
+    });
+
+    await recordAuditLog({
+      userId: DEFAULT_USER_ID,
+      action: "work-item.ingested",
+      targetType: "work_item",
+      targetId: workItem.id,
+      payload: {
+        source: signal.source,
+        priorityScore: workItem.priorityScore,
+      },
+      now,
+      executor: tx,
     });
   });
 
