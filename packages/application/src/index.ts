@@ -5,3 +5,5 @@ export type ApplicationContext = {
 
 export * from "./dashboard";
 export * from "./metrics";
+export * from "./audit-log";
+export * from "./workflow-log";

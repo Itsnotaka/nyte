@@ -5,8 +5,10 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./audit-log": "./src/audit-log.ts",
     "./dashboard": "./src/dashboard.ts",
-    "./metrics": "./src/metrics.ts"
+    "./metrics": "./src/metrics.ts",
+    "./workflow-log": "./src/workflow-log.ts"
   },
   "scripts": {
     "typecheck": "tsgo --noEmit -p tsconfig.json"
