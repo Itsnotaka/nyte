@@ -168,6 +168,25 @@ describe("policy rules route", () => {
     expect(body.keyword).toBe("structured-json-keyword");
   });
 
+  it("accepts UTF-8 BOM prefixed json payload for create", async () => {
+    const response = await POST(
+      new Request("http://localhost/api/policy-rules", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-forwarded-for": "203.0.113.95",
+        },
+        body: `\ufeff${JSON.stringify({
+          keyword: "bom-keyword",
+        })}`,
+      }),
+    );
+    const body = (await response.json()) as { keyword: string };
+
+    expect(response.status).toBe(200);
+    expect(body.keyword).toBe("bom-keyword");
+  });
+
   it("returns 400 for malformed json body on delete", async () => {
     const response = await DELETE(
       new Request("http://localhost/api/policy-rules", {
@@ -225,6 +244,31 @@ describe("policy rules route", () => {
 
     expect(response.status).toBe(200);
     expect(body.keyword).toBe("structured-delete");
+  });
+
+  it("accepts UTF-8 BOM prefixed json payload on delete", async () => {
+    await POST(
+      buildRequest("http://localhost/api/policy-rules", "POST", {
+        keyword: "bom-delete",
+      }),
+    );
+
+    const response = await DELETE(
+      new Request("http://localhost/api/policy-rules", {
+        method: "DELETE",
+        headers: {
+          "content-type": "application/json",
+          "x-forwarded-for": "203.0.113.96",
+        },
+        body: `\ufeff${JSON.stringify({
+          keyword: "bom-delete",
+        })}`,
+      }),
+    );
+    const body = (await response.json()) as { keyword: string };
+
+    expect(response.status).toBe(200);
+    expect(body.keyword).toBe("bom-delete");
   });
 
   it("returns 429 when mutate rate limit is exceeded", async () => {

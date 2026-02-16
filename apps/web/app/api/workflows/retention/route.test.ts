@@ -160,6 +160,44 @@ describe("workflow retention route", () => {
     expect(body.error).toContain("application/json");
   });
 
+  it("accepts structured +json content-type for updates", async () => {
+    const response = await POST(
+      new Request("http://localhost/api/workflows/retention", {
+        method: "POST",
+        headers: {
+          "content-type": "application/merge-patch+json",
+          "x-forwarded-for": "203.0.113.20",
+        },
+        body: JSON.stringify({
+          days: 14,
+        }),
+      }),
+    );
+    const body = (await response.json()) as { days: number };
+
+    expect(response.status).toBe(200);
+    expect(body.days).toBe(14);
+  });
+
+  it("accepts UTF-8 BOM prefixed json payload for updates", async () => {
+    const response = await POST(
+      new Request("http://localhost/api/workflows/retention", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-forwarded-for": "203.0.113.21",
+        },
+        body: `\ufeff${JSON.stringify({
+          days: 15,
+        })}`,
+      }),
+    );
+    const body = (await response.json()) as { days: number };
+
+    expect(response.status).toBe(200);
+    expect(body.days).toBe(15);
+  });
+
   it("returns 429 when update rate limit is exceeded", async () => {
     let lastResponse: Response | null = null;
     for (let index = 0; index < 21; index += 1) {

@@ -179,6 +179,33 @@ describe("POST /api/feedback", () => {
     expect(body.rating).toBe("positive");
   });
 
+  it("accepts UTF-8 BOM prefixed json payload", async () => {
+    await persistSignals(mockIntakeSignals, new Date("2026-02-10T10:00:00.000Z"));
+    await approveWorkItem("w_renewal", new Date("2026-02-10T10:05:00.000Z"));
+
+    const response = await POST(
+      new Request("http://localhost/api/feedback", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-forwarded-for": "192.0.2.48",
+        },
+        body: `\ufeff${JSON.stringify({
+          itemId: "w_renewal",
+          rating: "positive",
+        })}`,
+      }),
+    );
+    const body = (await response.json()) as {
+      itemId: string;
+      rating: "positive" | "negative";
+    };
+
+    expect(response.status).toBe(200);
+    expect(body.itemId).toBe("w_renewal");
+    expect(body.rating).toBe("positive");
+  });
+
   it("returns 409 for unprocessed item feedback attempt", async () => {
     await persistSignals(mockIntakeSignals, new Date("2026-02-10T10:00:00.000Z"));
 

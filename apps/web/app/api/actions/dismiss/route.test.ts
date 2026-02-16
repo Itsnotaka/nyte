@@ -167,6 +167,31 @@ describe("POST /api/actions/dismiss", () => {
     expect(body.status).toBe("dismissed");
   });
 
+  it("accepts UTF-8 BOM prefixed json payload", async () => {
+    await persistSignals(mockIntakeSignals, new Date("2026-02-10T10:00:00.000Z"));
+
+    const response = await POST(
+      new Request("http://localhost/api/actions/dismiss", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-forwarded-for": "198.51.100.48",
+        },
+        body: `\ufeff${JSON.stringify({
+          itemId: "w_board",
+        })}`,
+      }),
+    );
+    const body = (await response.json()) as {
+      itemId: string;
+      status: string;
+    };
+
+    expect(response.status).toBe(200);
+    expect(body.itemId).toBe("w_board");
+    expect(body.status).toBe("dismissed");
+  });
+
   it("returns idempotent true on repeated dismiss", async () => {
     await persistSignals(mockIntakeSignals, new Date("2026-02-10T10:00:00.000Z"));
 
