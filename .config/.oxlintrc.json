@@ -1,0 +1,13 @@
+{
+  "$schema": "../node_modules/oxlint/configuration_schema.json",
+  "ignorePatterns": [
+    "stylelint.config.mjs",
+    "node_modules/**",
+    ".vercel/**",
+    ".next/**",
+    "out/**"
+  ],
+  "env": {
+    "builtin": true
+  }
+}

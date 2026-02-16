@@ -7,7 +7,8 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "typecheck": "tsgo --noEmit -p tsconfig.json"
+    "typecheck": "tsgo --noEmit",
+    "clean": "rm -rf .turbo .cache node_modules dist"
   },
   "devDependencies": {
     "@nyte/tsconfig": "workspace:*",

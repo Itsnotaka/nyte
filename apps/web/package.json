@@ -8,9 +8,7 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsgo --noEmit",
-    "test": "vitest run",
-    "test:api": "vitest run --dir app/api",
-    "test:server": "vitest run --dir lib/server"
+    "clean": "rm -rf .turbo .cache node_modules dist"
   },
   "dependencies": {
     "@nyte/application": "workspace:^",

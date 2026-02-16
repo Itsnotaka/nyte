@@ -1,12 +1,9 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  transpilePackages: [
-    "@nyte/application",
-    "@nyte/contracts",
-    "@nyte/domain",
-    "@nyte/integrations",
-    "@nyte/ui",
-  ],
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  reactStrictMode: true,
+  typedRoutes: true,
+  transpilePackages: ["@nyte/ui"],
 };
 
 export default nextConfig;

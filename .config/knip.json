@@ -1,0 +1,20 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "ignore": ["src/components/ui/**", "stylelint.config.mjs", "**/*.css"],
+  "ignoreFiles": ["**/env.d.ts"],
+  "ignoreExportsUsedInFile": {
+    "interface": true,
+    "type": true
+  },
+  "ignoreDependencies": ["tailwindcss", "postcss"],
+  "workspaces": {
+    "apps/web": {},
+    "packages/ui": {
+      "ignoreDependencies": ["next-themes"]
+    },
+    "tooling/tailwind": {
+      "ignoreDependencies": ["@tailwindcss/postcss", "postcss"]
+    }
+  },
+  "tags": ["-lintignore"]
+}

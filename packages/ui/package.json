@@ -4,14 +4,13 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./globals.css": "./src/styles/globals.css",
-    "./postcss.config": "./postcss.config.mjs",
+    "./components/*": "./src/components/ui/*.tsx",
     "./lib/*": "./src/lib/*.ts",
-    "./components/*": "./src/components/*.tsx",
     "./hooks/*": "./src/hooks/*.ts"
   },
   "scripts": {
-    "typecheck": "tsgo --noEmit -p tsconfig.lint.json"
+    "typecheck": "tsgo --noEmit",
+    "clean": "rm -rf .turbo .cache node_modules dist"
   },
   "dependencies": {
     "@base-ui/react": "^1.2.0",

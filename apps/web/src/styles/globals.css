@@ -1,0 +1,3 @@
+@import "@nyte/tailwind-config/theme";
+
+@source "../../../../packages/ui/src/components/ui/**.{tsx,ts}";

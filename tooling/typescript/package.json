@@ -1,9 +1,9 @@
 {
   "name": "@nyte/tsconfig",
-  "version": "0.0.0",
   "private": true,
-  "license": "PROPRIETARY",
-  "publishConfig": {
-    "access": "public"
+  "type": "module",
+  "exports": {
+    "./base": "./tsconfig.base.json",
+    "./nextjs": "./tsconfig.nextjs.json"
   }
 }

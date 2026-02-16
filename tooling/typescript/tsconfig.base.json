@@ -1,0 +1,39 @@
+{
+  "compilerOptions": {
+    // Build Performance
+    "incremental": true,
+    // "composite": true,
+    "libReplacement": false,
+    "tsBuildInfoFile": "${configDir}/.cache/tsbuildinfo.json",
+    // Module System
+    "target": "ES2022",
+    "module": "Preserve",
+    "moduleDetection": "force",
+    "lib": ["dom", "dom.iterable", "ES2022"],
+    "isolatedModules": true,
+    // "isolatedDeclarations": true,
+    "erasableSyntaxOnly": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "composite": true,
+    // Import Resolution
+    "verbatimModuleSyntax": true,
+    "rewriteRelativeImportExtensions": true,
+    "allowImportingTsExtensions": true,
+    // Type Safety
+    "strict": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "noUnusedLocals": true,
+    "noImplicitOverride": true,
+    // "exactOptionalPropertyTypes": true,
+    // "noUncheckedIndexedAccess": true,
+    // Development
+    "skipLibCheck": true,
+    "paths": {
+      "~/*": ["./src/*"]
+    }
+  },
+  "include": ["./**/*.ts", "./**/*.tsx"],
+  "exclude": ["./node_modules"]
+}

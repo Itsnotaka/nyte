@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "typecheck": "tsgo --noEmit -p tsconfig.json",
-    "test": "vitest run"
+    "typecheck": "tsgo --noEmit",
+    "clean": "rm -rf .turbo .cache node_modules dist"
   },
   "dependencies": {
     "@nyte/application": "workspace:^",

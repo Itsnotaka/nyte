@@ -1,5 +1,5 @@
 {
-  "extends": "@nyte/tsconfig/base.json",
+  "extends": "@nyte/tsconfig/base",
   "compilerOptions": {
     "module": "ESNext",
     "moduleResolution": "Bundler"

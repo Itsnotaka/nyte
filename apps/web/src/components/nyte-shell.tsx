@@ -1,6 +1,5 @@
 "use client";
 
-import * as React from "react";
 import {
   withToolCalls,
   type GmailCreateDraftToolCall,
@@ -8,7 +7,47 @@ import {
   type WorkItemWithAction,
 } from "@nyte/domain/actions";
 import { mockIntakeSignals } from "@nyte/domain/mock-intake";
-import { createNeedsYouQueue, GATE_LABEL, type WorkItem } from "@nyte/domain/triage";
+import {
+  createNeedsYouQueue,
+  GATE_LABEL,
+  type WorkItem,
+} from "@nyte/domain/triage";
+import { Badge } from "@nyte/ui/components/badge";
+import { Button } from "@nyte/ui/components/button";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@nyte/ui/components/card";
+import { Input } from "@nyte/ui/components/input";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@nyte/ui/components/sheet";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarInset,
+  SidebarMenu,
+  SidebarMenuBadge,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+  SidebarSeparator,
+  SidebarTrigger,
+} from "@nyte/ui/components/sidebar";
+import { Textarea } from "@nyte/ui/components/textarea";
 import {
   BellDotIcon,
   CalendarCheck2Icon,
@@ -28,45 +67,10 @@ import {
   WalletIcon,
 } from "lucide-react";
 import { ResultAsync } from "neverthrow";
+import * as React from "react";
 
 import { authClient } from "~/lib/auth-client";
 import { fetchJsonResult } from "~/lib/client/fetch-json-result";
-import { Badge } from "@nyte/ui/~/components/ui/badge";
-import { Button } from "@nyte/ui/~/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@nyte/ui/~/components/ui/card";
-import { Input } from "@nyte/ui/~/components/ui/input";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from "@nyte/ui/~/components/ui/sheet";
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarInset,
-  SidebarMenu,
-  SidebarMenuBadge,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarProvider,
-  SidebarSeparator,
-  SidebarTrigger,
-} from "@nyte/ui/~/components/ui/sidebar";
-import { Textarea } from "@nyte/ui/~/components/ui/textarea";
 
 const REFERENCE_NOW = new Date("2026-01-20T12:00:00.000Z");
 
@@ -272,26 +276,35 @@ function createAsyncActionError(error: unknown, fallback: string): Error {
 export function NyteShell() {
   const seededItems = React.useMemo(
     () => withToolCalls(createNeedsYouQueue(mockIntakeSignals, REFERENCE_NOW)),
-    [],
+    []
   );
-  const [queueItems, setQueueItems] = React.useState<WorkItemWithAction[]>(seededItems);
+  const [queueItems, setQueueItems] =
+    React.useState<WorkItemWithAction[]>(seededItems);
   const [activeNav, setActiveNav] = React.useState<NavId>("needs-you");
   const [handledIds, setHandledIds] = React.useState<Set<string>>(new Set());
   const [savedDrafts, setSavedDrafts] = React.useState<DraftEntry[]>([]);
   const [activityFeed, setActivityFeed] = React.useState<ActivityEntry[]>([]);
-  const [connectionError, setConnectionError] = React.useState<string | null>(null);
-  const [googleConnection, setGoogleConnection] = React.useState<GoogleConnectionResponse | null>(
-    null,
+  const [connectionError, setConnectionError] = React.useState<string | null>(
+    null
   );
+  const [googleConnection, setGoogleConnection] =
+    React.useState<GoogleConnectionResponse | null>(null);
   const [isConnectionLoading, setIsConnectionLoading] = React.useState(false);
-  const [isRotatingConnectionSecrets, setIsRotatingConnectionSecrets] = React.useState(false);
-  const [connectionNotice, setConnectionNotice] = React.useState<string | null>(null);
+  const [isRotatingConnectionSecrets, setIsRotatingConnectionSecrets] =
+    React.useState(false);
+  const [connectionNotice, setConnectionNotice] = React.useState<string | null>(
+    null
+  );
   const [syncError, setSyncError] = React.useState<string | null>(null);
   const [actionError, setActionError] = React.useState<string | null>(null);
   const [isSyncing, setIsSyncing] = React.useState(false);
   const [isApproving, setIsApproving] = React.useState(false);
-  const [isDismissingId, setIsDismissingId] = React.useState<string | null>(null);
-  const [isSubmittingFeedbackId, setIsSubmittingFeedbackId] = React.useState<string | null>(null);
+  const [isDismissingId, setIsDismissingId] = React.useState<string | null>(
+    null
+  );
+  const [isSubmittingFeedbackId, setIsSubmittingFeedbackId] = React.useState<
+    string | null
+  >(null);
   const [syncCursor, setSyncCursor] = React.useState<string | null>(null);
   const [workflowTimeline, setWorkflowTimeline] = React.useState<
     WorkflowTimelineResponse["timeline"]
@@ -309,26 +322,36 @@ export function NyteShell() {
   const [retentionSource, setRetentionSource] =
     React.useState<WorkflowRetentionResponse["source"]>("default");
   const [isRetentionLoading, setIsRetentionLoading] = React.useState(false);
-  const [retentionError, setRetentionError] = React.useState<string | null>(null);
-  const [pruneResult, setPruneResult] = React.useState<WorkflowPruneResponse | null>(null);
-  const [trustReport, setTrustReport] = React.useState<TrustReportResponse | null>(null);
+  const [retentionError, setRetentionError] = React.useState<string | null>(
+    null
+  );
+  const [pruneResult, setPruneResult] =
+    React.useState<WorkflowPruneResponse | null>(null);
+  const [trustReport, setTrustReport] =
+    React.useState<TrustReportResponse | null>(null);
   const [isTrustReportLoading, setIsTrustReportLoading] = React.useState(false);
-  const [trustReportError, setTrustReportError] = React.useState<string | null>(null);
+  const [trustReportError, setTrustReportError] = React.useState<string | null>(
+    null
+  );
   const [auditLogs, setAuditLogs] = React.useState<AuditLogEntry[]>([]);
   const [auditLogsTotalCount, setAuditLogsTotalCount] = React.useState(0);
   const [isAuditLogsLoading, setIsAuditLogsLoading] = React.useState(false);
-  const [auditLogsError, setAuditLogsError] = React.useState<string | null>(null);
+  const [auditLogsError, setAuditLogsError] = React.useState<string | null>(
+    null
+  );
   const [activeItem, setActiveItem] = React.useState<WorkItemWithAction | null>(
-    queueItems.at(0) ?? null,
+    queueItems.at(0) ?? null
   );
-  const [editableAction, setEditableAction] = React.useState<ToolCallPayload | null>(
-    activeItem ? clonePayload(activeItem.proposedAction) : null,
-  );
-  const { data: session, isPending: isSessionPending } = authClient.useSession();
+  const [editableAction, setEditableAction] =
+    React.useState<ToolCallPayload | null>(
+      activeItem ? clonePayload(activeItem.proposedAction) : null
+    );
+  const { data: session, isPending: isSessionPending } =
+    authClient.useSession();
 
   const needsYouItems = React.useMemo(
     () => queueItems.filter((item) => !handledIds.has(item.id)),
-    [handledIds, queueItems],
+    [handledIds, queueItems]
   );
   const needsYouCount = needsYouItems.length;
   const processedCount = activityFeed.length;
@@ -346,7 +369,7 @@ export function NyteShell() {
                 ? processedCount
                 : undefined,
       })),
-    [needsYouCount, processedCount, savedDrafts.length],
+    [needsYouCount, processedCount, savedDrafts.length]
   );
 
   const applyDashboard = React.useCallback(
@@ -361,18 +384,18 @@ export function NyteShell() {
           return dashboard.needsYou.at(0) ?? null;
         }
 
-        return dashboard.needsYou.find((item) => item.id === current.id) ?? null;
+        return (
+          dashboard.needsYou.find((item) => item.id === current.id) ?? null
+        );
       });
     },
-    [],
+    []
   );
 
   const refreshDashboard = React.useCallback(async () => {
-    const result = await fetchJsonResult<Pick<PollResponse, "needsYou" | "drafts" | "processed">>(
-      "/api/dashboard",
-      undefined,
-      "Unable to refresh dashboard.",
-    );
+    const result = await fetchJsonResult<
+      Pick<PollResponse, "needsYou" | "drafts" | "processed">
+    >("/api/dashboard", undefined, "Unable to refresh dashboard.");
 
     if (result.isOk()) {
       applyDashboard(result.value);
@@ -387,7 +410,7 @@ export function NyteShell() {
     const result = await fetchJsonResult<MetricsResponse>(
       "/api/metrics",
       undefined,
-      "Unable to refresh metrics.",
+      "Unable to refresh metrics."
     );
 
     if (result.isOk()) {
@@ -406,7 +429,7 @@ export function NyteShell() {
     const result = await fetchJsonResult<PolicyRulesResponse>(
       "/api/policy-rules",
       undefined,
-      "Unable to load watch rules.",
+      "Unable to load watch rules."
     );
 
     if (result.isOk()) {
@@ -426,7 +449,7 @@ export function NyteShell() {
     const result = await fetchJsonResult<GoogleConnectionResponse>(
       "/api/connections/google",
       undefined,
-      "Unable to load Google connection.",
+      "Unable to load Google connection."
     );
 
     if (result.isOk()) {
@@ -445,7 +468,7 @@ export function NyteShell() {
     const result = await fetchJsonResult<WorkflowRetentionResponse>(
       "/api/workflows/retention",
       undefined,
-      "Unable to load workflow retention.",
+      "Unable to load workflow retention."
     );
 
     if (result.isOk()) {
@@ -465,7 +488,7 @@ export function NyteShell() {
     const result = await fetchJsonResult<TrustReportResponse>(
       "/api/admin/trust",
       undefined,
-      "Unable to load trust report.",
+      "Unable to load trust report."
     );
 
     if (result.isOk()) {
@@ -479,19 +502,22 @@ export function NyteShell() {
   }, []);
 
   const refreshAuditLogs = React.useCallback(
-    async ({ offset = 0, append = false }: { offset?: number; append?: boolean } = {}) => {
+    async ({
+      offset = 0,
+      append = false,
+    }: { offset?: number; append?: boolean } = {}) => {
       setAuditLogsError(null);
       setIsAuditLogsLoading(true);
       const result = await fetchJsonResult<AuditLogsResponse>(
         `/api/admin/audit?limit=12&offset=${offset}`,
         undefined,
-        "Unable to load audit logs.",
+        "Unable to load audit logs."
       );
 
       if (result.isOk()) {
         setAuditLogsTotalCount(result.value.totalCount);
         setAuditLogs((current) =>
-          append ? [...current, ...result.value.rows] : result.value.rows,
+          append ? [...current, ...result.value.rows] : result.value.rows
         );
       } else {
         setAuditLogsError(result.error.message);
@@ -500,7 +526,7 @@ export function NyteShell() {
       setIsAuditLogsLoading(false);
       return result;
     },
-    [],
+    []
   );
 
   const openItem = React.useCallback((item: WorkItemWithAction) => {
@@ -533,7 +559,7 @@ export function NyteShell() {
       const result = await fetchJsonResult<WorkflowTimelineResponse>(
         `/api/workflows/${activeItem.id}`,
         undefined,
-        "Unable to load workflow timeline.",
+        "Unable to load workflow timeline."
       );
 
       if (!cancelled) {
@@ -573,7 +599,7 @@ export function NyteShell() {
             itemId: item.id,
           }),
         },
-        "Unable to dismiss item.",
+        "Unable to dismiss item."
       );
 
       if (dismissResult.isErr()) {
@@ -607,7 +633,13 @@ export function NyteShell() {
 
       setIsDismissingId(null);
     },
-    [activeItem?.id, closeDrawer, refreshDashboard, refreshMetrics, refreshTrustReport],
+    [
+      activeItem?.id,
+      closeDrawer,
+      refreshDashboard,
+      refreshMetrics,
+      refreshTrustReport,
+    ]
   );
 
   const approveActiveItem = React.useCallback(async () => {
@@ -631,7 +663,7 @@ export function NyteShell() {
           idempotencyKey,
         }),
       },
-      "Unable to approve action.",
+      "Unable to approve action."
     );
 
     if (approveResult.isErr()) {
@@ -680,7 +712,7 @@ export function NyteShell() {
     const result = await fetchJsonResult<PollResponse>(
       url,
       undefined,
-      "Unable to poll mailbox signals.",
+      "Unable to poll mailbox signals."
     );
 
     if (result.isOk()) {
@@ -724,7 +756,7 @@ export function NyteShell() {
         },
         body: JSON.stringify({}),
       },
-      "Unable to persist Google connection.",
+      "Unable to persist Google connection."
     );
 
     if (result.isErr()) {
@@ -770,7 +802,8 @@ export function NyteShell() {
         provider: "google",
         callbackURL: "/",
       }),
-      (error) => createAsyncActionError(error, "Unable to connect Google account."),
+      (error) =>
+        createAsyncActionError(error, "Unable to connect Google account.")
     );
 
     if (result.isErr()) {
@@ -786,7 +819,7 @@ export function NyteShell() {
       {
         method: "DELETE",
       },
-      "Unable to disconnect Google connection.",
+      "Unable to disconnect Google connection."
     );
 
     if (disconnectResult.isErr()) {
@@ -795,15 +828,19 @@ export function NyteShell() {
     }
 
     setGoogleConnection(disconnectResult.value);
-    const signOutResult = await ResultAsync.fromPromise(authClient.signOut(), (error) =>
-      createAsyncActionError(error, "Unable to disconnect Google account."),
+    const signOutResult = await ResultAsync.fromPromise(
+      authClient.signOut(),
+      (error) =>
+        createAsyncActionError(error, "Unable to disconnect Google account.")
     );
     if (signOutResult.isErr()) {
       setConnectionError(signOutResult.error.message);
       return;
     }
 
-    setConnectionNotice("Disconnected Google OAuth and cleared encrypted credentials.");
+    setConnectionNotice(
+      "Disconnected Google OAuth and cleared encrypted credentials."
+    );
     const trustResult = await refreshTrustReport();
     if (trustResult.isErr()) {
       setConnectionError(trustResult.error.message);
@@ -819,7 +856,7 @@ export function NyteShell() {
       {
         method: "POST",
       },
-      "Unable to rotate encrypted secrets.",
+      "Unable to rotate encrypted secrets."
     );
 
     if (rotateResult.isErr()) {
@@ -832,7 +869,7 @@ export function NyteShell() {
     setConnectionNotice(
       rotateResult.value.rotated
         ? "Encrypted connection secrets were re-keyed using current key material."
-        : "No connection secrets were found to rotate.",
+        : "No connection secrets were found to rotate."
     );
     const trustResult = await refreshTrustReport();
     if (trustResult.isErr()) {
@@ -861,7 +898,7 @@ export function NyteShell() {
           keyword: normalized,
         }),
       },
-      "Unable to add watch rule.",
+      "Unable to add watch rule."
     );
 
     if (addResult.isErr()) {
@@ -901,7 +938,7 @@ export function NyteShell() {
             keyword: rule,
           }),
         },
-        "Unable to remove watch rule.",
+        "Unable to remove watch rule."
       );
 
       if (removeResult.isErr()) {
@@ -924,7 +961,7 @@ export function NyteShell() {
 
       setIsRulesLoading(false);
     },
-    [refreshTrustReport, refreshWatchRules],
+    [refreshTrustReport, refreshWatchRules]
   );
 
   const saveWorkflowRetention = React.useCallback(async () => {
@@ -941,7 +978,7 @@ export function NyteShell() {
           days: retentionDays,
         }),
       },
-      "Unable to update workflow retention.",
+      "Unable to update workflow retention."
     );
 
     if (saveResult.isErr()) {
@@ -968,7 +1005,7 @@ export function NyteShell() {
       {
         method: "POST",
       },
-      "Unable to prune workflow history.",
+      "Unable to prune workflow history."
     );
 
     if (pruneResult.isErr()) {
@@ -1012,7 +1049,9 @@ export function NyteShell() {
       setActionError(null);
       setIsSubmittingFeedbackId(itemId);
       setActivityFeed((current) =>
-        current.map((entry) => (entry.itemId === itemId ? { ...entry, feedback: rating } : entry)),
+        current.map((entry) =>
+          entry.itemId === itemId ? { ...entry, feedback: rating } : entry
+        )
       );
 
       const feedbackResult = await fetchJsonResult<FeedbackResponse>(
@@ -1027,7 +1066,7 @@ export function NyteShell() {
             rating,
           }),
         },
-        "Unable to record feedback.",
+        "Unable to record feedback."
       );
 
       if (feedbackResult.isErr()) {
@@ -1058,7 +1097,7 @@ export function NyteShell() {
 
       setIsSubmittingFeedbackId(null);
     },
-    [refreshDashboard, refreshMetrics, refreshTrustReport],
+    [refreshDashboard, refreshMetrics, refreshTrustReport]
   );
 
   return (
@@ -1102,13 +1141,16 @@ export function NyteShell() {
           </SidebarGroup>
         </SidebarContent>
         <SidebarFooter>
-          <Card size="sm" className="bg-sidebar-accent/60 border-sidebar-border gap-2">
+          <Card
+            size="sm"
+            className="bg-sidebar-accent/60 border-sidebar-border gap-2"
+          >
             <CardHeader className="pb-0">
               <CardTitle className="text-sm">v1 policy</CardTitle>
             </CardHeader>
             <CardContent className="text-sidebar-foreground/80 text-xs">
-              Email is read-only + draft-only. Calendar creates events only after your explicit
-              approval.
+              Email is read-only + draft-only. Calendar creates events only
+              after your explicit approval.
             </CardContent>
           </Card>
         </SidebarFooter>
@@ -1120,7 +1162,11 @@ export function NyteShell() {
             <div className="w-full space-y-2">
               <div className="flex items-center gap-2">
                 <Input defaultValue="Gmail draft an email to our largest customer about the renewal timeline and next steps" />
-                <Button variant="outline" onClick={() => void syncQueue()} disabled={isSyncing}>
+                <Button
+                  variant="outline"
+                  onClick={() => void syncQueue()}
+                  disabled={isSyncing}
+                >
                   <RefreshCwIcon className={isSyncing ? "animate-spin" : ""} />
                   Sync
                 </Button>
@@ -1131,7 +1177,9 @@ export function NyteShell() {
                 <Badge variant="secondary">Gmail</Badge>
                 <Badge variant="secondary">Calendar</Badge>
               </div>
-              {syncError ? <p className="text-destructive text-xs">{syncError}</p> : null}
+              {syncError ? (
+                <p className="text-destructive text-xs">{syncError}</p>
+              ) : null}
             </div>
           </header>
           <ToolIntentLegend />
@@ -1144,7 +1192,8 @@ export function NyteShell() {
                     <CardTitle>All clear</CardTitle>
                   </CardHeader>
                   <CardContent className="text-muted-foreground text-sm">
-                    No work items are currently passing the strict needs-you gates.
+                    No work items are currently passing the strict needs-you
+                    gates.
                   </CardContent>
                 </Card>
               ) : (
@@ -1153,9 +1202,13 @@ export function NyteShell() {
                     <CardHeader>
                       <CardTitle className="flex flex-wrap items-center gap-2 text-base">
                         <Badge variant="outline">{item.actor}</Badge>
-                        <span className="text-muted-foreground text-sm">from {item.source}</span>
+                        <span className="text-muted-foreground text-sm">
+                          from {item.source}
+                        </span>
                       </CardTitle>
-                      <p className="text-muted-foreground text-sm">{item.summary}</p>
+                      <p className="text-muted-foreground text-sm">
+                        {item.summary}
+                      </p>
                     </CardHeader>
                     <CardContent className="space-y-3">
                       <p className="text-sm">{item.context}</p>
@@ -1209,7 +1262,8 @@ export function NyteShell() {
                     <CardTitle>No saved drafts yet</CardTitle>
                   </CardHeader>
                   <CardContent className="text-muted-foreground text-sm">
-                    Approving a draft action immediately saves it to Gmail Drafts.
+                    Approving a draft action immediately saves it to Gmail
+                    Drafts.
                   </CardContent>
                 </Card>
               ) : (
@@ -1218,13 +1272,19 @@ export function NyteShell() {
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2 text-base">
                         <Badge>{draft.actor}</Badge>
-                        <span className="text-muted-foreground text-sm">gmail draft</span>
+                        <span className="text-muted-foreground text-sm">
+                          gmail draft
+                        </span>
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-2">
                       <p className="text-sm">{draft.subject}</p>
-                      <p className="text-muted-foreground text-xs">to {draft.to.join(", ")}</p>
-                      <p className="text-muted-foreground line-clamp-2 text-xs">{draft.body}</p>
+                      <p className="text-muted-foreground text-xs">
+                        to {draft.to.join(", ")}
+                      </p>
+                      <p className="text-muted-foreground line-clamp-2 text-xs">
+                        {draft.body}
+                      </p>
                     </CardContent>
                   </Card>
                 ))
@@ -1238,7 +1298,8 @@ export function NyteShell() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <p className="text-muted-foreground text-sm">
-                    {processedCount} items were processed from the triage queue this session.
+                    {processedCount} items were processed from the triage queue
+                    this session.
                   </p>
                   {activityFeed.length > 0 ? (
                     <div className="space-y-2">
@@ -1250,7 +1311,11 @@ export function NyteShell() {
                           <div className="flex items-center justify-between gap-2 text-sm">
                             <div className="flex items-center gap-2">
                               <Badge
-                                variant={entry.status === "executed" ? "secondary" : "outline"}
+                                variant={
+                                  entry.status === "executed"
+                                    ? "secondary"
+                                    : "outline"
+                                }
                               >
                                 {entry.status}
                               </Badge>
@@ -1259,23 +1324,41 @@ export function NyteShell() {
                             <div className="flex items-center gap-1">
                               <Button
                                 size="sm"
-                                variant={entry.feedback === "positive" ? "secondary" : "outline"}
-                                disabled={isSubmittingFeedbackId === entry.itemId}
-                                onClick={() => void submitFeedback(entry.itemId, "positive")}
+                                variant={
+                                  entry.feedback === "positive"
+                                    ? "secondary"
+                                    : "outline"
+                                }
+                                disabled={
+                                  isSubmittingFeedbackId === entry.itemId
+                                }
+                                onClick={() =>
+                                  void submitFeedback(entry.itemId, "positive")
+                                }
                               >
                                 <ThumbsUpIcon />
                               </Button>
                               <Button
                                 size="sm"
-                                variant={entry.feedback === "negative" ? "secondary" : "outline"}
-                                disabled={isSubmittingFeedbackId === entry.itemId}
-                                onClick={() => void submitFeedback(entry.itemId, "negative")}
+                                variant={
+                                  entry.feedback === "negative"
+                                    ? "secondary"
+                                    : "outline"
+                                }
+                                disabled={
+                                  isSubmittingFeedbackId === entry.itemId
+                                }
+                                onClick={() =>
+                                  void submitFeedback(entry.itemId, "negative")
+                                }
                               >
                                 <ThumbsDownIcon />
                               </Button>
                             </div>
                           </div>
-                          <p className="text-muted-foreground mt-1 text-xs">{entry.detail}</p>
+                          <p className="text-muted-foreground mt-1 text-xs">
+                            {entry.detail}
+                          </p>
                         </div>
                       ))}
                     </div>
@@ -1295,14 +1378,21 @@ export function NyteShell() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <p className="text-muted-foreground text-sm">
-                    Google auth is configured for Gmail (read + draft) and Calendar event creation.
-                    Connection credentials are persisted server-side with encrypted token storage.
+                    Google auth is configured for Gmail (read + draft) and
+                    Calendar event creation. Connection credentials are
+                    persisted server-side with encrypted token storage.
                   </p>
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge variant={session ? "secondary" : "outline"}>
-                      {session ? "OAuth session active" : "OAuth session inactive"}
+                      {session
+                        ? "OAuth session active"
+                        : "OAuth session inactive"}
                     </Badge>
-                    <Badge variant={googleConnection?.connected ? "secondary" : "outline"}>
+                    <Badge
+                      variant={
+                        googleConnection?.connected ? "secondary" : "outline"
+                      }
+                    >
                       {googleConnection?.connected
                         ? "Token vault connected"
                         : "Token vault inactive"}
@@ -1322,17 +1412,24 @@ export function NyteShell() {
                     </Button>
                     <Button
                       variant="outline"
-                      disabled={isRotatingConnectionSecrets || !googleConnection?.connected}
+                      disabled={
+                        isRotatingConnectionSecrets ||
+                        !googleConnection?.connected
+                      }
                       onClick={() => void rotateConnectionSecrets()}
                     >
                       Rotate encrypted secrets
                     </Button>
                   </div>
                   {isConnectionLoading ? (
-                    <p className="text-muted-foreground text-xs">Refreshing connection status…</p>
+                    <p className="text-muted-foreground text-xs">
+                      Refreshing connection status…
+                    </p>
                   ) : null}
                   {isRotatingConnectionSecrets ? (
-                    <p className="text-muted-foreground text-xs">Rotating encrypted secrets…</p>
+                    <p className="text-muted-foreground text-xs">
+                      Rotating encrypted secrets…
+                    </p>
                   ) : null}
                   {googleConnection?.connected ? (
                     <div className="bg-muted/40 border-border rounded-lg border px-3 py-2 text-xs">
@@ -1345,10 +1442,14 @@ export function NyteShell() {
                     </div>
                   ) : null}
                   {connectionError ? (
-                    <p className="text-destructive text-xs">{connectionError}</p>
+                    <p className="text-destructive text-xs">
+                      {connectionError}
+                    </p>
                   ) : null}
                   {connectionNotice ? (
-                    <p className="text-muted-foreground text-xs">{connectionNotice}</p>
+                    <p className="text-muted-foreground text-xs">
+                      {connectionNotice}
+                    </p>
                   ) : null}
                 </CardContent>
               </Card>
@@ -1362,39 +1463,61 @@ export function NyteShell() {
                   </CardHeader>
                   <CardContent className="space-y-3">
                     {isMetricsLoading ? (
-                      <p className="text-muted-foreground text-sm">Loading metrics…</p>
+                      <p className="text-muted-foreground text-sm">
+                        Loading metrics…
+                      </p>
                     ) : metricsError ? (
                       <p className="text-destructive text-sm">{metricsError}</p>
                     ) : metrics ? (
                       <>
                         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                           <div className="bg-muted/40 border-border rounded-lg border px-3 py-2">
-                            <p className="text-muted-foreground text-xs">Interruption precision</p>
+                            <p className="text-muted-foreground text-xs">
+                              Interruption precision
+                            </p>
                             <p className="text-lg font-semibold">
                               {metrics.interruptionPrecision}%
                             </p>
                           </div>
                           <div className="bg-muted/40 border-border rounded-lg border px-3 py-2">
-                            <p className="text-muted-foreground text-xs">Approval rate</p>
-                            <p className="text-lg font-semibold">{metrics.approvalRate}%</p>
+                            <p className="text-muted-foreground text-xs">
+                              Approval rate
+                            </p>
+                            <p className="text-lg font-semibold">
+                              {metrics.approvalRate}%
+                            </p>
                           </div>
                           <div className="bg-muted/40 border-border rounded-lg border px-3 py-2">
-                            <p className="text-muted-foreground text-xs">Median decision time</p>
+                            <p className="text-muted-foreground text-xs">
+                              Median decision time
+                            </p>
                             <p className="text-lg font-semibold">
                               {metrics.medianDecisionMinutes} min
                             </p>
                           </div>
                           <div className="bg-muted/40 border-border rounded-lg border px-3 py-2">
-                            <p className="text-muted-foreground text-xs">Awaiting decisions</p>
-                            <p className="text-lg font-semibold">{metrics.awaitingCount}</p>
+                            <p className="text-muted-foreground text-xs">
+                              Awaiting decisions
+                            </p>
+                            <p className="text-lg font-semibold">
+                              {metrics.awaitingCount}
+                            </p>
                           </div>
                           <div className="bg-muted/40 border-border rounded-lg border px-3 py-2">
-                            <p className="text-muted-foreground text-xs">Feedback coverage</p>
-                            <p className="text-lg font-semibold">{metrics.feedbackCount}</p>
+                            <p className="text-muted-foreground text-xs">
+                              Feedback coverage
+                            </p>
+                            <p className="text-lg font-semibold">
+                              {metrics.feedbackCount}
+                            </p>
                           </div>
                           <div className="bg-muted/40 border-border rounded-lg border px-3 py-2">
-                            <p className="text-muted-foreground text-xs">Positive feedback rate</p>
-                            <p className="text-lg font-semibold">{metrics.positiveFeedbackRate}%</p>
+                            <p className="text-muted-foreground text-xs">
+                              Positive feedback rate
+                            </p>
+                            <p className="text-lg font-semibold">
+                              {metrics.positiveFeedbackRate}%
+                            </p>
                           </div>
                         </div>
                         <div className="space-y-2">
@@ -1402,16 +1525,20 @@ export function NyteShell() {
                             Gate hit distribution
                           </p>
                           <div className="flex flex-wrap gap-2">
-                            {Object.entries(metrics.gateHitCounts).map(([gate, count]) => (
-                              <Badge key={gate} variant="secondary">
-                                {gate}: {count}
-                              </Badge>
-                            ))}
+                            {Object.entries(metrics.gateHitCounts).map(
+                              ([gate, count]) => (
+                                <Badge key={gate} variant="secondary">
+                                  {gate}: {count}
+                                </Badge>
+                              )
+                            )}
                           </div>
                         </div>
                       </>
                     ) : (
-                      <p className="text-muted-foreground text-sm">No metrics yet.</p>
+                      <p className="text-muted-foreground text-sm">
+                        No metrics yet.
+                      </p>
                     )}
                   </CardContent>
                 </Card>
@@ -1422,13 +1549,15 @@ export function NyteShell() {
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <p className="text-muted-foreground text-sm">
-                      Add watch keywords to force escalation into Needs You whenever matching
-                      signals appear.
+                      Add watch keywords to force escalation into Needs You
+                      whenever matching signals appear.
                     </p>
                     <div className="flex gap-2">
                       <Input
                         value={watchRuleInput}
-                        onChange={(event) => setWatchRuleInput(event.currentTarget.value)}
+                        onChange={(event) =>
+                          setWatchRuleInput(event.currentTarget.value)
+                        }
                         placeholder="Add watch keyword (e.g. renewal)"
                         disabled={isRulesLoading}
                       />
@@ -1440,9 +1569,13 @@ export function NyteShell() {
                         Add
                       </Button>
                     </div>
-                    {rulesError ? <p className="text-destructive text-xs">{rulesError}</p> : null}
+                    {rulesError ? (
+                      <p className="text-destructive text-xs">{rulesError}</p>
+                    ) : null}
                     {isRulesLoading ? (
-                      <p className="text-muted-foreground text-xs">Updating watch rules…</p>
+                      <p className="text-muted-foreground text-xs">
+                        Updating watch rules…
+                      </p>
                     ) : null}
                     {watchRules.length > 0 ? (
                       <div className="flex flex-wrap gap-2">
@@ -1482,22 +1615,33 @@ export function NyteShell() {
                       </Button>
                       {trustReport ? (
                         <Badge variant="secondary">
-                          generated {new Date(trustReport.generatedAt).toLocaleTimeString()}
+                          generated{" "}
+                          {new Date(
+                            trustReport.generatedAt
+                          ).toLocaleTimeString()}
                         </Badge>
                       ) : null}
                       {trustReport ? (
                         <Badge
-                          variant={trustReport.posture.status === "ok" ? "secondary" : "outline"}
+                          variant={
+                            trustReport.posture.status === "ok"
+                              ? "secondary"
+                              : "outline"
+                          }
                         >
                           posture: {trustReport.posture.status}
                         </Badge>
                       ) : null}
                     </div>
                     {isTrustReportLoading ? (
-                      <p className="text-muted-foreground text-xs">Loading trust report…</p>
+                      <p className="text-muted-foreground text-xs">
+                        Loading trust report…
+                      </p>
                     ) : null}
                     {trustReportError ? (
-                      <p className="text-destructive text-xs">{trustReportError}</p>
+                      <p className="text-destructive text-xs">
+                        {trustReportError}
+                      </p>
                     ) : null}
                     {trustReport ? (
                       <div className="bg-muted/40 border-border space-y-2 rounded-lg border px-3 py-2 text-xs">
@@ -1508,25 +1652,36 @@ export function NyteShell() {
                         </p>
                         <p>
                           google vault:{" "}
-                          {trustReport.googleConnection.connected ? "connected" : "disconnected"}
+                          {trustReport.googleConnection.connected
+                            ? "connected"
+                            : "disconnected"}
                         </p>
                         <p>
-                          authz mode: {trustReport.security.authzEnforced ? "enforced" : "relaxed"}
+                          authz mode:{" "}
+                          {trustReport.security.authzEnforced
+                            ? "enforced"
+                            : "relaxed"}
                         </p>
                         <p>
-                          secret posture: auth ({trustReport.security.authSecretSource}) / token (
+                          secret posture: auth (
+                          {trustReport.security.authSecretSource}) / token (
                           {trustReport.security.tokenEncryptionKeySource})
                         </p>
                         <p>
                           previous token key available:{" "}
-                          {trustReport.security.hasPreviousTokenKey ? "yes" : "no"}
+                          {trustReport.security.hasPreviousTokenKey
+                            ? "yes"
+                            : "no"}
                         </p>
                         <p>
                           runtime auth token configured:{" "}
-                          {trustReport.security.runtimeAuthTokenConfigured ? "yes" : "no"}
+                          {trustReport.security.runtimeAuthTokenConfigured
+                            ? "yes"
+                            : "no"}
                         </p>
                         <p>
-                          rate-limit mode/provider: {trustReport.security.rateLimitMode}/
+                          rate-limit mode/provider:{" "}
+                          {trustReport.security.rateLimitMode}/
                           {trustReport.security.rateLimitProvider} (
                           {trustReport.security.unkeyRateLimitConfigured
                             ? "configured"
@@ -1535,14 +1690,22 @@ export function NyteShell() {
                         </p>
                         <p>
                           unkey limiter active:{" "}
-                          {trustReport.security.unkeyRateLimitActive ? "yes" : "no"}
+                          {trustReport.security.unkeyRateLimitActive
+                            ? "yes"
+                            : "no"}
                         </p>
-                        <p>recent audit events: {trustReport.audit.recentCount}</p>
-                        <p>latest audit action: {trustReport.audit.latestAction ?? "none"}</p>
                         <p>
-                          runtime delegation events: {trustReport.runtimeDelegation.recentCount} (
-                          {trustReport.runtimeDelegation.acceptedCount} accepted /{" "}
-                          {trustReport.runtimeDelegation.errorCount} errors)
+                          recent audit events: {trustReport.audit.recentCount}
+                        </p>
+                        <p>
+                          latest audit action:{" "}
+                          {trustReport.audit.latestAction ?? "none"}
+                        </p>
+                        <p>
+                          runtime delegation events:{" "}
+                          {trustReport.runtimeDelegation.recentCount} (
+                          {trustReport.runtimeDelegation.acceptedCount} accepted
+                          / {trustReport.runtimeDelegation.errorCount} errors)
                         </p>
                         <p>
                           latest runtime delegation:{" "}
@@ -1552,7 +1715,8 @@ export function NyteShell() {
                         </p>
                         <p>
                           latest runtime request id:{" "}
-                          {trustReport.runtimeDelegation.latestRequestId ?? "none"}
+                          {trustReport.runtimeDelegation.latestRequestId ??
+                            "none"}
                         </p>
                         {trustReport.posture.warnings.length > 0 ? (
                           <div className="space-y-1">
@@ -1575,7 +1739,8 @@ export function NyteShell() {
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <p className="text-muted-foreground text-sm">
-                      Configure how long workflow run/event payloads are retained for auditability.
+                      Configure how long workflow run/event payloads are
+                      retained for auditability.
                     </p>
                     <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
                       <Input
@@ -1587,7 +1752,7 @@ export function NyteShell() {
                           setRetentionDays(
                             Number.isNaN(Number(event.currentTarget.value))
                               ? 1
-                              : Number(event.currentTarget.value),
+                              : Number(event.currentTarget.value)
                           )
                         }
                         disabled={isRetentionLoading}
@@ -1601,7 +1766,9 @@ export function NyteShell() {
                       </Button>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
-                      <Badge variant="secondary">source: {retentionSource}</Badge>
+                      <Badge variant="secondary">
+                        source: {retentionSource}
+                      </Badge>
                       <Button
                         variant="outline"
                         onClick={() => void pruneWorkflowHistoryNow()}
@@ -1611,12 +1778,15 @@ export function NyteShell() {
                       </Button>
                     </div>
                     {retentionError ? (
-                      <p className="text-destructive text-xs">{retentionError}</p>
+                      <p className="text-destructive text-xs">
+                        {retentionError}
+                      </p>
                     ) : null}
                     {pruneResult ? (
                       <p className="text-muted-foreground text-xs">
-                        Pruned {pruneResult.prunedRuns} run(s) and {pruneResult.prunedAuditLogs}{" "}
-                        audit event(s) older than {pruneResult.cutoff}.
+                        Pruned {pruneResult.prunedRuns} run(s) and{" "}
+                        {pruneResult.prunedAuditLogs} audit event(s) older than{" "}
+                        {pruneResult.cutoff}.
                       </p>
                     ) : null}
                   </CardContent>
@@ -1628,7 +1798,8 @@ export function NyteShell() {
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <p className="text-muted-foreground text-xs">
-                      Showing {auditLogs.length} of {auditLogsTotalCount} events.
+                      Showing {auditLogs.length} of {auditLogsTotalCount}{" "}
+                      events.
                     </p>
                     <div className="flex items-center gap-2">
                       <Button
@@ -1654,10 +1825,14 @@ export function NyteShell() {
                       ) : null}
                     </div>
                     {isAuditLogsLoading ? (
-                      <p className="text-muted-foreground text-xs">Loading audit log…</p>
+                      <p className="text-muted-foreground text-xs">
+                        Loading audit log…
+                      </p>
                     ) : null}
                     {auditLogsError ? (
-                      <p className="text-destructive text-xs">{auditLogsError}</p>
+                      <p className="text-destructive text-xs">
+                        {auditLogsError}
+                      </p>
                     ) : null}
                     {auditLogs.length > 0 ? (
                       <div className="space-y-2">
@@ -1674,7 +1849,9 @@ export function NyteShell() {
                         ))}
                       </div>
                     ) : (
-                      <p className="text-muted-foreground text-xs">No audit events captured yet.</p>
+                      <p className="text-muted-foreground text-xs">
+                        No audit events captured yet.
+                      </p>
                     )}
                   </CardContent>
                 </Card>
@@ -1698,19 +1875,25 @@ export function NyteShell() {
 
               <div className="space-y-4 px-4">
                 <div className="space-y-2">
-                  <p className="text-muted-foreground text-xs uppercase">Tool intent</p>
+                  <p className="text-muted-foreground text-xs uppercase">
+                    Tool intent
+                  </p>
                   <Badge variant="outline">{editableAction.kind}</Badge>
                 </div>
 
                 <div className="space-y-2">
-                  <p className="text-muted-foreground text-xs uppercase">Actor</p>
+                  <p className="text-muted-foreground text-xs uppercase">
+                    Actor
+                  </p>
                   <Input value={activeItem.actor} readOnly />
                 </div>
 
                 {editableAction.kind === "gmail.createDraft" ? (
                   <>
                     <div className="space-y-2">
-                      <p className="text-muted-foreground text-xs uppercase">To</p>
+                      <p className="text-muted-foreground text-xs uppercase">
+                        To
+                      </p>
                       <Input
                         value={editableAction.to.join(", ")}
                         onChange={(event) =>
@@ -1725,7 +1908,9 @@ export function NyteShell() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <p className="text-muted-foreground text-xs uppercase">Subject</p>
+                      <p className="text-muted-foreground text-xs uppercase">
+                        Subject
+                      </p>
                       <Input
                         value={editableAction.subject}
                         onChange={(event) =>
@@ -1737,7 +1922,9 @@ export function NyteShell() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <p className="text-muted-foreground text-xs uppercase">Draft body</p>
+                      <p className="text-muted-foreground text-xs uppercase">
+                        Draft body
+                      </p>
                       <Textarea
                         value={editableAction.body}
                         onChange={(event) =>
@@ -1755,7 +1942,9 @@ export function NyteShell() {
                 {editableAction.kind === "google-calendar.createEvent" ? (
                   <>
                     <div className="space-y-2">
-                      <p className="text-muted-foreground text-xs uppercase">Title</p>
+                      <p className="text-muted-foreground text-xs uppercase">
+                        Title
+                      </p>
                       <Input
                         value={editableAction.title}
                         onChange={(event) =>
@@ -1768,7 +1957,9 @@ export function NyteShell() {
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-2">
-                        <p className="text-muted-foreground text-xs uppercase">Starts at</p>
+                        <p className="text-muted-foreground text-xs uppercase">
+                          Starts at
+                        </p>
                         <Input
                           value={editableAction.startsAt}
                           onChange={(event) =>
@@ -1780,7 +1971,9 @@ export function NyteShell() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <p className="text-muted-foreground text-xs uppercase">Ends at</p>
+                        <p className="text-muted-foreground text-xs uppercase">
+                          Ends at
+                        </p>
                         <Input
                           value={editableAction.endsAt}
                           onChange={(event) =>
@@ -1793,7 +1986,9 @@ export function NyteShell() {
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <p className="text-muted-foreground text-xs uppercase">Attendees</p>
+                      <p className="text-muted-foreground text-xs uppercase">
+                        Attendees
+                      </p>
                       <Input
                         value={editableAction.attendees.join(", ")}
                         onChange={(event) =>
@@ -1808,7 +2003,9 @@ export function NyteShell() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <p className="text-muted-foreground text-xs uppercase">Description</p>
+                      <p className="text-muted-foreground text-xs uppercase">
+                        Description
+                      </p>
                       <Textarea
                         value={editableAction.description}
                         onChange={(event) =>
@@ -1825,12 +2022,16 @@ export function NyteShell() {
                 {editableAction.kind === "billing.queueRefund" ? (
                   <>
                     <div className="space-y-2">
-                      <p className="text-muted-foreground text-xs uppercase">Customer</p>
+                      <p className="text-muted-foreground text-xs uppercase">
+                        Customer
+                      </p>
                       <Input value={editableAction.customerName} readOnly />
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-2">
-                        <p className="text-muted-foreground text-xs uppercase">Amount</p>
+                        <p className="text-muted-foreground text-xs uppercase">
+                          Amount
+                        </p>
                         <Input
                           value={String(editableAction.amount)}
                           onChange={(event) =>
@@ -1842,12 +2043,16 @@ export function NyteShell() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <p className="text-muted-foreground text-xs uppercase">Currency</p>
+                        <p className="text-muted-foreground text-xs uppercase">
+                          Currency
+                        </p>
                         <Input value={editableAction.currency} readOnly />
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <p className="text-muted-foreground text-xs uppercase">Reason</p>
+                      <p className="text-muted-foreground text-xs uppercase">
+                        Reason
+                      </p>
                       <Textarea
                         value={editableAction.reason}
                         onChange={(event) =>
@@ -1862,9 +2067,13 @@ export function NyteShell() {
                 ) : null}
 
                 <div className="space-y-2">
-                  <p className="text-muted-foreground text-xs uppercase">Workflow timeline</p>
+                  <p className="text-muted-foreground text-xs uppercase">
+                    Workflow timeline
+                  </p>
                   {isTimelineLoading ? (
-                    <p className="text-muted-foreground text-xs">Loading timeline...</p>
+                    <p className="text-muted-foreground text-xs">
+                      Loading timeline...
+                    </p>
                   ) : timelineError ? (
                     <p className="text-destructive text-xs">{timelineError}</p>
                   ) : workflowTimeline.length === 0 ? (
@@ -1880,7 +2089,9 @@ export function NyteShell() {
                         >
                           <div className="flex items-center gap-2 text-xs">
                             <Badge variant="outline">{run.phase}</Badge>
-                            <span className="text-muted-foreground">{run.status}</span>
+                            <span className="text-muted-foreground">
+                              {run.status}
+                            </span>
                           </div>
                           <div className="mt-2 space-y-1">
                             {run.events.map((event) => (
@@ -1888,7 +2099,9 @@ export function NyteShell() {
                                 key={`${run.runId}:${event.kind}:${event.at}`}
                                 className="text-xs"
                               >
-                                <span className="font-medium">{event.kind}</span>
+                                <span className="font-medium">
+                                  {event.kind}
+                                </span>
                               </div>
                             ))}
                           </div>
@@ -1905,7 +2118,9 @@ export function NyteShell() {
                     <Clock3Icon className="size-3.5" />
                     strict-gate validated
                   </div>
-                  {actionError ? <p className="text-destructive text-xs">{actionError}</p> : null}
+                  {actionError ? (
+                    <p className="text-destructive text-xs">{actionError}</p>
+                  ) : null}
                 </div>
                 <div className="flex items-center gap-2">
                   <Button
@@ -1915,7 +2130,10 @@ export function NyteShell() {
                   >
                     Dismiss
                   </Button>
-                  <Button onClick={() => void approveActiveItem()} disabled={isApproving}>
+                  <Button
+                    onClick={() => void approveActiveItem()}
+                    disabled={isApproving}
+                  >
                     {isApproving ? "Approving..." : activeItem.cta}
                   </Button>
                 </div>
@@ -1936,8 +2154,8 @@ function ToolIntentLegend() {
       </CardHeader>
       <CardContent className="text-muted-foreground flex items-start gap-2 text-xs">
         <TextSearchIcon className="mt-0.5 size-3.5 shrink-0" />
-        Model emits typed payloads, UI renders structured controls, and one-click approval executes
-        action.
+        Model emits typed payloads, UI renders structured controls, and
+        one-click approval executes action.
       </CardContent>
     </Card>
   );

@@ -1,21 +1,51 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "ui": "tui",
+  "ui": "stream",
+  "globalDependencies": ["apps/web/.env*"],
+  "globalEnv": [
+    "NEXT_PUBLIC_SERVER_URL",
+    "AI_GATEWAY_API_KEY",
+    "DATABASE_URL",
+    "CENTRAL_LICENSE_KEY"
+  ],
   "tasks": {
-    "build": {
-      "dependsOn": ["^build"],
-      "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "outputs": [".next/**", "!.next/cache/**"]
-    },
-    "lint": {
-      "dependsOn": ["^lint"]
-    },
-    "typecheck": {
-      "dependsOn": ["^typecheck"]
+    "transit": {
+      "dependsOn": ["^transit"]
     },
     "dev": {
       "cache": false,
       "persistent": true
+    },
+    "build": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "outputs": ["dist/**", ".next/**"]
+    },
+    "typecheck": {
+      "dependsOn": ["transit"],
+      "outputs": ["node_modules/.cache/tsbuildinfo.json"]
+    },
+    "generate": {},
+    "push": {},
+    "studio": {
+      "persistent": true
+    },
+    "migrate": {},
+    "db:push": {
+      "cache": false
+    },
+    "db:generate": {
+      "cache": false
+    },
+    "db:studio": {
+      "cache": false,
+      "persistent": true
+    },
+    "db:migrate": {
+      "cache": false
+    },
+    "clean": {
+      "cache": false
     }
   }
 }

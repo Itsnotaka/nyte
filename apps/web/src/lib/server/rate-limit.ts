@@ -1,6 +1,10 @@
-import { createHash } from "node:crypto";
-import { Ratelimit, type Ratelimiter, type RatelimitResponse } from "@unkey/ratelimit";
+import {
+  Ratelimit,
+  type Ratelimiter,
+  type RatelimitResponse,
+} from "@unkey/ratelimit";
 import { errAsync, okAsync, ResultAsync } from "neverthrow";
+import { createHash } from "node:crypto";
 
 export type RateLimitProvider = "unkey" | "memory";
 export type RateLimitMode = "auto" | "memory" | "unkey";
@@ -48,7 +52,7 @@ class MemoryRatelimiter implements Ratelimiter {
     private readonly partitionKey: string,
     private readonly namespace: string,
     private readonly maxRequests: number,
-    private readonly windowMs: number,
+    private readonly windowMs: number
   ) {}
 
   async limit(identifier: string): Promise<RatelimitResponse> {
@@ -143,11 +147,18 @@ export function getRateLimitConfigSignature() {
     return mode === "unkey" ? "unkey:missing-key" : "memory:auto";
   }
 
-  const fingerprint = createHash("sha256").update(rootKey).digest("hex").slice(0, 12);
+  const fingerprint = createHash("sha256")
+    .update(rootKey)
+    .digest("hex")
+    .slice(0, 12);
   return `unkey:${mode}:${fingerprint}`;
 }
 
-function getRatelimiter(scope: string, limit: number, windowMs: number): Ratelimiter {
+function getRatelimiter(
+  scope: string,
+  limit: number,
+  windowMs: number
+): Ratelimiter {
   const provider = getRateLimitProvider();
   const configSignature = getRateLimitConfigSignature();
   if (ratelimiterConfigSignature !== configSignature) {
@@ -194,7 +205,7 @@ function getRatelimiter(scope: string, limit: number, windowMs: number): Ratelim
 export function rateLimitRequest(
   request: Request,
   scope: string,
-  { limit = 60, windowMs = 60_000 }: RateLimitOptions = {},
+  { limit = 60, windowMs = 60_000 }: RateLimitOptions = {}
 ): ResultAsync<void, RateLimitError> {
   const identifier = getClientAddress(request);
   const ratelimiter = getRatelimiter(scope, limit, windowMs);
@@ -206,9 +217,16 @@ export function rateLimitRequest(
       return okAsync(undefined);
     }
 
-    const retryAfterSeconds = Math.max(1, Math.ceil((result.reset - Date.now()) / 1000));
+    const retryAfterSeconds = Math.max(
+      1,
+      Math.ceil((result.reset - Date.now()) / 1000)
+    );
     return errAsync(
-      new RateLimitError("Too many requests. Please retry shortly.", 429, retryAfterSeconds),
+      new RateLimitError(
+        "Too many requests. Please retry shortly.",
+        429,
+        retryAfterSeconds
+      )
     );
   });
 }

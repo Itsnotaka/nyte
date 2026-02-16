@@ -1,11 +1,12 @@
 {
-  "extends": "@nyte/tsconfig/react-library.json",
+  "extends": "@nyte/tsconfig/base",
   "compilerOptions": {
     "paths": {
-      "~/*": ["./~/*"],
-      "@nyte/ui/*": ["./src/*"]
-    }
+      "~/*": ["./src/*"],
+    },
+    "jsx": "preserve",
+    "strictNullChecks": true
   },
-  "include": ["."],
-  "exclude": ["node_modules", "dist"]
+  "include": ["src"],
+  "exclude": ["node_modules", ".cache", "dist"]
 }

@@ -1,11 +1,5 @@
 {
-  "extends": "@nyte/tsconfig/base.json",
-  "compilerOptions": {
-    "declaration": false,
-    "declarationMap": false,
-    "module": "ESNext",
-    "moduleResolution": "Bundler"
-  },
+  "extends": "@nyte/tsconfig/base",
   "include": ["src"],
   "exclude": ["node_modules", "dist"]
 }

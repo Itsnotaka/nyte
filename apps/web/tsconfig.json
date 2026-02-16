@@ -1,8 +1,8 @@
 {
-  "extends": "@nyte/tsconfig/nextjs.json",
+  "extends": "@nyte/tsconfig/nextjs",
   "compilerOptions": {
     "paths": {
-      "~/*": ["./*", "../../packages/ui/~/*", "../../packages/ui/src/*"],
+      "~/*": ["./src/*"],
       "@nyte/ui/*": ["../../packages/ui/*"]
     },
     "plugins": [
