@@ -180,4 +180,13 @@ describe("GET /api/admin/audit", () => {
     expect(lastResponse?.status).toBe(429);
     expect(lastResponse?.headers.get("Retry-After")).toBeTruthy();
   });
+
+  it("returns 401 when authz is enforced and no session is present", async () => {
+    process.env.NYTE_REQUIRE_AUTH = "true";
+    const response = await GET(buildRequest("http://localhost/api/admin/audit"));
+    const body = (await response.json()) as { error: string };
+
+    expect(response.status).toBe(401);
+    expect(body.error).toContain("Authentication required");
+  });
 });
