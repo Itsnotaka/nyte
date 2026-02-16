@@ -4,12 +4,21 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./dashboard": "./src/dashboard.ts",
+    "./metrics": "./src/metrics.ts"
   },
   "scripts": {
     "typecheck": "tsgo --noEmit -p tsconfig.json"
   },
+  "dependencies": {
+    "@workspace/db": "workspace:*",
+    "@workspace/domain": "workspace:*",
+    "drizzle-orm": "^0.45.1",
+    "neverthrow": "^8.2.0"
+  },
   "devDependencies": {
+    "@types/node": "^25.1.0",
     "@workspace/typescript-config": "workspace:*",
     "typescript": "^5.9.3"
   }

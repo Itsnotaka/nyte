@@ -35,6 +35,9 @@ importers:
       '@unkey/ratelimit':
         specifier: ^2.1.4
         version: 2.1.4
+      '@workspace/application':
+        specifier: workspace:^
+        version: link:../../packages/application
       '@workspace/db':
         specifier: workspace:^
         version: link:../../packages/db
@@ -95,7 +98,23 @@ importers:
         version: 4.0.18(@types/node@25.2.3)(jiti@2.6.1)(lightningcss@1.30.2)
 
   packages/application:
+    dependencies:
+      '@workspace/db':
+        specifier: workspace:*
+        version: link:../db
+      '@workspace/domain':
+        specifier: workspace:*
+        version: link:../domain
+      drizzle-orm:
+        specifier: ^0.45.1
+        version: 0.45.1(@libsql/client@0.17.0)(@types/better-sqlite3@7.6.13)(better-sqlite3@12.6.2)(kysely@0.28.11)
+      neverthrow:
+        specifier: ^8.2.0
+        version: 8.2.0
     devDependencies:
+      '@types/node':
+        specifier: ^25.1.0
+        version: 25.2.3
       '@workspace/typescript-config':
         specifier: workspace:*
         version: link:../typescript-config

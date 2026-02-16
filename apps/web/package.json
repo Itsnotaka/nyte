@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@unkey/ratelimit": "^2.1.4",
+    "@workspace/application": "workspace:^",
     "@workspace/db": "workspace:^",
     "@workspace/domain": "workspace:^",
     "@workspace/integrations": "workspace:^",
