@@ -90,4 +90,13 @@ describe("workflow prune route", () => {
     expect(lastResponse?.status).toBe(429);
     expect(lastResponse?.headers.get("Retry-After")).toBeTruthy();
   });
+
+  it("returns 401 when authz is enforced and session missing", async () => {
+    process.env.NYTE_REQUIRE_AUTH = "true";
+    const response = await POST(buildRequest());
+    const body = (await response.json()) as { error: string };
+
+    expect(response.status).toBe(401);
+    expect(body.error).toContain("Authentication required");
+  });
 });
