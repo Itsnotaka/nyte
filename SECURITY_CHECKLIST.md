@@ -42,3 +42,4 @@ This checklist documents current security controls and remaining hardening tasks
 - [x] Add package-backed rate limiting on mutable APIs via `@unkey/ratelimit` (`actions`, `feedback`, `policy-rules`, `connections`).
 - [x] Add package-backed read-rate limits on high-frequency/sensitive read APIs (`sync/poll`, dashboard/metrics/workflow/admin/policy/connections reads).
 - [x] Support deterministic in-process fallback limiter when `UNKEY_ROOT_KEY` is not configured (local/test resilience).
+- [x] Surface active rate-limit provider and Unkey configuration posture in trust reporting.

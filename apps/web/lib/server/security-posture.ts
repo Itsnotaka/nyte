@@ -22,6 +22,10 @@ export function evaluateSecurityPosture(report: SecurityPostureInput): SecurityP
     warnings.push("NYTE_TOKEN_ENCRYPTION_KEY is using development fallback key.");
   }
 
+  if (report.security.rateLimitProvider !== "unkey") {
+    warnings.push("UNKEY_ROOT_KEY is not configured; using in-process fallback rate limiter.");
+  }
+
   if (!report.googleConnection.connected) {
     warnings.push("Google connection vault is disconnected.");
   }

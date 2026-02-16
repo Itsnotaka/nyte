@@ -12,6 +12,8 @@ describe("evaluateSecurityPosture", () => {
         tokenEncryptionKeyConfigured: false,
         tokenEncryptionKeySource: "dev-fallback",
         hasPreviousTokenKey: false,
+        rateLimitProvider: "memory",
+        unkeyRateLimitConfigured: false,
       },
       googleConnection: {
         connected: false,
@@ -36,6 +38,8 @@ describe("evaluateSecurityPosture", () => {
         tokenEncryptionKeyConfigured: true,
         tokenEncryptionKeySource: "env",
         hasPreviousTokenKey: true,
+        rateLimitProvider: "unkey",
+        unkeyRateLimitConfigured: true,
       },
       googleConnection: {
         connected: true,

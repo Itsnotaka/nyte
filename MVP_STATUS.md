@@ -60,6 +60,7 @@ Nyte is implemented as a **design-first supervisor console**:
 - Package-backed rate limiting on mutable operations (`@unkey/ratelimit`).
 - Package-backed rate limiting on high-frequency/sensitive read routes (sync + supervisor/admin reads).
 - Deterministic in-process limiter fallback when `UNKEY_ROOT_KEY` is not set (local/test reliability).
+- Trust report now exposes active rate-limit provider (`unkey` vs `memory`) and configuration status.
 - Standardized 429 payload + `Retry-After` response header.
 - Malformed JSON payload hardening: mutable APIs now return explicit 400 for invalid bodies.
 - AES-256-GCM token encryption with key rotation compatibility.

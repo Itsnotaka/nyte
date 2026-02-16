@@ -1,6 +1,8 @@
 import { Ratelimit, type Ratelimiter, type RatelimitResponse } from "@unkey/ratelimit";
 import { errAsync, okAsync, ResultAsync } from "neverthrow";
 
+export type RateLimitProvider = "unkey" | "memory";
+
 type Bucket = {
   count: number;
   resetAt: number;
@@ -91,8 +93,16 @@ function normalizeNamespace(scope: string) {
   return `nyte-${scope.replace(/[^a-zA-Z0-9:_-]/g, "-")}`;
 }
 
+export function getRateLimitProvider(): RateLimitProvider {
+  return process.env.UNKEY_ROOT_KEY ? "unkey" : "memory";
+}
+
+export function isUnkeyRateLimitConfigured() {
+  return Boolean(process.env.UNKEY_ROOT_KEY);
+}
+
 function getRatelimiter(scope: string, limit: number, windowMs: number): Ratelimiter {
-  const provider = process.env.UNKEY_ROOT_KEY ? "unkey" : "memory";
+  const provider = getRateLimitProvider();
   const cacheKey = `${provider}:${scope}:${limit}:${windowMs}`;
   const existing = ratelimiterCache.get(cacheKey);
   if (existing) {
@@ -100,29 +110,30 @@ function getRatelimiter(scope: string, limit: number, windowMs: number): Ratelim
   }
 
   const namespace = normalizeNamespace(scope);
-  const ratelimiter = process.env.UNKEY_ROOT_KEY
-    ? new Ratelimit({
-        rootKey: process.env.UNKEY_ROOT_KEY,
-        namespace,
-        limit,
-        duration: windowMs,
-        timeout: {
-          ms: 3_000,
-          fallback: () => ({
+  const ratelimiter =
+    provider === "unkey"
+      ? new Ratelimit({
+          rootKey: process.env.UNKEY_ROOT_KEY!,
+          namespace,
+          limit,
+          duration: windowMs,
+          timeout: {
+            ms: 3_000,
+            fallback: () => ({
+              success: false,
+              limit,
+              remaining: 0,
+              reset: Date.now() + windowMs,
+            }),
+          },
+          onError: () => ({
             success: false,
             limit,
             remaining: 0,
             reset: Date.now() + windowMs,
           }),
-        },
-        onError: () => ({
-          success: false,
-          limit,
-          remaining: 0,
-          reset: Date.now() + windowMs,
-        }),
-      })
-    : new MemoryRatelimiter(namespace, limit, windowMs);
+        })
+      : new MemoryRatelimiter(namespace, limit, windowMs);
 
   ratelimiterCache.set(cacheKey, ratelimiter);
   return ratelimiter;

@@ -27,6 +27,7 @@ import { mockIntakeSignals } from "../domain/mock-intake";
 const originalTokenKey = process.env.NYTE_TOKEN_ENCRYPTION_KEY;
 const originalAuthSecret = process.env.BETTER_AUTH_SECRET;
 const originalRequireAuth = process.env.NYTE_REQUIRE_AUTH;
+const originalUnkeyRootKey = process.env.UNKEY_ROOT_KEY;
 
 async function resetDb() {
   await ensureDbSchema();
@@ -50,6 +51,7 @@ describe("getTrustReport", () => {
     process.env.NYTE_TOKEN_ENCRYPTION_KEY = "trust-report-test-key";
     process.env.BETTER_AUTH_SECRET = "test-secret";
     process.env.NYTE_REQUIRE_AUTH = "true";
+    process.env.UNKEY_ROOT_KEY = "trust-report-unkey-root-key";
   });
 
   afterEach(() => {
@@ -67,6 +69,11 @@ describe("getTrustReport", () => {
       delete process.env.NYTE_REQUIRE_AUTH;
     } else {
       process.env.NYTE_REQUIRE_AUTH = originalRequireAuth;
+    }
+    if (originalUnkeyRootKey === undefined) {
+      delete process.env.UNKEY_ROOT_KEY;
+    } else {
+      process.env.UNKEY_ROOT_KEY = originalUnkeyRootKey;
     }
   });
 
@@ -95,6 +102,8 @@ describe("getTrustReport", () => {
     expect(report.security.authSecretSource).toBe("env");
     expect(report.security.tokenEncryptionKeyConfigured).toBe(true);
     expect(report.security.tokenEncryptionKeySource).toBe("env");
+    expect(report.security.rateLimitProvider).toBe("unkey");
+    expect(report.security.unkeyRateLimitConfigured).toBe(true);
     expect(report.posture.status).toBe("ok");
     expect(report.posture.warnings).toHaveLength(0);
     expect(report.audit.recentCount).toBeGreaterThan(0);

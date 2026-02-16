@@ -1,6 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { rateLimitRequest, resetRateLimitState } from "./rate-limit";
+import {
+  getRateLimitProvider,
+  isUnkeyRateLimitConfigured,
+  rateLimitRequest,
+  resetRateLimitState,
+} from "./rate-limit";
 
 describe("rateLimitRequest", () => {
   beforeEach(() => {
@@ -106,5 +111,19 @@ describe("rateLimitRequest", () => {
 
     expect(first.isOk()).toBe(true);
     expect(second.isErr()).toBe(true);
+  });
+
+  it("reports memory provider when Unkey root key is absent", () => {
+    delete process.env.UNKEY_ROOT_KEY;
+
+    expect(getRateLimitProvider()).toBe("memory");
+    expect(isUnkeyRateLimitConfigured()).toBe(false);
+  });
+
+  it("reports Unkey provider when root key is configured", () => {
+    process.env.UNKEY_ROOT_KEY = "unkey-test-key";
+
+    expect(getRateLimitProvider()).toBe("unkey");
+    expect(isUnkeyRateLimitConfigured()).toBe(true);
   });
 });
