@@ -185,6 +185,7 @@ describe("runtime server", () => {
     expect(body.status).toBe("accepted");
     expect(body.type).toBe("runtime.approve");
     expect(body.result?.itemId).toBe("w_1");
+    expect(response.headers.get("x-request-id")).toBe("req_approve_1");
   });
 
   it("accepts valid runtime commands on type-specific endpoints", async () => {
@@ -285,6 +286,7 @@ describe("runtime server", () => {
 
     expect(response.status).toBe(400);
     expect(body.error).toContain("does not match endpoint");
+    expect(response.headers.get("x-request-id")).toBe("req_mismatch_1");
   });
 
   it("returns 400 for invalid JSON payloads", async () => {
@@ -356,6 +358,7 @@ describe("runtime server", () => {
 
     expect(response.status).toBe(500);
     expect(body.error).toContain("Failed to process runtime command");
+    expect(response.headers.get("x-request-id")).toBe("req_approve_1");
   });
 
   it("returns 404 for unknown paths", async () => {

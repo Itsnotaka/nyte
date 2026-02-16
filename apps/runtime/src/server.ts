@@ -13,9 +13,13 @@ function writeJson(
   response: ServerResponse<IncomingMessage>,
   status: number,
   payload: Record<string, unknown>,
+  requestId?: string,
 ) {
   response.statusCode = status;
   response.setHeader("content-type", "application/json");
+  if (requestId) {
+    response.setHeader("x-request-id", requestId);
+  }
   response.end(JSON.stringify(payload));
 }
 
@@ -156,10 +160,17 @@ export function createRuntimeServerWithOptions(options: RuntimeServerOptions = {
         return;
       }
 
+      const requestId = parsedBody.value.context.requestId;
+
       if (routeType !== "runtime.command" && parsedBody.value.type !== routeType) {
-        writeJson(response, 400, {
-          error: "Runtime command type does not match endpoint.",
-        });
+        writeJson(
+          response,
+          400,
+          {
+            error: "Runtime command type does not match endpoint.",
+          },
+          requestId,
+        );
         return;
       }
 
@@ -168,10 +179,10 @@ export function createRuntimeServerWithOptions(options: RuntimeServerOptions = {
         () => new Error("Failed to process runtime command."),
       ).match(
         (commandResult) => {
-          writeJson(response, 200, commandResult as Record<string, unknown>);
+          writeJson(response, 200, commandResult as Record<string, unknown>, requestId);
         },
         () => {
-          writeJson(response, 500, { error: "Failed to process runtime command." });
+          writeJson(response, 500, { error: "Failed to process runtime command." }, requestId);
         },
       );
     });
