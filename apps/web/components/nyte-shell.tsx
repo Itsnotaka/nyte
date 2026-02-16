@@ -125,6 +125,18 @@ type GoogleConnectionResponse = {
   updatedAt: string | null;
 };
 
+type WorkflowRetentionResponse = {
+  days: number;
+  source: "default" | "policy" | "env";
+};
+
+type WorkflowPruneResponse = {
+  retentionDays: number;
+  source: "default" | "policy" | "env";
+  prunedRuns: number;
+  cutoff: string;
+};
+
 type WorkflowTimelineResponse = {
   itemId: string;
   timeline: Array<{
@@ -217,6 +229,12 @@ export function NyteShell() {
   const [watchRules, setWatchRules] = React.useState<string[]>([]);
   const [isRulesLoading, setIsRulesLoading] = React.useState(false);
   const [rulesError, setRulesError] = React.useState<string | null>(null);
+  const [retentionDays, setRetentionDays] = React.useState<number>(30);
+  const [retentionSource, setRetentionSource] =
+    React.useState<WorkflowRetentionResponse["source"]>("default");
+  const [isRetentionLoading, setIsRetentionLoading] = React.useState(false);
+  const [retentionError, setRetentionError] = React.useState<string | null>(null);
+  const [pruneResult, setPruneResult] = React.useState<WorkflowPruneResponse | null>(null);
   const [activeItem, setActiveItem] = React.useState<WorkItemWithAction | null>(
     queueItems.at(0) ?? null,
   );
@@ -332,6 +350,27 @@ export function NyteShell() {
       );
     } finally {
       setIsConnectionLoading(false);
+    }
+  }, []);
+
+  const refreshWorkflowRetention = React.useCallback(async () => {
+    setRetentionError(null);
+    setIsRetentionLoading(true);
+    try {
+      const response = await fetch("/api/workflows/retention");
+      if (!response.ok) {
+        throw new Error("Unable to load workflow retention.");
+      }
+
+      const payload = (await response.json()) as WorkflowRetentionResponse;
+      setRetentionDays(payload.days);
+      setRetentionSource(payload.source);
+    } catch (error) {
+      setRetentionError(
+        error instanceof Error ? error.message : "Unable to load workflow retention.",
+      );
+    } finally {
+      setIsRetentionLoading(false);
     }
   }, []);
 
@@ -499,7 +538,14 @@ export function NyteShell() {
     void refreshMetrics();
     void refreshWatchRules();
     void refreshGoogleConnection();
-  }, [refreshGoogleConnection, refreshMetrics, refreshWatchRules, syncQueue]);
+    void refreshWorkflowRetention();
+  }, [
+    refreshGoogleConnection,
+    refreshMetrics,
+    refreshWatchRules,
+    refreshWorkflowRetention,
+    syncQueue,
+  ]);
 
   const persistGoogleConnection = React.useCallback(async () => {
     const response = await fetch("/api/connections/google", {
@@ -625,6 +671,63 @@ export function NyteShell() {
     },
     [refreshWatchRules],
   );
+
+  const saveWorkflowRetention = React.useCallback(async () => {
+    setRetentionError(null);
+    setIsRetentionLoading(true);
+    try {
+      const response = await fetch("/api/workflows/retention", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          days: retentionDays,
+        }),
+      });
+      if (!response.ok) {
+        const errorBody = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(errorBody?.error ?? "Unable to update workflow retention.");
+      }
+
+      const payload = (await response.json()) as WorkflowRetentionResponse;
+      setRetentionDays(payload.days);
+      setRetentionSource(payload.source);
+    } catch (error) {
+      setRetentionError(
+        error instanceof Error ? error.message : "Unable to update workflow retention.",
+      );
+    } finally {
+      setIsRetentionLoading(false);
+    }
+  }, [retentionDays]);
+
+  const pruneWorkflowHistoryNow = React.useCallback(async () => {
+    setRetentionError(null);
+    setIsRetentionLoading(true);
+    try {
+      const response = await fetch("/api/workflows/prune", {
+        method: "POST",
+      });
+      if (!response.ok) {
+        const errorBody = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(errorBody?.error ?? "Unable to prune workflow history.");
+      }
+
+      const payload = (await response.json()) as WorkflowPruneResponse;
+      setPruneResult(payload);
+      setRetentionDays(payload.retentionDays);
+      setRetentionSource(payload.source);
+      await refreshMetrics();
+      await refreshDashboard();
+    } catch (error) {
+      setRetentionError(
+        error instanceof Error ? error.message : "Unable to prune workflow history.",
+      );
+    } finally {
+      setIsRetentionLoading(false);
+    }
+  }, [refreshDashboard, refreshMetrics]);
 
   const submitFeedback = React.useCallback(
     async (itemId: string, rating: "positive" | "negative") => {
@@ -1054,6 +1157,58 @@ export function NyteShell() {
                         No watch rules yet. Add one to tighten escalation.
                       </p>
                     )}
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Workflow retention</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <p className="text-muted-foreground text-sm">
+                      Configure how long workflow run/event payloads are retained for auditability.
+                    </p>
+                    <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+                      <Input
+                        type="number"
+                        min={1}
+                        max={365}
+                        value={retentionDays}
+                        onChange={(event) =>
+                          setRetentionDays(
+                            Number.isNaN(Number(event.currentTarget.value))
+                              ? 1
+                              : Number(event.currentTarget.value),
+                          )
+                        }
+                        disabled={isRetentionLoading}
+                      />
+                      <Button
+                        variant="outline"
+                        onClick={() => void saveWorkflowRetention()}
+                        disabled={isRetentionLoading}
+                      >
+                        Save days
+                      </Button>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant="secondary">source: {retentionSource}</Badge>
+                      <Button
+                        variant="outline"
+                        onClick={() => void pruneWorkflowHistoryNow()}
+                        disabled={isRetentionLoading}
+                      >
+                        Prune now
+                      </Button>
+                    </div>
+                    {retentionError ? (
+                      <p className="text-destructive text-xs">{retentionError}</p>
+                    ) : null}
+                    {pruneResult ? (
+                      <p className="text-muted-foreground text-xs">
+                        Pruned {pruneResult.prunedRuns} run(s) older than {pruneResult.cutoff}.
+                      </p>
+                    ) : null}
                   </CardContent>
                 </Card>
               </div>

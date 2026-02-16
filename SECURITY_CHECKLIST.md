@@ -15,7 +15,7 @@ This checklist documents current security controls and remaining hardening tasks
 - [x] MVP stores only normalized work-item data needed for triage and action preparation.
 - [x] Workflow timeline events store structured payloads (no raw mailbox bodies outside required summary/preview fields).
 - [x] Feedback capture stores rating + optional note only.
-- [ ] Add configurable retention policy for workflow event payloads.
+- [x] Add configurable retention policy for workflow event payloads (`/api/workflows/retention` + `/api/workflows/prune`).
 
 ## Execution safety
 
