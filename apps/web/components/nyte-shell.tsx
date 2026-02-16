@@ -92,6 +92,11 @@ type ApproveResponse = {
   };
 };
 
+type DismissResponse = {
+  status: "dismissed";
+  dismissedAt: string;
+};
+
 const navBlueprint = [
   { id: "needs-you", label: "Needs You", icon: BellDotIcon },
   { id: "drafts", label: "Drafts", icon: DraftingCompassIcon },
@@ -131,6 +136,7 @@ export function NyteShell() {
   const [actionError, setActionError] = React.useState<string | null>(null);
   const [isSyncing, setIsSyncing] = React.useState(false);
   const [isApproving, setIsApproving] = React.useState(false);
+  const [isDismissingId, setIsDismissingId] = React.useState<string | null>(null);
   const [activeItem, setActiveItem] = React.useState<WorkItemWithAction | null>(
     queueItems.at(0) ?? null,
   );
@@ -174,29 +180,50 @@ export function NyteShell() {
   }, []);
 
   const dismissItem = React.useCallback(
-    (itemId: string) => {
+    async (item: WorkItemWithAction) => {
       setActionError(null);
-      setHandledIds((current) => new Set(current).add(itemId));
-      const item = queueItems.find((entry) => entry.id === itemId);
-      if (item) {
+      setIsDismissingId(item.id);
+      try {
+        const response = await fetch("/api/actions/dismiss", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({
+            itemId: item.id,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorBody = (await response.json().catch(() => null)) as { error?: string } | null;
+          throw new Error(errorBody?.error ?? "Unable to dismiss item.");
+        }
+
+        const result = (await response.json()) as DismissResponse;
+        setHandledIds((current) => new Set(current).add(item.id));
         setActivityFeed((current) => [
           {
-            id: `${itemId}:dismissed`,
-            itemId,
+            id: `${item.id}:dismissed`,
+            itemId: item.id,
             actor: item.actor,
             action: item.actionLabel,
             status: "dismissed",
             detail: "Dismissed from Needs You queue.",
-            at: new Date().toISOString(),
+            at: result.dismissedAt,
           },
           ...current,
         ]);
-      }
-      if (activeItem?.id === itemId) {
-        closeDrawer();
+
+        if (activeItem?.id === item.id) {
+          closeDrawer();
+        }
+      } catch (error) {
+        setActionError(error instanceof Error ? error.message : "Unable to dismiss item.");
+      } finally {
+        setIsDismissingId(null);
       }
     },
-    [activeItem?.id, closeDrawer, queueItems],
+    [activeItem?.id, closeDrawer],
   );
 
   const approveActiveItem = React.useCallback(async () => {
@@ -431,7 +458,11 @@ export function NyteShell() {
                         <ChevronRightIcon className="size-4" />
                       </Button>
                       <div className="flex items-center gap-2">
-                        <Button variant="outline" onClick={() => dismissItem(item.id)}>
+                        <Button
+                          variant="outline"
+                          onClick={() => void dismissItem(item)}
+                          disabled={isDismissingId === item.id}
+                        >
                           {item.secondaryLabel}
                         </Button>
                         <Button onClick={() => openItem(item)}>
@@ -744,7 +775,11 @@ export function NyteShell() {
                   {actionError ? <p className="text-destructive text-xs">{actionError}</p> : null}
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button variant="outline" onClick={() => dismissItem(activeItem.id)}>
+                  <Button
+                    variant="outline"
+                    onClick={() => void dismissItem(activeItem)}
+                    disabled={isDismissingId === activeItem.id}
+                  >
                     Dismiss
                   </Button>
                   <Button onClick={() => void approveActiveItem()} disabled={isApproving}>
