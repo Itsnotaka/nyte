@@ -216,4 +216,36 @@ describe("GET /api/admin/trust", () => {
     expect(normalizedAutoBody.security.unkeyRateLimitConfigured).toBe(false);
     expect(normalizedAutoBody.security.unkeyRateLimitActive).toBe(false);
   });
+
+  it("fails closed when unkey auto mode is configured with invalid key", async () => {
+    process.env.UNKEY_ROOT_KEY = "invalid-unkey-root-key";
+    delete process.env.NYTE_RATE_LIMIT_MODE;
+
+    const response = await GET(buildRequest("http://localhost/api/admin/trust"));
+    const body = (await response.json()) as {
+      error: string;
+      retryAfterSeconds: number;
+    };
+
+    expect(response.status).toBe(429);
+    expect(response.headers.get("Retry-After")).toBeTruthy();
+    expect(body.error).toContain("Too many requests");
+    expect(body.retryAfterSeconds).toBeGreaterThanOrEqual(1);
+  });
+
+  it("fails closed when unkey mode is forced with invalid key", async () => {
+    process.env.UNKEY_ROOT_KEY = "invalid-unkey-root-key";
+    process.env.NYTE_RATE_LIMIT_MODE = "unkey";
+
+    const response = await GET(buildRequest("http://localhost/api/admin/trust"));
+    const body = (await response.json()) as {
+      error: string;
+      retryAfterSeconds: number;
+    };
+
+    expect(response.status).toBe(429);
+    expect(response.headers.get("Retry-After")).toBeTruthy();
+    expect(body.error).toContain("Too many requests");
+    expect(body.retryAfterSeconds).toBeGreaterThanOrEqual(1);
+  });
 });
