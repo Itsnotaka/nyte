@@ -1,0 +1,89 @@
+import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import { Result, ResultAsync } from "neverthrow";
+import { isRuntimeCommand } from "@workspace/contracts";
+
+import { handleRuntimeCommand } from "./command-handler.js";
+
+function writeJson(
+  response: ServerResponse<IncomingMessage>,
+  status: number,
+  payload: Record<string, unknown>,
+) {
+  response.statusCode = status;
+  response.setHeader("content-type", "application/json");
+  response.end(JSON.stringify(payload));
+}
+
+function readBody(request: IncomingMessage) {
+  return ResultAsync.fromPromise(
+    new Promise<string>((resolve, reject) => {
+      const chunks: Buffer[] = [];
+
+      request.on("data", (chunk: Buffer) => {
+        chunks.push(chunk);
+      });
+
+      request.on("error", (error) => {
+        reject(error);
+      });
+
+      request.on("end", () => {
+        resolve(Buffer.concat(chunks).toString("utf8"));
+      });
+    }),
+    () => new Error("Unable to read request body."),
+  );
+}
+
+function parseJson(body: string) {
+  return Result.fromThrowable(JSON.parse, () => new Error("Unable to parse JSON body."))(body);
+}
+
+function resolvePort(value: string | undefined): number {
+  if (!value) {
+    return 4001;
+  }
+
+  const parsed = Number.parseInt(value, 10);
+  if (Number.isNaN(parsed) || parsed <= 0) {
+    return 4001;
+  }
+
+  return parsed;
+}
+
+export function createRuntimeServer() {
+  return createServer((request, response) => {
+    if (request.method !== "POST" || request.url !== "/runtime/command") {
+      writeJson(response, 404, { error: "Not found." });
+      return;
+    }
+
+    void readBody(request).then((bodyResult) => {
+      if (bodyResult.isErr()) {
+        writeJson(response, 400, { error: bodyResult.error.message });
+        return;
+      }
+
+      const parsedBody = parseJson(bodyResult.value);
+      if (parsedBody.isErr()) {
+        writeJson(response, 400, { error: parsedBody.error.message });
+        return;
+      }
+
+      if (!isRuntimeCommand(parsedBody.value)) {
+        writeJson(response, 400, { error: "Request body must satisfy RuntimeCommand contract." });
+        return;
+      }
+
+      const commandResult = handleRuntimeCommand(parsedBody.value);
+      writeJson(response, 200, commandResult);
+    });
+  });
+}
+
+export function startRuntimeServer(port = resolvePort(process.env.PORT)) {
+  const server = createRuntimeServer();
+  server.listen(port);
+  return server;
+}

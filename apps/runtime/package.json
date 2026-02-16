@@ -1,0 +1,20 @@
+{
+  "name": "runtime",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsgo --noEmit -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@workspace/contracts": "workspace:^",
+    "neverthrow": "^8.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.1.0",
+    "@workspace/typescript-config": "workspace:^",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
+  }
+}
