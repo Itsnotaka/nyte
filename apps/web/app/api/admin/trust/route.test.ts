@@ -47,10 +47,12 @@ function buildRequest(url: string) {
 describe("GET /api/admin/trust", () => {
   const originalRequireAuth = process.env.NYTE_REQUIRE_AUTH;
   const originalUnkeyRootKey = process.env.UNKEY_ROOT_KEY;
+  const originalRateLimitMode = process.env.NYTE_RATE_LIMIT_MODE;
 
   beforeEach(async () => {
     process.env.NYTE_REQUIRE_AUTH = "false";
     delete process.env.UNKEY_ROOT_KEY;
+    delete process.env.NYTE_RATE_LIMIT_MODE;
     resetRateLimitState();
     await resetDb();
   });
@@ -64,10 +66,16 @@ describe("GET /api/admin/trust", () => {
     process.env.NYTE_REQUIRE_AUTH = originalRequireAuth;
     if (originalUnkeyRootKey === undefined) {
       delete process.env.UNKEY_ROOT_KEY;
+    } else {
+      process.env.UNKEY_ROOT_KEY = originalUnkeyRootKey;
+    }
+
+    if (originalRateLimitMode === undefined) {
+      delete process.env.NYTE_RATE_LIMIT_MODE;
       return;
     }
 
-    process.env.UNKEY_ROOT_KEY = originalUnkeyRootKey;
+    process.env.NYTE_RATE_LIMIT_MODE = originalRateLimitMode;
   });
 
   it("returns trust report payload", async () => {
@@ -112,5 +120,28 @@ describe("GET /api/admin/trust", () => {
 
     expect(response.status).toBe(401);
     expect(body.error).toContain("Authentication required");
+  });
+
+  it("surfaces warning when unkey mode is forced without root key", async () => {
+    process.env.NYTE_RATE_LIMIT_MODE = "unkey";
+    delete process.env.UNKEY_ROOT_KEY;
+
+    const response = await GET(buildRequest("http://localhost/api/admin/trust"));
+    const body = (await response.json()) as {
+      security: {
+        rateLimitMode: "auto" | "memory" | "unkey";
+        rateLimitProvider: "unkey" | "memory";
+      };
+      posture: {
+        warnings: string[];
+      };
+    };
+
+    expect(response.status).toBe(200);
+    expect(body.security.rateLimitMode).toBe("unkey");
+    expect(body.security.rateLimitProvider).toBe("memory");
+    expect(body.posture.warnings).toContain(
+      "NYTE_RATE_LIMIT_MODE is set to unkey but UNKEY_ROOT_KEY is not configured.",
+    );
   });
 });

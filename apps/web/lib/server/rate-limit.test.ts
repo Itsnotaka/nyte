@@ -183,4 +183,16 @@ describe("rateLimitRequest", () => {
     expect(getRateLimitMode()).toBe("auto");
     expect(getRateLimitProvider()).toBe("unkey");
   });
+
+  it("normalizes whitespace and casing in mode values", () => {
+    process.env.UNKEY_ROOT_KEY = "unkey-test-key";
+    process.env.NYTE_RATE_LIMIT_MODE = "  MEMORY  ";
+
+    expect(getRateLimitMode()).toBe("memory");
+    expect(getRateLimitProvider()).toBe("memory");
+
+    process.env.NYTE_RATE_LIMIT_MODE = " UnKeY ";
+    expect(getRateLimitMode()).toBe("unkey");
+    expect(getRateLimitProvider()).toBe("unkey");
+  });
 });

@@ -166,4 +166,19 @@ describe("getTrustReport", () => {
       "NYTE_RATE_LIMIT_MODE is set to unkey but UNKEY_ROOT_KEY is not configured.",
     );
   });
+
+  it("normalizes mode casing and whitespace in trust telemetry", async () => {
+    process.env.UNKEY_ROOT_KEY = "trust-report-unkey-root-key";
+    process.env.NYTE_RATE_LIMIT_MODE = "  MEMORY ";
+    const memoryModeReport = await getTrustReport(new Date("2026-01-20T12:10:00.000Z"));
+
+    expect(memoryModeReport.security.rateLimitMode).toBe("memory");
+    expect(memoryModeReport.security.rateLimitProvider).toBe("memory");
+
+    process.env.NYTE_RATE_LIMIT_MODE = " UnKeY ";
+    const unkeyModeReport = await getTrustReport(new Date("2026-01-20T12:10:00.000Z"));
+
+    expect(unkeyModeReport.security.rateLimitMode).toBe("unkey");
+    expect(unkeyModeReport.security.rateLimitProvider).toBe("unkey");
+  });
 });
