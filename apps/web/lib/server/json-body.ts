@@ -36,7 +36,8 @@ export async function readJsonBody<T>(request: Request): Promise<T> {
   }
 
   try {
-    return (await request.json()) as T;
+    const raw = stripUtf8Bom(await request.text());
+    return JSON.parse(raw) as T;
   } catch {
     throw new InvalidJsonBodyError();
   }

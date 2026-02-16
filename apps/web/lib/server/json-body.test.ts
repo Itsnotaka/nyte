@@ -61,6 +61,21 @@ describe("readJsonBody", () => {
     const body = await readJsonBody<{ value: number }>(request);
     expect(body.value).toBe(7);
   });
+
+  it("parses UTF-8 BOM prefixed json payload", async () => {
+    const request = new Request("http://localhost/test", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: `\ufeff${JSON.stringify({
+        value: 11,
+      })}`,
+    });
+
+    const body = await readJsonBody<{ value: number }>(request);
+    expect(body.value).toBe(11);
+  });
 });
 
 describe("readOptionalJsonBody", () => {
