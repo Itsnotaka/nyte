@@ -14,7 +14,7 @@ export function evaluateSecurityPosture(report: SecurityPostureInput): SecurityP
     warnings.push("Session authorization is not enforced for current environment.");
   }
 
-  if (report.security.betterAuthSecretSource !== "env") {
+  if (report.security.authSecretSource !== "env") {
     warnings.push("BETTER_AUTH_SECRET is using development fallback secret.");
   }
 

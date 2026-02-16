@@ -3,15 +3,15 @@ import {
   getGoogleConnectionStatus,
   upsertGoogleConnection,
 } from "@/lib/server/connections";
-import { requireAuthorizedSessionOr401 } from "@/lib/server/authz";
+import { createAuthorizationErrorResponse, requireAuthorizedSession } from "@/lib/server/authz";
 import {
-  InvalidJsonBodyError,
+  createJsonBodyErrorResponse,
   isJsonObject,
   readOptionalJsonBody,
-  UnsupportedMediaTypeError,
 } from "@/lib/server/json-body";
-import { enforceRateLimit, RateLimitError } from "@/lib/server/rate-limit";
+import { rateLimitRequest } from "@/lib/server/rate-limit";
 import { createRateLimitResponse } from "@/lib/server/rate-limit-response";
+import { ResultAsync } from "neverthrow";
 
 type ConnectBody = {
   providerAccountId?: unknown;
@@ -122,95 +122,93 @@ function normalizeConnectBody(body: ConnectBody): NormalizeConnectBodyResult {
 }
 
 export async function GET(request: Request) {
-  const authorizationResponse = await requireAuthorizedSessionOr401(request);
-  if (authorizationResponse) {
-    return authorizationResponse;
+  const authorization = await requireAuthorizedSession(request);
+  if (authorization.isErr()) {
+    return createAuthorizationErrorResponse(authorization.error);
   }
 
-  try {
-    enforceRateLimit(request, "connections:google:read", {
-      limit: 120,
-      windowMs: 60_000,
-    });
-  } catch (error) {
-    if (error instanceof RateLimitError) {
-      return createRateLimitResponse(error);
-    }
+  const rateLimit = await rateLimitRequest(request, "connections:google:read", {
+    limit: 120,
+    windowMs: 60_000,
+  });
+  if (rateLimit.isErr()) {
+    return createRateLimitResponse(rateLimit.error);
   }
 
-  const status = await getGoogleConnectionStatus();
-  return Response.json(status);
+  const status = await ResultAsync.fromPromise(getGoogleConnectionStatus(), () => {
+    return new Error("Failed to load Google connection status.");
+  });
+  return status.match(
+    (value) => Response.json(value),
+    () => Response.json({ error: "Failed to load Google connection status." }, { status: 500 }),
+  );
 }
 
 export async function POST(request: Request) {
-  const authorizationResponse = await requireAuthorizedSessionOr401(request);
-  if (authorizationResponse) {
-    return authorizationResponse;
+  const authorization = await requireAuthorizedSession(request);
+  if (authorization.isErr()) {
+    return createAuthorizationErrorResponse(authorization.error);
   }
 
-  try {
-    enforceRateLimit(request, "connections:google:mutate", {
-      limit: 20,
-      windowMs: 60_000,
-    });
-  } catch (error) {
-    if (error instanceof RateLimitError) {
-      return createRateLimitResponse(error);
-    }
+  const rateLimit = await rateLimitRequest(request, "connections:google:mutate", {
+    limit: 20,
+    windowMs: 60_000,
+  });
+  if (rateLimit.isErr()) {
+    return createRateLimitResponse(rateLimit.error);
   }
 
-  let rawBody: unknown;
-  try {
-    rawBody = await readOptionalJsonBody<unknown>(request, {});
-  } catch (error) {
-    if (error instanceof UnsupportedMediaTypeError) {
-      return Response.json({ error: error.message }, { status: 415 });
-    }
-
-    if (error instanceof InvalidJsonBodyError) {
-      return Response.json({ error: error.message }, { status: 400 });
-    }
-    throw error;
+  const rawBody = await readOptionalJsonBody<unknown>(request, {});
+  if (rawBody.isErr()) {
+    return createJsonBodyErrorResponse(rawBody.error);
   }
-  if (!isJsonObject(rawBody)) {
+  if (!isJsonObject(rawBody.value)) {
     return Response.json({ error: "Request body must be a JSON object." }, { status: 400 });
   }
 
-  const body = rawBody as ConnectBody;
+  const body = rawBody.value as ConnectBody;
   const normalizedBody = normalizeConnectBody(body);
   if ("error" in normalizedBody) {
     return Response.json({ error: normalizedBody.error }, { status: 400 });
   }
-  const status = await upsertGoogleConnection(
-    {
-      providerAccountId: normalizedBody.value.providerAccountId,
-      accessToken: normalizedBody.value.accessToken,
-      refreshToken: normalizedBody.value.refreshToken,
-      scopes: normalizedBody.value.scopes,
-    },
-    new Date(),
+  const status = await ResultAsync.fromPromise(
+    upsertGoogleConnection(
+      {
+        providerAccountId: normalizedBody.value.providerAccountId,
+        accessToken: normalizedBody.value.accessToken,
+        refreshToken: normalizedBody.value.refreshToken,
+        scopes: normalizedBody.value.scopes,
+      },
+      new Date(),
+    ),
+    () => new Error("Failed to update Google connection status."),
   );
+  if (status.isErr()) {
+    return Response.json({ error: "Failed to update Google connection status." }, { status: 500 });
+  }
 
-  return Response.json(status);
+  return Response.json(status.value);
 }
 
 export async function DELETE(request: Request) {
-  const authorizationResponse = await requireAuthorizedSessionOr401(request);
-  if (authorizationResponse) {
-    return authorizationResponse;
+  const authorization = await requireAuthorizedSession(request);
+  if (authorization.isErr()) {
+    return createAuthorizationErrorResponse(authorization.error);
   }
 
-  try {
-    enforceRateLimit(request, "connections:google:mutate", {
-      limit: 20,
-      windowMs: 60_000,
-    });
-  } catch (error) {
-    if (error instanceof RateLimitError) {
-      return createRateLimitResponse(error);
-    }
+  const rateLimit = await rateLimitRequest(request, "connections:google:mutate", {
+    limit: 20,
+    windowMs: 60_000,
+  });
+  if (rateLimit.isErr()) {
+    return createRateLimitResponse(rateLimit.error);
   }
 
-  const status = await disconnectGoogleConnection();
-  return Response.json(status);
+  const status = await ResultAsync.fromPromise(disconnectGoogleConnection(), () => {
+    return new Error("Failed to disconnect Google connection.");
+  });
+  return status.match(
+    (value) => Response.json(value),
+    () => Response.json({ error: "Failed to disconnect Google connection." }, { status: 500 }),
+  );
 }

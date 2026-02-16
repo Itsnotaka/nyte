@@ -7,6 +7,7 @@ import {
   proposedActions,
   workItems,
 } from "@workspace/db";
+import { Result } from "neverthrow";
 
 import { type ToolCallPayload } from "../domain/actions";
 import { executeProposedAction } from "../domain/execution";
@@ -27,21 +28,21 @@ const TOOL_CALL_KINDS = new Set<ToolCallPayload["kind"]>([
 ]);
 
 function safeParsePayload(payloadJson: string): ToolCallPayload | null {
-  try {
-    const parsed = JSON.parse(payloadJson) as unknown;
-    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
-      return null;
-    }
-
-    const kind = (parsed as { kind?: unknown }).kind;
-    if (typeof kind !== "string" || !TOOL_CALL_KINDS.has(kind as ToolCallPayload["kind"])) {
-      return null;
-    }
-
-    return parsed as ToolCallPayload;
-  } catch {
+  const parsedPayload = Result.fromThrowable(JSON.parse, () => null)(payloadJson);
+  if (parsedPayload.isErr()) {
     return null;
   }
+  const parsed = parsedPayload.value as unknown;
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+    return null;
+  }
+
+  const kind = (parsed as { kind?: unknown }).kind;
+  if (typeof kind !== "string" || !TOOL_CALL_KINDS.has(kind as ToolCallPayload["kind"])) {
+    return null;
+  }
+
+  return parsed as ToolCallPayload;
 }
 
 function toIso(value: unknown): string {

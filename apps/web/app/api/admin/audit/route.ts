@@ -1,28 +1,26 @@
-import { requireAuthorizedSessionOr401 } from "@/lib/server/authz";
+import { createAuthorizationErrorResponse, requireAuthorizedSession } from "@/lib/server/authz";
 import {
   countAuditLogs,
   countAuditLogsByTarget,
   listAuditLogs,
   listAuditLogsByTarget,
 } from "@/lib/server/audit-log";
-import { enforceRateLimit, RateLimitError } from "@/lib/server/rate-limit";
+import { rateLimitRequest } from "@/lib/server/rate-limit";
 import { createRateLimitResponse } from "@/lib/server/rate-limit-response";
+import { ResultAsync } from "neverthrow";
 
 export async function GET(request: Request) {
-  const authorizationResponse = await requireAuthorizedSessionOr401(request);
-  if (authorizationResponse) {
-    return authorizationResponse;
+  const authorization = await requireAuthorizedSession(request);
+  if (authorization.isErr()) {
+    return createAuthorizationErrorResponse(authorization.error);
   }
 
-  try {
-    enforceRateLimit(request, "admin:audit:read", {
-      limit: 60,
-      windowMs: 60_000,
-    });
-  } catch (error) {
-    if (error instanceof RateLimitError) {
-      return createRateLimitResponse(error);
-    }
+  const rateLimit = await rateLimitRequest(request, "admin:audit:read", {
+    limit: 60,
+    windowMs: 60_000,
+  });
+  if (rateLimit.isErr()) {
+    return createRateLimitResponse(rateLimit.error);
   }
 
   const url = new URL(request.url);
@@ -42,14 +40,25 @@ export async function GET(request: Request) {
   const offset = Number(url.searchParams.get("offset") ?? "0");
   const safeOffset = Number.isFinite(offset) && offset >= 0 ? Math.floor(offset) : 0;
 
-  const rows =
+  const rowsResult = await ResultAsync.fromPromise(
     targetType && targetId
-      ? await listAuditLogsByTarget(targetType, targetId, safeLimit, safeOffset)
-      : await listAuditLogs(safeLimit, safeOffset);
-  const totalCount =
-    targetType && targetId
-      ? await countAuditLogsByTarget(targetType, targetId)
-      : await countAuditLogs();
+      ? listAuditLogsByTarget(targetType, targetId, safeLimit, safeOffset)
+      : listAuditLogs(safeLimit, safeOffset),
+    () => new Error("Failed to load audit logs."),
+  );
+  if (rowsResult.isErr()) {
+    return Response.json({ error: "Failed to load audit logs." }, { status: 500 });
+  }
+
+  const totalCountResult = await ResultAsync.fromPromise(
+    targetType && targetId ? countAuditLogsByTarget(targetType, targetId) : countAuditLogs(),
+    () => new Error("Failed to load audit log count."),
+  );
+  if (totalCountResult.isErr()) {
+    return Response.json({ error: "Failed to load audit log count." }, { status: 500 });
+  }
+  const rows = rowsResult.value;
+  const totalCount = totalCountResult.value;
 
   return Response.json({
     count: rows.length,

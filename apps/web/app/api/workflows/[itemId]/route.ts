@@ -1,7 +1,8 @@
 import { getWorkflowTimeline } from "@/lib/server/workflow-log";
-import { requireAuthorizedSessionOr401 } from "@/lib/server/authz";
-import { enforceRateLimit, RateLimitError } from "@/lib/server/rate-limit";
+import { createAuthorizationErrorResponse, requireAuthorizedSession } from "@/lib/server/authz";
+import { rateLimitRequest } from "@/lib/server/rate-limit";
 import { createRateLimitResponse } from "@/lib/server/rate-limit-response";
+import { ResultAsync } from "neverthrow";
 
 type Params = {
   params: Promise<{
@@ -10,20 +11,17 @@ type Params = {
 };
 
 export async function GET(request: Request, { params }: Params) {
-  const authorizationResponse = await requireAuthorizedSessionOr401(request);
-  if (authorizationResponse) {
-    return authorizationResponse;
+  const authorization = await requireAuthorizedSession(request);
+  if (authorization.isErr()) {
+    return createAuthorizationErrorResponse(authorization.error);
   }
 
-  try {
-    enforceRateLimit(request, "workflows:item:read", {
-      limit: 120,
-      windowMs: 60_000,
-    });
-  } catch (error) {
-    if (error instanceof RateLimitError) {
-      return createRateLimitResponse(error);
-    }
+  const rateLimit = await rateLimitRequest(request, "workflows:item:read", {
+    limit: 120,
+    windowMs: 60_000,
+  });
+  if (rateLimit.isErr()) {
+    return createRateLimitResponse(rateLimit.error);
   }
 
   const { itemId } = await params;
@@ -32,9 +30,15 @@ export async function GET(request: Request, { params }: Params) {
     return Response.json({ error: "itemId is required." }, { status: 400 });
   }
 
-  const timeline = await getWorkflowTimeline(normalizedItemId);
-  return Response.json({
-    itemId: normalizedItemId,
-    timeline,
+  const timeline = await ResultAsync.fromPromise(getWorkflowTimeline(normalizedItemId), () => {
+    return new Error("Failed to load workflow timeline.");
   });
+  return timeline.match(
+    (value) =>
+      Response.json({
+        itemId: normalizedItemId,
+        timeline: value,
+      }),
+    () => Response.json({ error: "Failed to load workflow timeline." }, { status: 500 }),
+  );
 }

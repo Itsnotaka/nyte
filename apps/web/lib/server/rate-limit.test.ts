@@ -1,58 +1,63 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { enforceRateLimit, RateLimitError, resetRateLimitState } from "./rate-limit";
+import { rateLimitRequest, resetRateLimitState } from "./rate-limit";
 
-describe("enforceRateLimit", () => {
+describe("rateLimitRequest", () => {
   beforeEach(() => {
+    delete process.env.UNKEY_ROOT_KEY;
     resetRateLimitState();
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-02-16T00:00:01.000Z"));
   });
 
-  it("allows requests under the limit", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("allows requests under the limit", async () => {
     const request = new Request("http://localhost:3000/api/actions/approve", {
       headers: {
         "x-forwarded-for": "10.0.0.1",
       },
     });
 
-    expect(() =>
-      enforceRateLimit(request, "approve", {
-        limit: 2,
-        windowMs: 60_000,
-        now: 1_000,
-      }),
-    ).not.toThrow();
-    expect(() =>
-      enforceRateLimit(request, "approve", {
-        limit: 2,
-        windowMs: 60_000,
-        now: 1_010,
-      }),
-    ).not.toThrow();
+    const first = await rateLimitRequest(request, "approve", {
+      limit: 2,
+      windowMs: 60_000,
+    });
+    const second = await rateLimitRequest(request, "approve", {
+      limit: 2,
+      windowMs: 60_000,
+    });
+
+    expect(first.isOk()).toBe(true);
+    expect(second.isOk()).toBe(true);
   });
 
-  it("throws when the request budget is exhausted", () => {
+  it("returns error when the request budget is exhausted", async () => {
     const request = new Request("http://localhost:3000/api/actions/approve", {
       headers: {
         "x-forwarded-for": "10.0.0.2",
       },
     });
 
-    enforceRateLimit(request, "approve", {
+    const first = await rateLimitRequest(request, "approve", {
       limit: 1,
       windowMs: 60_000,
-      now: 1_000,
+    });
+    const second = await rateLimitRequest(request, "approve", {
+      limit: 1,
+      windowMs: 60_000,
     });
 
-    expect(() =>
-      enforceRateLimit(request, "approve", {
-        limit: 1,
-        windowMs: 60_000,
-        now: 1_010,
-      }),
-    ).toThrow(RateLimitError);
+    expect(first.isOk()).toBe(true);
+    expect(second.isErr()).toBe(true);
+    if (second.isErr()) {
+      expect(second.error.status).toBe(429);
+    }
   });
 
-  it("uses first forwarded address from comma-separated chain", () => {
+  it("uses first forwarded address from comma-separated chain", async () => {
     const primaryRequest = new Request("http://localhost:3000/api/actions/approve", {
       headers: {
         "x-forwarded-for": "198.51.100.10, 198.51.100.20",
@@ -64,22 +69,20 @@ describe("enforceRateLimit", () => {
       },
     });
 
-    enforceRateLimit(primaryRequest, "approve", {
+    const first = await rateLimitRequest(primaryRequest, "approve", {
       limit: 1,
       windowMs: 60_000,
-      now: 1_000,
+    });
+    const second = await rateLimitRequest(samePrimaryRequest, "approve", {
+      limit: 1,
+      windowMs: 60_000,
     });
 
-    expect(() =>
-      enforceRateLimit(samePrimaryRequest, "approve", {
-        limit: 1,
-        windowMs: 60_000,
-        now: 1_010,
-      }),
-    ).toThrow(RateLimitError);
+    expect(first.isOk()).toBe(true);
+    expect(second.isErr()).toBe(true);
   });
 
-  it("falls back to x-real-ip when forwarded chain is empty", () => {
+  it("falls back to x-real-ip when forwarded chain is empty", async () => {
     const request = new Request("http://localhost:3000/api/actions/approve", {
       headers: {
         "x-forwarded-for": " , ",
@@ -92,18 +95,16 @@ describe("enforceRateLimit", () => {
       },
     });
 
-    enforceRateLimit(request, "approve", {
+    const first = await rateLimitRequest(request, "approve", {
       limit: 1,
       windowMs: 60_000,
-      now: 1_000,
+    });
+    const second = await rateLimitRequest(sameIpRequest, "approve", {
+      limit: 1,
+      windowMs: 60_000,
     });
 
-    expect(() =>
-      enforceRateLimit(sameIpRequest, "approve", {
-        limit: 1,
-        windowMs: 60_000,
-        now: 1_010,
-      }),
-    ).toThrow(RateLimitError);
+    expect(first.isOk()).toBe(true);
+    expect(second.isErr()).toBe(true);
   });
 });

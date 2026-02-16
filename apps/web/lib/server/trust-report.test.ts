@@ -91,8 +91,8 @@ describe("getTrustReport", () => {
     expect(report.googleConnection.connected).toBe(true);
     expect(report.googleConnection.providerAccountId).toBe("acct_trust");
     expect(report.security.authzEnforced).toBe(true);
-    expect(report.security.betterAuthSecretConfigured).toBe(true);
-    expect(report.security.betterAuthSecretSource).toBe("env");
+    expect(report.security.authSecretConfigured).toBe(true);
+    expect(report.security.authSecretSource).toBe("env");
     expect(report.security.tokenEncryptionKeyConfigured).toBe(true);
     expect(report.security.tokenEncryptionKeySource).toBe("env");
     expect(report.posture.status).toBe("ok");

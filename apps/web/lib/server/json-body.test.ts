@@ -20,10 +20,13 @@ describe("readJsonBody", () => {
     });
 
     const body = await readJsonBody<{ value: number }>(request);
-    expect(body.value).toBe(42);
+    expect(body.isOk()).toBe(true);
+    if (body.isOk()) {
+      expect(body.value.value).toBe(42);
+    }
   });
 
-  it("throws InvalidJsonBodyError for malformed json", async () => {
+  it("returns InvalidJsonBodyError for malformed json", async () => {
     const request = new Request("http://localhost/test", {
       method: "POST",
       headers: {
@@ -32,10 +35,14 @@ describe("readJsonBody", () => {
       body: "{bad-json",
     });
 
-    await expect(readJsonBody(request)).rejects.toBeInstanceOf(InvalidJsonBodyError);
+    const body = await readJsonBody(request);
+    expect(body.isErr()).toBe(true);
+    if (body.isErr()) {
+      expect(body.error).toBeInstanceOf(InvalidJsonBodyError);
+    }
   });
 
-  it("throws UnsupportedMediaTypeError for non-json content-type", async () => {
+  it("returns UnsupportedMediaTypeError for non-json content-type", async () => {
     const request = new Request("http://localhost/test", {
       method: "POST",
       headers: {
@@ -44,7 +51,11 @@ describe("readJsonBody", () => {
       body: "value=42",
     });
 
-    await expect(readJsonBody(request)).rejects.toBeInstanceOf(UnsupportedMediaTypeError);
+    const body = await readJsonBody(request);
+    expect(body.isErr()).toBe(true);
+    if (body.isErr()) {
+      expect(body.error).toBeInstanceOf(UnsupportedMediaTypeError);
+    }
   });
 
   it("accepts structured json media types", async () => {
@@ -59,7 +70,10 @@ describe("readJsonBody", () => {
     });
 
     const body = await readJsonBody<{ value: number }>(request);
-    expect(body.value).toBe(7);
+    expect(body.isOk()).toBe(true);
+    if (body.isOk()) {
+      expect(body.value.value).toBe(7);
+    }
   });
 
   it("parses UTF-8 BOM prefixed json payload", async () => {
@@ -74,7 +88,10 @@ describe("readJsonBody", () => {
     });
 
     const body = await readJsonBody<{ value: number }>(request);
-    expect(body.value).toBe(11);
+    expect(body.isOk()).toBe(true);
+    if (body.isOk()) {
+      expect(body.value.value).toBe(11);
+    }
   });
 });
 
@@ -88,7 +105,10 @@ describe("readOptionalJsonBody", () => {
     const body = await readOptionalJsonBody<{ value: string }>(request, {
       value: "fallback",
     });
-    expect(body.value).toBe("fallback");
+    expect(body.isOk()).toBe(true);
+    if (body.isOk()) {
+      expect(body.value.value).toBe("fallback");
+    }
   });
 
   it("returns fallback when body is whitespace-only", async () => {
@@ -100,7 +120,10 @@ describe("readOptionalJsonBody", () => {
     const body = await readOptionalJsonBody<{ value: string }>(request, {
       value: "fallback",
     });
-    expect(body.value).toBe("fallback");
+    expect(body.isOk()).toBe(true);
+    if (body.isOk()) {
+      expect(body.value.value).toBe("fallback");
+    }
   });
 
   it("parses valid payload when body is present", async () => {
@@ -117,7 +140,10 @@ describe("readOptionalJsonBody", () => {
     const body = await readOptionalJsonBody<{ value: string }>(request, {
       value: "fallback",
     });
-    expect(body.value).toBe("provided");
+    expect(body.isOk()).toBe(true);
+    if (body.isOk()) {
+      expect(body.value.value).toBe("provided");
+    }
   });
 
   it("parses valid payload prefixed with UTF-8 BOM", async () => {
@@ -134,10 +160,13 @@ describe("readOptionalJsonBody", () => {
     const body = await readOptionalJsonBody<{ value: string }>(request, {
       value: "fallback",
     });
-    expect(body.value).toBe("provided");
+    expect(body.isOk()).toBe(true);
+    if (body.isOk()) {
+      expect(body.value.value).toBe("provided");
+    }
   });
 
-  it("throws InvalidJsonBodyError for malformed payload", async () => {
+  it("returns InvalidJsonBodyError for malformed payload", async () => {
     const request = new Request("http://localhost/test", {
       method: "POST",
       headers: {
@@ -146,10 +175,14 @@ describe("readOptionalJsonBody", () => {
       body: "{bad-json",
     });
 
-    await expect(readOptionalJsonBody(request, {})).rejects.toBeInstanceOf(InvalidJsonBodyError);
+    const body = await readOptionalJsonBody(request, {});
+    expect(body.isErr()).toBe(true);
+    if (body.isErr()) {
+      expect(body.error).toBeInstanceOf(InvalidJsonBodyError);
+    }
   });
 
-  it("throws UnsupportedMediaTypeError for non-json non-empty body", async () => {
+  it("returns UnsupportedMediaTypeError for non-json non-empty body", async () => {
     const request = new Request("http://localhost/test", {
       method: "POST",
       headers: {
@@ -158,8 +191,10 @@ describe("readOptionalJsonBody", () => {
       body: "payload",
     });
 
-    await expect(readOptionalJsonBody(request, {})).rejects.toBeInstanceOf(
-      UnsupportedMediaTypeError,
-    );
+    const body = await readOptionalJsonBody(request, {});
+    expect(body.isErr()).toBe(true);
+    if (body.isErr()) {
+      expect(body.error).toBeInstanceOf(UnsupportedMediaTypeError);
+    }
   });
 });

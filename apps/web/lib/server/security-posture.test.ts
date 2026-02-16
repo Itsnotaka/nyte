@@ -7,8 +7,8 @@ describe("evaluateSecurityPosture", () => {
     const posture = evaluateSecurityPosture({
       security: {
         authzEnforced: false,
-        betterAuthSecretConfigured: false,
-        betterAuthSecretSource: "dev-fallback",
+        authSecretConfigured: false,
+        authSecretSource: "dev-fallback",
         tokenEncryptionKeyConfigured: false,
         tokenEncryptionKeySource: "dev-fallback",
         hasPreviousTokenKey: false,
@@ -31,8 +31,8 @@ describe("evaluateSecurityPosture", () => {
     const posture = evaluateSecurityPosture({
       security: {
         authzEnforced: true,
-        betterAuthSecretConfigured: true,
-        betterAuthSecretSource: "env",
+        authSecretConfigured: true,
+        authSecretSource: "env",
         tokenEncryptionKeyConfigured: true,
         tokenEncryptionKeySource: "env",
         hasPreviousTokenKey: true,

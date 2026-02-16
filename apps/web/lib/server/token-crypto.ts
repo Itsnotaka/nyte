@@ -1,4 +1,5 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
+import { Result } from "neverthrow";
 
 const ALGORITHM = "aes-256-gcm";
 const DEV_FALLBACK_KEY = "nyte-dev-token-encryption-key";
@@ -75,26 +76,25 @@ export function decryptSecret(payload: string) {
     keyId.length > 0 &&
     encryptedPayload.length > 0;
   const encoded = isVersioned ? encryptedPayload : payload;
+  const tryDecrypt = Result.fromThrowable(decryptWithKey, () => null);
 
   if (isVersioned) {
     const preferred = keys.find((entry) => entry.id === keyId);
     const fallback = keys.filter((entry) => entry.id !== keyId);
 
     for (const candidate of preferred ? [preferred, ...fallback] : keys) {
-      try {
-        return decryptWithKey(encoded, candidate.value);
-      } catch {
-        continue;
+      const decrypted = tryDecrypt(encoded, candidate.value);
+      if (decrypted.isOk()) {
+        return decrypted.value;
       }
     }
     throw new Error("Unable to decrypt payload with configured keys.");
   }
 
   for (const candidate of keys) {
-    try {
-      return decryptWithKey(encoded, candidate.value);
-    } catch {
-      continue;
+    const decrypted = tryDecrypt(encoded, candidate.value);
+    if (decrypted.isOk()) {
+      return decrypted.value;
     }
   }
 

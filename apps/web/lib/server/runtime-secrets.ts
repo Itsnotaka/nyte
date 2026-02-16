@@ -1,4 +1,4 @@
-const DEV_BETTER_AUTH_SECRET = "vQ8n9xJ2kLm4Pq7rSt0Uv3Wx6Yz1Ab5Cd8Ef2Gh";
+const DEV_AUTH_SECRET = "vQ8n9xJ2kLm4Pq7rSt0Uv3Wx6Yz1Ab5Cd8Ef2Gh";
 
 export type SecretSource = "env" | "dev-fallback";
 
@@ -10,7 +10,7 @@ function isBuildPhase() {
   return process.env.NEXT_PHASE === "phase-production-build";
 }
 
-export function getBetterAuthSecret() {
+export function getAuthSecret() {
   const configuredSecret = process.env.BETTER_AUTH_SECRET;
   if (configuredSecret) {
     return {
@@ -24,7 +24,7 @@ export function getBetterAuthSecret() {
   }
 
   return {
-    value: DEV_BETTER_AUTH_SECRET,
+    value: DEV_AUTH_SECRET,
     source: "dev-fallback" as SecretSource,
   };
 }

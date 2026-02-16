@@ -3,15 +3,11 @@ import {
   setWorkflowRetentionDays,
   WorkflowRetentionError,
 } from "@/lib/server/workflow-retention";
-import { requireAuthorizedSessionOr401 } from "@/lib/server/authz";
-import {
-  InvalidJsonBodyError,
-  isJsonObject,
-  readJsonBody,
-  UnsupportedMediaTypeError,
-} from "@/lib/server/json-body";
-import { enforceRateLimit, RateLimitError } from "@/lib/server/rate-limit";
+import { createAuthorizationErrorResponse, requireAuthorizedSession } from "@/lib/server/authz";
+import { createJsonBodyErrorResponse, isJsonObject, readJsonBody } from "@/lib/server/json-body";
+import { rateLimitRequest } from "@/lib/server/rate-limit";
 import { createRateLimitResponse } from "@/lib/server/rate-limit-response";
+import { ResultAsync } from "neverthrow";
 
 type RetentionBody = {
   days?: unknown;
@@ -44,74 +40,67 @@ function normalizeRetentionBody(body: RetentionBody): NormalizedRetentionBody {
 }
 
 export async function GET(request: Request) {
-  const authorizationResponse = await requireAuthorizedSessionOr401(request);
-  if (authorizationResponse) {
-    return authorizationResponse;
+  const authorization = await requireAuthorizedSession(request);
+  if (authorization.isErr()) {
+    return createAuthorizationErrorResponse(authorization.error);
   }
 
-  try {
-    enforceRateLimit(request, "workflows:retention:read", {
-      limit: 120,
-      windowMs: 60_000,
-    });
-  } catch (error) {
-    if (error instanceof RateLimitError) {
-      return createRateLimitResponse(error);
-    }
+  const rateLimit = await rateLimitRequest(request, "workflows:retention:read", {
+    limit: 120,
+    windowMs: 60_000,
+  });
+  if (rateLimit.isErr()) {
+    return createRateLimitResponse(rateLimit.error);
   }
 
-  const retention = await getWorkflowRetentionDays();
-  return Response.json(retention);
+  const retention = await ResultAsync.fromPromise(getWorkflowRetentionDays(), () => {
+    return new Error("Failed to read retention policy.");
+  });
+  return retention.match(
+    (value) => Response.json(value),
+    () => Response.json({ error: "Failed to read retention policy." }, { status: 500 }),
+  );
 }
 
 export async function POST(request: Request) {
-  const authorizationResponse = await requireAuthorizedSessionOr401(request);
-  if (authorizationResponse) {
-    return authorizationResponse;
+  const authorization = await requireAuthorizedSession(request);
+  if (authorization.isErr()) {
+    return createAuthorizationErrorResponse(authorization.error);
   }
 
-  try {
-    enforceRateLimit(request, "workflows:retention:update", {
-      limit: 20,
-      windowMs: 60_000,
-    });
-  } catch (error) {
-    if (error instanceof RateLimitError) {
-      return createRateLimitResponse(error);
-    }
+  const rateLimit = await rateLimitRequest(request, "workflows:retention:update", {
+    limit: 20,
+    windowMs: 60_000,
+  });
+  if (rateLimit.isErr()) {
+    return createRateLimitResponse(rateLimit.error);
   }
 
-  let rawBody: unknown;
-  try {
-    rawBody = await readJsonBody<unknown>(request);
-  } catch (error) {
-    if (error instanceof UnsupportedMediaTypeError) {
-      return Response.json({ error: error.message }, { status: 415 });
-    }
-
-    if (error instanceof InvalidJsonBodyError) {
-      return Response.json({ error: error.message }, { status: 400 });
-    }
-    throw error;
+  const rawBody = await readJsonBody<unknown>(request);
+  if (rawBody.isErr()) {
+    return createJsonBodyErrorResponse(rawBody.error);
   }
-  if (!isJsonObject(rawBody)) {
+  if (!isJsonObject(rawBody.value)) {
     return Response.json({ error: "Request body must be a JSON object." }, { status: 400 });
   }
 
-  const body = rawBody as RetentionBody;
+  const body = rawBody.value as RetentionBody;
   const normalized = normalizeRetentionBody(body);
   if ("error" in normalized) {
     return Response.json({ error: normalized.error }, { status: 400 });
   }
 
-  try {
-    const retention = await setWorkflowRetentionDays(normalized.days, new Date());
-    return Response.json(retention);
-  } catch (error) {
-    if (error instanceof WorkflowRetentionError) {
-      return Response.json({ error: error.message }, { status: 400 });
+  const retention = await ResultAsync.fromPromise(
+    setWorkflowRetentionDays(normalized.days, new Date()),
+    (error) => error,
+  );
+  if (retention.isErr()) {
+    if (retention.error instanceof WorkflowRetentionError) {
+      return Response.json({ error: retention.error.message }, { status: 400 });
     }
 
     return Response.json({ error: "Failed to update retention policy." }, { status: 500 });
   }
+
+  return Response.json(retention.value);
 }

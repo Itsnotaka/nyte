@@ -2,7 +2,7 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
 import { db } from "@workspace/db";
-import { getBetterAuthSecret } from "./server/runtime-secrets";
+import { getAuthSecret } from "./server/runtime-secrets";
 
 const gmailScopes = [
   "openid",
@@ -15,12 +15,12 @@ const gmailScopes = [
 
 const googleClientId = process.env.GOOGLE_CLIENT_ID;
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
-const betterAuthSecret = getBetterAuthSecret();
+const authSecret = getAuthSecret();
 
 export const auth = betterAuth({
   appName: "Nyte",
   baseURL: process.env.BETTER_AUTH_URL ?? "http://localhost:3000",
-  secret: betterAuthSecret.value,
+  secret: authSecret.value,
   database: drizzleAdapter(db, {
     provider: "sqlite",
   }),

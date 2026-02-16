@@ -1,3 +1,5 @@
+import { errAsync, okAsync, Result, ResultAsync } from "neverthrow";
+
 export class InvalidJsonBodyError extends Error {
   constructor(message = "Invalid JSON body.") {
     super(message);
@@ -34,32 +36,50 @@ function stripUtf8Bom(value: string) {
   return value.charCodeAt(0) === 0xfeff ? value.slice(1) : value;
 }
 
-export async function readJsonBody<T>(request: Request): Promise<T> {
-  if (!isJsonContentType(request)) {
-    throw new UnsupportedMediaTypeError();
-  }
-
-  try {
-    const raw = stripUtf8Bom(await request.text());
-    return JSON.parse(raw) as T;
-  } catch {
-    throw new InvalidJsonBodyError();
-  }
+function resultToResultAsync<T, E>(result: Result<T, E>): ResultAsync<T, E> {
+  return result.isOk() ? okAsync(result.value) : errAsync(result.error);
 }
 
-export async function readOptionalJsonBody<T>(request: Request, fallback: T): Promise<T> {
-  const raw = stripUtf8Bom(await request.text());
-  if (!raw.trim()) {
-    return fallback;
-  }
-
+export function readJsonBody<T>(
+  request: Request,
+): ResultAsync<T, InvalidJsonBodyError | UnsupportedMediaTypeError> {
   if (!isJsonContentType(request)) {
-    throw new UnsupportedMediaTypeError();
+    return errAsync(new UnsupportedMediaTypeError());
   }
 
-  try {
-    return JSON.parse(raw) as T;
-  } catch {
-    throw new InvalidJsonBodyError();
+  const parseJson = Result.fromThrowable(JSON.parse, () => new InvalidJsonBodyError());
+  return ResultAsync.fromPromise(request.text(), () => new InvalidJsonBodyError()).andThen((raw) =>
+    resultToResultAsync(parseJson(stripUtf8Bom(raw))).map((value) => value as T),
+  );
+}
+
+export function readOptionalJsonBody<T>(
+  request: Request,
+  fallback: T,
+): ResultAsync<T, InvalidJsonBodyError | UnsupportedMediaTypeError> {
+  const parseJson = Result.fromThrowable(JSON.parse, () => new InvalidJsonBodyError());
+  return ResultAsync.fromPromise(request.text(), () => new InvalidJsonBodyError()).andThen(
+    (requestBody) => {
+      const raw = stripUtf8Bom(requestBody);
+      if (!raw.trim()) {
+        return okAsync(fallback);
+      }
+
+      if (!isJsonContentType(request)) {
+        return errAsync(new UnsupportedMediaTypeError());
+      }
+
+      return resultToResultAsync(parseJson(raw)).map((value) => value as T);
+    },
+  );
+}
+
+export function createJsonBodyErrorResponse(
+  error: InvalidJsonBodyError | UnsupportedMediaTypeError,
+) {
+  if (error instanceof UnsupportedMediaTypeError) {
+    return Response.json({ error: error.message }, { status: 415 });
   }
+
+  return Response.json({ error: error.message }, { status: 400 });
 }

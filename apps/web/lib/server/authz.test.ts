@@ -1,6 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { AuthorizationError, requireAuthorizedSessionOr401, shouldEnforceAuthz } from "./authz";
+import {
+  AuthorizationError,
+  AuthorizationServiceError,
+  createAuthorizationErrorResponse,
+  requireAuthorizedSession,
+  shouldEnforceAuthz,
+} from "./authz";
 
 const originalNodeEnv = process.env.NODE_ENV;
 const originalRequireAuth = process.env.NYTE_REQUIRE_AUTH;
@@ -43,32 +49,58 @@ describe("shouldEnforceAuthz", () => {
   });
 });
 
-describe("requireAuthorizedSessionOr401", () => {
+describe("requireAuthorizedSession", () => {
   const request = new Request("http://localhost/api/dashboard");
 
-  it("returns null when authorization succeeds", async () => {
-    const response = await requireAuthorizedSessionOr401(request, vi.fn().mockResolvedValue({}));
+  it("returns ok when authorization succeeds", async () => {
+    process.env.NYTE_REQUIRE_AUTH = "true";
+    const result = await requireAuthorizedSession(request, vi.fn().mockResolvedValue({}));
 
-    expect(response).toBeNull();
+    expect(result.isOk()).toBe(true);
   });
 
-  it("returns 401 response on authorization errors", async () => {
-    const response = await requireAuthorizedSessionOr401(
-      request,
-      vi.fn().mockRejectedValue(new AuthorizationError("Authentication required.")),
-    );
-    const body = (await response?.json()) as { error: string };
+  it("returns unauthorized error when session is missing", async () => {
+    process.env.NYTE_REQUIRE_AUTH = "true";
+    const result = await requireAuthorizedSession(request, vi.fn().mockResolvedValue(null));
 
-    expect(response).toBeDefined();
-    expect(response?.status).toBe(401);
+    expect(result.isErr()).toBe(true);
+    if (result.isErr()) {
+      expect(result.error).toBeInstanceOf(AuthorizationError);
+    }
+  });
+
+  it("returns service error when provider call fails", async () => {
+    process.env.NYTE_REQUIRE_AUTH = "true";
+    const result = await requireAuthorizedSession(
+      request,
+      vi.fn().mockRejectedValue(new Error("session provider unavailable")),
+    );
+
+    expect(result.isErr()).toBe(true);
+    if (result.isErr()) {
+      expect(result.error).toBeInstanceOf(AuthorizationServiceError);
+    }
+  });
+});
+
+describe("createAuthorizationErrorResponse", () => {
+  it("returns 401 payload for authorization failures", async () => {
+    const response = createAuthorizationErrorResponse(
+      new AuthorizationError("Authentication required."),
+    );
+    const body = (await response.json()) as { error: string };
+
+    expect(response.status).toBe(401);
     expect(body.error).toContain("Authentication required");
   });
 
-  it("rethrows non-authorization failures", async () => {
-    const failure = new Error("session provider unavailable");
+  it("returns 500 payload for provider failures", async () => {
+    const response = createAuthorizationErrorResponse(
+      new AuthorizationServiceError("Failed to resolve authenticated session."),
+    );
+    const body = (await response.json()) as { error: string };
 
-    await expect(
-      requireAuthorizedSessionOr401(request, vi.fn().mockRejectedValue(failure)),
-    ).rejects.toThrow("session provider unavailable");
+    expect(response.status).toBe(500);
+    expect(body.error).toContain("Failed to validate authorization");
   });
 });

@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import { and, count, desc, eq } from "drizzle-orm";
 import { auditLogs, db, ensureDbSchema } from "@workspace/db";
+import { Result } from "neverthrow";
 
 type AuditExecutor = Pick<typeof db, "insert">;
 
@@ -58,21 +59,21 @@ function toIso(value: unknown): string {
 }
 
 function safeParsePayload(payloadJson: string): Record<string, unknown> {
-  try {
-    const parsed = JSON.parse(payloadJson) as unknown;
-    if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
-      return parsed as Record<string, unknown>;
-    }
-
-    return {
-      value: parsed,
-    };
-  } catch {
+  const parsedPayload = Result.fromThrowable(JSON.parse, () => null)(payloadJson);
+  if (parsedPayload.isErr()) {
     return {
       parseError: true,
       rawPayload: payloadJson,
     };
   }
+  const parsed = parsedPayload.value as unknown;
+  if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
+    return parsed as Record<string, unknown>;
+  }
+
+  return {
+    value: parsed,
+  };
 }
 
 export async function listAuditLogs(limit = 100, offset = 0): Promise<AuditLogEntry[]> {

@@ -1,17 +1,21 @@
 import { RateLimitError } from "./rate-limit";
 
 export function createRateLimitResponse(error: RateLimitError) {
-  const retryAfter = String(error.retryAfterSeconds);
+  const headers =
+    typeof error.retryAfterSeconds === "number"
+      ? {
+          "Retry-After": String(error.retryAfterSeconds),
+        }
+      : undefined;
+
   return Response.json(
     {
       error: error.message,
       retryAfterSeconds: error.retryAfterSeconds,
     },
     {
-      status: 429,
-      headers: {
-        "Retry-After": retryAfter,
-      },
+      status: error.status,
+      headers,
     },
   );
 }

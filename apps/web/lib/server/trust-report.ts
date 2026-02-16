@@ -3,7 +3,7 @@ import { getMetricsSnapshot } from "./metrics";
 import { listWatchKeywords } from "./policy-rules";
 import { getWorkflowRetentionDays } from "./workflow-retention";
 import { shouldEnforceAuthz } from "./authz";
-import { getBetterAuthSecret, getTokenEncryptionKeySource } from "./runtime-secrets";
+import { getAuthSecret, getTokenEncryptionKeySource } from "./runtime-secrets";
 import { evaluateSecurityPosture, type SecurityPosture } from "./security-posture";
 import { listAuditLogs } from "./audit-log";
 
@@ -16,8 +16,8 @@ export type TrustReport = {
   googleConnection: Awaited<ReturnType<typeof getGoogleConnectionStatus>>;
   security: {
     authzEnforced: boolean;
-    betterAuthSecretConfigured: boolean;
-    betterAuthSecretSource: "env" | "dev-fallback";
+    authSecretConfigured: boolean;
+    authSecretSource: "env" | "dev-fallback";
     tokenEncryptionKeyConfigured: boolean;
     tokenEncryptionKeySource: "env" | "dev-fallback";
     hasPreviousTokenKey: boolean;
@@ -30,7 +30,7 @@ export type TrustReport = {
 };
 
 export async function getTrustReport(now = new Date()): Promise<TrustReport> {
-  const betterAuthSecret = getBetterAuthSecret();
+  const authSecret = getAuthSecret();
   const tokenEncryptionKeySource = getTokenEncryptionKeySource();
   const [metrics, retention, watchRules, googleConnection, recentAuditLogs] = await Promise.all([
     getMetricsSnapshot(now),
@@ -49,8 +49,8 @@ export async function getTrustReport(now = new Date()): Promise<TrustReport> {
     googleConnection,
     security: {
       authzEnforced: shouldEnforceAuthz(),
-      betterAuthSecretConfigured: Boolean(process.env.BETTER_AUTH_SECRET),
-      betterAuthSecretSource: betterAuthSecret.source,
+      authSecretConfigured: Boolean(process.env.BETTER_AUTH_SECRET),
+      authSecretSource: authSecret.source,
       tokenEncryptionKeyConfigured: Boolean(process.env.NYTE_TOKEN_ENCRYPTION_KEY),
       tokenEncryptionKeySource,
       hasPreviousTokenKey: Boolean(process.env.NYTE_TOKEN_ENCRYPTION_KEY_PREVIOUS),

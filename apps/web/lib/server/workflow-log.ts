@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { asc, desc, eq } from "drizzle-orm";
 import { db, ensureDbSchema, workflowEvents, workflowRuns } from "@workspace/db";
+import { Result } from "neverthrow";
 
 type WorkflowLogEvent = {
   kind: string;
@@ -62,21 +63,21 @@ export type WorkflowTimelineEntry = {
 };
 
 function safeParsePayload(payloadJson: string): Record<string, unknown> {
-  try {
-    const parsed = JSON.parse(payloadJson) as unknown;
-    if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
-      return parsed as Record<string, unknown>;
-    }
-
-    return {
-      value: parsed,
-    };
-  } catch {
+  const parsedPayload = Result.fromThrowable(JSON.parse, () => null)(payloadJson);
+  if (parsedPayload.isErr()) {
     return {
       parseError: true,
       rawPayload: payloadJson,
     };
   }
+  const parsed = parsedPayload.value as unknown;
+  if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
+    return parsed as Record<string, unknown>;
+  }
+
+  return {
+    value: parsed,
+  };
 }
 
 function toIso(value: unknown): string {

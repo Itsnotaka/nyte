@@ -1,13 +1,9 @@
 import { ApprovalError, approveWorkItem } from "@/lib/server/approve-action";
-import { requireAuthorizedSessionOr401 } from "@/lib/server/authz";
-import {
-  InvalidJsonBodyError,
-  isJsonObject,
-  readJsonBody,
-  UnsupportedMediaTypeError,
-} from "@/lib/server/json-body";
-import { enforceRateLimit, RateLimitError } from "@/lib/server/rate-limit";
+import { createAuthorizationErrorResponse, requireAuthorizedSession } from "@/lib/server/authz";
+import { createJsonBodyErrorResponse, isJsonObject, readJsonBody } from "@/lib/server/json-body";
+import { rateLimitRequest } from "@/lib/server/rate-limit";
 import { createRateLimitResponse } from "@/lib/server/rate-limit-response";
+import { ResultAsync } from "neverthrow";
 
 type ApproveBody = {
   itemId?: unknown;
@@ -56,59 +52,45 @@ function normalizeApproveBody(body: ApproveBody): NormalizedApproveBody {
 }
 
 export async function POST(request: Request) {
-  const authorizationResponse = await requireAuthorizedSessionOr401(request);
-  if (authorizationResponse) {
-    return authorizationResponse;
+  const authorization = await requireAuthorizedSession(request);
+  if (authorization.isErr()) {
+    return createAuthorizationErrorResponse(authorization.error);
   }
 
-  try {
-    enforceRateLimit(request, "actions:approve", {
-      limit: 30,
-      windowMs: 60_000,
-    });
-  } catch (error) {
-    if (error instanceof RateLimitError) {
-      return createRateLimitResponse(error);
-    }
+  const rateLimit = await rateLimitRequest(request, "actions:approve", {
+    limit: 30,
+    windowMs: 60_000,
+  });
+  if (rateLimit.isErr()) {
+    return createRateLimitResponse(rateLimit.error);
   }
 
-  let rawBody: unknown;
-  try {
-    rawBody = await readJsonBody<unknown>(request);
-  } catch (error) {
-    if (error instanceof UnsupportedMediaTypeError) {
-      return Response.json({ error: error.message }, { status: 415 });
-    }
-
-    if (error instanceof InvalidJsonBodyError) {
-      return Response.json({ error: error.message }, { status: 400 });
-    }
-    throw error;
+  const rawBody = await readJsonBody<unknown>(request);
+  if (rawBody.isErr()) {
+    return createJsonBodyErrorResponse(rawBody.error);
   }
-  if (!isJsonObject(rawBody)) {
+  if (!isJsonObject(rawBody.value)) {
     return Response.json({ error: "Request body must be a JSON object." }, { status: 400 });
   }
 
-  const body = rawBody as ApproveBody;
+  const body = rawBody.value as ApproveBody;
   const normalized = normalizeApproveBody(body);
   if ("error" in normalized) {
     return Response.json({ error: normalized.error }, { status: 400 });
   }
   const idempotencyKey = request.headers.get("x-idempotency-key") ?? normalized.idempotencyKey;
 
-  try {
-    const result = await approveWorkItem(
-      normalized.itemId,
-      new Date(),
-      idempotencyKey ?? undefined,
-    );
-    return Response.json(result);
-  } catch (error) {
-    if (error instanceof ApprovalError) {
-      const status = error.message.includes("not found") ? 404 : 409;
-      return Response.json({ error: error.message }, { status });
+  const result = await ResultAsync.fromPromise(
+    approveWorkItem(normalized.itemId, new Date(), idempotencyKey ?? undefined),
+    (error) => error,
+  );
+  if (result.isErr()) {
+    if (result.error instanceof ApprovalError) {
+      const status = result.error.message.includes("not found") ? 404 : 409;
+      return Response.json({ error: result.error.message }, { status });
     }
-
     return Response.json({ error: "Failed to approve work item." }, { status: 500 });
   }
+
+  return Response.json(result.value);
 }
