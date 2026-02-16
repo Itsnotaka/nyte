@@ -26,6 +26,10 @@ function isJsonContentType(request: Request) {
   return mimeType === "application/json" || mimeType.endsWith("+json");
 }
 
+function stripUtf8Bom(value: string) {
+  return value.charCodeAt(0) === 0xfeff ? value.slice(1) : value;
+}
+
 export async function readJsonBody<T>(request: Request): Promise<T> {
   if (!isJsonContentType(request)) {
     throw new UnsupportedMediaTypeError();
@@ -39,7 +43,7 @@ export async function readJsonBody<T>(request: Request): Promise<T> {
 }
 
 export async function readOptionalJsonBody<T>(request: Request, fallback: T): Promise<T> {
-  const raw = await request.text();
+  const raw = stripUtf8Bom(await request.text());
   if (!raw.trim()) {
     return fallback;
   }

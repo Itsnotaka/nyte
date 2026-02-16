@@ -105,6 +105,23 @@ describe("readOptionalJsonBody", () => {
     expect(body.value).toBe("provided");
   });
 
+  it("parses valid payload prefixed with UTF-8 BOM", async () => {
+    const request = new Request("http://localhost/test", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: `\ufeff${JSON.stringify({
+        value: "provided",
+      })}`,
+    });
+
+    const body = await readOptionalJsonBody<{ value: string }>(request, {
+      value: "fallback",
+    });
+    expect(body.value).toBe("provided");
+  });
+
   it("throws InvalidJsonBodyError for malformed payload", async () => {
     const request = new Request("http://localhost/test", {
       method: "POST",

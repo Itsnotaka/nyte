@@ -177,6 +177,29 @@ describe("google connection route", () => {
     expect(body.providerAccountId).toBe("google-structured-json");
   });
 
+  it("accepts UTF-8 BOM-prefixed json payload", async () => {
+    const response = await POST(
+      new Request("http://localhost/api/connections/google", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-forwarded-for": "198.51.100.96",
+        },
+        body: `\ufeff${JSON.stringify({
+          providerAccountId: "google-bom",
+        })}`,
+      }),
+    );
+    const body = (await response.json()) as {
+      connected: boolean;
+      providerAccountId: string | null;
+    };
+
+    expect(response.status).toBe(200);
+    expect(body.connected).toBe(true);
+    expect(body.providerAccountId).toBe("google-bom");
+  });
+
   it("returns 429 when mutate rate limit is exceeded", async () => {
     let lastResponse: Response | null = null;
     for (let index = 0; index < 21; index += 1) {
