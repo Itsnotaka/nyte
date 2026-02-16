@@ -1,17 +1,20 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import Database from "better-sqlite3";
-import { drizzle } from "drizzle-orm/better-sqlite3";
+import { createClient } from "@libsql/client";
+import { drizzle } from "drizzle-orm/libsql";
 
-import * as schema from "./schema.js";
+import * as schema from "./schema";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const defaultDbPath = path.resolve(__dirname, "../data/nyte.sqlite");
 
-const dbPath = process.env.DATABASE_URL ? path.resolve(process.env.DATABASE_URL) : defaultDbPath;
-const sqlite = new Database(dbPath);
+const resolvedDbPath = process.env.DATABASE_URL
+  ? path.resolve(process.env.DATABASE_URL)
+  : defaultDbPath;
+const dbUrl = resolvedDbPath.startsWith("file:") ? resolvedDbPath : `file:${resolvedDbPath}`;
+const sqlite = createClient({ url: dbUrl });
 
 export const db = drizzle(sqlite, { schema });
 export { schema };
