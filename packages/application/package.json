@@ -7,11 +7,13 @@
     ".": "./src/index.ts",
     "./audit-log": "./src/audit-log.ts",
     "./approve-action": "./src/approve-action.ts",
+    "./connections": "./src/connections.ts",
     "./dashboard": "./src/dashboard.ts",
     "./dismiss-action": "./src/dismiss-action.ts",
     "./feedback": "./src/feedback.ts",
     "./metrics": "./src/metrics.ts",
     "./queue-store": "./src/queue-store.ts",
+    "./token-crypto": "./src/token-crypto.ts",
     "./workflow-log": "./src/workflow-log.ts",
     "./workflow-retention": "./src/workflow-retention.ts"
   },
