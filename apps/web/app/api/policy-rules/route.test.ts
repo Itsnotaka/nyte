@@ -166,6 +166,23 @@ describe("policy rules route", () => {
     expect(body.error).toContain("Invalid JSON body");
   });
 
+  it("returns 415 for non-json content-type on delete", async () => {
+    const response = await DELETE(
+      new Request("http://localhost/api/policy-rules", {
+        method: "DELETE",
+        headers: {
+          "content-type": "text/plain",
+          "x-forwarded-for": "203.0.113.92",
+        },
+        body: "keyword=raw",
+      }),
+    );
+    const body = (await response.json()) as { error: string };
+
+    expect(response.status).toBe(415);
+    expect(body.error).toContain("application/json");
+  });
+
   it("returns 429 when mutate rate limit is exceeded", async () => {
     let lastResponse: Response | null = null;
     for (let index = 0; index < 21; index += 1) {
