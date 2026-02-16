@@ -7,13 +7,14 @@
     "type": true
   },
   "ignoreDependencies": ["tailwindcss", "postcss"],
+  "ignoreUnresolved": ["next"],
   "workspaces": {
     "apps/web": {},
     "packages/ui": {
       "ignoreDependencies": ["next-themes"]
     },
     "tooling/tailwind": {
-      "ignoreDependencies": ["@tailwindcss/postcss", "postcss"]
+      "ignoreDependencies": ["@tailwindcss/postcss", "postcss", "postcss-import"]
     }
   },
   "tags": ["-lintignore"]

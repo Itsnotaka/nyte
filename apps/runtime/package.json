@@ -10,13 +10,11 @@
   "dependencies": {
     "@nyte/application": "workspace:^",
     "@nyte/contracts": "workspace:^",
-    "@nyte/integrations": "workspace:^",
     "neverthrow": "^8.2.0"
   },
   "devDependencies": {
     "@nyte/tsconfig": "workspace:^",
     "@types/node": "^25.1.0",
-    "typescript": "^5.9.3",
-    "vitest": "^4.0.18"
+    "typescript": "^5.9.3"
   }
 }

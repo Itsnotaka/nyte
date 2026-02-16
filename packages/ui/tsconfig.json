@@ -1,9 +1,6 @@
 {
   "extends": "@nyte/tsconfig/base",
   "compilerOptions": {
-    "paths": {
-      "~/*": ["./src/*"],
-    },
     "jsx": "preserve",
     "strictNullChecks": true
   },

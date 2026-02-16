@@ -3,7 +3,6 @@
   "compilerOptions": {
     "paths": {
       "~/*": ["./src/*"],
-      "@nyte/ui/*": ["../../packages/ui/*"]
     },
     "plugins": [
       {
