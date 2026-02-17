@@ -14,6 +14,7 @@
 Canonical extension name constants:
 
 - `PI_EXTENSION_NAMES` exported from `packages/pi-runtime/src/contracts.ts`
+- `PI_AUDIT_SOURCES` exported from `packages/pi-runtime/src/contracts.ts`
 
 ## Contract model
 
