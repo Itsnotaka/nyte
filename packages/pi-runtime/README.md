@@ -10,8 +10,9 @@ PI extension contracts and registry for provider execution.
 - define canonical extension-name constants (`PI_EXTENSION_NAMES`)
 - define canonical audit source constants (`PI_AUDIT_SOURCES`)
 - expose runtime guard helper (`isPiExtensionResult`) for downstream contract validation
+- expose runtime guard helper (`isPiExtensionName`) for extension-name validation
 - expose extension handlers for Gmail and Calendar
-- provide registry and generic execution function
+- provide registry and overload-based typed execution function (no unsafe request cast)
 
 ## Public exports
 
