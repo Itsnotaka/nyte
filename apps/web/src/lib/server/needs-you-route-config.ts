@@ -8,6 +8,7 @@ type NeedsYouRoutePath = (typeof NEEDS_YOU_API_ROUTES)[keyof typeof NEEDS_YOU_AP
 
 type BaseNeedsYouRouteConfig = {
   route: NeedsYouRoutePath;
+  method: "GET" | "POST";
   taskId: WorkflowTaskId;
 };
 
@@ -42,6 +43,7 @@ type ActionRouteConfig<TEvents extends Record<string, string>> = BaseNeedsYouRou
 export const NEEDS_YOU_ROUTE_CONFIG = {
   queueSync: {
     route: NEEDS_YOU_API_ROUTES.sync,
+    method: "GET",
     taskId: WORKFLOW_TASK_IDS.ingestSignals,
     events: REQUEST_EVENTS.queueSync,
     messages: {
@@ -57,6 +59,7 @@ export const NEEDS_YOU_ROUTE_CONFIG = {
   },
   actionApprove: {
     route: NEEDS_YOU_API_ROUTES.approveAction,
+    method: "POST",
     taskId: WORKFLOW_TASK_IDS.approveAction,
     events: REQUEST_EVENTS.actionApprove,
     messages: {
@@ -72,6 +75,7 @@ export const NEEDS_YOU_ROUTE_CONFIG = {
   },
   actionDismiss: {
     route: NEEDS_YOU_API_ROUTES.dismissAction,
+    method: "POST",
     taskId: WORKFLOW_TASK_IDS.dismissAction,
     events: REQUEST_EVENTS.actionDismiss,
     messages: {
@@ -87,6 +91,7 @@ export const NEEDS_YOU_ROUTE_CONFIG = {
   },
   actionFeedback: {
     route: NEEDS_YOU_API_ROUTES.feedbackAction,
+    method: "POST",
     taskId: WORKFLOW_TASK_IDS.feedback,
     events: REQUEST_EVENTS.actionFeedback,
     messages: {

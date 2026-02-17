@@ -47,7 +47,7 @@ export async function GET(request: Request) {
   const config = NEEDS_YOU_ROUTE_CONFIG.queueSync;
   const route = config.route;
   const taskId = config.taskId;
-  const method = request.method;
+  const method = config.method;
   const startedAt = Date.now();
   const searchParams = new URL(request.url).searchParams;
   const cursor = parseCursor(searchParams);

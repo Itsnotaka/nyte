@@ -41,7 +41,7 @@ export async function POST(request: Request) {
   const config = NEEDS_YOU_ROUTE_CONFIG.actionDismiss;
   const route = config.route;
   const taskId = config.taskId;
-  const method = request.method;
+  const method = config.method;
   const startedAt = Date.now();
   const requestLog = createApiRequestLogger(request, route);
   let status: HttpStatusCode = config.statuses.ok;
