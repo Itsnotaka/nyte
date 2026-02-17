@@ -11,6 +11,7 @@
 - Trigger task definitions live in `packages/workflows/src/trigger-tasks.ts`.
 - Task runner orchestration lives in `packages/workflows/src/trigger-runner.ts`.
   - Uses Effect runtime to model trigger/local fallback execution and typed failure conversion.
+- Trigger task definitions include explicit retry policy and queue concurrency settings.
 - Web Trigger runtime entrypoints:
   - config: `apps/web/trigger.config.ts`
   - task exports: `apps/web/trigger/workflows.ts`

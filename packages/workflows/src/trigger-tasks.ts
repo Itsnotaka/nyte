@@ -13,22 +13,50 @@ type TriggerApproveActionInput = Omit<ApproveActionTaskInput, "now">;
 type TriggerDismissActionInput = Omit<DismissActionTaskInput, "now">;
 type TriggerFeedbackInput = Omit<FeedbackTaskInput, "now">;
 
+const TASK_RETRY_POLICY = {
+  maxAttempts: 3,
+  factor: 2,
+  minTimeoutInMs: 1_000,
+  maxTimeoutInMs: 10_000,
+  randomize: true,
+} as const;
+
 export const triggerIngestSignalsTask = task({
   id: "workflow.ingest-signals",
+  retry: TASK_RETRY_POLICY,
+  queue: {
+    name: "queue-sync",
+    concurrencyLimit: 1,
+  },
   run: async (payload: TriggerIngestSignalsInput) => ingestSignalsTask(payload),
 });
 
 export const triggerApproveActionTask = task({
   id: "workflow.approve-action",
+  retry: TASK_RETRY_POLICY,
+  queue: {
+    name: "action-mutations",
+    concurrencyLimit: 2,
+  },
   run: async (payload: TriggerApproveActionInput) => approveActionTask(payload),
 });
 
 export const triggerDismissActionTask = task({
   id: "workflow.dismiss-action",
+  retry: TASK_RETRY_POLICY,
+  queue: {
+    name: "action-mutations",
+    concurrencyLimit: 2,
+  },
   run: async (payload: TriggerDismissActionInput) => dismissActionTask(payload),
 });
 
 export const triggerFeedbackTask = task({
   id: "workflow.feedback",
+  retry: TASK_RETRY_POLICY,
+  queue: {
+    name: "feedback",
+    concurrencyLimit: 4,
+  },
   run: async (payload: TriggerFeedbackInput) => feedbackTask(payload),
 });
