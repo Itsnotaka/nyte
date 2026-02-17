@@ -17,7 +17,7 @@
 
 # Environment
 **/.env*
-
+**.pi/*
 # Logs
 **/*.log
 **/npm-debug.log*
