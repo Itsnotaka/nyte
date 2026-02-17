@@ -9,29 +9,32 @@ import {
 
 import { createApiRequestLogger } from "~/lib/server/request-log";
 import { resolveRequestSession } from "~/lib/server/request-session";
+import { asObjectPayload, parseRequiredString } from "~/lib/server/request-validation";
 import { resolveWorkflowRouteError } from "~/lib/server/workflow-route-error";
 
 function parseApproveBody(value: unknown): ApproveActionRequest | null {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
+  const body = asObjectPayload(value);
+  if (!body) {
     return null;
   }
 
-  const body = value as Record<keyof ApproveActionRequest, unknown>;
-  if (typeof body.itemId !== "string" || body.itemId.trim().length === 0) {
+  const itemId = parseRequiredString(body.itemId);
+  if (!itemId) {
     return null;
   }
 
-  if (
-    body.idempotencyKey !== undefined &&
-    (typeof body.idempotencyKey !== "string" || body.idempotencyKey.trim().length === 0)
-  ) {
-    return null;
+  let idempotencyKey: string | undefined;
+  if (body.idempotencyKey !== undefined) {
+    const parsedIdempotencyKey = parseRequiredString(body.idempotencyKey);
+    if (!parsedIdempotencyKey) {
+      return null;
+    }
+    idempotencyKey = parsedIdempotencyKey;
   }
 
   const parsedBody: ApproveActionRequest = {
-    itemId: body.itemId.trim(),
-    idempotencyKey:
-      typeof body.idempotencyKey === "string" ? body.idempotencyKey.trim() : undefined,
+    itemId,
+    idempotencyKey,
   };
 
   if (body.payloadOverride !== undefined) {

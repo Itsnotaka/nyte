@@ -8,20 +8,22 @@ import {
 
 import { createApiRequestLogger } from "~/lib/server/request-log";
 import { resolveRequestSession } from "~/lib/server/request-session";
+import { asObjectPayload, parseRequiredString } from "~/lib/server/request-validation";
 import { resolveWorkflowRouteError } from "~/lib/server/workflow-route-error";
 
 function parseDismissBody(value: unknown): DismissActionRequest | null {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
+  const body = asObjectPayload(value);
+  if (!body) {
     return null;
   }
 
-  const body = value as Record<keyof DismissActionRequest, unknown>;
-  if (typeof body.itemId !== "string" || body.itemId.trim().length === 0) {
+  const itemId = parseRequiredString(body.itemId);
+  if (!itemId) {
     return null;
   }
 
   return {
-    itemId: body.itemId.trim(),
+    itemId,
   };
 }
 

@@ -8,15 +8,17 @@ import {
 
 import { createApiRequestLogger } from "~/lib/server/request-log";
 import { resolveRequestSession } from "~/lib/server/request-session";
+import { asObjectPayload, parseRequiredString } from "~/lib/server/request-validation";
 import { resolveWorkflowRouteError } from "~/lib/server/workflow-route-error";
 
 function parseFeedbackBody(value: unknown): FeedbackActionRequest | null {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
+  const body = asObjectPayload(value);
+  if (!body) {
     return null;
   }
 
-  const body = value as Record<keyof FeedbackActionRequest, unknown>;
-  if (typeof body.itemId !== "string" || body.itemId.trim().length === 0) {
+  const itemId = parseRequiredString(body.itemId);
+  if (!itemId) {
     return null;
   }
 
@@ -31,7 +33,7 @@ function parseFeedbackBody(value: unknown): FeedbackActionRequest | null {
   const note = body.note?.trim();
 
   return {
-    itemId: body.itemId.trim(),
+    itemId,
     rating: body.rating,
     note: note && note.length > 0 ? note : undefined,
   };

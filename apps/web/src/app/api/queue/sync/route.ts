@@ -8,11 +8,8 @@ import {
 import { auth } from "~/lib/auth";
 import { createApiRequestLogger } from "~/lib/server/request-log";
 import { resolveRequestSession } from "~/lib/server/request-session";
+import { asObjectPayload, parseRequiredString } from "~/lib/server/request-validation";
 import { resolveWorkflowRouteError } from "~/lib/server/workflow-route-error";
-
-type AccessTokenPayload = {
-  accessToken?: unknown;
-};
 
 function parseCursor(searchParams: URLSearchParams): QueueSyncRequest["cursor"] {
   const cursor = searchParams.get("cursor")?.trim();
@@ -33,17 +30,13 @@ function parseWatchKeywords(searchParams: URLSearchParams): QueueSyncRequest["wa
   return keywords.length > 0 ? keywords : undefined;
 }
 
-function resolveAccessToken(payload: AccessTokenPayload) {
-  if (typeof payload.accessToken !== "string") {
+function resolveAccessToken(value: unknown) {
+  const payload = asObjectPayload(value);
+  if (!payload) {
     return null;
   }
 
-  const normalized = payload.accessToken.trim();
-  if (!normalized) {
-    return null;
-  }
-
-  return normalized;
+  return parseRequiredString(payload.accessToken);
 }
 
 export async function GET(request: Request) {
@@ -83,12 +76,12 @@ export async function GET(request: Request) {
       return Response.json(response, { status });
     }
 
-    const accessTokenResult = (await auth.api.getAccessToken({
+    const accessTokenResult = await auth.api.getAccessToken({
       headers: request.headers,
       body: {
         providerId: "google",
       },
-    })) as AccessTokenPayload;
+    });
 
     const accessToken = resolveAccessToken(accessTokenResult);
     if (!accessToken) {
