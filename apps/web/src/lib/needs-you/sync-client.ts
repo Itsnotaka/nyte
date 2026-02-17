@@ -1,6 +1,10 @@
 import { isQueueSyncResponse, type QueueSyncResponse } from "@nyte/workflows";
 import { normalizeWatchKeywords } from "~/lib/shared/watch-keywords";
-import { readJsonSafe, resolveWorkflowApiError } from "./http-client";
+import {
+  JSON_ACCEPT_HEADERS,
+  readJsonSafe,
+  resolveWorkflowApiError,
+} from "./http-client";
 import { NEEDS_YOU_API_ROUTES } from "./routes";
 
 async function parseSyncPollResponse(response: Response): Promise<QueueSyncResponse> {
@@ -46,9 +50,7 @@ export async function syncNeedsYou({
 
   const response = await fetch(url, {
     method: "GET",
-    headers: {
-      accept: "application/json",
-    },
+    headers: JSON_ACCEPT_HEADERS,
     cache: "no-store",
   });
 

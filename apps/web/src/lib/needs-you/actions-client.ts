@@ -8,13 +8,12 @@ import type {
 } from "@nyte/workflows";
 import type { ToolCallPayload } from "@nyte/domain/actions";
 import { asRecord } from "~/lib/shared/value-guards";
-import { readJsonSafe, resolveWorkflowApiError } from "./http-client";
+import {
+  JSON_REQUEST_HEADERS,
+  readJsonSafe,
+  resolveWorkflowApiError,
+} from "./http-client";
 import { NEEDS_YOU_API_ROUTES } from "./routes";
-
-const JSON_HEADERS = {
-  "content-type": "application/json",
-  accept: "application/json",
-} as const;
 
 async function postAction<TRequest, TResponse>({
   route,
@@ -27,7 +26,7 @@ async function postAction<TRequest, TResponse>({
 }): Promise<TResponse> {
   const response = await fetch(route, {
     method: "POST",
-    headers: JSON_HEADERS,
+    headers: JSON_REQUEST_HEADERS,
     body: JSON.stringify(body),
   });
 
