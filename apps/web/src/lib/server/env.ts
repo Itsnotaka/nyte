@@ -4,11 +4,11 @@ import { z } from "zod";
 
 export const env = createEnv({
   server: {
-    DATABASE_URL: z.string().url(),
+    DATABASE_URL: z.url(),
     BETTER_AUTH_SECRET: z.string().min(1),
-    NYTE_TOKEN_ENCRYPTION_KEY: z.string().min(1),
-    NYTE_TOKEN_ENCRYPTION_KEY_PREVIOUS: z.string().min(1).optional(),
-    BETTER_AUTH_URL: z.string().url().optional(),
+    BETTER_AUTH_URL: z.url(),
+    BETTER_AUTH_PRODUCTION_URL: z.url(),
+    BETTER_AUTH_PROXY_URL: z.url().optional(),
     GOOGLE_CLIENT_ID: z.string().min(1),
     GOOGLE_CLIENT_SECRET: z.string().min(1),
   },
@@ -16,10 +16,9 @@ export const env = createEnv({
   runtimeEnv: {
     DATABASE_URL: process.env.DATABASE_URL,
     BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
-    NYTE_TOKEN_ENCRYPTION_KEY: process.env.NYTE_TOKEN_ENCRYPTION_KEY,
-    NYTE_TOKEN_ENCRYPTION_KEY_PREVIOUS:
-      process.env.NYTE_TOKEN_ENCRYPTION_KEY_PREVIOUS,
     BETTER_AUTH_URL: process.env.BETTER_AUTH_URL,
+    BETTER_AUTH_PRODUCTION_URL: process.env.BETTER_AUTH_PRODUCTION_URL,
+    BETTER_AUTH_PROXY_URL: process.env.BETTER_AUTH_PROXY_URL,
     GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
     GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
   },

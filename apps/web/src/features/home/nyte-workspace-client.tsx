@@ -3,13 +3,7 @@
 import { NyteWorkspaceView } from "./nyte-workspace-view";
 import { useNyteWorkspace } from "./use-nyte-workspace";
 
-type WorkspaceClientProps = {
-  initialConnected: boolean;
-};
-
-export function NyteWorkspaceClient({
-  initialConnected,
-}: WorkspaceClientProps) {
+export function NyteWorkspaceClient() {
   const {
     connected,
     isSessionPending,
@@ -24,7 +18,7 @@ export function NyteWorkspaceClient({
     connectGoogle,
     disconnectGoogle,
     markAction,
-  } = useNyteWorkspace({ initialConnected });
+  } = useNyteWorkspace();
 
   return (
     <NyteWorkspaceView

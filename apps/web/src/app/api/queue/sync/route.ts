@@ -3,10 +3,9 @@ import { runIngestSignalsTask } from "@nyte/workflows";
 import { auth } from "~/lib/auth";
 import { GOOGLE_AUTH_PROVIDER } from "~/lib/auth-provider";
 import { parseQueueSyncQueryParams } from "~/lib/needs-you/sync-query";
-import { type HttpStatusCode } from "~/lib/server/http-status";
-import { NEEDS_YOU_ROUTE_CONFIG } from "~/lib/server/needs-you-route-config";
+import { NEEDS_YOU_ROUTE_CONFIG, type HttpStatusCode } from "~/lib/server/needs-you-route-config";
 import { createApiRequestLogger } from "~/lib/server/request-log";
-import { resolveRequestSession } from "~/lib/server/request-session";
+import { resolveAuthenticatedRequestSession } from "~/lib/server/request-session";
 import { parseBodyWithRequiredStringField } from "~/lib/server/request-validation";
 import {
   resolveWorkflowErrorTaskId,
@@ -41,24 +40,21 @@ export async function GET(request: Request) {
   });
 
   try {
-    const { session, userId: sessionUserId } = await resolveRequestSession({
+    const sessionResolution = await resolveAuthenticatedRequestSession({
       request,
       requestLog,
+      unauthorizedEvent: config.events.unauthorized,
+      unauthorizedMessage: config.messages.authRequired,
+      unauthorizedStatus: config.statuses.unauthorized,
+      route,
+      method,
+      taskId,
     });
-    userId = sessionUserId;
-    if (!session) {
-      status = config.statuses.unauthorized;
-      requestLog.warn(config.events.unauthorized, {
-        route,
-        method,
-        status,
-        userId,
-        taskId,
-      });
-      return toWorkflowApiErrorJsonResponse(
-        config.messages.authRequired,
-        status
-      );
+
+    userId = sessionResolution.userId;
+    if (sessionResolution.response) {
+      status = sessionResolution.status;
+      return sessionResolution.response;
     }
 
     const accessTokenResult = await auth.api.getAccessToken({
@@ -78,10 +74,7 @@ export async function GET(request: Request) {
         userId,
         taskId,
       });
-      return toWorkflowApiErrorJsonResponse(
-        config.messages.tokenUnavailable,
-        status
-      );
+      return toWorkflowApiErrorJsonResponse(config.messages.tokenUnavailable, status);
     }
 
     const result = await runIngestSignalsTask({
@@ -103,7 +96,7 @@ export async function GET(request: Request) {
     const resolved = resolveWorkflowRouteError(
       error,
       config.messages.taskUnavailable,
-      config.statuses.taskFailure
+      config.statuses.taskFailure,
     );
     status = resolved.status;
 

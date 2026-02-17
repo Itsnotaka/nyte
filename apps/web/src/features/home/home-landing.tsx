@@ -1,28 +1,22 @@
 "use client";
 
-import * as React from "react";
+import { useMutation } from "@tanstack/react-query";
 
 import { authClient } from "~/lib/auth-client";
 import { GOOGLE_AUTH_PROVIDER } from "~/lib/auth-provider";
 
 export function HomeLanding() {
-  const [isConnecting, setIsConnecting] = React.useState(false);
-  const [connectError, setConnectError] = React.useState<string | null>(null);
-
-  const connectGoogle = React.useCallback(async () => {
-    setConnectError(null);
-    setIsConnecting(true);
-
-    try {
-      await authClient.signIn.social({
+  const {
+    mutate: connectGoogle,
+    isPending: isConnecting,
+    error: connectError,
+  } = useMutation({
+    mutationFn: () =>
+      authClient.signIn.social({
         provider: GOOGLE_AUTH_PROVIDER,
-        callbackURL: "/",
-      });
-    } catch {
-      setConnectError("Unable to connect Google right now. Please try again.");
-      setIsConnecting(false);
-    }
-  }, []);
+        callbackURL: new URL("/", window.location.origin).toString(),
+      }),
+  });
 
   return (
     <main className="min-h-dvh bg-[radial-gradient(circle_at_10%_12%,#6aa5ff_0%,transparent_30%),radial-gradient(circle_at_88%_16%,#f18bd1_0%,transparent_36%),radial-gradient(circle_at_86%_86%,#ff8359_0%,transparent_38%),radial-gradient(circle_at_16%_82%,#45c8ff_0%,transparent_36%),linear-gradient(125deg,#4f46e5_0%,#0ea5e9_40%,#f97316_100%)] px-4 py-10 md:py-14">
@@ -49,7 +43,7 @@ export function HomeLanding() {
           <button
             type="button"
             className="inline-flex h-10 items-center rounded-lg bg-zinc-900 px-4 text-sm font-medium text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-65"
-            onClick={() => void connectGoogle()}
+            onClick={() => connectGoogle()}
             disabled={isConnecting}
           >
             {isConnecting ? "Connecting Google…" : "Continue with Google"}
@@ -57,7 +51,7 @@ export function HomeLanding() {
 
           {connectError ? (
             <p className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
-              {connectError}
+              {connectError.message}
             </p>
           ) : null}
         </div>

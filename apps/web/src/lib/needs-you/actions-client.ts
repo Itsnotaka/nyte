@@ -2,6 +2,7 @@ import {
   isApproveActionResponse,
   isDismissActionResponse,
   isFeedbackActionResponse,
+  isWorkflowApiErrorResponse,
 } from "@nyte/workflows";
 import type {
   ApproveActionRequest,
@@ -12,14 +13,29 @@ import type {
   FeedbackActionResponse,
 } from "@nyte/workflows";
 
-import {
-  HTTP_METHODS,
-  JSON_REQUEST_HEADERS,
-  readJsonSafe,
-  resolveWorkflowApiError,
-} from "./http-client";
 import { NEEDS_YOU_MESSAGES } from "./messages";
 import { NEEDS_YOU_API_ROUTES } from "./routes";
+
+const JSON_REQUEST_HEADERS = {
+  accept: "application/json",
+  "content-type": "application/json",
+} as const;
+
+async function readJsonSafe(response: Response): Promise<unknown> {
+  try {
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+function resolveWorkflowApiError(payload: unknown, fallback: string): string {
+  if (isWorkflowApiErrorResponse(payload)) {
+    return payload.error;
+  }
+
+  return fallback;
+}
 
 async function postAction<TRequest extends object, TResponse extends object>({
   route,
@@ -33,7 +49,7 @@ async function postAction<TRequest extends object, TResponse extends object>({
   isResponse: (payload: unknown) => payload is TResponse;
 }): Promise<TResponse> {
   const response = await fetch(route, {
-    method: HTTP_METHODS.post,
+    method: "POST",
     headers: JSON_REQUEST_HEADERS,
     body: JSON.stringify(body),
   });
@@ -52,7 +68,7 @@ async function postAction<TRequest extends object, TResponse extends object>({
 
 export async function approveNeedsYouAction(
   itemId: ApproveActionRequest["itemId"],
-  payloadOverride?: ApproveActionRequest["payloadOverride"]
+  payloadOverride?: ApproveActionRequest["payloadOverride"],
 ): Promise<ApproveActionResponse> {
   const body: ApproveActionRequest = {
     itemId,
@@ -67,7 +83,7 @@ export async function approveNeedsYouAction(
 }
 
 export async function dismissNeedsYouAction(
-  itemId: DismissActionRequest["itemId"]
+  itemId: DismissActionRequest["itemId"],
 ): Promise<DismissActionResponse> {
   const body: DismissActionRequest = { itemId };
   return postAction<DismissActionRequest, DismissActionResponse>({
@@ -81,7 +97,7 @@ export async function dismissNeedsYouAction(
 export async function recordNeedsYouFeedback(
   itemId: FeedbackActionRequest["itemId"],
   rating: FeedbackActionRequest["rating"],
-  note?: FeedbackActionRequest["note"]
+  note?: FeedbackActionRequest["note"],
 ): Promise<FeedbackActionResponse> {
   const body: FeedbackActionRequest = { itemId, rating, note };
   return postAction<FeedbackActionRequest, FeedbackActionResponse>({

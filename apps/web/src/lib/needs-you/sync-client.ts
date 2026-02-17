@@ -1,28 +1,38 @@
 import {
   isQueueSyncResponse,
+  isWorkflowApiErrorResponse,
   type QueueSyncRequest,
   type QueueSyncResponse,
 } from "@nyte/workflows";
-
-import {
-  HTTP_METHODS,
-  JSON_ACCEPT_HEADERS,
-  readJsonSafe,
-  resolveWorkflowApiError,
-} from "./http-client";
 import { NEEDS_YOU_MESSAGES } from "./messages";
 import { NEEDS_YOU_API_ROUTES } from "./routes";
 import { buildQueueSyncQueryParams } from "./sync-query";
 
-async function parseSyncPollResponse(
-  response: Response
-): Promise<QueueSyncResponse> {
+const JSON_ACCEPT_HEADERS = {
+  accept: "application/json",
+} as const;
+
+async function readJsonSafe(response: Response): Promise<unknown> {
+  try {
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+function resolveWorkflowApiError(payload: unknown, fallback: string): string {
+  if (isWorkflowApiErrorResponse(payload)) {
+    return payload.error;
+  }
+
+  return fallback;
+}
+
+async function parseSyncPollResponse(response: Response): Promise<QueueSyncResponse> {
   const payload = await readJsonSafe(response);
 
   if (!response.ok) {
-    throw new Error(
-      resolveWorkflowApiError(payload, NEEDS_YOU_MESSAGES.syncUnavailable)
-    );
+    throw new Error(resolveWorkflowApiError(payload, NEEDS_YOU_MESSAGES.syncUnavailable));
   }
 
   if (!isQueueSyncResponse(payload)) {
@@ -49,7 +59,7 @@ export async function syncNeedsYou({
       : NEEDS_YOU_API_ROUTES.sync;
 
   const response = await fetch(url, {
-    method: HTTP_METHODS.get,
+    method: "GET",
     headers: JSON_ACCEPT_HEADERS,
     cache: "no-store",
   });

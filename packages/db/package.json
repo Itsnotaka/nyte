@@ -5,15 +5,15 @@
   "type": "module",
   "exports": {
     "./client": "./src/client.ts",
-    "./schema": "./src/schema/index.ts"
+    "./schema": "./src/schema.ts"
   },
   "scripts": {
-    "typecheck": "tsgo --noEmit",
-    "generate": "pnpm with-env  drizzle-kit generate",
+    "generate": "pnpm with-env drizzle-kit generate",
     "push": "pnpm with-env drizzle-kit push",
     "studio": "pnpm with-env drizzle-kit studio",
     "migrate": "pnpm with-env drizzle-kit migrate",
-    "with-env": "dotenv -e ../../apps/web/.env -e ../../apps/web/.env.local --"
+    "typecheck": "tsgo --noEmit",
+    "with-env": "dotenv -e ../../apps/web/.env --"
   },
   "devDependencies": {
     "@neondatabase/serverless": "^1.0.2",

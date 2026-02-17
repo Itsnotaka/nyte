@@ -13,8 +13,6 @@ use-cases across domain + db, without framework-specific UI code.
   mapping (`ApprovalErrorCode`, `DismissErrorCode`, `FeedbackErrorCode`)
 - dashboard + metrics read models
 - policy rules and workflow retention controls
-- trust/audit/security posture reporting
-- token encryption/decryption and security posture evaluation
 
 ## Package layout
 
@@ -22,7 +20,6 @@ use-cases across domain + db, without framework-specific UI code.
 - src/audit: audit log write/read utilities
 - src/dashboard: dashboard and metrics read models
 - src/queue: signal/work-item persistence
-- src/security: token crypto + posture evaluation
 - src/workflow: workflow run/event timeline logging
 - src/shared: common helpers (time, typed payload parsing, default user)
 
@@ -34,7 +31,6 @@ Grouped-only API:
 - `@nyte/application/audit`
 - `@nyte/application/dashboard`
 - `@nyte/application/queue`
-- `@nyte/application/security`
 - `@nyte/application/workflow`
 
 ## Dependencies

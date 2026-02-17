@@ -1,17 +1,10 @@
 import { DismissError } from "@nyte/application/actions";
-import {
-  runDismissActionTask,
-  type DismissActionRequest,
-} from "@nyte/workflows";
+import { runDismissActionTask, type DismissActionRequest } from "@nyte/workflows";
 
-import { type HttpStatusCode } from "~/lib/server/http-status";
-import { NEEDS_YOU_ROUTE_CONFIG } from "~/lib/server/needs-you-route-config";
+import { NEEDS_YOU_ROUTE_CONFIG, type HttpStatusCode } from "~/lib/server/needs-you-route-config";
 import { createApiRequestLogger } from "~/lib/server/request-log";
-import { resolveRequestSession } from "~/lib/server/request-session";
-import {
-  parseBodyWithItemId,
-  parseRequestPayload,
-} from "~/lib/server/request-validation";
+import { resolveAuthenticatedRequestSession } from "~/lib/server/request-session";
+import { parseBodyWithItemId, parseRequestPayload } from "~/lib/server/request-validation";
 import {
   resolveWorkflowErrorTaskId,
   resolveWorkflowDomainStatus,
@@ -49,23 +42,21 @@ export async function POST(request: Request) {
   });
 
   try {
-    const { session, userId: sessionUserId } = await resolveRequestSession({
+    const sessionResolution = await resolveAuthenticatedRequestSession({
       request,
       requestLog,
+      unauthorizedEvent: config.events.unauthorized,
+      unauthorizedMessage: config.messages.authRequired,
+      unauthorizedStatus: config.statuses.unauthorized,
+      route,
+      method,
+      taskId,
     });
-    userId = sessionUserId;
-    if (!session) {
-      status = config.statuses.unauthorized;
-      requestLog.warn(config.events.unauthorized, {
-        route,
-        method,
-        status,
-        taskId,
-      });
-      return toWorkflowApiErrorJsonResponse(
-        config.messages.authRequired,
-        status
-      );
+
+    userId = sessionResolution.userId;
+    if (sessionResolution.response) {
+      status = sessionResolution.status;
+      return sessionResolution.response;
     }
 
     const payload = await parseRequestPayload(request, parseDismissBody);
@@ -77,10 +68,7 @@ export async function POST(request: Request) {
         status,
         taskId,
       });
-      return toWorkflowApiErrorJsonResponse(
-        config.messages.invalidPayload,
-        status
-      );
+      return toWorkflowApiErrorJsonResponse(config.messages.invalidPayload, status);
     }
     itemId = payload.itemId;
 
@@ -114,7 +102,7 @@ export async function POST(request: Request) {
     const resolved = resolveWorkflowRouteError(
       error,
       config.messages.taskUnavailable,
-      config.statuses.taskFailure
+      config.statuses.taskFailure,
     );
     status = resolved.status;
     requestLog.error(config.events.taskError, {

@@ -8,7 +8,6 @@
     "./audit": "./src/audit/index.ts",
     "./dashboard": "./src/dashboard/index.ts",
     "./queue": "./src/queue/index.ts",
-    "./security": "./src/security/index.ts",
     "./workflow": "./src/workflow/index.ts"
   },
   "scripts": {

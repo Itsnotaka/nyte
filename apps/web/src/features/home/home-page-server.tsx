@@ -15,5 +15,5 @@ export async function HomePageServer() {
     return <HomeLanding />;
   }
 
-  return <NyteWorkspaceClient initialConnected />;
+  return <NyteWorkspaceClient />;
 }

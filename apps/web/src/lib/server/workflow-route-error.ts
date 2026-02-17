@@ -11,8 +11,7 @@ import {
   type WorkflowTaskStage,
 } from "@nyte/workflows";
 
-import type { HttpStatusCode } from "./http-status";
-import type { DomainErrorStatuses } from "./needs-you-route-config";
+import type { DomainErrorStatuses, HttpStatusCode } from "./needs-you-route-config";
 
 export type WorkflowRouteErrorResolution = {
   status: HttpStatusCode;
@@ -28,12 +27,9 @@ export type WorkflowRouteErrorResolution = {
 export function resolveWorkflowRouteError(
   error: unknown,
   fallbackMessage: string,
-  status: HttpStatusCode
+  status: HttpStatusCode,
 ): WorkflowRouteErrorResolution {
-  if (
-    error instanceof WorkflowTaskExecutionError ||
-    error instanceof WorkflowTaskResultError
-  ) {
+  if (error instanceof WorkflowTaskExecutionError || error instanceof WorkflowTaskResultError) {
     return {
       status,
       response: {
@@ -49,9 +45,7 @@ export function resolveWorkflowRouteError(
   }
 
   const message =
-    error instanceof Error && error.message.trim().length > 0
-      ? error.message
-      : fallbackMessage;
+    error instanceof Error && error.message.trim().length > 0 ? error.message : fallbackMessage;
 
   return {
     status,
@@ -66,7 +60,7 @@ export function resolveWorkflowRouteError(
 
 export function resolveWorkflowDomainStatus(
   errorCode: ApprovalErrorCode | DismissErrorCode | FeedbackErrorCode,
-  statuses: DomainErrorStatuses
+  statuses: DomainErrorStatuses,
 ): HttpStatusCode {
   if (errorCode === "not_found") {
     return statuses.notFound;
@@ -79,28 +73,21 @@ export function resolveWorkflowDomainStatus(
   return statuses.conflict;
 }
 
-export function toWorkflowApiErrorResponse(
-  error: string
-): WorkflowApiErrorResponse {
+export function toWorkflowApiErrorResponse(error: string): WorkflowApiErrorResponse {
   return { error };
 }
 
-export function toWorkflowApiErrorJsonResponse(
-  error: string,
-  status: HttpStatusCode
-) {
+export function toWorkflowApiErrorJsonResponse(error: string, status: HttpStatusCode) {
   return Response.json(toWorkflowApiErrorResponse(error), { status });
 }
 
-export function toWorkflowRouteErrorJsonResponse(
-  resolution: WorkflowRouteErrorResolution
-) {
+export function toWorkflowRouteErrorJsonResponse(resolution: WorkflowRouteErrorResolution) {
   return Response.json(resolution.response, { status: resolution.status });
 }
 
 export function resolveWorkflowErrorTaskId(
   resolution: WorkflowRouteErrorResolution,
-  fallbackTaskId: WorkflowTaskId
+  fallbackTaskId: WorkflowTaskId,
 ): WorkflowTaskId {
   return resolution.logData.taskId ?? fallbackTaskId;
 }

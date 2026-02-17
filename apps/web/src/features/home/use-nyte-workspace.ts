@@ -20,10 +20,6 @@ import { syncNeedsYou } from "~/lib/needs-you/sync-client";
 import { resolveSessionUserId } from "~/lib/shared/session-user-id";
 import { parseWatchKeywordCommand } from "~/lib/shared/watch-keywords";
 
-type UseNyteWorkspaceInput = {
-  initialConnected: boolean;
-};
-
 type ActionMutationStatus = "approved" | "dismissed";
 
 type WatchKeywords = NonNullable<QueueSyncRequest["watchKeywords"]>;
@@ -53,9 +49,7 @@ type UserScopedMessage = {
   value: string;
 };
 
-export function useNyteWorkspace({
-  initialConnected,
-}: UseNyteWorkspaceInput): UseNyteWorkspaceResult {
+export function useNyteWorkspace(): UseNyteWorkspaceResult {
   const router = useRouter();
   const queryClient = useQueryClient();
   const watchKeywordsRef = React.useRef<WatchKeywords>([]);
@@ -77,7 +71,7 @@ export function useNyteWorkspace({
     [sessionUserId]
   );
 
-  const connected = isSessionPending ? initialConnected : Boolean(session);
+  const connected = Boolean(session);
   const notice =
     noticeState?.userId === sessionUserId ? noticeState.value : null;
   const mutationError =
@@ -179,7 +173,7 @@ export function useNyteWorkspace({
     });
     await authClient.signIn.social({
       provider: GOOGLE_AUTH_PROVIDER,
-      callbackURL: "/",
+      callbackURL: new URL("/", window.location.origin).toString(),
     });
   }, [queryClient, setMutationError, setNotice, syncQueryKey]);
 
