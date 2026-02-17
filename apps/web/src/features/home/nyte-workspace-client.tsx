@@ -35,7 +35,7 @@ export function NyteWorkspaceClient({ initialConnected }: WorkspaceClientProps) 
       onSubmit={() => void runSync()}
       onConnect={() => void connectGoogle()}
       onDisconnect={() => void disconnectGoogle()}
-      onApprove={(item) => void markAction(item, "approved")}
+      onApprove={(item, payloadOverride) => void markAction(item, "approved", payloadOverride)}
       onDismiss={(item) => void markAction(item, "dismissed")}
     />
   );

@@ -8,14 +8,16 @@ export type ApproveActionTaskInput = {
   itemId: ApproveWorkItemParameters[0];
   now?: ApproveWorkItemParameters[1];
   idempotencyKey?: ApproveWorkItemParameters[2];
+  payloadOverride?: ApproveWorkItemParameters[3];
 };
 
 export async function approveActionTask({
   itemId,
   idempotencyKey,
+  payloadOverride,
   now = new Date(),
 }: ApproveActionTaskInput) {
-  const approvedItem = await approveWorkItem(itemId, now, idempotencyKey);
+  const approvedItem = await approveWorkItem(itemId, now, idempotencyKey, payloadOverride);
   const piExtension = await dispatchApprovedActionToPi({
     approvedItem,
   });

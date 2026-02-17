@@ -7,6 +7,7 @@ import type {
   FeedbackActionResponse,
   WorkflowApiErrorResponse,
 } from "@nyte/workflows";
+import type { ToolCallPayload } from "@nyte/domain/actions";
 
 function isWorkflowApiErrorResponse(payload: unknown): payload is WorkflowApiErrorResponse {
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
@@ -29,8 +30,14 @@ async function readJson<TPayload>(response: Response): Promise<TPayload> {
   return (await response.json()) as TPayload;
 }
 
-export async function approveNeedsYouAction(itemId: string): Promise<ApproveActionResponse> {
-  const body: ApproveActionRequest = { itemId };
+export async function approveNeedsYouAction(
+  itemId: string,
+  payloadOverride?: ToolCallPayload,
+): Promise<ApproveActionResponse> {
+  const body: ApproveActionRequest = {
+    itemId,
+    payloadOverride,
+  };
   const response = await fetch("/api/actions/approve", {
     method: "POST",
     headers: {

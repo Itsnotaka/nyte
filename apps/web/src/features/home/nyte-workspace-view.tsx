@@ -16,7 +16,7 @@ type NyteWorkspaceViewProps = {
   onSubmit: () => void;
   onConnect: () => void;
   onDisconnect: () => void;
-  onApprove: (item: WorkItemWithAction) => void;
+  onApprove: (item: WorkItemWithAction, payloadOverride?: WorkItemWithAction["proposedAction"]) => void;
   onDismiss: (item: WorkItemWithAction) => void;
 };
 

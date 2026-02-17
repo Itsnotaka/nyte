@@ -33,6 +33,49 @@ export type WorkItemWithAction = WorkItem & {
   proposedAction: ToolCallPayload;
 };
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((entry) => typeof entry === "string");
+}
+
+export function isToolCallPayload(value: unknown): value is ToolCallPayload {
+  if (!isRecord(value) || typeof value.kind !== "string") {
+    return false;
+  }
+
+  if (value.kind === "gmail.createDraft") {
+    return (
+      isStringArray(value.to) &&
+      typeof value.subject === "string" &&
+      typeof value.body === "string"
+    );
+  }
+
+  if (value.kind === "google-calendar.createEvent") {
+    return (
+      typeof value.title === "string" &&
+      typeof value.startsAt === "string" &&
+      typeof value.endsAt === "string" &&
+      isStringArray(value.attendees) &&
+      typeof value.description === "string"
+    );
+  }
+
+  if (value.kind === "billing.queueRefund") {
+    return (
+      typeof value.customerName === "string" &&
+      typeof value.amount === "number" &&
+      value.currency === "USD" &&
+      typeof value.reason === "string"
+    );
+  }
+
+  return false;
+}
+
 function actorToEmail(actor: string) {
   const slug = actor.toLowerCase().replaceAll(" ", ".");
   return `${slug}@example.com`;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { WorkItemWithAction } from "@nyte/domain/actions";
+import type { ToolCallPayload, WorkItemWithAction } from "@nyte/domain/actions";
 import type { QueueSyncResponse } from "@nyte/workflows";
 import * as React from "react";
 
@@ -25,7 +25,11 @@ export type UseNyteWorkspaceResult = {
   runSync: () => Promise<void>;
   connectGoogle: () => Promise<void>;
   disconnectGoogle: () => Promise<void>;
-  markAction: (item: WorkItemWithAction, status: "approved" | "dismissed") => Promise<void>;
+  markAction: (
+    item: WorkItemWithAction,
+    status: "approved" | "dismissed",
+    payloadOverride?: ToolCallPayload,
+  ) => Promise<void>;
 };
 
 type UserScopedMessage = {
@@ -124,7 +128,13 @@ export function useNyteWorkspace({
   const lastSyncedAt = syncPayload ? new Date(dataUpdatedAt).toISOString() : null;
 
   const approveMutation = useMutation({
-    mutationFn: approveNeedsYouAction,
+    mutationFn: async ({
+      itemId,
+      payloadOverride,
+    }: {
+      itemId: string;
+      payloadOverride?: ToolCallPayload;
+    }) => approveNeedsYouAction(itemId, payloadOverride),
   });
   const dismissMutation = useMutation({
     mutationFn: dismissNeedsYouAction,
@@ -160,13 +170,20 @@ export function useNyteWorkspace({
   }, [queryClient, syncQueryKey]);
 
   const markAction = React.useCallback(
-    async (item: WorkItemWithAction, status: "approved" | "dismissed") => {
+    async (
+      item: WorkItemWithAction,
+      status: "approved" | "dismissed",
+      payloadOverride?: ToolCallPayload,
+    ) => {
       setNotice(null);
       setMutationError(null);
 
       try {
         if (status === "approved") {
-          await approveMutation.mutateAsync(item.id);
+          await approveMutation.mutateAsync({
+            itemId: item.id,
+            payloadOverride,
+          });
         } else {
           await dismissMutation.mutateAsync(item.id);
         }

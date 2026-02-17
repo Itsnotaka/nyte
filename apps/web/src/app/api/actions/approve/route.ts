@@ -1,4 +1,5 @@
 import { ApprovalError } from "@nyte/application/actions";
+import { isToolCallPayload } from "@nyte/domain/actions";
 import {
   runApproveActionTask,
   type ApproveActionRequest,
@@ -18,20 +19,28 @@ function parseApproveBody(value: unknown): ApproveActionRequest | null {
     return null;
   }
 
-  if (body.idempotencyKey === undefined) {
-    return {
-      itemId: body.itemId.trim(),
-    };
-  }
-
-  if (typeof body.idempotencyKey !== "string" || body.idempotencyKey.trim().length === 0) {
+  if (
+    body.idempotencyKey !== undefined &&
+    (typeof body.idempotencyKey !== "string" || body.idempotencyKey.trim().length === 0)
+  ) {
     return null;
   }
 
-  return {
+  const parsedBody: ApproveActionRequest = {
     itemId: body.itemId.trim(),
-    idempotencyKey: body.idempotencyKey.trim(),
+    idempotencyKey:
+      typeof body.idempotencyKey === "string" ? body.idempotencyKey.trim() : undefined,
   };
+
+  if (body.payloadOverride !== undefined) {
+    if (!isToolCallPayload(body.payloadOverride)) {
+      return null;
+    }
+
+    parsedBody.payloadOverride = body.payloadOverride;
+  }
+
+  return parsedBody;
 }
 
 export async function POST(request: Request) {
@@ -53,6 +62,7 @@ export async function POST(request: Request) {
     const result = await runApproveActionTask({
       itemId: payload.itemId,
       idempotencyKey: payload.idempotencyKey,
+      payloadOverride: payload.payloadOverride,
     });
     const response: ApproveActionResponse = result;
     return Response.json(response);
