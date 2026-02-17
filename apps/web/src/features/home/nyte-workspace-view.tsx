@@ -4,6 +4,7 @@ import type { WorkItemWithAction } from "@nyte/domain/actions";
 
 import { NeedsYouList } from "~/components/needs-you-list";
 import { WorkflowComposer } from "~/components/workflow-composer";
+import { NEEDS_YOU_MESSAGES } from "~/lib/needs-you/messages";
 
 type NyteWorkspaceViewProps = {
   connected: boolean;
@@ -71,7 +72,7 @@ export function NyteWorkspaceView({
 
         {!connected ? (
           <div className="mt-6 rounded-xl border border-white/40 bg-white/85 px-4 py-3 text-sm text-zinc-700">
-            Connect Google to load real Gmail and Calendar cards.
+            {NEEDS_YOU_MESSAGES.queueAuthRequired}
           </div>
         ) : null}
 
