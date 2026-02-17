@@ -4,7 +4,7 @@ import type {
   WorkflowTaskId,
   WorkflowTaskStage,
 } from "@nyte/workflows";
-import type { NeedsYouRouteMethod } from "./needs-you-route-config";
+import type { NeedsYouRouteMethod, NeedsYouRoutePath } from "./needs-you-route-config";
 
 let loggerInitialized = false;
 
@@ -23,7 +23,7 @@ function ensureLoggerInitialized() {
 }
 
 export type RequestLogContext = {
-  route: string;
+  route: NeedsYouRoutePath;
   method: NeedsYouRouteMethod;
   requestId?: string | null;
   userId?: string | null;
@@ -43,7 +43,7 @@ export type ApiRequestLogger = RequestLogger<RequestLogContext>;
 
 export function createApiRequestLogger(
   request: Request,
-  route: string,
+  route: NeedsYouRoutePath,
 ): ApiRequestLogger {
   ensureLoggerInitialized();
 
