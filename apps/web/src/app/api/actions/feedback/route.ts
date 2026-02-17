@@ -75,7 +75,7 @@ export async function POST(request: Request) {
     });
     userId = sessionUserId;
     if (!session) {
-      status = HTTP_STATUS.unauthorized;
+      status = config.statuses.unauthorized;
       const response = toWorkflowApiErrorResponse(config.messages.authRequired);
       requestLog.warn(config.events.unauthorized, {
         route,
@@ -88,7 +88,7 @@ export async function POST(request: Request) {
 
     const payload = parseFeedbackBody(await parseJsonBody(request));
     if (!payload) {
-      status = HTTP_STATUS.badRequest;
+      status = config.statuses.invalidPayload;
       const response = toWorkflowApiErrorResponse(config.messages.invalidPayload);
       requestLog.warn(config.events.invalidPayload, {
         route,

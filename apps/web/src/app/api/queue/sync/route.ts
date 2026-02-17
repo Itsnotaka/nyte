@@ -70,7 +70,7 @@ export async function GET(request: Request) {
     });
     userId = sessionUserId;
     if (!session) {
-      status = HTTP_STATUS.unauthorized;
+      status = config.statuses.unauthorized;
       const response = toWorkflowApiErrorResponse(config.messages.authRequired);
       requestLog.warn(config.events.unauthorized, {
         route,
@@ -91,7 +91,7 @@ export async function GET(request: Request) {
 
     const accessToken = resolveAccessToken(accessTokenResult);
     if (!accessToken) {
-      status = HTTP_STATUS.conflict;
+      status = config.statuses.tokenUnavailable;
       const response = toWorkflowApiErrorResponse(config.messages.tokenUnavailable);
       requestLog.warn(config.events.tokenMissing, {
         route,

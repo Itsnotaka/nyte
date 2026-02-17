@@ -1,6 +1,7 @@
 import { WORKFLOW_TASK_IDS } from "@nyte/workflows";
 import { NEEDS_YOU_MESSAGES } from "~/lib/needs-you/messages";
 import { NEEDS_YOU_API_ROUTES } from "~/lib/needs-you/routes";
+import { HTTP_STATUS } from "./http-status";
 import { REQUEST_EVENTS } from "./request-events";
 
 export const NEEDS_YOU_ROUTE_CONFIG = {
@@ -13,6 +14,10 @@ export const NEEDS_YOU_ROUTE_CONFIG = {
       tokenUnavailable: NEEDS_YOU_MESSAGES.queueTokenUnavailable,
       taskUnavailable: NEEDS_YOU_MESSAGES.syncUnavailable,
     },
+    statuses: {
+      unauthorized: HTTP_STATUS.unauthorized,
+      tokenUnavailable: HTTP_STATUS.conflict,
+    },
   },
   actionApprove: {
     route: NEEDS_YOU_API_ROUTES.approveAction,
@@ -22,6 +27,10 @@ export const NEEDS_YOU_ROUTE_CONFIG = {
       authRequired: NEEDS_YOU_MESSAGES.actionAuthRequired,
       invalidPayload: NEEDS_YOU_MESSAGES.invalidApprovePayload,
       taskUnavailable: NEEDS_YOU_MESSAGES.approveUnavailable,
+    },
+    statuses: {
+      unauthorized: HTTP_STATUS.unauthorized,
+      invalidPayload: HTTP_STATUS.badRequest,
     },
   },
   actionDismiss: {
@@ -33,6 +42,10 @@ export const NEEDS_YOU_ROUTE_CONFIG = {
       invalidPayload: NEEDS_YOU_MESSAGES.invalidDismissPayload,
       taskUnavailable: NEEDS_YOU_MESSAGES.dismissUnavailable,
     },
+    statuses: {
+      unauthorized: HTTP_STATUS.unauthorized,
+      invalidPayload: HTTP_STATUS.badRequest,
+    },
   },
   actionFeedback: {
     route: NEEDS_YOU_API_ROUTES.feedbackAction,
@@ -42,6 +55,10 @@ export const NEEDS_YOU_ROUTE_CONFIG = {
       authRequired: NEEDS_YOU_MESSAGES.actionAuthRequired,
       invalidPayload: NEEDS_YOU_MESSAGES.invalidFeedbackPayload,
       taskUnavailable: NEEDS_YOU_MESSAGES.feedbackUnavailable,
+    },
+    statuses: {
+      unauthorized: HTTP_STATUS.unauthorized,
+      invalidPayload: HTTP_STATUS.badRequest,
     },
   },
 } as const;
