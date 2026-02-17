@@ -1,6 +1,7 @@
 import { ApprovalError } from "@nyte/application/actions";
 import { isToolCallPayload } from "@nyte/domain/actions";
 import {
+  WORKFLOW_TASK_IDS,
   runApproveActionTask,
   type ApproveActionRequest,
   type ApproveActionResponse,
@@ -110,7 +111,7 @@ export async function POST(request: Request) {
       status,
       itemId,
       userId,
-      taskId: "workflow.approve-action",
+      taskId: WORKFLOW_TASK_IDS.approveAction,
     });
     return Response.json(response);
   } catch (error) {

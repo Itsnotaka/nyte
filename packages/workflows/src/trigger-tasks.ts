@@ -1,5 +1,6 @@
 import { task } from "@trigger.dev/sdk/v3";
 
+import { WORKFLOW_TASK_IDS } from "./task-ids";
 import {
   type ApproveActionTaskInput,
   approveActionTask,
@@ -22,7 +23,7 @@ const TASK_RETRY_POLICY = {
 } as const;
 
 export const triggerIngestSignalsTask = task({
-  id: "workflow.ingest-signals",
+  id: WORKFLOW_TASK_IDS.ingestSignals,
   retry: TASK_RETRY_POLICY,
   queue: {
     name: "queue-sync",
@@ -32,7 +33,7 @@ export const triggerIngestSignalsTask = task({
 });
 
 export const triggerApproveActionTask = task({
-  id: "workflow.approve-action",
+  id: WORKFLOW_TASK_IDS.approveAction,
   retry: TASK_RETRY_POLICY,
   queue: {
     name: "action-mutations",
@@ -42,7 +43,7 @@ export const triggerApproveActionTask = task({
 });
 
 export const triggerDismissActionTask = task({
-  id: "workflow.dismiss-action",
+  id: WORKFLOW_TASK_IDS.dismissAction,
   retry: TASK_RETRY_POLICY,
   queue: {
     name: "action-mutations",
@@ -52,7 +53,7 @@ export const triggerDismissActionTask = task({
 });
 
 export const triggerFeedbackTask = task({
-  id: "workflow.feedback",
+  id: WORKFLOW_TASK_IDS.feedback,
   retry: TASK_RETRY_POLICY,
   queue: {
     name: "feedback",

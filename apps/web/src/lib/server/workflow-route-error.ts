@@ -1,5 +1,6 @@
 import {
   WorkflowTaskExecutionError,
+  type WorkflowTaskId,
   WorkflowTaskResultError,
   type WorkflowApiErrorResponse,
   type WorkflowTaskStage,
@@ -10,7 +11,7 @@ type WorkflowRouteErrorResolution = {
   response: WorkflowApiErrorResponse;
   logData: {
     message: string;
-    taskId?: string;
+    taskId?: WorkflowTaskId;
     errorTag?: string;
     stage?: WorkflowTaskStage;
   };

@@ -17,6 +17,7 @@ import {
   type WorkflowTaskError,
   type WorkflowTaskStage,
 } from "./trigger-errors";
+import { WORKFLOW_TASK_IDS, type WorkflowTaskId } from "./task-ids";
 import {
   workflowError,
   workflowInfo,
@@ -46,7 +47,7 @@ function runTaskProgram<TOutput>({
   triggerRun,
   logContext,
 }: {
-  taskId: string;
+  taskId: WorkflowTaskId;
   stage: WorkflowTaskStage;
   localRun: () => Promise<TOutput>;
   triggerRun: () => Promise<
@@ -158,7 +159,7 @@ async function runTask<TOutput>({
   triggerRun,
   logContext,
 }: {
-  taskId: string;
+  taskId: WorkflowTaskId;
   localRun: () => Promise<TOutput>;
   triggerRun: () => Promise<
     | {
@@ -203,10 +204,13 @@ type TriggerableFeedbackInput = Omit<FeedbackTaskInput, "now">;
 
 export async function runIngestSignalsTask(input: TriggerableIngestSignalsInput) {
   return runTask({
-    taskId: triggerIngestSignalsTask.id,
+    taskId: WORKFLOW_TASK_IDS.ingestSignals,
     localRun: () => ingestSignalsTask(input),
     triggerRun: () =>
-      tasks.triggerAndWait<typeof triggerIngestSignalsTask>(triggerIngestSignalsTask.id, input),
+      tasks.triggerAndWait<typeof triggerIngestSignalsTask>(
+        WORKFLOW_TASK_IDS.ingestSignals,
+        input,
+      ),
     logContext: {
       hasCursor: Boolean(input.cursor),
       watchKeywordCount: input.watchKeywords?.length ?? 0,
@@ -216,10 +220,10 @@ export async function runIngestSignalsTask(input: TriggerableIngestSignalsInput)
 
 export async function runApproveActionTask(input: TriggerableApproveActionInput) {
   return runTask({
-    taskId: triggerApproveActionTask.id,
+    taskId: WORKFLOW_TASK_IDS.approveAction,
     localRun: () => approveActionTask(input),
     triggerRun: () =>
-      tasks.triggerAndWait<typeof triggerApproveActionTask>(triggerApproveActionTask.id, input),
+      tasks.triggerAndWait<typeof triggerApproveActionTask>(WORKFLOW_TASK_IDS.approveAction, input),
     logContext: {
       itemId: input.itemId,
     },
@@ -228,10 +232,10 @@ export async function runApproveActionTask(input: TriggerableApproveActionInput)
 
 export async function runDismissActionTask(input: TriggerableDismissActionInput) {
   return runTask({
-    taskId: triggerDismissActionTask.id,
+    taskId: WORKFLOW_TASK_IDS.dismissAction,
     localRun: () => dismissActionTask(input),
     triggerRun: () =>
-      tasks.triggerAndWait<typeof triggerDismissActionTask>(triggerDismissActionTask.id, input),
+      tasks.triggerAndWait<typeof triggerDismissActionTask>(WORKFLOW_TASK_IDS.dismissAction, input),
     logContext: {
       itemId: input.itemId,
     },
@@ -240,10 +244,10 @@ export async function runDismissActionTask(input: TriggerableDismissActionInput)
 
 export async function runFeedbackTask(input: TriggerableFeedbackInput) {
   return runTask({
-    taskId: triggerFeedbackTask.id,
+    taskId: WORKFLOW_TASK_IDS.feedback,
     localRun: () => feedbackTask(input),
     triggerRun: () =>
-      tasks.triggerAndWait<typeof triggerFeedbackTask>(triggerFeedbackTask.id, input),
+      tasks.triggerAndWait<typeof triggerFeedbackTask>(WORKFLOW_TASK_IDS.feedback, input),
     logContext: {
       itemId: input.itemId,
       rating: input.rating,

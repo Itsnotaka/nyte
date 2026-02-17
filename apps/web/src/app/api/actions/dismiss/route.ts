@@ -1,5 +1,6 @@
 import { DismissError } from "@nyte/application/actions";
 import {
+  WORKFLOW_TASK_IDS,
   runDismissActionTask,
   type DismissActionRequest,
   type DismissActionResponse,
@@ -87,7 +88,7 @@ export async function POST(request: Request) {
       status,
       itemId,
       userId,
-      taskId: "workflow.dismiss-action",
+      taskId: WORKFLOW_TASK_IDS.dismissAction,
     });
     return Response.json(response);
   } catch (error) {

@@ -1,5 +1,6 @@
 import { FeedbackError } from "@nyte/application/actions";
 import {
+  WORKFLOW_TASK_IDS,
   runFeedbackTask,
   type FeedbackActionRequest,
   type FeedbackActionResponse,
@@ -101,7 +102,7 @@ export async function POST(request: Request) {
       status,
       itemId,
       userId,
-      taskId: "workflow.feedback",
+      taskId: WORKFLOW_TASK_IDS.feedback,
     });
     return Response.json(response);
   } catch (error) {

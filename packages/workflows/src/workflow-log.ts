@@ -1,5 +1,6 @@
 import { initLogger, log } from "evlog";
 import type { WorkflowTaskStage } from "./trigger-errors";
+import type { WorkflowTaskId } from "./task-ids";
 import type { FeedbackTaskInput } from "./tasks/feedback-task";
 
 let loggerInitialized = false;
@@ -21,7 +22,7 @@ function ensureLoggerInitialized() {
 export type WorkflowLogEvent = {
   scope: "workflow.task";
   event: "task.start" | "task.success" | "task.failure";
-  taskId: string;
+  taskId: WorkflowTaskId;
   stage: WorkflowTaskStage;
   durationMs?: number;
   message?: string;
