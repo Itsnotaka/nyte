@@ -28,6 +28,10 @@ Each result returns:
 - `output`
 - `executedAt`
 
+Runtime guard helper:
+
+- `isPiExtensionResult` for downstream consumers that validate PI execution envelopes at runtime.
+
 ## Wiring
 
 - Registry: `packages/pi-runtime/src/registry.ts`
