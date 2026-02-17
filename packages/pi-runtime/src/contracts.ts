@@ -1,10 +1,13 @@
 import type { GmailCreateDraftToolCall, GoogleCalendarCreateEventToolCall } from "@nyte/domain/actions";
 
-export type PiExtensionName =
-  | "gmail.readThreadContext"
-  | "gmail.saveDraft"
-  | "calendar.createEvent"
-  | "calendar.updateEvent";
+export const PI_EXTENSION_NAMES = {
+  gmailReadThreadContext: "gmail.readThreadContext",
+  gmailSaveDraft: "gmail.saveDraft",
+  calendarCreateEvent: "calendar.createEvent",
+  calendarUpdateEvent: "calendar.updateEvent",
+} as const;
+
+export type PiExtensionName = (typeof PI_EXTENSION_NAMES)[keyof typeof PI_EXTENSION_NAMES];
 
 type PiAuthScope = {
   provider: "google";
@@ -25,24 +28,24 @@ type BaseExtensionRequest = {
 };
 
 export type GmailReadThreadContextRequest = BaseExtensionRequest & {
-  name: "gmail.readThreadContext";
+  name: typeof PI_EXTENSION_NAMES.gmailReadThreadContext;
   input: {
     threadId: string;
   };
 };
 
 export type GmailSaveDraftRequest = BaseExtensionRequest & {
-  name: "gmail.saveDraft";
+  name: typeof PI_EXTENSION_NAMES.gmailSaveDraft;
   input: GmailCreateDraftToolCall;
 };
 
 export type CalendarCreateEventRequest = BaseExtensionRequest & {
-  name: "calendar.createEvent";
+  name: typeof PI_EXTENSION_NAMES.calendarCreateEvent;
   input: GoogleCalendarCreateEventToolCall;
 };
 
 export type CalendarUpdateEventRequest = BaseExtensionRequest & {
-  name: "calendar.updateEvent";
+  name: typeof PI_EXTENSION_NAMES.calendarUpdateEvent;
   input: {
     eventId: string;
     title?: string;
@@ -67,7 +70,7 @@ type BaseExtensionResult<TName extends PiExtensionName, TOutput> = {
 };
 
 export type GmailReadThreadContextResult = BaseExtensionResult<
-  "gmail.readThreadContext",
+  typeof PI_EXTENSION_NAMES.gmailReadThreadContext,
   {
     threadId: string;
     contextPreview: string;
@@ -75,7 +78,7 @@ export type GmailReadThreadContextResult = BaseExtensionResult<
 >;
 
 export type GmailSaveDraftResult = BaseExtensionResult<
-  "gmail.saveDraft",
+  typeof PI_EXTENSION_NAMES.gmailSaveDraft,
   {
     providerDraftId: string;
     subject: string;
@@ -83,7 +86,7 @@ export type GmailSaveDraftResult = BaseExtensionResult<
 >;
 
 export type CalendarCreateEventResult = BaseExtensionResult<
-  "calendar.createEvent",
+  typeof PI_EXTENSION_NAMES.calendarCreateEvent,
   {
     providerEventId: string;
     startsAt: string;
@@ -92,7 +95,7 @@ export type CalendarCreateEventResult = BaseExtensionResult<
 >;
 
 export type CalendarUpdateEventResult = BaseExtensionResult<
-  "calendar.updateEvent",
+  typeof PI_EXTENSION_NAMES.calendarUpdateEvent,
   {
     providerEventId: string;
     updated: true;
@@ -125,10 +128,10 @@ export function isPiExtensionResult(value: unknown): value is PiExtensionResult 
 
   const name = payload.name;
   const isValidName =
-    name === "gmail.readThreadContext" ||
-    name === "gmail.saveDraft" ||
-    name === "calendar.createEvent" ||
-    name === "calendar.updateEvent";
+    name === PI_EXTENSION_NAMES.gmailReadThreadContext ||
+    name === PI_EXTENSION_NAMES.gmailSaveDraft ||
+    name === PI_EXTENSION_NAMES.calendarCreateEvent ||
+    name === PI_EXTENSION_NAMES.calendarUpdateEvent;
 
   return (
     isValidName &&

@@ -1,5 +1,9 @@
 import { approveWorkItem } from "@nyte/application/actions";
-import { executePiExtension, type PiExtensionResult } from "@nyte/pi-runtime";
+import {
+  executePiExtension,
+  PI_EXTENSION_NAMES,
+  type PiExtensionResult,
+} from "@nyte/pi-runtime";
 
 type ApprovedWorkItem = Awaited<ReturnType<typeof approveWorkItem>>;
 
@@ -34,7 +38,7 @@ export async function dispatchApprovedActionToPi({
   if (approvedItem.payload.kind === "gmail.createDraft") {
     return executePiExtension({
       ...extensionContext,
-      name: "gmail.saveDraft",
+      name: PI_EXTENSION_NAMES.gmailSaveDraft,
       input: approvedItem.payload,
     });
   }
@@ -42,7 +46,7 @@ export async function dispatchApprovedActionToPi({
   if (approvedItem.payload.kind === "google-calendar.createEvent") {
     return executePiExtension({
       ...extensionContext,
-      name: "calendar.createEvent",
+      name: PI_EXTENSION_NAMES.calendarCreateEvent,
       input: approvedItem.payload,
     });
   }
