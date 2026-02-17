@@ -11,8 +11,7 @@ import { NEEDS_YOU_ROUTE_CONFIG } from "~/lib/server/needs-you-route-config";
 import { resolveRequestSession } from "~/lib/server/request-session";
 import { type HttpStatusCode } from "~/lib/server/http-status";
 import {
-  asObjectPayload,
-  parseItemId,
+  parseBodyWithItemId,
   parseJsonBody,
   parseOptionalStringField,
 } from "~/lib/server/request-validation";
@@ -24,15 +23,12 @@ import {
 } from "~/lib/server/workflow-route-error";
 
 function parseApproveBody(value: unknown): ApproveActionRequest | null {
-  const body = asObjectPayload(value);
-  if (!body) {
+  const parsed = parseBodyWithItemId(value);
+  if (!parsed) {
     return null;
   }
 
-  const itemId = parseItemId(body);
-  if (!itemId) {
-    return null;
-  }
+  const { body, itemId } = parsed;
 
   const idempotencyKey = parseOptionalStringField(body, "idempotencyKey", {
     requireNonEmpty: true,

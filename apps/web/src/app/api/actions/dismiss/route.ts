@@ -10,8 +10,7 @@ import { NEEDS_YOU_ROUTE_CONFIG } from "~/lib/server/needs-you-route-config";
 import { resolveRequestSession } from "~/lib/server/request-session";
 import { type HttpStatusCode } from "~/lib/server/http-status";
 import {
-  asObjectPayload,
-  parseItemId,
+  parseBodyWithItemId,
   parseJsonBody,
 } from "~/lib/server/request-validation";
 import {
@@ -22,18 +21,13 @@ import {
 } from "~/lib/server/workflow-route-error";
 
 function parseDismissBody(value: unknown): DismissActionRequest | null {
-  const body = asObjectPayload(value);
-  if (!body) {
-    return null;
-  }
-
-  const itemId = parseItemId(body);
-  if (!itemId) {
+  const parsed = parseBodyWithItemId(value);
+  if (!parsed) {
     return null;
   }
 
   return {
-    itemId,
+    itemId: parsed.itemId,
   };
 }
 

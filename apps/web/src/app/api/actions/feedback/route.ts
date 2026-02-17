@@ -11,8 +11,7 @@ import { NEEDS_YOU_ROUTE_CONFIG } from "~/lib/server/needs-you-route-config";
 import { resolveRequestSession } from "~/lib/server/request-session";
 import { type HttpStatusCode } from "~/lib/server/http-status";
 import {
-  asObjectPayload,
-  parseItemId,
+  parseBodyWithItemId,
   parseEnumValue,
   parseJsonBody,
   parseOptionalStringField,
@@ -25,15 +24,12 @@ import {
 } from "~/lib/server/workflow-route-error";
 
 function parseFeedbackBody(value: unknown): FeedbackActionRequest | null {
-  const body = asObjectPayload(value);
-  if (!body) {
+  const parsed = parseBodyWithItemId(value);
+  if (!parsed) {
     return null;
   }
 
-  const itemId = parseItemId(body);
-  if (!itemId) {
-    return null;
-  }
+  const { body, itemId } = parsed;
 
   const rating = parseEnumValue(body.rating, FEEDBACK_ACTION_RATINGS);
   if (!rating) {

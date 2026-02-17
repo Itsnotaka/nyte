@@ -28,6 +28,28 @@ export function parseItemId(payload: Record<string, unknown>): string | null {
   return parseRequiredStringField(payload, "itemId");
 }
 
+export type ParsedBodyWithItemId = {
+  body: Record<string, unknown>;
+  itemId: string;
+};
+
+export function parseBodyWithItemId(value: unknown): ParsedBodyWithItemId | null {
+  const body = asObjectPayload(value);
+  if (!body) {
+    return null;
+  }
+
+  const itemId = parseItemId(body);
+  if (!itemId) {
+    return null;
+  }
+
+  return {
+    body,
+    itemId,
+  };
+}
+
 export function parseOptionalString(
   value: unknown,
   options?: {
