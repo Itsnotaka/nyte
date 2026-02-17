@@ -21,3 +21,30 @@ export type FeedbackActionResponse = TaskOutput<typeof feedbackTask>;
 export type WorkflowApiErrorResponse = {
   error: string;
 };
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  return value as Record<string, unknown>;
+}
+
+export function isWorkflowApiErrorResponse(value: unknown): value is WorkflowApiErrorResponse {
+  const payload = asRecord(value);
+  if (!payload) {
+    return false;
+  }
+
+  const error = payload.error;
+  return typeof error === "string" && error.trim().length > 0;
+}
+
+export function isQueueSyncResponse(value: unknown): value is QueueSyncResponse {
+  const payload = asRecord(value);
+  if (!payload) {
+    return false;
+  }
+
+  return Array.isArray(payload.needsYou) && typeof payload.cursor === "string";
+}
