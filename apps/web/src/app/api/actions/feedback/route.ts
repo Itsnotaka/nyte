@@ -116,7 +116,7 @@ export async function POST(request: Request) {
     return Response.json(response);
   } catch (error) {
     if (error instanceof FeedbackError) {
-      status = resolveWorkflowDomainStatus(error.code);
+      status = resolveWorkflowDomainStatus(error.code, config.statuses);
       requestLog.warn(config.events.domainError, {
         route,
         method,

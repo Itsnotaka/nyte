@@ -58,8 +58,21 @@ export function resolveWorkflowRouteError(
 
 export function resolveWorkflowDomainStatus(
   errorCode: ApprovalErrorCode | DismissErrorCode | FeedbackErrorCode,
-): 404 | 409 {
-  return errorCode === "not_found" ? HTTP_STATUS.notFound : HTTP_STATUS.conflict;
+  statuses: {
+    notFound: HttpStatusCode;
+    conflict: HttpStatusCode;
+    domainInvalidPayload: HttpStatusCode;
+  },
+): HttpStatusCode {
+  if (errorCode === "not_found") {
+    return statuses.notFound;
+  }
+
+  if (errorCode === "invalid_payload") {
+    return statuses.domainInvalidPayload;
+  }
+
+  return statuses.conflict;
 }
 
 export function toWorkflowApiErrorResponse(error: string): WorkflowApiErrorResponse {

@@ -37,6 +37,9 @@ type ActionRouteConfig<TEvents extends Record<string, string>> = BaseNeedsYouRou
     ok: HttpStatusCode;
     unauthorized: HttpStatusCode;
     invalidPayload: HttpStatusCode;
+    notFound: HttpStatusCode;
+    conflict: HttpStatusCode;
+    domainInvalidPayload: HttpStatusCode;
   };
 };
 
@@ -71,6 +74,9 @@ export const NEEDS_YOU_ROUTE_CONFIG = {
       ok: HTTP_STATUS.ok,
       unauthorized: HTTP_STATUS.unauthorized,
       invalidPayload: HTTP_STATUS.badRequest,
+      notFound: HTTP_STATUS.notFound,
+      conflict: HTTP_STATUS.conflict,
+      domainInvalidPayload: HTTP_STATUS.unprocessableEntity,
     },
   },
   actionDismiss: {
@@ -87,6 +93,9 @@ export const NEEDS_YOU_ROUTE_CONFIG = {
       ok: HTTP_STATUS.ok,
       unauthorized: HTTP_STATUS.unauthorized,
       invalidPayload: HTTP_STATUS.badRequest,
+      notFound: HTTP_STATUS.notFound,
+      conflict: HTTP_STATUS.conflict,
+      domainInvalidPayload: HTTP_STATUS.unprocessableEntity,
     },
   },
   actionFeedback: {
@@ -103,6 +112,9 @@ export const NEEDS_YOU_ROUTE_CONFIG = {
       ok: HTTP_STATUS.ok,
       unauthorized: HTTP_STATUS.unauthorized,
       invalidPayload: HTTP_STATUS.badRequest,
+      notFound: HTTP_STATUS.notFound,
+      conflict: HTTP_STATUS.conflict,
+      domainInvalidPayload: HTTP_STATUS.unprocessableEntity,
     },
   },
 } as const satisfies {
