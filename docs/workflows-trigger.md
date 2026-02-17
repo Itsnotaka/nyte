@@ -39,7 +39,7 @@ Recommended wrapping pattern:
   - action flows: `itemId` (approve/dismiss/feedback) and `rating` (feedback)
   - sync flow: cursor presence and watch keyword count
 - Web API routes emit request-scoped wide logs using `createRequestLogger`.
-- Log fields include: route/task identifiers, item IDs, status, duration, and typed error tags.
+- Log fields include: route/task identifiers, item IDs, user IDs, status, duration, typed error tags, plus sync-context (`hasCursor`, `watchKeywordCount`) when applicable.
 
 ## Failure model
 
