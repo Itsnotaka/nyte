@@ -11,6 +11,7 @@ import {
   resolveWorkflowApiError,
 } from "./http-client";
 import { NEEDS_YOU_API_ROUTES } from "./routes";
+import { NEEDS_YOU_QUERY_PARAMS } from "./query-params";
 
 async function parseSyncPollResponse(response: Response): Promise<QueueSyncResponse> {
   const payload = await readJsonSafe(response);
@@ -35,10 +36,10 @@ export async function syncNeedsYou({
   const normalizedWatchKeywords = normalizeWatchKeywords(watchKeywords);
   const params = new URLSearchParams();
   if (cursor) {
-    params.set("cursor", cursor);
+    params.set(NEEDS_YOU_QUERY_PARAMS.cursor, cursor);
   }
   for (const keyword of normalizedWatchKeywords) {
-    params.append("watch", keyword);
+    params.append(NEEDS_YOU_QUERY_PARAMS.watch, keyword);
   }
 
   const url =

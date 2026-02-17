@@ -4,6 +4,7 @@ import {
 } from "@nyte/workflows";
 
 import { auth } from "~/lib/auth";
+import { NEEDS_YOU_QUERY_PARAMS } from "~/lib/needs-you/query-params";
 import { createApiRequestLogger } from "~/lib/server/request-log";
 import { NEEDS_YOU_ROUTE_CONFIG } from "~/lib/server/needs-you-route-config";
 import { resolveRequestSession } from "~/lib/server/request-session";
@@ -22,11 +23,11 @@ import {
 import { GOOGLE_AUTH_PROVIDER } from "~/lib/auth-provider";
 
 function parseCursor(searchParams: URLSearchParams): QueueSyncRequest["cursor"] {
-  return parseRequiredString(searchParams.get("cursor")) ?? undefined;
+  return parseRequiredString(searchParams.get(NEEDS_YOU_QUERY_PARAMS.cursor)) ?? undefined;
 }
 
 function parseWatchKeywords(searchParams: URLSearchParams): QueueSyncRequest["watchKeywords"] {
-  const keywords = normalizeWatchKeywords(searchParams.getAll("watch"));
+  const keywords = normalizeWatchKeywords(searchParams.getAll(NEEDS_YOU_QUERY_PARAMS.watch));
   if (keywords.length === 0) {
     return undefined;
   }
