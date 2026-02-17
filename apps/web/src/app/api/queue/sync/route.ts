@@ -7,6 +7,7 @@ import {
 
 import { auth } from "~/lib/auth";
 import { createApiRequestLogger } from "~/lib/server/request-log";
+import { resolveSessionUserId } from "~/lib/shared/session-user-id";
 import { resolveWorkflowRouteError } from "~/lib/server/workflow-route-error";
 
 type AccessTokenPayload = {
@@ -50,6 +51,7 @@ export async function GET(request: Request) {
   const startedAt = Date.now();
   const requestLog = createApiRequestLogger(request, route);
   let status = 200;
+  let userId: string | null = null;
 
   requestLog.info("queue.sync.start", {
     route,
@@ -60,6 +62,10 @@ export async function GET(request: Request) {
     const session = await auth.api.getSession({
       headers: request.headers,
     });
+    userId = resolveSessionUserId(session);
+    requestLog.set({
+      userId,
+    });
     if (!session) {
       status = 401;
       const response: WorkflowApiErrorResponse = {
@@ -69,6 +75,7 @@ export async function GET(request: Request) {
         route,
         method: request.method,
         status,
+      userId,
       });
       return Response.json(
         response,
@@ -94,6 +101,7 @@ export async function GET(request: Request) {
         route,
         method: request.method,
         status,
+      userId,
       });
       return Response.json(
         response,
@@ -127,6 +135,7 @@ export async function GET(request: Request) {
       route,
       method: request.method,
       status,
+      userId,
       taskId: resolved.logData.taskId,
       errorTag: resolved.logData.errorTag,
       message: resolved.logData.message,
@@ -137,6 +146,7 @@ export async function GET(request: Request) {
       route,
       method: request.method,
       status,
+      userId,
       durationMs: Date.now() - startedAt,
     });
   }

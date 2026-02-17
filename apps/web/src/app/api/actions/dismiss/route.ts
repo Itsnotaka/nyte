@@ -8,6 +8,7 @@ import {
 
 import { auth } from "~/lib/auth";
 import { createApiRequestLogger } from "~/lib/server/request-log";
+import { resolveSessionUserId } from "~/lib/shared/session-user-id";
 import { resolveWorkflowRouteError } from "~/lib/server/workflow-route-error";
 
 function parseDismissBody(value: unknown): DismissActionRequest | null {
@@ -31,6 +32,7 @@ export async function POST(request: Request) {
   const requestLog = createApiRequestLogger(request, route);
   let status = 200;
   let itemId: string | undefined;
+  let userId: string | null = null;
 
   requestLog.info("action.dismiss.start", {
     route,
@@ -40,6 +42,10 @@ export async function POST(request: Request) {
   try {
     const session = await auth.api.getSession({
       headers: request.headers,
+    });
+    userId = resolveSessionUserId(session);
+    requestLog.set({
+      userId,
     });
     if (!session) {
       status = 401;
@@ -74,6 +80,7 @@ export async function POST(request: Request) {
       method: request.method,
       status,
       itemId,
+      userId,
       taskId: "workflow.dismiss-action",
     });
     return Response.json(response);
@@ -86,6 +93,7 @@ export async function POST(request: Request) {
         method: request.method,
         status,
         itemId,
+        userId,
         message: error.message,
       });
       return Response.json(response, { status });
@@ -98,6 +106,7 @@ export async function POST(request: Request) {
       method: request.method,
       status,
       itemId,
+      userId,
       taskId: resolved.logData.taskId,
       errorTag: resolved.logData.errorTag,
       message: resolved.logData.message,
@@ -109,6 +118,7 @@ export async function POST(request: Request) {
       method: request.method,
       status,
       itemId,
+      userId,
       durationMs: Date.now() - startedAt,
     });
   }

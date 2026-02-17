@@ -9,7 +9,7 @@ type TaskOutput<TTask extends (...args: never[]) => unknown> = Awaited<ReturnTyp
 export type QueueSyncRequest = Omit<TaskInput<typeof ingestSignalsTask>, "accessToken" | "now">;
 export type QueueSyncResponse = Pick<TaskOutput<typeof ingestSignalsTask>, "cursor" | "needsYou">;
 
-export type ApproveActionRequest = Omit<TaskInput<typeof approveActionTask>, "now">;
+export type ApproveActionRequest = Omit<TaskInput<typeof approveActionTask>, "now" | "actorUserId">;
 export type ApproveActionResponse = TaskOutput<typeof approveActionTask>;
 
 export type DismissActionRequest = Omit<TaskInput<typeof dismissActionTask>, "now">;

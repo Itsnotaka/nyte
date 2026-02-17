@@ -8,6 +8,7 @@ import * as React from "react";
 import { authClient } from "~/lib/auth-client";
 import { approveNeedsYouAction, dismissNeedsYouAction } from "~/lib/needs-you/actions-client";
 import { syncNeedsYou } from "~/lib/needs-you/sync-client";
+import { resolveSessionUserId } from "~/lib/shared/session-user-id";
 
 type UseNyteWorkspaceInput = {
   initialConnected: boolean;
@@ -61,24 +62,6 @@ function parseWatchKeywords(command: string): string[] {
   }
 
   return [...keywords];
-}
-
-function resolveSessionUserId(value: unknown): string | null {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return null;
-  }
-
-  const user = (value as { user?: unknown }).user;
-  if (!user || typeof user !== "object" || Array.isArray(user)) {
-    return null;
-  }
-
-  const userId = (user as { id?: unknown }).id;
-  if (typeof userId !== "string" || userId.trim().length === 0) {
-    return null;
-  }
-
-  return userId;
 }
 
 export function useNyteWorkspace({
