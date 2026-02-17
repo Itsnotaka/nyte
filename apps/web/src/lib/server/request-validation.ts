@@ -88,7 +88,7 @@ export function parseOptionalStringField<
   return parseOptionalString(payload[key], options);
 }
 
-export async function parseJsonBody(request: Request): Promise<unknown> {
+async function parseJsonBody(request: Request): Promise<unknown> {
   try {
     return await request.json();
   } catch {
