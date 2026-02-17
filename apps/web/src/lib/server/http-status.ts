@@ -6,3 +6,5 @@ export const HTTP_STATUS = {
   conflict: 409,
   badGateway: 502,
 } as const;
+
+export type HttpStatusCode = (typeof HTTP_STATUS)[keyof typeof HTTP_STATUS];

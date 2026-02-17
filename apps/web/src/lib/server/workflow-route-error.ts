@@ -5,10 +5,10 @@ import {
   type WorkflowApiErrorResponse,
   type WorkflowTaskStage,
 } from "@nyte/workflows";
-import { HTTP_STATUS } from "./http-status";
+import { HTTP_STATUS, type HttpStatusCode } from "./http-status";
 
 type WorkflowRouteErrorResolution = {
-  status: number;
+  status: HttpStatusCode;
   response: WorkflowApiErrorResponse;
   logData: {
     message: string;
