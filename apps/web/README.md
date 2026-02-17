@@ -27,6 +27,7 @@ Primary Nyte product surface: decision queue UI and thin API gateway.
 - unknown-object checks are centralized via shared value guards to avoid repeated unsafe casts
 - needs-you API route paths are centralized in a shared constants module used by both route handlers and clients
 - needs-you sync query parameter keys (`cursor`, `watch`) are centralized and shared by client and route parser
+- queue sync query building/parsing is centralized in shared utilities consumed by both client and route
 - API request event names are centralized in a shared server constants module to keep evlog event taxonomy stable
 - route/method/task/event/message/status wiring for needs-you API handlers is centralized in a single server-side config module
 - that config is constrained with explicit TypeScript `satisfies` typing for route/task/event/message/status completeness
