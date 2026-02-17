@@ -13,12 +13,7 @@ import { normalizeWatchKeywords } from "~/lib/shared/watch-keywords";
 import { resolveWorkflowRouteError } from "~/lib/server/workflow-route-error";
 
 function parseCursor(searchParams: URLSearchParams): QueueSyncRequest["cursor"] {
-  const cursor = searchParams.get("cursor")?.trim();
-  if (!cursor) {
-    return undefined;
-  }
-
-  return cursor;
+  return parseRequiredString(searchParams.get("cursor")) ?? undefined;
 }
 
 function parseWatchKeywords(searchParams: URLSearchParams): QueueSyncRequest["watchKeywords"] {
