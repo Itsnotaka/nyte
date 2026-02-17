@@ -38,6 +38,7 @@ Primary Nyte product surface: decision queue UI and thin API gateway.
 - domain status mapping now uses explicit error codes from application actions (`not_found` vs conflict-like codes), not message parsing
 - domain status resolver consumes exported centralized domain-status map typing from needs-you route config
 - queue sync route returns the typed ingest-task output directly after contract validation (no response reshaping)
+- action routes likewise return typed workflow task outputs directly (no local response aliasing)
 
 ## API routes
 
