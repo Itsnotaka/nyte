@@ -35,6 +35,9 @@ Recommended wrapping pattern:
   - `task.start`
   - `task.success`
   - `task.failure`
+- Task events carry task-specific context:
+  - action flows: `itemId` (approve/dismiss/feedback) and `rating` (feedback)
+  - sync flow: cursor presence and watch keyword count
 - Web API routes emit request-scoped wide logs using `createRequestLogger`.
 - Log fields include: route/task identifiers, item IDs, status, duration, and typed error tags.
 
