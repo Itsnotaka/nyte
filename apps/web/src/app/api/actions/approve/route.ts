@@ -63,7 +63,7 @@ export async function POST(request: Request) {
   const taskId = config.taskId;
   const method = config.method;
   const startedAt = Date.now();
-  const requestLog = createApiRequestLogger(request, route);
+  const requestLog = createApiRequestLogger(request, route, method);
   let status: HttpStatusCode = config.statuses.ok;
   let itemId: string | undefined;
   let userId: string | null = null;

@@ -45,11 +45,12 @@ export type ApiRequestLogger = RequestLogger<RequestLogContext>;
 export function createApiRequestLogger(
   request: Request,
   route: NeedsYouRoutePath,
+  method: NeedsYouRouteMethod,
 ): ApiRequestLogger {
   ensureLoggerInitialized();
 
   return createRequestLogger<RequestLogContext>({
-    method: request.method,
+    method,
     path: route,
     requestId: request.headers.get("x-request-id") ?? undefined,
   });

@@ -52,7 +52,7 @@ export async function GET(request: Request) {
   const searchParams = new URL(request.url).searchParams;
   const cursor = parseCursor(searchParams);
   const watchKeywords = parseWatchKeywords(searchParams);
-  const requestLog = createApiRequestLogger(request, route);
+  const requestLog = createApiRequestLogger(request, route, method);
   let status: HttpStatusCode = config.statuses.ok;
   let userId: string | null = null;
 
