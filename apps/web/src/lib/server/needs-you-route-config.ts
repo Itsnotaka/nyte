@@ -1,11 +1,12 @@
 import { WORKFLOW_TASK_IDS, type WorkflowTaskId } from "@nyte/workflows";
 import { NEEDS_YOU_MESSAGES } from "~/lib/needs-you/messages";
 import { NEEDS_YOU_API_ROUTES } from "~/lib/needs-you/routes";
+import { HTTP_METHODS, type HttpMethod } from "~/lib/shared/http-methods";
 import { HTTP_STATUS, type HttpStatusCode } from "./http-status";
 import { REQUEST_EVENTS } from "./request-events";
 
 export type NeedsYouRoutePath = (typeof NEEDS_YOU_API_ROUTES)[keyof typeof NEEDS_YOU_API_ROUTES];
-export type NeedsYouRouteMethod = "GET" | "POST";
+export type NeedsYouRouteMethod = HttpMethod;
 
 type BaseNeedsYouRouteConfig = {
   route: NeedsYouRoutePath;
@@ -62,14 +63,14 @@ const ACTION_ROUTE_STATUSES = {
   conflict: HTTP_STATUS.conflict,
   domainInvalidPayload: HTTP_STATUS.unprocessableEntity,
 } as const satisfies ActionRouteStatuses;
-const ACTION_ROUTE_METHOD: NeedsYouRouteMethod = "POST";
+const ACTION_ROUTE_METHOD: NeedsYouRouteMethod = HTTP_METHODS.post;
 const QUEUE_SYNC_STATUSES = {
   ok: HTTP_STATUS.ok,
   unauthorized: HTTP_STATUS.unauthorized,
   tokenUnavailable: HTTP_STATUS.conflict,
   taskFailure: HTTP_STATUS.badGateway,
 } as const satisfies QueueSyncStatuses;
-const QUEUE_SYNC_METHOD: NeedsYouRouteMethod = "GET";
+const QUEUE_SYNC_METHOD: NeedsYouRouteMethod = HTTP_METHODS.get;
 
 export const NEEDS_YOU_ROUTE_CONFIG = {
   queueSync: {

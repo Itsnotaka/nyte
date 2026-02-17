@@ -1,4 +1,7 @@
 import { isWorkflowApiErrorResponse } from "@nyte/workflows";
+import { HTTP_METHODS } from "~/lib/shared/http-methods";
+
+export { HTTP_METHODS };
 
 export const JSON_ACCEPT_HEADERS = {
   accept: "application/json",
@@ -7,11 +10,6 @@ export const JSON_ACCEPT_HEADERS = {
 export const JSON_REQUEST_HEADERS = {
   "content-type": "application/json",
   ...JSON_ACCEPT_HEADERS,
-} as const;
-
-export const HTTP_METHODS = {
-  get: "GET",
-  post: "POST",
 } as const;
 
 export async function readJsonSafe(response: Response): Promise<unknown> {
