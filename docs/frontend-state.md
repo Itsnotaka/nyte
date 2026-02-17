@@ -23,6 +23,7 @@
 - Disconnected workspace empty-state prompt also reuses shared queue auth message constant.
 - Connected-empty workspace prompt (`no action cards`) also uses shared needs-you message constants.
 - Sync filtered notice prefix + disconnect notice also come from shared needs-you message constants.
+- Sync filtered notice text is composed through a shared message formatter helper (`formatSyncFilteredNotice`).
 - Composer input uses TanStack Form field state.
 - API routes use request-scoped evlog logging helpers for structured operation traces.
 - Workflow route error handling is centralized in a shared server helper for consistent 502 mapping.
