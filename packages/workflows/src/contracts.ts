@@ -1,5 +1,3 @@
-import type { WorkItemWithAction } from "@nyte/domain/actions";
-
 import type { approveActionTask } from "./tasks/approve-action-task";
 import type { dismissActionTask } from "./tasks/dismiss-action-task";
 import type { feedbackTask } from "./tasks/feedback-task";
@@ -19,10 +17,6 @@ export type DismissActionResponse = TaskOutput<typeof dismissActionTask>;
 
 export type FeedbackActionRequest = Omit<TaskInput<typeof feedbackTask>, "now">;
 export type FeedbackActionResponse = TaskOutput<typeof feedbackTask>;
-
-export type QueueActionStatus = "approved" | "dismissed";
-export type QueueActionItem = WorkItemWithAction;
-export type QueueFeedbackRating = FeedbackActionRequest["rating"];
 
 export type WorkflowApiErrorResponse = {
   error: string;

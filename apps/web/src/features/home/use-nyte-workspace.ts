@@ -1,12 +1,13 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { QueueActionItem, QueueActionStatus } from "@nyte/workflows";
+import type { WorkItemWithAction } from "@nyte/domain/actions";
+import type { QueueSyncResponse } from "@nyte/workflows";
 import * as React from "react";
 
 import { authClient } from "~/lib/auth-client";
 import { approveNeedsYouAction, dismissNeedsYouAction } from "~/lib/needs-you/actions-client";
-import { type SyncPollResponse, syncNeedsYou } from "~/lib/needs-you/sync-client";
+import { syncNeedsYou } from "~/lib/needs-you/sync-client";
 
 type UseNyteWorkspaceInput = {
   initialConnected: boolean;
@@ -20,11 +21,11 @@ export type UseNyteWorkspaceResult = {
   syncError: string | null;
   notice: string | null;
   lastSyncedAt: string | null;
-  visibleItems: QueueActionItem[];
+  visibleItems: WorkItemWithAction[];
   runSync: () => Promise<void>;
   connectGoogle: () => Promise<void>;
   disconnectGoogle: () => Promise<void>;
-  markAction: (item: QueueActionItem, status: QueueActionStatus) => Promise<void>;
+  markAction: (item: WorkItemWithAction, status: "approved" | "dismissed") => Promise<void>;
 };
 
 type UserScopedMessage = {
@@ -99,7 +100,7 @@ export function useNyteWorkspace({
     retry: false,
     refetchOnWindowFocus: false,
     queryFn: async () => {
-      const currentPayload = queryClient.getQueryData<SyncPollResponse>(syncQueryKey);
+      const currentPayload = queryClient.getQueryData<QueueSyncResponse>(syncQueryKey);
       return syncNeedsYou(currentPayload?.cursor ?? null);
     },
   });
@@ -159,7 +160,7 @@ export function useNyteWorkspace({
   }, [queryClient, syncQueryKey]);
 
   const markAction = React.useCallback(
-    async (item: QueueActionItem, status: QueueActionStatus) => {
+    async (item: WorkItemWithAction, status: "approved" | "dismissed") => {
       setNotice(null);
       setMutationError(null);
 

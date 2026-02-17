@@ -1,10 +1,10 @@
-import type { QueueActionItem } from "@nyte/workflows";
+import type { WorkItemWithAction } from "@nyte/domain/actions";
 import { CalendarDaysIcon, MailIcon, PenLineIcon, WalletCardsIcon } from "lucide-react";
 
 import { actionContentViewModel } from "~/lib/needs-you/presenters";
 
 type ActionContentProps = {
-  item: QueueActionItem;
+  item: WorkItemWithAction;
 };
 
 type DraftActionContentProps = {

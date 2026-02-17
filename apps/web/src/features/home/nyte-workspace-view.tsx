@@ -1,6 +1,6 @@
 "use client";
 
-import type { QueueActionItem } from "@nyte/workflows";
+import type { WorkItemWithAction } from "@nyte/domain/actions";
 
 import { NeedsYouList } from "~/components/needs-you-list";
 import { WorkflowComposer } from "~/components/workflow-composer";
@@ -12,12 +12,12 @@ type NyteWorkspaceViewProps = {
   syncError: string | null;
   notice: string | null;
   lastSyncedAt: string | null;
-  visibleItems: QueueActionItem[];
+  visibleItems: WorkItemWithAction[];
   onSubmit: () => void;
   onConnect: () => void;
   onDisconnect: () => void;
-  onApprove: (item: QueueActionItem) => void;
-  onDismiss: (item: QueueActionItem) => void;
+  onApprove: (item: WorkItemWithAction) => void;
+  onDismiss: (item: WorkItemWithAction) => void;
 };
 
 export function NyteWorkspaceView({

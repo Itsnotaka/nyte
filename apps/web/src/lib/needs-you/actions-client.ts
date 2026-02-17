@@ -5,7 +5,6 @@ import type {
   DismissActionResponse,
   FeedbackActionRequest,
   FeedbackActionResponse,
-  QueueFeedbackRating,
   WorkflowApiErrorResponse,
 } from "@nyte/workflows";
 
@@ -70,7 +69,7 @@ export async function dismissNeedsYouAction(itemId: string): Promise<DismissActi
 
 export async function recordNeedsYouFeedback(
   itemId: string,
-  rating: QueueFeedbackRating,
+  rating: FeedbackActionRequest["rating"],
   note?: string,
 ): Promise<FeedbackActionResponse> {
   const body: FeedbackActionRequest = { itemId, rating, note };
