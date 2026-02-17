@@ -2,12 +2,13 @@ import { isToolCallPayload, type ToolCallPayload } from "@nyte/domain/actions";
 import { Result } from "neverthrow";
 
 function parseJson(payloadJson: string): unknown {
-  const parsedPayload = Result.fromThrowable(JSON.parse, () => null)(payloadJson);
+  const parsePayload = Result.fromThrowable((value: string): unknown => JSON.parse(value), () => null);
+  const parsedPayload = parsePayload(payloadJson);
   if (parsedPayload.isErr()) {
     return null;
   }
 
-  return parsedPayload.value as unknown;
+  return parsedPayload.value;
 }
 
 export function parseRecordPayload(payloadJson: string): Record<string, unknown> {
