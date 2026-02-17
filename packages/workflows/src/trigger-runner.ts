@@ -195,7 +195,7 @@ export async function runIngestSignalsTask(input: TriggerableIngestSignalsInput)
     triggerRun: () =>
       tasks.triggerAndWait<typeof triggerIngestSignalsTask>(triggerIngestSignalsTask.id, input),
     logContext: {
-      hasCursor: input.cursor ? "yes" : "no",
+      hasCursor: Boolean(input.cursor),
       watchKeywordCount: input.watchKeywords?.length ?? 0,
     },
   });

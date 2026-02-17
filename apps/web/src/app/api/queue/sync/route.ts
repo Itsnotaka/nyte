@@ -49,6 +49,8 @@ function resolveAccessToken(payload: AccessTokenPayload) {
 export async function GET(request: Request) {
   const route = "/api/queue/sync";
   const startedAt = Date.now();
+  const cursor = parseCursor(request);
+  const watchKeywords = parseWatchKeywords(request);
   const requestLog = createApiRequestLogger(request, route);
   let status = 200;
   let userId: string | null = null;
@@ -56,6 +58,8 @@ export async function GET(request: Request) {
   requestLog.info("queue.sync.start", {
     route,
     method: request.method,
+    hasCursor: Boolean(cursor),
+    watchKeywordCount: watchKeywords?.length ?? 0,
   });
 
   try {
@@ -101,10 +105,9 @@ export async function GET(request: Request) {
       return Response.json(response, { status });
     }
 
-    const watchKeywords = parseWatchKeywords(request);
     const result = await runIngestSignalsTask({
       accessToken,
-      cursor: parseCursor(request),
+      cursor,
       watchKeywords,
     });
 
@@ -116,7 +119,8 @@ export async function GET(request: Request) {
       route,
       method: request.method,
       status,
-      message: watchKeywords ? `watch_keywords=${watchKeywords.length}` : undefined,
+      hasCursor: Boolean(cursor),
+      watchKeywordCount: watchKeywords?.length ?? 0,
     });
     return Response.json(response);
   } catch (error) {

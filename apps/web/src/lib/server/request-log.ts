@@ -23,6 +23,9 @@ export type RequestLogContext = {
   userId?: string | null;
   itemId?: string;
   taskId?: string;
+  hasCursor?: boolean;
+  watchKeywordCount?: number;
+  rating?: string;
   status?: number;
   errorTag?: string;
   message?: string;
