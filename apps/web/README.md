@@ -13,6 +13,7 @@ Primary Nyte product surface: decision queue UI and thin API gateway.
 - Trigger.dev runtime config and exported task entrypoints
 - request-scoped structured logging with evlog
 - shared server helpers for session resolution and payload validation across routes
+- shared validation covers object/string/enum parsing so route handlers stay thin
 - malformed JSON action requests are treated as invalid payloads (HTTP 400), not orchestration failures
 
 ## API routes
