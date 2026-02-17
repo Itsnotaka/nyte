@@ -2,7 +2,6 @@ import { DismissError } from "@nyte/application/actions";
 import {
   runDismissActionTask,
   type DismissActionRequest,
-  type DismissActionResponse,
 } from "@nyte/workflows";
 
 import { createApiRequestLogger } from "~/lib/server/request-log";
@@ -81,7 +80,6 @@ export async function POST(request: Request) {
     const result = await runDismissActionTask({
       itemId: payload.itemId,
     });
-    const response: DismissActionResponse = result;
     requestLog.info(config.events.success, {
       route,
       method,
@@ -90,7 +88,7 @@ export async function POST(request: Request) {
       userId,
       taskId,
     });
-    return Response.json(response);
+    return Response.json(result);
   } catch (error) {
     if (error instanceof DismissError) {
       status = resolveWorkflowDomainStatus(error.code, config.statuses);

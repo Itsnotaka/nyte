@@ -1,7 +1,6 @@
 import {
   runIngestSignalsTask,
   type QueueSyncRequest,
-  type QueueSyncResponse,
 } from "@nyte/workflows";
 
 import { auth } from "~/lib/auth";
@@ -107,7 +106,6 @@ export async function GET(request: Request) {
       cursor,
       watchKeywords,
     });
-    const response: QueueSyncResponse = result;
     requestLog.info(config.events.success, {
       route,
       method,
@@ -117,7 +115,7 @@ export async function GET(request: Request) {
       hasCursor: Boolean(cursor),
       watchKeywordCount: watchKeywords?.length ?? 0,
     });
-    return Response.json(response);
+    return Response.json(result);
   } catch (error) {
     const resolved = resolveWorkflowRouteError(
       error,

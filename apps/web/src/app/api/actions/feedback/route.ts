@@ -3,7 +3,6 @@ import {
   FEEDBACK_ACTION_RATINGS,
   runFeedbackTask,
   type FeedbackActionRequest,
-  type FeedbackActionResponse,
 } from "@nyte/workflows";
 
 import { createApiRequestLogger } from "~/lib/server/request-log";
@@ -100,7 +99,6 @@ export async function POST(request: Request) {
       rating: payload.rating,
       note: payload.note,
     });
-    const response: FeedbackActionResponse = result;
     requestLog.info(config.events.success, {
       route,
       method,
@@ -109,7 +107,7 @@ export async function POST(request: Request) {
       userId,
       taskId,
     });
-    return Response.json(response);
+    return Response.json(result);
   } catch (error) {
     if (error instanceof FeedbackError) {
       status = resolveWorkflowDomainStatus(error.code, config.statuses);

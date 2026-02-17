@@ -3,7 +3,6 @@ import { isToolCallPayload } from "@nyte/domain/actions";
 import {
   runApproveActionTask,
   type ApproveActionRequest,
-  type ApproveActionResponse,
 } from "@nyte/workflows";
 
 import { createApiRequestLogger } from "~/lib/server/request-log";
@@ -106,7 +105,6 @@ export async function POST(request: Request) {
       payloadOverride: payload.payloadOverride,
       actorUserId: userId,
     });
-    const response: ApproveActionResponse = result;
     requestLog.info(config.events.success, {
       route,
       method,
@@ -115,7 +113,7 @@ export async function POST(request: Request) {
       userId,
       taskId,
     });
-    return Response.json(response);
+    return Response.json(result);
   } catch (error) {
     if (error instanceof ApprovalError) {
       status = resolveWorkflowDomainStatus(error.code, config.statuses);
