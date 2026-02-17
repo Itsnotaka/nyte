@@ -9,7 +9,11 @@ import {
 
 import { createApiRequestLogger } from "~/lib/server/request-log";
 import { resolveRequestSession } from "~/lib/server/request-session";
-import { asObjectPayload, parseRequiredString } from "~/lib/server/request-validation";
+import {
+  asObjectPayload,
+  parseOptionalString,
+  parseRequiredString,
+} from "~/lib/server/request-validation";
 import { resolveWorkflowRouteError } from "~/lib/server/workflow-route-error";
 
 function parseApproveBody(value: unknown): ApproveActionRequest | null {
@@ -23,13 +27,11 @@ function parseApproveBody(value: unknown): ApproveActionRequest | null {
     return null;
   }
 
-  let idempotencyKey: string | undefined;
-  if (body.idempotencyKey !== undefined) {
-    const parsedIdempotencyKey = parseRequiredString(body.idempotencyKey);
-    if (!parsedIdempotencyKey) {
-      return null;
-    }
-    idempotencyKey = parsedIdempotencyKey;
+  const idempotencyKey = parseOptionalString(body.idempotencyKey, {
+    requireNonEmpty: true,
+  });
+  if (idempotencyKey === null) {
+    return null;
   }
 
   const parsedBody: ApproveActionRequest = {

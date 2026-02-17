@@ -8,7 +8,11 @@ import {
 
 import { createApiRequestLogger } from "~/lib/server/request-log";
 import { resolveRequestSession } from "~/lib/server/request-session";
-import { asObjectPayload, parseRequiredString } from "~/lib/server/request-validation";
+import {
+  asObjectPayload,
+  parseOptionalString,
+  parseRequiredString,
+} from "~/lib/server/request-validation";
 import { resolveWorkflowRouteError } from "~/lib/server/workflow-route-error";
 
 function parseFeedbackBody(value: unknown): FeedbackActionRequest | null {
@@ -26,16 +30,15 @@ function parseFeedbackBody(value: unknown): FeedbackActionRequest | null {
     return null;
   }
 
-  if (body.note !== undefined && typeof body.note !== "string") {
+  const note = parseOptionalString(body.note);
+  if (note === null) {
     return null;
   }
-
-  const note = body.note?.trim();
 
   return {
     itemId,
     rating: body.rating,
-    note: note && note.length > 0 ? note : undefined,
+    note,
   };
 }
 

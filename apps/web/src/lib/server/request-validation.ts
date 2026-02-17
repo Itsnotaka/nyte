@@ -18,3 +18,25 @@ export function parseRequiredString(value: unknown): string | null {
 
   return normalized;
 }
+
+export function parseOptionalString(
+  value: unknown,
+  options?: {
+    requireNonEmpty?: boolean;
+  },
+): string | undefined | null {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const normalized = value.trim();
+  if (normalized.length === 0) {
+    return options?.requireNonEmpty ? null : undefined;
+  }
+
+  return normalized;
+}
