@@ -1,20 +1,14 @@
-import { asRecord } from "~/lib/shared/value-guards";
+import {
+  asRecord,
+  parseRequiredStringValue,
+} from "~/lib/shared/value-guards";
 
 export function asObjectPayload(value: unknown): Record<string, unknown> | null {
   return asRecord(value);
 }
 
 export function parseRequiredString(value: unknown): string | null {
-  if (typeof value !== "string") {
-    return null;
-  }
-
-  const normalized = value.trim();
-  if (normalized.length === 0) {
-    return null;
-  }
-
-  return normalized;
+  return parseRequiredStringValue(value);
 }
 
 export function parseRequiredStringField<
