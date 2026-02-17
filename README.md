@@ -66,3 +66,4 @@ Nyte is a decision queue for high-impact Gmail and Google Calendar actions. It i
 - `docs/workflows-trigger.md`
 - `docs/pi-runtime.md`
 - `docs/frontend-state.md`
+- `apps/web/README.md`
