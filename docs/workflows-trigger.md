@@ -44,7 +44,7 @@ Recommended wrapping pattern:
   - stage typing is sourced from workflow error contracts and reused in web route log contexts
 - Web API routes emit request-scoped wide logs using `createRequestLogger`.
 - Log fields include: route/task identifiers, item IDs, user IDs, status, duration, typed error tags, plus sync-context (`hasCursor`, `watchKeywordCount`) when applicable.
-- Queue sync route now stamps `workflow.ingest-signals` task ID on start/success/precondition-failure events for easier correlation with runner logs.
+- Queue sync route now stamps `workflow.ingest-signals` task ID across start/success/precondition-failure/error/final-emission logs for easier correlation with runner logs.
 - Action routes (`approve`, `dismiss`, `feedback`) now stamp their workflow task IDs on start, validation failures, domain failures, and final emitted request logs for end-to-end trace consistency.
 
 ## Failure model
