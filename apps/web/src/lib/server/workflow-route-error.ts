@@ -84,3 +84,10 @@ export function toWorkflowApiErrorJsonResponse(error: string, status: HttpStatus
 export function toWorkflowRouteErrorJsonResponse(resolution: WorkflowRouteErrorResolution) {
   return Response.json(resolution.response, { status: resolution.status });
 }
+
+export function resolveWorkflowErrorTaskId(
+  resolution: WorkflowRouteErrorResolution,
+  fallbackTaskId: WorkflowTaskId,
+): WorkflowTaskId {
+  return resolution.logData.taskId ?? fallbackTaskId;
+}

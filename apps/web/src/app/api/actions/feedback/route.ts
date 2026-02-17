@@ -16,6 +16,7 @@ import {
   parseRequestPayload,
 } from "~/lib/server/request-validation";
 import {
+  resolveWorkflowErrorTaskId,
   resolveWorkflowDomainStatus,
   resolveWorkflowRouteError,
   toWorkflowApiErrorJsonResponse,
@@ -135,7 +136,7 @@ export async function POST(request: Request) {
       status,
       itemId,
       userId,
-      taskId: resolved.logData.taskId ?? taskId,
+      taskId: resolveWorkflowErrorTaskId(resolved, taskId),
       stage: resolved.logData.stage,
       errorTag: resolved.logData.errorTag,
       message: resolved.logData.message,

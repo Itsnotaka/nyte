@@ -12,6 +12,7 @@ import {
   parseBodyWithRequiredStringField,
 } from "~/lib/server/request-validation";
 import {
+  resolveWorkflowErrorTaskId,
   resolveWorkflowRouteError,
   toWorkflowApiErrorJsonResponse,
   toWorkflowRouteErrorJsonResponse,
@@ -109,7 +110,7 @@ export async function GET(request: Request) {
       method,
       status,
       userId,
-      taskId: resolved.logData.taskId ?? taskId,
+      taskId: resolveWorkflowErrorTaskId(resolved, taskId),
       stage: resolved.logData.stage,
       errorTag: resolved.logData.errorTag,
       message: resolved.logData.message,
