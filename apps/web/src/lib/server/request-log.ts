@@ -5,6 +5,7 @@ import type {
   WorkflowTaskStage,
 } from "@nyte/workflows";
 import type { NeedsYouRouteMethod, NeedsYouRoutePath } from "./needs-you-route-config";
+import type { HttpStatusCode } from "./http-status";
 
 let loggerInitialized = false;
 
@@ -33,7 +34,7 @@ export type RequestLogContext = {
   hasCursor?: boolean;
   watchKeywordCount?: number;
   rating?: FeedbackActionRequest["rating"];
-  status?: number;
+  status?: HttpStatusCode;
   errorTag?: string;
   message?: string;
   durationMs?: number;
