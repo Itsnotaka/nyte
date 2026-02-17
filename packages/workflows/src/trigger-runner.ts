@@ -64,6 +64,15 @@ function runTaskProgram<TOutput>({
   logContext?: WorkflowTaskLogContext;
 }) {
   const startedAt = Date.now();
+  const logTaskSuccess = () =>
+    workflowInfo({
+      scope: "workflow.task",
+      event: WORKFLOW_TASK_EVENTS.success,
+      taskId,
+      stage,
+      durationMs: Date.now() - startedAt,
+      ...logContext,
+    });
 
   return Effect.gen(function* () {
     yield* Effect.sync(() =>
@@ -88,16 +97,7 @@ function runTaskProgram<TOutput>({
           }),
       });
 
-      yield* Effect.sync(() =>
-        workflowInfo({
-          scope: "workflow.task",
-          event: WORKFLOW_TASK_EVENTS.success,
-          taskId,
-          stage,
-          durationMs: Date.now() - startedAt,
-          ...logContext,
-        }),
-      );
+      yield* Effect.sync(logTaskSuccess);
 
       return output;
     }
@@ -124,16 +124,7 @@ function runTaskProgram<TOutput>({
       );
     }
 
-    yield* Effect.sync(() =>
-      workflowInfo({
-        scope: "workflow.task",
-        event: WORKFLOW_TASK_EVENTS.success,
-        taskId,
-        stage,
-        durationMs: Date.now() - startedAt,
-        ...logContext,
-      }),
-    );
+    yield* Effect.sync(logTaskSuccess);
 
     return result.output;
   }).pipe(
