@@ -12,4 +12,7 @@ export const NEEDS_YOU_MESSAGES = {
   invalidFeedbackPayload: "Invalid feedback payload.",
   invalidActionResponse: "Action response is invalid.",
   invalidSyncResponse: "Sync payload is invalid.",
+  actionApprovedNotice: "Action approved.",
+  actionDismissedNotice: "Action dismissed.",
+  actionUpdateUnavailable: "Unable to update action status.",
 } as const;

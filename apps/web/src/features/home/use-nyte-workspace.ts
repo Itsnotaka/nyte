@@ -196,12 +196,16 @@ export function useNyteWorkspace({
           exact: true,
         });
         await refetchSync();
-        setNotice(status === "approved" ? "Action approved." : "Action dismissed.");
+        setNotice(
+          status === "approved"
+            ? NEEDS_YOU_MESSAGES.actionApprovedNotice
+            : NEEDS_YOU_MESSAGES.actionDismissedNotice,
+        );
       } catch (error) {
         const message =
           error instanceof Error && error.message.trim().length > 0
             ? error.message
-            : "Unable to update action status.";
+            : NEEDS_YOU_MESSAGES.actionUpdateUnavailable;
         setMutationError(message);
       }
     },
