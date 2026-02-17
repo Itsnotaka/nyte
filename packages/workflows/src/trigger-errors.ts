@@ -14,4 +14,5 @@ export class WorkflowTaskResultError extends Data.TaggedError("WorkflowTaskResul
   cause: unknown;
 }> {}
 
+export type WorkflowTaskStage = WorkflowTaskExecutionError["stage"];
 export type WorkflowTaskError = WorkflowTaskExecutionError | WorkflowTaskResultError;

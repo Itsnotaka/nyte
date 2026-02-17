@@ -1,4 +1,5 @@
 import { initLogger, log } from "evlog";
+import type { WorkflowTaskStage } from "./trigger-errors";
 
 let loggerInitialized = false;
 
@@ -16,11 +17,11 @@ function ensureLoggerInitialized() {
   loggerInitialized = true;
 }
 
-type WorkflowLogEvent = {
+export type WorkflowLogEvent = {
   scope: "workflow.task";
   event: "task.start" | "task.success" | "task.failure";
   taskId: string;
-  stage: "local" | "trigger";
+  stage: WorkflowTaskStage;
   durationMs?: number;
   message?: string;
   errorTag?: string;
@@ -29,6 +30,11 @@ type WorkflowLogEvent = {
   hasCursor?: boolean;
   watchKeywordCount?: number;
 };
+
+export type WorkflowTaskLogContext = Omit<
+  WorkflowLogEvent,
+  "scope" | "event" | "taskId" | "stage" | "durationMs" | "message" | "errorTag"
+>;
 
 export function workflowInfo(event: WorkflowLogEvent) {
   ensureLoggerInitialized();

@@ -15,14 +15,19 @@ import {
   WorkflowTaskExecutionError,
   WorkflowTaskResultError,
   type WorkflowTaskError,
+  type WorkflowTaskStage,
 } from "./trigger-errors";
-import { workflowError, workflowInfo } from "./workflow-log";
+import {
+  workflowError,
+  workflowInfo,
+  type WorkflowTaskLogContext,
+} from "./workflow-log";
 
 function isTriggerEnabled() {
   return Boolean(process.env.TRIGGER_SECRET_KEY?.trim());
 }
 
-function resolveTaskStage(): "local" | "trigger" {
+function resolveTaskStage(): WorkflowTaskStage {
   return isTriggerEnabled() ? "trigger" : "local";
 }
 
@@ -42,7 +47,7 @@ function runTaskProgram<TOutput>({
   logContext,
 }: {
   taskId: string;
-  stage: "local" | "trigger";
+  stage: WorkflowTaskStage;
   localRun: () => Promise<TOutput>;
   triggerRun: () => Promise<
     | {
@@ -54,7 +59,7 @@ function runTaskProgram<TOutput>({
         error: unknown;
       }
   >;
-  logContext?: Record<string, string | number | boolean | null | undefined>;
+  logContext?: WorkflowTaskLogContext;
 }) {
   const startedAt = Date.now();
 
@@ -165,7 +170,7 @@ async function runTask<TOutput>({
         error: unknown;
       }
   >;
-  logContext?: Record<string, string | number | boolean | null | undefined>;
+  logContext?: WorkflowTaskLogContext;
 }) {
   const stage = resolveTaskStage();
   return Effect.runPromise(

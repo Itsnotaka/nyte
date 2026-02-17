@@ -2,6 +2,7 @@ import {
   WorkflowTaskExecutionError,
   WorkflowTaskResultError,
   type WorkflowApiErrorResponse,
+  type WorkflowTaskStage,
 } from "@nyte/workflows";
 
 type WorkflowRouteErrorResolution = {
@@ -11,7 +12,7 @@ type WorkflowRouteErrorResolution = {
     message: string;
     taskId?: string;
     errorTag?: string;
-    stage?: "local" | "trigger";
+    stage?: WorkflowTaskStage;
   };
 };
 
