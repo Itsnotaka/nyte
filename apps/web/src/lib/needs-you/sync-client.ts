@@ -1,44 +1,51 @@
-import type { WorkItemWithAction } from "@nyte/domain/actions";
+import {
+  isQueueSyncResponse,
+  type QueueSyncRequest,
+  type QueueSyncResponse,
+} from "@nyte/workflows";
+import { NEEDS_YOU_MESSAGES } from "./messages";
+import {
+  HTTP_METHODS,
+  JSON_ACCEPT_HEADERS,
+  readJsonSafe,
+  resolveWorkflowApiError,
+} from "./http-client";
+import { NEEDS_YOU_API_ROUTES } from "./routes";
+import { buildQueueSyncQueryParams } from "./sync-query";
 
-export type SyncPollResponse = {
-  cursor: string;
-  needsYou: WorkItemWithAction[];
-};
-
-type SyncErrorPayload = {
-  error?: unknown;
-};
-
-async function parseSyncPollResponse(response: Response): Promise<SyncPollResponse> {
-  const payload = (await response.json()) as Partial<SyncPollResponse> & SyncErrorPayload;
+async function parseSyncPollResponse(response: Response): Promise<QueueSyncResponse> {
+  const payload = await readJsonSafe(response);
 
   if (!response.ok) {
-    const fallback = "Unable to sync Gmail + Calendar right now.";
-    const message =
-      typeof payload.error === "string" && payload.error.trim().length > 0
-        ? payload.error
-        : fallback;
-    throw new Error(message);
+    throw new Error(resolveWorkflowApiError(payload, NEEDS_YOU_MESSAGES.syncUnavailable));
   }
 
-  if (!Array.isArray(payload.needsYou) || typeof payload.cursor !== "string") {
-    throw new Error("Sync payload is invalid.");
+  if (!isQueueSyncResponse(payload)) {
+    throw new Error(NEEDS_YOU_MESSAGES.invalidSyncResponse);
   }
 
-  return {
-    cursor: payload.cursor,
-    needsYou: payload.needsYou,
-  };
+  return payload;
 }
 
-export async function syncNeedsYou(cursor: string | null): Promise<SyncPollResponse> {
-  const url = cursor ? `/api/sync/poll?cursor=${encodeURIComponent(cursor)}` : "/api/sync/poll";
+type SyncNeedsYouInput = Pick<QueueSyncRequest, "cursor" | "watchKeywords">;
+
+export async function syncNeedsYou({
+  cursor,
+  watchKeywords = [],
+}: SyncNeedsYouInput): Promise<QueueSyncResponse> {
+  const params = buildQueueSyncQueryParams({
+    cursor,
+    watchKeywords,
+  });
+
+  const url =
+    params.size > 0
+      ? `${NEEDS_YOU_API_ROUTES.sync}?${params.toString()}`
+      : NEEDS_YOU_API_ROUTES.sync;
 
   const response = await fetch(url, {
-    method: "GET",
-    headers: {
-      accept: "application/json",
-    },
+    method: HTTP_METHODS.get,
+    headers: JSON_ACCEPT_HEADERS,
     cache: "no-store",
   });
 

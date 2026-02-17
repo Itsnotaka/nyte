@@ -6,12 +6,9 @@
   "exports": {
     "./actions": "./src/actions/index.ts",
     "./audit": "./src/audit/index.ts",
-    "./connections": "./src/connections/index.ts",
     "./dashboard": "./src/dashboard/index.ts",
-    "./policy": "./src/policy/index.ts",
     "./queue": "./src/queue/index.ts",
     "./security": "./src/security/index.ts",
-    "./trust": "./src/trust/index.ts",
     "./workflow": "./src/workflow/index.ts"
   },
   "scripts": {
@@ -21,7 +18,6 @@
   "dependencies": {
     "@nyte/db": "workspace:*",
     "@nyte/domain": "workspace:*",
-    "drizzle-orm": "^0.45.1",
     "neverthrow": "^8.2.0"
   },
   "devDependencies": {

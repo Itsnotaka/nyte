@@ -1,3 +1,4 @@
+import { useForm } from "@tanstack/react-form";
 import type { WorkItemWithAction } from "@nyte/domain/actions";
 import { CalendarDaysIcon, MailIcon, WalletCardsIcon, XIcon } from "lucide-react";
 
@@ -15,7 +16,7 @@ const PRIMARY_BUTTON_CLASS =
 
 type NeedsYouCardProps = {
   item: WorkItemWithAction;
-  onApprove: (item: WorkItemWithAction) => void;
+  onApprove: (item: WorkItemWithAction, payloadOverride?: WorkItemWithAction["proposedAction"]) => void;
   onDismiss: (item: WorkItemWithAction) => void;
 };
 
@@ -32,6 +33,42 @@ function SourceIcon({ item }: { item: WorkItemWithAction }) {
 }
 
 export function NeedsYouCard({ item, onApprove, onDismiss }: NeedsYouCardProps) {
+  const form = useForm({
+    defaultValues: {
+      draftBody: item.proposedAction.kind === "gmail.createDraft" ? item.proposedAction.body : "",
+      calendarTitle:
+        item.proposedAction.kind === "google-calendar.createEvent" ? item.proposedAction.title : "",
+      refundReason:
+        item.proposedAction.kind === "billing.queueRefund" ? item.proposedAction.reason : "",
+    },
+    onSubmit: async () => {},
+  });
+
+  const payloadOverride = (() => {
+    if (item.proposedAction.kind === "gmail.createDraft") {
+      return {
+        ...item.proposedAction,
+        body: form.state.values.draftBody,
+      };
+    }
+
+    if (item.proposedAction.kind === "google-calendar.createEvent") {
+      return {
+        ...item.proposedAction,
+        title: form.state.values.calendarTitle,
+      };
+    }
+
+    if (item.proposedAction.kind === "billing.queueRefund") {
+      return {
+        ...item.proposedAction,
+        reason: form.state.values.refundReason,
+      };
+    }
+
+    return item.proposedAction;
+  })();
+
   return (
     <article className="transition-transform duration-75 group/mailcard flex flex-col gap-0.5 overflow-hidden rounded-xl bg-surface-subtle bg-card/65 p-0.5">
       <div className="bg-surface ease-out-expo flex flex-col gap-1 rounded-[10px] bg-background p-2 text-sm transition-transform duration-75 select-none hover:cursor-pointer hover:shadow-md">
@@ -56,8 +93,52 @@ export function NeedsYouCard({ item, onApprove, onDismiss }: NeedsYouCardProps) 
 
       <div className="rounded-xl">
         <div className="bg-surface-subtle flex items-center justify-between gap-3 rounded-lg bg-muted/70 p-2">
-          <div className="flex min-w-0 flex-1 items-center gap-2">
-            <NeedsYouActionContent item={item} />
+          <div className="flex min-w-0 flex-1 flex-col gap-2">
+            <div className="flex min-w-0 items-center gap-2">
+              <NeedsYouActionContent item={item} />
+            </div>
+
+            {item.proposedAction.kind === "gmail.createDraft" ? (
+              <form.Field
+                name="draftBody"
+                children={(field) => (
+                  <textarea
+                    className="w-full min-h-14 rounded-md border border-border bg-background px-2 py-1.5 text-xs text-foreground outline-none"
+                    value={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={(event) => field.handleChange(event.target.value)}
+                  />
+                )}
+              />
+            ) : null}
+
+            {item.proposedAction.kind === "google-calendar.createEvent" ? (
+              <form.Field
+                name="calendarTitle"
+                children={(field) => (
+                  <input
+                    className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs text-foreground outline-none"
+                    value={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={(event) => field.handleChange(event.target.value)}
+                  />
+                )}
+              />
+            ) : null}
+
+            {item.proposedAction.kind === "billing.queueRefund" ? (
+              <form.Field
+                name="refundReason"
+                children={(field) => (
+                  <input
+                    className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs text-foreground outline-none"
+                    value={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={(event) => field.handleChange(event.target.value)}
+                  />
+                )}
+              />
+            ) : null}
           </div>
 
           <div className="flex shrink-0 items-center gap-2">
@@ -73,7 +154,11 @@ export function NeedsYouCard({ item, onApprove, onDismiss }: NeedsYouCardProps) 
               </span>
             </button>
 
-            <button type="button" className={PRIMARY_BUTTON_CLASS} onClick={() => onApprove(item)}>
+            <button
+              type="button"
+              className={PRIMARY_BUTTON_CLASS}
+              onClick={() => onApprove(item, payloadOverride)}
+            >
               <span className="absolute inset-0 rounded-lg border border-border bg-gradient-to-t from-background to-background shadow-xs transition group-hover/button:to-muted" />
               <span className="relative z-10 flex items-center gap-1 text-sm text-foreground">
                 <NeedsYouPrimaryActionIcon item={item} />

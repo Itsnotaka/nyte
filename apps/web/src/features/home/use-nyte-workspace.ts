@@ -1,61 +1,62 @@
 "use client";
 
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import type { WorkItemWithAction } from "@nyte/domain/actions";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { ToolCallPayload, WorkItemWithAction } from "@nyte/domain/actions";
+import type { QueueSyncRequest, QueueSyncResponse } from "@nyte/workflows";
 import * as React from "react";
 
 import { authClient } from "~/lib/auth-client";
+import { GOOGLE_AUTH_PROVIDER } from "~/lib/auth-provider";
+import { approveNeedsYouAction, dismissNeedsYouAction } from "~/lib/needs-you/actions-client";
+import {
+  formatSyncFilteredNotice,
+  NEEDS_YOU_MESSAGES,
+} from "~/lib/needs-you/messages";
 import { syncNeedsYou } from "~/lib/needs-you/sync-client";
-
-const DEFAULT_COMMAND =
-  "Gmail draft an email to our largest customer about the renewal timeline and next steps";
+import { resolveSessionUserId } from "~/lib/shared/session-user-id";
+import { parseWatchKeywordCommand } from "~/lib/shared/watch-keywords";
 
 type UseNyteWorkspaceInput = {
   initialConnected: boolean;
 };
 
+type ActionMutationStatus = "approved" | "dismissed";
+
+type WatchKeywords = NonNullable<QueueSyncRequest["watchKeywords"]>;
+
 export type UseNyteWorkspaceResult = {
-  command: string;
   connected: boolean;
   isSessionPending: boolean;
   isSyncing: boolean;
+  isMutating: boolean;
   syncError: string | null;
   notice: string | null;
   lastSyncedAt: string | null;
+  activeWatchKeywords: WatchKeywords;
   visibleItems: WorkItemWithAction[];
-  setCommand: (value: string) => void;
-  runSync: () => Promise<void>;
+  runSync: (command: string) => Promise<void>;
   connectGoogle: () => Promise<void>;
   disconnectGoogle: () => Promise<void>;
-  markAction: (item: WorkItemWithAction, status: "approved" | "dismissed") => void;
+  markAction: (
+    item: WorkItemWithAction,
+    status: ActionMutationStatus,
+    payloadOverride?: ToolCallPayload,
+  ) => Promise<void>;
 };
 
-function resolveSessionUserId(value: unknown): string | null {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return null;
-  }
-
-  const user = (value as { user?: unknown }).user;
-  if (!user || typeof user !== "object" || Array.isArray(user)) {
-    return null;
-  }
-
-  const userId = (user as { id?: unknown }).id;
-  if (typeof userId !== "string" || userId.trim().length === 0) {
-    return null;
-  }
-
-  return userId;
-}
+type UserScopedMessage = {
+  userId: string | null;
+  value: string;
+};
 
 export function useNyteWorkspace({
   initialConnected,
 }: UseNyteWorkspaceInput): UseNyteWorkspaceResult {
   const queryClient = useQueryClient();
-  const [command, setCommand] = React.useState(DEFAULT_COMMAND);
-  const [handled, setHandled] = React.useState<Record<string, "approved" | "dismissed">>({});
-  const [notice, setNotice] = React.useState<string | null>(null);
-  const cursorRef = React.useRef<string | null>(null);
+  const watchKeywordsRef = React.useRef<WatchKeywords>([]);
+  const [activeWatchKeywords, setActiveWatchKeywords] = React.useState<WatchKeywords>([]);
+  const [noticeState, setNoticeState] = React.useState<UserScopedMessage | null>(null);
+  const [mutationErrorState, setMutationErrorState] = React.useState<UserScopedMessage | null>(null);
 
   const { data: session, isPending: isSessionPending } = authClient.useSession();
   const sessionUserId = React.useMemo(() => resolveSessionUserId(session), [session]);
@@ -65,6 +66,27 @@ export function useNyteWorkspace({
   );
 
   const connected = isSessionPending ? initialConnected : Boolean(session);
+  const notice =
+    noticeState?.userId === sessionUserId
+      ? noticeState.value
+      : null;
+  const mutationError =
+    mutationErrorState?.userId === sessionUserId
+      ? mutationErrorState.value
+      : null;
+
+  const setNotice = React.useCallback(
+    (value: string | null) => {
+      setNoticeState(value ? { userId: sessionUserId, value } : null);
+    },
+    [sessionUserId],
+  );
+  const setMutationError = React.useCallback(
+    (value: string | null) => {
+      setMutationErrorState(value ? { userId: sessionUserId, value } : null);
+    },
+    [sessionUserId],
+  );
 
   const {
     data: syncPayload,
@@ -78,96 +100,142 @@ export function useNyteWorkspace({
     retry: false,
     refetchOnWindowFocus: false,
     queryFn: async () => {
-      const payload = await syncNeedsYou(cursorRef.current);
-      cursorRef.current = payload.cursor;
-      return payload;
+      const currentPayload = queryClient.getQueryData<QueueSyncResponse>(syncQueryKey);
+      return syncNeedsYou({
+        cursor: currentPayload?.cursor,
+        watchKeywords: watchKeywordsRef.current,
+      });
     },
   });
 
-  React.useEffect(() => {
-    cursorRef.current = null;
-    setHandled({});
-    setNotice(null);
-  }, [sessionUserId]);
-
-  const items = connected ? (syncPayload?.needsYou ?? []) : [];
-
-  const visibleItems = React.useMemo(
-    () => items.filter((item) => handled[item.id] === undefined),
-    [handled, items],
-  );
+  const visibleItems = connected ? (syncPayload?.needsYou ?? []) : [];
 
   const syncError = React.useMemo(() => {
+    if (mutationError) {
+      return mutationError;
+    }
+
     if (!syncQueryError) {
       return null;
     }
 
     return syncQueryError instanceof Error && syncQueryError.message.trim().length > 0
       ? syncQueryError.message
-      : "Unable to sync Gmail + Calendar right now.";
-  }, [syncQueryError]);
+      : NEEDS_YOU_MESSAGES.syncUnavailable;
+  }, [mutationError, syncQueryError]);
 
   const lastSyncedAt = syncPayload ? new Date(dataUpdatedAt).toISOString() : null;
 
-  const runSync = React.useCallback(async () => {
+  const approveMutation = useMutation({
+    mutationFn: async ({
+      itemId,
+      payloadOverride,
+    }: {
+      itemId: string;
+      payloadOverride?: ToolCallPayload;
+    }) => approveNeedsYouAction(itemId, payloadOverride),
+  });
+  const dismissMutation = useMutation({
+    mutationFn: dismissNeedsYouAction,
+  });
+
+  const runSync = React.useCallback(async (command: string) => {
     setNotice(null);
+    setMutationError(null);
+    const parsedKeywords = parseWatchKeywordCommand(command);
+    watchKeywordsRef.current = parsedKeywords;
+    setActiveWatchKeywords(parsedKeywords);
     const result = await refetchSync();
-    if (!result.error) {
-      setHandled({});
+    if (!result.error && parsedKeywords.length > 0) {
+      setNotice(formatSyncFilteredNotice(parsedKeywords));
     }
-  }, [refetchSync]);
+  }, [refetchSync, setMutationError, setNotice]);
 
   const connectGoogle = React.useCallback(async () => {
     setNotice(null);
-    cursorRef.current = null;
-    setHandled({});
+    setMutationError(null);
+    watchKeywordsRef.current = [];
+    setActiveWatchKeywords([]);
     await queryClient.resetQueries({
       queryKey: syncQueryKey,
       exact: true,
     });
     await authClient.signIn.social({
-      provider: "google",
+      provider: GOOGLE_AUTH_PROVIDER,
       callbackURL: "/",
     });
-  }, [queryClient, syncQueryKey]);
+  }, [queryClient, setMutationError, setNotice, syncQueryKey]);
 
   const disconnectGoogle = React.useCallback(async () => {
     await authClient.signOut();
-    cursorRef.current = null;
-    setHandled({});
-    setNotice("Disconnected Google session.");
+    setMutationError(null);
+    watchKeywordsRef.current = [];
+    setActiveWatchKeywords([]);
+    setNotice(NEEDS_YOU_MESSAGES.disconnectNotice);
     queryClient.removeQueries({
       queryKey: syncQueryKey,
       exact: true,
     });
-  }, [queryClient, syncQueryKey]);
+  }, [queryClient, setMutationError, setNotice, syncQueryKey]);
 
   const markAction = React.useCallback(
-    (item: WorkItemWithAction, status: "approved" | "dismissed") => {
-      setHandled((current) => ({
-        ...current,
-        [item.id]: status,
-      }));
+    async (
+      item: WorkItemWithAction,
+      status: ActionMutationStatus,
+      payloadOverride?: ToolCallPayload,
+    ) => {
+      setNotice(null);
+      setMutationError(null);
 
-      setNotice(
-        status === "approved"
-          ? "Action queued locally (placeholder execution)."
-          : "Action dismissed locally.",
-      );
+      try {
+        if (status === "approved") {
+          await approveMutation.mutateAsync({
+            itemId: item.id,
+            payloadOverride,
+          });
+        } else {
+          await dismissMutation.mutateAsync(item.id);
+        }
+
+        await queryClient.invalidateQueries({
+          queryKey: syncQueryKey,
+          exact: true,
+        });
+        await refetchSync();
+        setNotice(
+          status === "approved"
+            ? NEEDS_YOU_MESSAGES.actionApprovedNotice
+            : NEEDS_YOU_MESSAGES.actionDismissedNotice,
+        );
+      } catch (error) {
+        const message =
+          error instanceof Error && error.message.trim().length > 0
+            ? error.message
+            : NEEDS_YOU_MESSAGES.actionUpdateUnavailable;
+        setMutationError(message);
+      }
     },
-    [],
+    [
+      approveMutation,
+      dismissMutation,
+      queryClient,
+      refetchSync,
+      setMutationError,
+      setNotice,
+      syncQueryKey,
+    ],
   );
 
   return {
-    command,
     connected,
     isSessionPending,
     isSyncing,
+    isMutating: approveMutation.isPending || dismissMutation.isPending,
     syncError,
     notice,
     lastSyncedAt,
+    activeWatchKeywords,
     visibleItems,
-    setCommand,
     runSync,
     connectGoogle,
     disconnectGoogle,

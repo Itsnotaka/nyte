@@ -1,13 +1,24 @@
-import { eq } from "drizzle-orm";
 import { db, ensureDbSchema, proposedActions, workItems } from "@nyte/db";
+import { eq } from "@nyte/db/drizzle";
 
 import { recordAuditLog } from "../audit/audit-log";
 import { recordWorkflowRun } from "../workflow/workflow-log";
 
+export type DismissErrorCode = "not_found" | "invalid_state";
+
 export class DismissError extends Error {
-  constructor(message: string) {
+  readonly code: DismissErrorCode;
+
+  constructor({
+    code,
+    message,
+  }: {
+    code: DismissErrorCode;
+    message: string;
+  }) {
     super(message);
     this.name = "DismissError";
+    this.code = code;
   }
 }
 
@@ -17,10 +28,16 @@ export async function dismissWorkItem(itemId: string, now = new Date()) {
   const existing = await db.select().from(workItems).where(eq(workItems.id, itemId)).limit(1);
   const item = existing.at(0);
   if (!item) {
-    throw new DismissError("Work item not found.");
+    throw new DismissError({
+      code: "not_found",
+      message: "Work item not found.",
+    });
   }
   if (item.status === "completed") {
-    throw new DismissError("Completed work item cannot be dismissed.");
+    throw new DismissError({
+      code: "invalid_state",
+      message: "Completed work item cannot be dismissed.",
+    });
   }
   if (item.status === "dismissed") {
     await recordAuditLog({

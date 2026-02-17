@@ -1,15 +1,25 @@
-import { eq } from "drizzle-orm";
 import { db, ensureDbSchema, feedbackEntries, workItems } from "@nyte/db";
+import { eq } from "@nyte/db/drizzle";
 
 import { recordAuditLog } from "../audit/audit-log";
 import { recordWorkflowRun } from "../workflow/workflow-log";
 
 export type FeedbackRating = "positive" | "negative";
+export type FeedbackErrorCode = "not_found" | "invalid_state";
 
 export class FeedbackError extends Error {
-  constructor(message: string) {
+  readonly code: FeedbackErrorCode;
+
+  constructor({
+    code,
+    message,
+  }: {
+    code: FeedbackErrorCode;
+    message: string;
+  }) {
     super(message);
     this.name = "FeedbackError";
+    this.code = code;
   }
 }
 
@@ -24,11 +34,17 @@ export async function recordFeedback(
   const existing = await db.select().from(workItems).where(eq(workItems.id, itemId)).limit(1);
   const item = existing.at(0);
   if (!item) {
-    throw new FeedbackError("Work item not found.");
+    throw new FeedbackError({
+      code: "not_found",
+      message: "Work item not found.",
+    });
   }
 
   if (item.status !== "completed" && item.status !== "dismissed") {
-    throw new FeedbackError("Feedback is only available for processed items.");
+    throw new FeedbackError({
+      code: "invalid_state",
+      message: "Feedback is only available for processed items.",
+    });
   }
 
   await db.transaction(async (tx) => {

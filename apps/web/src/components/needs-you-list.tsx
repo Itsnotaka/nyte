@@ -4,7 +4,7 @@ import { NeedsYouCard } from "~/components/needs-you-card";
 
 type NeedsYouListProps = {
   items: WorkItemWithAction[];
-  onApprove: (item: WorkItemWithAction) => void;
+  onApprove: (item: WorkItemWithAction, payloadOverride?: WorkItemWithAction["proposedAction"]) => void;
   onDismiss: (item: WorkItemWithAction) => void;
 };
 

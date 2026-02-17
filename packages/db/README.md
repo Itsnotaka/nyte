@@ -2,13 +2,12 @@
 
 ## Purpose
 
-Shared persistence package for Nyte. Defines schema, DB client, and bootstrap/migration helpers.
+Shared persistence package for Nyte. Defines Postgres schema, DB client, and migration helpers.
 
 ## Responsibilities
 
-- Drizzle schema definitions
-- libsql/sqlite client initialization
-- schema bootstrap for local/dev/test flows
+- Drizzle Postgres schema definitions
+- node-postgres client initialization
 - migration config + generated SQL artifacts
 
 ## Public exports
@@ -18,7 +17,7 @@ Shared persistence package for Nyte. Defines schema, DB client, and bootstrap/mi
 
 ## Dependencies
 
-- external: drizzle-orm, @libsql/client
+- external: drizzle-orm, pg
 
 ## Used by
 
@@ -27,11 +26,12 @@ Shared persistence package for Nyte. Defines schema, DB client, and bootstrap/mi
 
 ## Environment
 
-- `DATABASE_URL` (supports file: URLs and remote URL schemes)
+- `DATABASE_URL` (Postgres connection string)
 
 ## Local commands
 
 - `pnpm --filter @nyte/db typecheck`
-- `pnpm --filter @nyte/db db:generate`
-- `pnpm --filter @nyte/db db:push`
-- `pnpm --filter @nyte/db db:studio`
+- `pnpm --filter @nyte/db generate`
+- `pnpm --filter @nyte/db push`
+- `pnpm --filter @nyte/db migrate`
+- `pnpm --filter @nyte/db studio`

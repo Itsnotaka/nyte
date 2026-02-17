@@ -1,4 +1,3 @@
-import { and, desc, eq, inArray } from "drizzle-orm";
 import {
   calendarEvents,
   db,
@@ -9,6 +8,7 @@ import {
   proposedActions,
   workItems,
 } from "@nyte/db";
+import { and, desc, eq, inArray } from "@nyte/db/drizzle";
 import type { ToolCallPayload, WorkItemWithAction } from "@nyte/domain/actions";
 import type { WorkItem } from "@nyte/domain/triage";
 

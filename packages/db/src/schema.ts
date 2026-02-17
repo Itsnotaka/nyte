@@ -1,16 +1,34 @@
-import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { boolean, index, integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
-export const users = sqliteTable("users", {
+const createdAtColumn = () =>
+  timestamp("created_at", {
+    withTimezone: true,
+    mode: "date",
+  }).notNull();
+
+const updatedAtColumn = () =>
+  timestamp("updated_at", {
+    withTimezone: true,
+    mode: "date",
+  }).notNull();
+
+const timestampColumn = (name: string) =>
+  timestamp(name, {
+    withTimezone: true,
+    mode: "date",
+  }).notNull();
+
+export const users = pgTable("users", {
   id: text("id").primaryKey(),
   email: text("email").notNull().unique(),
   name: text("name").notNull(),
-  emailVerified: integer("email_verified", { mode: "boolean" }).notNull().default(false),
+  emailVerified: boolean("email_verified").notNull().default(false),
   image: text("image"),
-  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
-  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+  createdAt: createdAtColumn(),
+  updatedAt: updatedAtColumn(),
 });
 
-export const accounts = sqliteTable(
+export const accounts = pgTable(
   "accounts",
   {
     id: text("id").primaryKey(),
@@ -22,16 +40,18 @@ export const accounts = sqliteTable(
     accessToken: text("access_token"),
     refreshToken: text("refresh_token"),
     idToken: text("id_token"),
-    accessTokenExpiresAt: integer("access_token_expires_at", {
-      mode: "timestamp_ms",
+    accessTokenExpiresAt: timestamp("access_token_expires_at", {
+      withTimezone: true,
+      mode: "date",
     }),
-    refreshTokenExpiresAt: integer("refresh_token_expires_at", {
-      mode: "timestamp_ms",
+    refreshTokenExpiresAt: timestamp("refresh_token_expires_at", {
+      withTimezone: true,
+      mode: "date",
     }),
     scope: text("scope"),
     password: text("password"),
-    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
-    updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+    createdAt: createdAtColumn(),
+    updatedAt: updatedAtColumn(),
   },
   (table) => ({
     userIdIdx: index("accounts_user_id_idx").on(table.userId),
@@ -42,41 +62,41 @@ export const accounts = sqliteTable(
   }),
 );
 
-export const sessions = sqliteTable(
+export const sessions = pgTable(
   "sessions",
   {
     id: text("id").primaryKey(),
     userId: text("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
+    expiresAt: timestampColumn("expires_at"),
     token: text("token").notNull().unique(),
     ipAddress: text("ip_address"),
     userAgent: text("user_agent"),
-    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
-    updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+    createdAt: createdAtColumn(),
+    updatedAt: updatedAtColumn(),
   },
   (table) => ({
     userIdIdx: index("sessions_user_id_idx").on(table.userId),
   }),
 );
 
-export const verifications = sqliteTable(
+export const verifications = pgTable(
   "verifications",
   {
     id: text("id").primaryKey(),
     identifier: text("identifier").notNull(),
     value: text("value").notNull(),
-    expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
-    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
-    updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+    expiresAt: timestampColumn("expires_at"),
+    createdAt: createdAtColumn(),
+    updatedAt: updatedAtColumn(),
   },
   (table) => ({
     identifierIdx: index("verifications_identifier_idx").on(table.identifier),
   }),
 );
 
-export const connectedAccounts = sqliteTable("connected_accounts", {
+export const connectedAccounts = pgTable("connected_accounts", {
   id: text("id").primaryKey(),
   userId: text("user_id")
     .notNull()
@@ -86,11 +106,11 @@ export const connectedAccounts = sqliteTable("connected_accounts", {
   scopes: text("scopes").notNull(),
   accessToken: text("access_token").notNull(),
   refreshToken: text("refresh_token"),
-  connectedAt: integer("connected_at", { mode: "timestamp_ms" }).notNull(),
-  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+  connectedAt: timestampColumn("connected_at"),
+  updatedAt: updatedAtColumn(),
 });
 
-export const workItems = sqliteTable("work_items", {
+export const workItems = pgTable("work_items", {
   id: text("id").primaryKey(),
   userId: text("user_id")
     .notNull()
@@ -102,22 +122,22 @@ export const workItems = sqliteTable("work_items", {
   preview: text("preview").notNull(),
   status: text("status").notNull(),
   priorityScore: integer("priority_score").notNull(),
-  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
-  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+  createdAt: createdAtColumn(),
+  updatedAt: updatedAtColumn(),
 });
 
-export const gateEvaluations = sqliteTable("gate_evaluations", {
+export const gateEvaluations = pgTable("gate_evaluations", {
   id: text("id").primaryKey(),
   workItemId: text("work_item_id")
     .notNull()
     .references(() => workItems.id),
   gate: text("gate").notNull(),
-  matched: integer("matched", { mode: "boolean" }).notNull(),
+  matched: boolean("matched").notNull(),
   reason: text("reason").notNull(),
   score: integer("score").notNull(),
 });
 
-export const proposedActions = sqliteTable("proposed_actions", {
+export const proposedActions = pgTable("proposed_actions", {
   id: text("id").primaryKey(),
   workItemId: text("work_item_id")
     .notNull()
@@ -125,44 +145,44 @@ export const proposedActions = sqliteTable("proposed_actions", {
   actionType: text("action_type").notNull(),
   status: text("status").notNull(),
   payloadJson: text("payload_json").notNull(),
-  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
-  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+  createdAt: createdAtColumn(),
+  updatedAt: updatedAtColumn(),
 });
 
-export const gmailDrafts = sqliteTable("gmail_drafts", {
+export const gmailDrafts = pgTable("gmail_drafts", {
   id: text("id").primaryKey(),
   actionId: text("action_id")
     .notNull()
     .references(() => proposedActions.id),
   providerDraftId: text("provider_draft_id").notNull(),
   threadId: text("thread_id"),
-  syncedAt: integer("synced_at", { mode: "timestamp_ms" }).notNull(),
+  syncedAt: timestampColumn("synced_at"),
 });
 
-export const calendarEvents = sqliteTable("calendar_events", {
+export const calendarEvents = pgTable("calendar_events", {
   id: text("id").primaryKey(),
   actionId: text("action_id")
     .notNull()
     .references(() => proposedActions.id),
   providerEventId: text("provider_event_id").notNull(),
-  startsAt: integer("starts_at", { mode: "timestamp_ms" }).notNull(),
-  endsAt: integer("ends_at", { mode: "timestamp_ms" }).notNull(),
-  syncedAt: integer("synced_at", { mode: "timestamp_ms" }).notNull(),
+  startsAt: timestampColumn("starts_at"),
+  endsAt: timestampColumn("ends_at"),
+  syncedAt: timestampColumn("synced_at"),
 });
 
-export const policyRules = sqliteTable("policy_rules", {
+export const policyRules = pgTable("policy_rules", {
   id: text("id").primaryKey(),
   userId: text("user_id")
     .notNull()
     .references(() => users.id),
   ruleType: text("rule_type").notNull(),
   value: text("value").notNull(),
-  enabled: integer("enabled", { mode: "boolean" }).notNull(),
-  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
-  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+  enabled: boolean("enabled").notNull(),
+  createdAt: createdAtColumn(),
+  updatedAt: updatedAtColumn(),
 });
 
-export const auditLogs = sqliteTable(
+export const auditLogs = pgTable(
   "audit_logs",
   {
     id: text("id").primaryKey(),
@@ -171,7 +191,7 @@ export const auditLogs = sqliteTable(
     targetType: text("target_type").notNull(),
     targetId: text("target_id").notNull(),
     payloadJson: text("payload_json").notNull(),
-    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    createdAt: createdAtColumn(),
   },
   (table) => ({
     targetLookupIdx: index("audit_logs_target_lookup_idx").on(
@@ -183,28 +203,28 @@ export const auditLogs = sqliteTable(
   }),
 );
 
-export const workflowRuns = sqliteTable("workflow_runs", {
+export const workflowRuns = pgTable("workflow_runs", {
   id: text("id").primaryKey(),
   workItemId: text("work_item_id")
     .notNull()
     .references(() => workItems.id),
   phase: text("phase").notNull(),
   status: text("status").notNull(),
-  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
-  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+  createdAt: createdAtColumn(),
+  updatedAt: updatedAtColumn(),
 });
 
-export const workflowEvents = sqliteTable("workflow_events", {
+export const workflowEvents = pgTable("workflow_events", {
   id: text("id").primaryKey(),
   runId: text("run_id")
     .notNull()
     .references(() => workflowRuns.id),
   kind: text("kind").notNull(),
   payloadJson: text("payload_json").notNull(),
-  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  createdAt: createdAtColumn(),
 });
 
-export const feedbackEntries = sqliteTable("feedback_entries", {
+export const feedbackEntries = pgTable("feedback_entries", {
   id: text("id").primaryKey(),
   workItemId: text("work_item_id")
     .notNull()
@@ -212,6 +232,6 @@ export const feedbackEntries = sqliteTable("feedback_entries", {
     .references(() => workItems.id),
   rating: text("rating").notNull(),
   note: text("note"),
-  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
-  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+  createdAt: createdAtColumn(),
+  updatedAt: updatedAtColumn(),
 });

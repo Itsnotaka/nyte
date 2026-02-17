@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq } from "@nyte/db/drizzle";
 import {
   calendarEvents,
   db,
@@ -15,10 +15,21 @@ import { parseToolCallPayload } from "../shared/payload";
 import { toIsoString } from "../shared/time";
 import { recordWorkflowRun } from "../workflow/workflow-log";
 
+export type ApprovalErrorCode = "not_found" | "invalid_state" | "invalid_payload";
+
 export class ApprovalError extends Error {
-  constructor(message: string) {
+  readonly code: ApprovalErrorCode;
+
+  constructor({
+    code,
+    message,
+  }: {
+    code: ApprovalErrorCode;
+    message: string;
+  }) {
     super(message);
     this.name = "ApprovalError";
+    this.code = code;
   }
 }
 
@@ -76,16 +87,27 @@ async function resolveExecutionSnapshot(
   return execution;
 }
 
-export async function approveWorkItem(itemId: string, now = new Date(), idempotencyKey?: string) {
+export async function approveWorkItem(
+  itemId: string,
+  now = new Date(),
+  idempotencyKey?: string,
+  payloadOverride?: ToolCallPayload,
+) {
   await ensureDbSchema();
 
   const itemRows = await db.select().from(workItems).where(eq(workItems.id, itemId)).limit(1);
   const workItem = itemRows.at(0);
   if (!workItem) {
-    throw new ApprovalError("Work item not found.");
+    throw new ApprovalError({
+      code: "not_found",
+      message: "Work item not found.",
+    });
   }
   if (workItem.status === "dismissed") {
-    throw new ApprovalError("Work item is dismissed and cannot be approved.");
+    throw new ApprovalError({
+      code: "invalid_state",
+      message: "Work item is dismissed and cannot be approved.",
+    });
   }
 
   const action = await db
@@ -96,13 +118,21 @@ export async function approveWorkItem(itemId: string, now = new Date(), idempote
 
   const proposal = action.at(0);
   if (!proposal) {
-    throw new ApprovalError("No proposed action found for work item.");
+    throw new ApprovalError({
+      code: "not_found",
+      message: "No proposed action found for work item.",
+    });
   }
 
   const payload = parseToolCallPayload(proposal.payloadJson);
   if (!payload) {
-    throw new ApprovalError("Proposed action payload is invalid.");
+    throw new ApprovalError({
+      code: "invalid_payload",
+      message: "Proposed action payload is invalid.",
+    });
   }
+  const payloadForExecution = payloadOverride ?? payload;
+
   if (workItem.status === "completed" || proposal.status === "executed") {
     const execution = await resolveExecutionSnapshot(
       proposal.id,
@@ -128,7 +158,7 @@ export async function approveWorkItem(itemId: string, now = new Date(), idempote
     };
   }
 
-  const execution = executeProposedAction(payload, now, {
+  const execution = executeProposedAction(payloadForExecution, now, {
     idempotencyKey,
   });
 
@@ -136,6 +166,8 @@ export async function approveWorkItem(itemId: string, now = new Date(), idempote
     await tx
       .update(proposedActions)
       .set({
+        actionType: payloadForExecution.kind,
+        payloadJson: JSON.stringify(payloadForExecution),
         status: "executed",
         updatedAt: now,
       })
@@ -162,9 +194,13 @@ export async function approveWorkItem(itemId: string, now = new Date(), idempote
 
     if (execution.destination === "google_calendar") {
       const startsAt =
-        payload.kind === "google-calendar.createEvent" ? new Date(payload.startsAt) : now;
+        payloadForExecution.kind === "google-calendar.createEvent"
+          ? new Date(payloadForExecution.startsAt)
+          : now;
       const endsAt =
-        payload.kind === "google-calendar.createEvent" ? new Date(payload.endsAt) : now;
+        payloadForExecution.kind === "google-calendar.createEvent"
+          ? new Date(payloadForExecution.endsAt)
+          : now;
 
       await tx
         .insert(calendarEvents)
@@ -206,7 +242,7 @@ export async function approveWorkItem(itemId: string, now = new Date(), idempote
           kind: "action.approved",
           payload: {
             actionId: proposal.id,
-            kind: payload.kind,
+            kind: payloadForExecution.kind,
           },
         },
         {
@@ -237,7 +273,7 @@ export async function approveWorkItem(itemId: string, now = new Date(), idempote
 
   return {
     itemId,
-    payload,
+    payload: payloadForExecution,
     execution,
     idempotent: false,
   };
