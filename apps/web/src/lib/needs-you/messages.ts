@@ -16,7 +16,6 @@ export const NEEDS_YOU_MESSAGES = {
   actionDismissedNotice: "Action dismissed.",
   actionUpdateUnavailable: "Unable to update action status.",
   noActionCards: "No action cards right now.",
-  disconnectNotice: "Disconnected Google session.",
 } as const;
 
 export function formatSyncFilteredNotice(watchKeywords: readonly string[]): string {

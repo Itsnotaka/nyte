@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ToolCallPayload, WorkItemWithAction } from "@nyte/domain/actions";
 import type { QueueSyncRequest, QueueSyncResponse } from "@nyte/workflows";
+import { useRouter } from "next/navigation";
 import * as React from "react";
 
 import { authClient } from "~/lib/auth-client";
@@ -52,6 +53,7 @@ type UserScopedMessage = {
 export function useNyteWorkspace({
   initialConnected,
 }: UseNyteWorkspaceInput): UseNyteWorkspaceResult {
+  const router = useRouter();
   const queryClient = useQueryClient();
   const watchKeywordsRef = React.useRef<WatchKeywords>([]);
   const [activeWatchKeywords, setActiveWatchKeywords] = React.useState<WatchKeywords>([]);
@@ -171,12 +173,12 @@ export function useNyteWorkspace({
     setMutationError(null);
     watchKeywordsRef.current = [];
     setActiveWatchKeywords([]);
-    setNotice(NEEDS_YOU_MESSAGES.disconnectNotice);
     queryClient.removeQueries({
       queryKey: syncQueryKey,
       exact: true,
     });
-  }, [queryClient, setMutationError, setNotice, syncQueryKey]);
+    router.refresh();
+  }, [queryClient, router, setMutationError, syncQueryKey]);
 
   const markAction = React.useCallback(
     async (

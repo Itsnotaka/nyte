@@ -7,12 +7,14 @@ Primary Nyte product surface: decision queue UI and thin API gateway.
 ## Responsibilities
 
 - authentication/session handling
+- auth-first landing flow (unauthenticated users see dedicated home/login screen)
 - shared auth provider constants for route/hook parity (e.g., Google provider id)
 - queue sync and action mutation routes
 - rendering and mutating decision queue state with TanStack Query + TanStack Form
 - optional watch-keyword input in composer to bias ingestion matches
 - Trigger.dev runtime config and exported task entrypoints
 - request-scoped structured logging with evlog
+- Next.js app-level loading/error boundaries for home route (`app/loading.tsx`, `app/error.tsx`)
 - shared server helpers for session resolution and payload validation across routes
 - shared validation covers object/string/enum parsing so route handlers stay thin
 - shared field-level string parsers are used for item/access-token/idempotency extraction in route payloads

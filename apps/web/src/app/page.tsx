@@ -1,13 +1,11 @@
-import { headers } from "next/headers";
+import { Suspense } from "react";
 
-import { NyteWorkspaceClient } from "~/features/home";
-import { auth } from "~/lib/auth";
+import { HomePageFallback, HomePageServer } from "~/features/home";
 
-export default async function Page() {
-  const requestHeaders = await headers();
-  const session = await auth.api.getSession({
-    headers: requestHeaders,
-  });
-
-  return <NyteWorkspaceClient initialConnected={Boolean(session)} />;
+export default function Page() {
+  return (
+    <Suspense fallback={<HomePageFallback />}>
+      <HomePageServer />
+    </Suspense>
+  );
 }
