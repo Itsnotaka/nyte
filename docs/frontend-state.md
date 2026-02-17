@@ -1,0 +1,23 @@
+# Frontend state model
+
+## Principles
+
+- Server state: TanStack Query
+- Form state: TanStack Form
+- Avoid effect-driven derived state when values can be computed during render
+
+## Current usage
+
+- Query key scoped by authenticated user id (`needs-you-sync`).
+- Sync cursor is sourced from cached query payload, not effect-managed refs.
+- Approve/dismiss actions use TanStack Query mutations and query invalidation.
+- Composer input uses TanStack Form field state.
+
+## Route contracts
+
+- Queue sync: `QueueSyncResponse`
+- Approve: `ApproveActionRequest` / `ApproveActionResponse`
+- Dismiss: `DismissActionRequest` / `DismissActionResponse`
+- Feedback: `FeedbackActionRequest` / `FeedbackActionResponse`
+
+These contracts are imported from `@nyte/workflows` and reused directly in route handlers and clients.

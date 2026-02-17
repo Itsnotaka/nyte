@@ -11,7 +11,7 @@ Application/service layer for Nyte workflows. This package orchestrates use-case
 - dashboard + metrics read models
 - policy rules and workflow retention controls
 - trust/audit/security posture reporting
-- token/runtime secret handling
+- token/auth secret handling
 
 ## Package layout
 
@@ -43,12 +43,12 @@ Grouped-only API:
 ## Dependencies
 
 - workspace: @nyte/db, @nyte/domain
-- external: drizzle-orm, neverthrow
+- external: neverthrow
 
 ## Used by
 
 - apps/web
-- apps/runtime
+- packages/workflows
 
 ## Local commands
 

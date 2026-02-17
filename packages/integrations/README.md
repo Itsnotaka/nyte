@@ -21,8 +21,7 @@ Provider adapters for ingesting external data sources into Nyte intake signals.
 
 ## Used by
 
-- apps/web API ingestion route
-- runtime/background orchestration paths
+- packages/workflows ingestion tasks
 
 ## Local commands
 
