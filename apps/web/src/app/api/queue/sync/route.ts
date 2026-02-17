@@ -1,5 +1,5 @@
 import {
-  ingestSignalsTask,
+  runIngestSignalsTask,
   type QueueSyncRequest,
   type QueueSyncResponse,
   type WorkflowApiErrorResponse,
@@ -67,10 +67,9 @@ export async function GET(request: Request) {
   }
 
   try {
-    const result = await ingestSignalsTask({
+    const result = await runIngestSignalsTask({
       accessToken,
       cursor: parseCursor(request),
-      now: new Date(),
     });
 
     const response: QueueSyncResponse = {

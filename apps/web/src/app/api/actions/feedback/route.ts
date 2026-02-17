@@ -1,6 +1,6 @@
 import { FeedbackError } from "@nyte/application/actions";
 import {
-  feedbackTask,
+  runFeedbackTask,
   type FeedbackActionRequest,
   type FeedbackActionResponse,
   type WorkflowApiErrorResponse,
@@ -51,11 +51,10 @@ export async function POST(request: Request) {
   }
 
   try {
-    const result = await feedbackTask({
+    const result = await runFeedbackTask({
       itemId: payload.itemId,
       rating: payload.rating,
       note: payload.note,
-      now: new Date(),
     });
     const response: FeedbackActionResponse = result;
     return Response.json(response);

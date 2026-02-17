@@ -1,6 +1,6 @@
 import { ApprovalError } from "@nyte/application/actions";
 import {
-  approveActionTask,
+  runApproveActionTask,
   type ApproveActionRequest,
   type ApproveActionResponse,
   type WorkflowApiErrorResponse,
@@ -50,10 +50,9 @@ export async function POST(request: Request) {
   }
 
   try {
-    const result = await approveActionTask({
+    const result = await runApproveActionTask({
       itemId: payload.itemId,
       idempotencyKey: payload.idempotencyKey,
-      now: new Date(),
     });
     const response: ApproveActionResponse = result;
     return Response.json(response);

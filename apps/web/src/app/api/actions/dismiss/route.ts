@@ -1,6 +1,6 @@
 import { DismissError } from "@nyte/application/actions";
 import {
-  dismissActionTask,
+  runDismissActionTask,
   type DismissActionRequest,
   type DismissActionResponse,
   type WorkflowApiErrorResponse,
@@ -39,9 +39,8 @@ export async function POST(request: Request) {
   }
 
   try {
-    const result = await dismissActionTask({
+    const result = await runDismissActionTask({
       itemId: payload.itemId,
-      now: new Date(),
     });
     const response: DismissActionResponse = result;
     return Response.json(response);
