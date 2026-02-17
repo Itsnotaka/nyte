@@ -78,7 +78,7 @@ export function NyteWorkspaceView({
 
         {connected && visibleItems.length === 0 && !isSyncing ? (
           <div className="mt-6 rounded-xl border border-white/40 bg-white/85 px-4 py-3 text-sm text-zinc-700">
-            No action cards right now.
+            {NEEDS_YOU_MESSAGES.noActionCards}
           </div>
         ) : null}
 

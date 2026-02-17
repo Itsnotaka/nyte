@@ -15,4 +15,5 @@ export const NEEDS_YOU_MESSAGES = {
   actionApprovedNotice: "Action approved.",
   actionDismissedNotice: "Action dismissed.",
   actionUpdateUnavailable: "Unable to update action status.",
+  noActionCards: "No action cards right now.",
 } as const;
