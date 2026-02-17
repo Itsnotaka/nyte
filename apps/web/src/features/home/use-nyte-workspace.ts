@@ -20,6 +20,8 @@ type UseNyteWorkspaceInput = {
   initialConnected: boolean;
 };
 
+type ActionMutationStatus = "approved" | "dismissed";
+
 type WatchKeywords = NonNullable<QueueSyncRequest["watchKeywords"]>;
 
 export type UseNyteWorkspaceResult = {
@@ -37,7 +39,7 @@ export type UseNyteWorkspaceResult = {
   disconnectGoogle: () => Promise<void>;
   markAction: (
     item: WorkItemWithAction,
-    status: "approved" | "dismissed",
+    status: ActionMutationStatus,
     payloadOverride?: ToolCallPayload,
   ) => Promise<void>;
 };
@@ -179,7 +181,7 @@ export function useNyteWorkspace({
   const markAction = React.useCallback(
     async (
       item: WorkItemWithAction,
-      status: "approved" | "dismissed",
+      status: ActionMutationStatus,
       payloadOverride?: ToolCallPayload,
     ) => {
       setNotice(null);
