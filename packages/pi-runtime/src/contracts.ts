@@ -1,4 +1,7 @@
-import type { GmailCreateDraftToolCall, GoogleCalendarCreateEventToolCall } from "@nyte/domain/actions";
+import type {
+  GmailCreateDraftToolCall,
+  GoogleCalendarCreateEventToolCall,
+} from "@nyte/domain/actions";
 
 export const PI_EXTENSION_NAMES = {
   gmailReadThreadContext: "gmail.readThreadContext",
@@ -7,8 +10,11 @@ export const PI_EXTENSION_NAMES = {
   calendarUpdateEvent: "calendar.updateEvent",
 } as const;
 
-export type PiExtensionName = (typeof PI_EXTENSION_NAMES)[keyof typeof PI_EXTENSION_NAMES];
-const PI_EXTENSION_NAME_SET = new Set<PiExtensionName>(Object.values(PI_EXTENSION_NAMES));
+export type PiExtensionName =
+  (typeof PI_EXTENSION_NAMES)[keyof typeof PI_EXTENSION_NAMES];
+const PI_EXTENSION_NAME_SET = new Set<PiExtensionName>(
+  Object.values(PI_EXTENSION_NAMES)
+);
 
 export const PI_AUDIT_SOURCES = {
   decisionQueue: "decision-queue",
@@ -18,7 +24,8 @@ export const PI_AUTH_PROVIDERS = {
   google: "google",
 } as const;
 
-export type PiAuthProvider = (typeof PI_AUTH_PROVIDERS)[keyof typeof PI_AUTH_PROVIDERS];
+export type PiAuthProvider =
+  (typeof PI_AUTH_PROVIDERS)[keyof typeof PI_AUTH_PROVIDERS];
 
 export const PI_AUTH_SCOPES = {
   googleWorkspace: [
@@ -139,10 +146,15 @@ function isNonEmptyString(value: unknown): value is string {
 }
 
 export function isPiExtensionName(value: unknown): value is PiExtensionName {
-  return typeof value === "string" && PI_EXTENSION_NAME_SET.has(value as PiExtensionName);
+  return (
+    typeof value === "string" &&
+    PI_EXTENSION_NAME_SET.has(value as PiExtensionName)
+  );
 }
 
-export function isPiExtensionResult(value: unknown): value is PiExtensionResult {
+export function isPiExtensionResult(
+  value: unknown
+): value is PiExtensionResult {
   const payload = asRecord(value);
   if (!payload) {
     return false;

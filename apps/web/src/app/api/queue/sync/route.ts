@@ -1,23 +1,19 @@
-import {
-  runIngestSignalsTask,
-} from "@nyte/workflows";
+import { runIngestSignalsTask } from "@nyte/workflows";
 
 import { auth } from "~/lib/auth";
+import { GOOGLE_AUTH_PROVIDER } from "~/lib/auth-provider";
 import { parseQueueSyncQueryParams } from "~/lib/needs-you/sync-query";
-import { createApiRequestLogger } from "~/lib/server/request-log";
-import { NEEDS_YOU_ROUTE_CONFIG } from "~/lib/server/needs-you-route-config";
-import { resolveRequestSession } from "~/lib/server/request-session";
 import { type HttpStatusCode } from "~/lib/server/http-status";
-import {
-  parseBodyWithRequiredStringField,
-} from "~/lib/server/request-validation";
+import { NEEDS_YOU_ROUTE_CONFIG } from "~/lib/server/needs-you-route-config";
+import { createApiRequestLogger } from "~/lib/server/request-log";
+import { resolveRequestSession } from "~/lib/server/request-session";
+import { parseBodyWithRequiredStringField } from "~/lib/server/request-validation";
 import {
   resolveWorkflowErrorTaskId,
   resolveWorkflowRouteError,
   toWorkflowApiErrorJsonResponse,
   toWorkflowRouteErrorJsonResponse,
 } from "~/lib/server/workflow-route-error";
-import { GOOGLE_AUTH_PROVIDER } from "~/lib/auth-provider";
 
 function resolveAccessToken(value: unknown) {
   const parsed = parseBodyWithRequiredStringField(value, "accessToken");
@@ -59,7 +55,10 @@ export async function GET(request: Request) {
         userId,
         taskId,
       });
-      return toWorkflowApiErrorJsonResponse(config.messages.authRequired, status);
+      return toWorkflowApiErrorJsonResponse(
+        config.messages.authRequired,
+        status
+      );
     }
 
     const accessTokenResult = await auth.api.getAccessToken({
@@ -79,7 +78,10 @@ export async function GET(request: Request) {
         userId,
         taskId,
       });
-      return toWorkflowApiErrorJsonResponse(config.messages.tokenUnavailable, status);
+      return toWorkflowApiErrorJsonResponse(
+        config.messages.tokenUnavailable,
+        status
+      );
     }
 
     const result = await runIngestSignalsTask({
@@ -101,7 +103,7 @@ export async function GET(request: Request) {
     const resolved = resolveWorkflowRouteError(
       error,
       config.messages.taskUnavailable,
-      config.statuses.taskFailure,
+      config.statuses.taskFailure
     );
     status = resolved.status;
 

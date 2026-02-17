@@ -2,7 +2,10 @@ import { isToolCallPayload, type ToolCallPayload } from "@nyte/domain/actions";
 import { Result } from "neverthrow";
 
 function parseJson(payloadJson: string): unknown {
-  const parsePayload = Result.fromThrowable((value: string): unknown => JSON.parse(value), () => null);
+  const parsePayload = Result.fromThrowable(
+    (value: string): unknown => JSON.parse(value),
+    () => null
+  );
   const parsedPayload = parsePayload(payloadJson);
   if (parsedPayload.isErr()) {
     return null;
@@ -11,7 +14,9 @@ function parseJson(payloadJson: string): unknown {
   return parsedPayload.value;
 }
 
-export function parseRecordPayload(payloadJson: string): Record<string, unknown> {
+export function parseRecordPayload(
+  payloadJson: string
+): Record<string, unknown> {
   const parsed = parseJson(payloadJson);
   if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
     return parsed as Record<string, unknown>;
@@ -29,7 +34,9 @@ export function parseRecordPayload(payloadJson: string): Record<string, unknown>
   };
 }
 
-export function parseToolCallPayload(payloadJson: string): ToolCallPayload | null {
+export function parseToolCallPayload(
+  payloadJson: string
+): ToolCallPayload | null {
   const parsed = parseJson(payloadJson);
   if (!isToolCallPayload(parsed)) {
     return null;

@@ -127,7 +127,9 @@ export function WorkflowComposer({
             >
               <span className="absolute inset-0 rounded-lg border border-border bg-gradient-to-t from-background to-background shadow-xs transition group-hover/button:to-muted disabled:opacity-50" />
               <span className="relative z-10 flex items-center gap-1 text-sm text-foreground">
-                <RefreshCwIcon className={`size-4 ${isSyncing ? "animate-spin" : ""}`} />
+                <RefreshCwIcon
+                  className={`size-4 ${isSyncing ? "animate-spin" : ""}`}
+                />
                 <span className="px-0.5 leading-none">Sync</span>
                 <span className="hidden h-4 items-center rounded border border-border bg-muted px-1 text-[10px] text-muted-foreground shadow-xs sm:inline-flex">
                   ↵

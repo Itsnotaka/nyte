@@ -26,5 +26,11 @@
     "preserveDuplicates": false,
     "preserveWhitespace": false
   },
-  "ignorePatterns": ["stylelint.config.mjs", "node_modules/**", ".vercel/**", ".next/**", "out/**"]
+  "ignorePatterns": [
+    "stylelint.config.mjs",
+    "node_modules/**",
+    ".vercel/**",
+    ".next/**",
+    "out/**"
+  ]
 }

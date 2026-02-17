@@ -1,4 +1,5 @@
 import type { QueueSyncRequest } from "@nyte/workflows";
+
 import { parseRequiredStringValue } from "~/lib/shared/value-guards";
 import { normalizeWatchKeywords } from "~/lib/shared/watch-keywords";
 
@@ -8,10 +9,15 @@ const NEEDS_YOU_QUERY_PARAMS = {
   watch: "watch",
 } as const;
 
-export function parseQueueSyncQueryParams(searchParams: URLSearchParams): SyncQuery {
+export function parseQueueSyncQueryParams(
+  searchParams: URLSearchParams
+): SyncQuery {
   const cursor =
-    parseRequiredStringValue(searchParams.get(NEEDS_YOU_QUERY_PARAMS.cursor)) ?? undefined;
-  const watchKeywords = normalizeWatchKeywords(searchParams.getAll(NEEDS_YOU_QUERY_PARAMS.watch));
+    parseRequiredStringValue(searchParams.get(NEEDS_YOU_QUERY_PARAMS.cursor)) ??
+    undefined;
+  const watchKeywords = normalizeWatchKeywords(
+    searchParams.getAll(NEEDS_YOU_QUERY_PARAMS.watch)
+  );
 
   return {
     cursor,

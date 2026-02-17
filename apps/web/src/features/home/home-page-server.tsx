@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 
 import { auth } from "~/lib/auth";
+
 import { HomeLanding } from "./home-landing";
 import { NyteWorkspaceClient } from "./nyte-workspace-client";
 

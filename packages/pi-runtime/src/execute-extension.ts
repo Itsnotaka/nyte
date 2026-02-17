@@ -14,28 +14,34 @@ import {
 import { piExtensionRegistry } from "./registry";
 
 export async function executePiExtension(
-  request: GmailReadThreadContextRequest,
+  request: GmailReadThreadContextRequest
 ): Promise<GmailReadThreadContextResult>;
 export async function executePiExtension(
-  request: GmailSaveDraftRequest,
+  request: GmailSaveDraftRequest
 ): Promise<GmailSaveDraftResult>;
 export async function executePiExtension(
-  request: CalendarCreateEventRequest,
+  request: CalendarCreateEventRequest
 ): Promise<CalendarCreateEventResult>;
 export async function executePiExtension(
-  request: CalendarUpdateEventRequest,
+  request: CalendarUpdateEventRequest
 ): Promise<CalendarUpdateEventResult>;
 export async function executePiExtension(
-  request: PiExtensionRequest,
+  request: PiExtensionRequest
 ): Promise<PiExtensionResult> {
   switch (request.name) {
     case PI_EXTENSION_NAMES.gmailReadThreadContext:
-      return piExtensionRegistry[PI_EXTENSION_NAMES.gmailReadThreadContext](request);
+      return piExtensionRegistry[PI_EXTENSION_NAMES.gmailReadThreadContext](
+        request
+      );
     case PI_EXTENSION_NAMES.gmailSaveDraft:
       return piExtensionRegistry[PI_EXTENSION_NAMES.gmailSaveDraft](request);
     case PI_EXTENSION_NAMES.calendarCreateEvent:
-      return piExtensionRegistry[PI_EXTENSION_NAMES.calendarCreateEvent](request);
+      return piExtensionRegistry[PI_EXTENSION_NAMES.calendarCreateEvent](
+        request
+      );
     case PI_EXTENSION_NAMES.calendarUpdateEvent:
-      return piExtensionRegistry[PI_EXTENSION_NAMES.calendarUpdateEvent](request);
+      return piExtensionRegistry[PI_EXTENSION_NAMES.calendarUpdateEvent](
+        request
+      );
   }
 }

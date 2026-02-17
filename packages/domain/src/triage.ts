@@ -60,7 +60,10 @@ export const GATE_LABEL: Record<Gate, string> = {
   watch: "Watch",
 };
 
-function evaluateTimeGate(deadlineAt: string | undefined, now: Date): GateEvaluation {
+function evaluateTimeGate(
+  deadlineAt: string | undefined,
+  now: Date
+): GateEvaluation {
   if (!deadlineAt) {
     return {
       gate: "time",
@@ -77,12 +80,17 @@ function evaluateTimeGate(deadlineAt: string | undefined, now: Date): GateEvalua
   return {
     gate: "time",
     matched,
-    reason: matched ? "Deadline is within 48 hours." : "Deadline exists but is not urgent.",
+    reason: matched
+      ? "Deadline is within 48 hours."
+      : "Deadline exists but is not urgent.",
     score: matched ? GATE_WEIGHTS.time : 0,
   };
 }
 
-export function evaluateNeedsYou(signal: IntakeSignal, now = new Date()): GateEvaluation[] {
+export function evaluateNeedsYou(
+  signal: IntakeSignal,
+  now = new Date()
+): GateEvaluation[] {
   const decision: GateEvaluation = {
     gate: "decision",
     matched: Boolean(signal.requiresDecision),
@@ -108,14 +116,18 @@ export function evaluateNeedsYou(signal: IntakeSignal, now = new Date()): GateEv
   const impact: GateEvaluation = {
     gate: "impact",
     matched: impactMatched,
-    reason: impactMatched ? "Material customer or revenue impact." : "Low impact signal.",
+    reason: impactMatched
+      ? "Material customer or revenue impact."
+      : "Low impact signal.",
     score: impactMatched ? GATE_WEIGHTS.impact : 0,
   };
 
   const watch: GateEvaluation = {
     gate: "watch",
     matched: Boolean(signal.watchMatched),
-    reason: signal.watchMatched ? "Matched explicit watch rule." : "No watch rule matched.",
+    reason: signal.watchMatched
+      ? "Matched explicit watch rule."
+      : "No watch rule matched.",
     score: signal.watchMatched ? GATE_WEIGHTS.watch : 0,
   };
 
@@ -158,7 +170,10 @@ function actionText(type: WorkType) {
   };
 }
 
-export function toWorkItem(signal: IntakeSignal, now = new Date()): WorkItem | null {
+export function toWorkItem(
+  signal: IntakeSignal,
+  now = new Date()
+): WorkItem | null {
   const evaluations = evaluateNeedsYou(signal, now);
   const matched = evaluations.filter((evaluation) => evaluation.matched);
   if (matched.length === 0) {
@@ -167,7 +182,10 @@ export function toWorkItem(signal: IntakeSignal, now = new Date()): WorkItem | n
 
   const type = resolveType(signal.intent);
   const actions = actionText(type);
-  const priorityScore = matched.reduce((total, evaluation) => total + evaluation.score, 0);
+  const priorityScore = matched.reduce(
+    (total, evaluation) => total + evaluation.score,
+    0
+  );
 
   return {
     id: signal.id,
@@ -185,7 +203,10 @@ export function toWorkItem(signal: IntakeSignal, now = new Date()): WorkItem | n
   };
 }
 
-export function createNeedsYouQueue(signals: IntakeSignal[], now = new Date()): WorkItem[] {
+export function createNeedsYouQueue(
+  signals: IntakeSignal[],
+  now = new Date()
+): WorkItem[] {
   return signals
     .map((signal) => toWorkItem(signal, now))
     .filter((item): item is WorkItem => item !== null)

@@ -2,7 +2,8 @@
 
 ## Purpose
 
-Pure business logic for triage, action payloads, and deterministic execution modeling.
+Pure business logic for triage, action payloads, and deterministic execution
+modeling.
 
 ## Responsibilities
 

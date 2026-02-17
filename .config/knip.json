@@ -14,7 +14,11 @@
       "ignoreDependencies": ["next-themes"]
     },
     "tooling/tailwind": {
-      "ignoreDependencies": ["@tailwindcss/postcss", "postcss", "postcss-import"]
+      "ignoreDependencies": [
+        "@tailwindcss/postcss",
+        "postcss",
+        "postcss-import"
+      ]
     }
   },
   "tags": ["-lintignore"]

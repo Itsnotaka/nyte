@@ -44,12 +44,16 @@ type GmailMessageMetadata = {
 
 function normalizeCursor(cursor: string | undefined, now: Date) {
   if (!cursor) {
-    return new Date(now.getTime() - DEFAULT_LOOKBACK_DAYS * 24 * 60 * 60 * 1000);
+    return new Date(
+      now.getTime() - DEFAULT_LOOKBACK_DAYS * 24 * 60 * 60 * 1000
+    );
   }
 
   const parsed = new Date(cursor);
   if (Number.isNaN(parsed.getTime())) {
-    return new Date(now.getTime() - DEFAULT_LOOKBACK_DAYS * 24 * 60 * 60 * 1000);
+    return new Date(
+      now.getTime() - DEFAULT_LOOKBACK_DAYS * 24 * 60 * 60 * 1000
+    );
   }
 
   return parsed;
@@ -59,7 +63,10 @@ function toEpochSeconds(value: Date) {
   return Math.max(0, Math.floor(value.getTime() / 1000));
 }
 
-async function fetchGoogleJson<T>(url: string, accessToken: string): Promise<T> {
+async function fetchGoogleJson<T>(
+  url: string,
+  accessToken: string
+): Promise<T> {
   const response = await fetch(url, {
     method: "GET",
     headers: {
@@ -71,7 +78,7 @@ async function fetchGoogleJson<T>(url: string, accessToken: string): Promise<T> 
   if (!response.ok) {
     const detail = await response.text();
     throw new Error(
-      `Gmail API request failed with status ${response.status}: ${detail.slice(0, 240)}`,
+      `Gmail API request failed with status ${response.status}: ${detail.slice(0, 240)}`
     );
   }
 
@@ -148,7 +155,7 @@ function inferRelationshipScore(subject: string, actor: string) {
 function inferImpactScore(
   subject: string,
   snippet: string,
-  intent: "draft_reply" | "refund_request",
+  intent: "draft_reply" | "refund_request"
 ) {
   const haystack = `${subject} ${snippet}`.toLowerCase();
 
@@ -176,10 +183,16 @@ function inferDeadline(intent: "draft_reply" | "refund_request", now: Date) {
   return undefined;
 }
 
-function toSignal(snapshot: GmailThreadSnapshot, watchKeywords: string[], now: Date): IntakeSignal {
+function toSignal(
+  snapshot: GmailThreadSnapshot,
+  watchKeywords: string[],
+  now: Date
+): IntakeSignal {
   const intent = inferIntent(snapshot.subject, snapshot.snippet);
   const haystack = `${snapshot.subject} ${snapshot.snippet}`.toLowerCase();
-  const watchMatched = watchKeywords.some((keyword) => haystack.includes(keyword.toLowerCase()));
+  const watchMatched = watchKeywords.some((keyword) =>
+    haystack.includes(keyword.toLowerCase())
+  );
 
   return {
     id: `gmail:${snapshot.id}`,
@@ -187,7 +200,8 @@ function toSignal(snapshot: GmailThreadSnapshot, watchKeywords: string[], now: D
     actor: snapshot.from,
     summary: snapshot.subject || "Untitled email",
     context: snapshot.snippet || "No email snippet available.",
-    preview: snapshot.snippet || snapshot.subject || "Open in Gmail for full content.",
+    preview:
+      snapshot.snippet || snapshot.subject || "Open in Gmail for full content.",
     intent,
     requiresDecision: true,
     deadlineAt: inferDeadline(intent, now),
@@ -199,7 +213,7 @@ function toSignal(snapshot: GmailThreadSnapshot, watchKeywords: string[], now: D
 
 async function fetchMessageSnapshot(
   accessToken: string,
-  messageId: string,
+  messageId: string
 ): Promise<GmailThreadSnapshot> {
   const params = new URLSearchParams({
     format: "metadata",
@@ -210,12 +224,14 @@ async function fetchMessageSnapshot(
 
   const metadata = await fetchGoogleJson<GmailMessageMetadata>(
     `${GOOGLE_GMAIL_API}/messages/${encodeURIComponent(messageId)}?${params.toString()}`,
-    accessToken,
+    accessToken
   );
 
   const fromHeader = readHeader(metadata, "From");
   const subjectHeader = readHeader(metadata, "Subject");
-  const internalDate = metadata.internalDate ? Number.parseInt(metadata.internalDate, 10) : NaN;
+  const internalDate = metadata.internalDate
+    ? Number.parseInt(metadata.internalDate, 10)
+    : NaN;
   const receivedAt = Number.isFinite(internalDate)
     ? new Date(internalDate).toISOString()
     : new Date().toISOString();
@@ -246,7 +262,7 @@ export async function pollGmailIngestion({
 
   const list = await fetchGoogleJson<GmailListResponse>(
     `${GOOGLE_GMAIL_API}/messages?${listParams.toString()}`,
-    accessToken,
+    accessToken
   );
 
   const messages = list.messages ?? [];
@@ -258,15 +274,18 @@ export async function pollGmailIngestion({
   }
 
   const snapshots = await Promise.all(
-    messages.map((message) => fetchMessageSnapshot(accessToken, message.id)),
+    messages.map((message) => fetchMessageSnapshot(accessToken, message.id))
   );
 
   snapshots.sort(
-    (left, right) => new Date(right.receivedAt).getTime() - new Date(left.receivedAt).getTime(),
+    (left, right) =>
+      new Date(right.receivedAt).getTime() - new Date(left.receivedAt).getTime()
   );
 
   return {
     nextCursor: now.toISOString(),
-    signals: snapshots.map((snapshot) => toSignal(snapshot, watchKeywords, now)),
+    signals: snapshots.map((snapshot) =>
+      toSignal(snapshot, watchKeywords, now)
+    ),
   };
 }

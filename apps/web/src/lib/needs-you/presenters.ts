@@ -67,7 +67,9 @@ function truncate(value: string, max = 140) {
   return `${normalized.slice(0, Math.max(0, max - 1)).trimEnd()}…`;
 }
 
-export function actionContentViewModel(item: WorkItemWithAction): ActionContentViewModel {
+export function actionContentViewModel(
+  item: WorkItemWithAction
+): ActionContentViewModel {
   if (item.proposedAction.kind === "google-calendar.createEvent") {
     const { day, time } = splitCalendarDate(item.proposedAction.startsAt);
     return {

@@ -1,23 +1,32 @@
-import { Effect } from "effect";
 import { tasks } from "@trigger.dev/sdk/v3";
+import { Effect } from "effect";
 
+import { WORKFLOW_TASK_IDS, type WorkflowTaskId } from "./task-ids";
 import {
-  triggerApproveActionTask,
-  triggerDismissActionTask,
-  triggerFeedbackTask,
-  triggerIngestSignalsTask,
-} from "./trigger-tasks";
-import { approveActionTask, type ApproveActionTaskInput } from "./tasks/approve-action-task";
-import { dismissActionTask, type DismissActionTaskInput } from "./tasks/dismiss-action-task";
+  approveActionTask,
+  type ApproveActionTaskInput,
+} from "./tasks/approve-action-task";
+import {
+  dismissActionTask,
+  type DismissActionTaskInput,
+} from "./tasks/dismiss-action-task";
 import { feedbackTask, type FeedbackTaskInput } from "./tasks/feedback-task";
-import { ingestSignalsTask, type IngestSignalsTaskInput } from "./tasks/ingest-signals-task";
+import {
+  ingestSignalsTask,
+  type IngestSignalsTaskInput,
+} from "./tasks/ingest-signals-task";
 import {
   WorkflowTaskExecutionError,
   WorkflowTaskResultError,
   type WorkflowTaskError,
   type WorkflowTaskStage,
 } from "./trigger-errors";
-import { WORKFLOW_TASK_IDS, type WorkflowTaskId } from "./task-ids";
+import {
+  triggerApproveActionTask,
+  triggerDismissActionTask,
+  triggerFeedbackTask,
+  triggerIngestSignalsTask,
+} from "./trigger-tasks";
 import {
   workflowError,
   workflowInfo,
@@ -83,7 +92,7 @@ function runTaskProgram<TOutput>({
         taskId,
         stage,
         ...logContext,
-      }),
+      })
     );
 
     if (stage === "local") {
@@ -121,7 +130,7 @@ function runTaskProgram<TOutput>({
           stage,
           message: toErrorMessage(result.error),
           cause: result.error,
-        }),
+        })
       );
     }
 
@@ -140,9 +149,9 @@ function runTaskProgram<TOutput>({
           errorTag: error._tag,
           message: error.message,
           ...logContext,
-        }),
-      ),
-    ),
+        })
+      )
+    )
   );
 }
 
@@ -165,18 +174,23 @@ async function runTask<TOutput>({
       localRun,
       triggerRun,
       logContext,
-    }),
+    })
   ).catch((error: unknown) => {
-    if (error instanceof WorkflowTaskExecutionError || error instanceof WorkflowTaskResultError) {
+    if (
+      error instanceof WorkflowTaskExecutionError ||
+      error instanceof WorkflowTaskResultError
+    ) {
       throw error;
     }
 
-    const workflowTaskError: WorkflowTaskError = new WorkflowTaskExecutionError({
-      taskId,
-      stage,
-      message: toErrorMessage(error),
-      cause: error,
-    });
+    const workflowTaskError: WorkflowTaskError = new WorkflowTaskExecutionError(
+      {
+        taskId,
+        stage,
+        message: toErrorMessage(error),
+        cause: error,
+      }
+    );
     throw workflowTaskError;
   });
 }
@@ -186,14 +200,16 @@ type TriggerableApproveActionInput = Omit<ApproveActionTaskInput, "now">;
 type TriggerableDismissActionInput = Omit<DismissActionTaskInput, "now">;
 type TriggerableFeedbackInput = Omit<FeedbackTaskInput, "now">;
 
-export async function runIngestSignalsTask(input: TriggerableIngestSignalsInput) {
+export async function runIngestSignalsTask(
+  input: TriggerableIngestSignalsInput
+) {
   return runTask({
     taskId: WORKFLOW_TASK_IDS.ingestSignals,
     localRun: () => ingestSignalsTask(input),
     triggerRun: () =>
       tasks.triggerAndWait<typeof triggerIngestSignalsTask>(
         WORKFLOW_TASK_IDS.ingestSignals,
-        input,
+        input
       ),
     logContext: {
       hasCursor: Boolean(input.cursor),
@@ -202,24 +218,34 @@ export async function runIngestSignalsTask(input: TriggerableIngestSignalsInput)
   });
 }
 
-export async function runApproveActionTask(input: TriggerableApproveActionInput) {
+export async function runApproveActionTask(
+  input: TriggerableApproveActionInput
+) {
   return runTask({
     taskId: WORKFLOW_TASK_IDS.approveAction,
     localRun: () => approveActionTask(input),
     triggerRun: () =>
-      tasks.triggerAndWait<typeof triggerApproveActionTask>(WORKFLOW_TASK_IDS.approveAction, input),
+      tasks.triggerAndWait<typeof triggerApproveActionTask>(
+        WORKFLOW_TASK_IDS.approveAction,
+        input
+      ),
     logContext: {
       itemId: input.itemId,
     },
   });
 }
 
-export async function runDismissActionTask(input: TriggerableDismissActionInput) {
+export async function runDismissActionTask(
+  input: TriggerableDismissActionInput
+) {
   return runTask({
     taskId: WORKFLOW_TASK_IDS.dismissAction,
     localRun: () => dismissActionTask(input),
     triggerRun: () =>
-      tasks.triggerAndWait<typeof triggerDismissActionTask>(WORKFLOW_TASK_IDS.dismissAction, input),
+      tasks.triggerAndWait<typeof triggerDismissActionTask>(
+        WORKFLOW_TASK_IDS.dismissAction,
+        input
+      ),
     logContext: {
       itemId: input.itemId,
     },
@@ -231,7 +257,10 @@ export async function runFeedbackTask(input: TriggerableFeedbackInput) {
     taskId: WORKFLOW_TASK_IDS.feedback,
     localRun: () => feedbackTask(input),
     triggerRun: () =>
-      tasks.triggerAndWait<typeof triggerFeedbackTask>(WORKFLOW_TASK_IDS.feedback, input),
+      tasks.triggerAndWait<typeof triggerFeedbackTask>(
+        WORKFLOW_TASK_IDS.feedback,
+        input
+      ),
     logContext: {
       itemId: input.itemId,
       rating: input.rating,

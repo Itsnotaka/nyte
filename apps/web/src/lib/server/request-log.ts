@@ -1,11 +1,15 @@
-import { createRequestLogger, initLogger, type RequestLogger } from "evlog";
 import type {
   FeedbackActionRequest,
   WorkflowTaskId,
   WorkflowTaskStage,
 } from "@nyte/workflows";
-import type { NeedsYouRouteMethod, NeedsYouRoutePath } from "./needs-you-route-config";
+import { createRequestLogger, initLogger, type RequestLogger } from "evlog";
+
 import type { HttpStatusCode } from "./http-status";
+import type {
+  NeedsYouRouteMethod,
+  NeedsYouRoutePath,
+} from "./needs-you-route-config";
 
 let loggerInitialized = false;
 
@@ -45,7 +49,7 @@ export type ApiRequestLogger = RequestLogger<RequestLogContext>;
 export function createApiRequestLogger(
   request: Request,
   route: NeedsYouRoutePath,
-  method: NeedsYouRouteMethod,
+  method: NeedsYouRouteMethod
 ): ApiRequestLogger {
   ensureLoggerInitialized();
 

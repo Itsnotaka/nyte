@@ -12,7 +12,8 @@
 - auth: `users`, `accounts`, `sessions`, `verifications`
 - queue: `work_items`, `proposed_actions`, `gate_evaluations`
 - execution: `gmail_drafts`, `calendar_events`
-- operations: `workflow_runs`, `workflow_events`, `audit_logs`, `feedback_entries`
+- operations: `workflow_runs`, `workflow_events`, `audit_logs`,
+  `feedback_entries`
 - policy + connection: `policy_rules`, `connected_accounts`
 
 ## Commands

@@ -1,5 +1,6 @@
-import { db, ensureDbSchema, feedbackEntries, workItems } from "@nyte/db";
-import { eq } from "@nyte/db/drizzle";
+import { db } from "@nyte/db/client";
+import { feedbackEntries, workItems } from "@nyte/db/schema";
+import { eq } from "drizzle-orm";
 
 import { recordAuditLog } from "../audit/audit-log";
 import { recordWorkflowRun } from "../workflow/workflow-log";
@@ -10,13 +11,7 @@ export type FeedbackErrorCode = "not_found" | "invalid_state";
 export class FeedbackError extends Error {
   readonly code: FeedbackErrorCode;
 
-  constructor({
-    code,
-    message,
-  }: {
-    code: FeedbackErrorCode;
-    message: string;
-  }) {
+  constructor({ code, message }: { code: FeedbackErrorCode; message: string }) {
     super(message);
     this.name = "FeedbackError";
     this.code = code;
@@ -27,11 +22,13 @@ export async function recordFeedback(
   itemId: string,
   rating: FeedbackRating,
   note?: string,
-  now = new Date(),
+  now = new Date()
 ) {
-  await ensureDbSchema();
-
-  const existing = await db.select().from(workItems).where(eq(workItems.id, itemId)).limit(1);
+  const existing = await db
+    .select()
+    .from(workItems)
+    .where(eq(workItems.id, itemId))
+    .limit(1);
   const item = existing.at(0);
   if (!item) {
     throw new FeedbackError({

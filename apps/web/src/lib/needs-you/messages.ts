@@ -18,6 +18,8 @@ export const NEEDS_YOU_MESSAGES = {
   noActionCards: "No action cards right now.",
 } as const;
 
-export function formatSyncFilteredNotice(watchKeywords: readonly string[]): string {
+export function formatSyncFilteredNotice(
+  watchKeywords: readonly string[]
+): string {
   return `Sync filtered by ${watchKeywords.join(", ")}.`;
 }

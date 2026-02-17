@@ -1,6 +1,8 @@
 import { randomUUID } from "node:crypto";
-import { db, ensureDbSchema, workflowEvents, workflowRuns } from "@nyte/db";
-import { asc, desc, eq } from "@nyte/db/drizzle";
+
+import { db } from "@nyte/db/client";
+import { workflowEvents, workflowRuns } from "@nyte/db/schema";
+import { asc, desc, eq } from "drizzle-orm";
 
 import { parseRecordPayload } from "../shared/payload";
 import { toIsoString } from "../shared/time";
@@ -45,7 +47,7 @@ export async function recordWorkflowRun({
         kind: event.kind,
         payloadJson: JSON.stringify(event.payload),
         createdAt: now,
-      })),
+      }))
     );
   }
 
@@ -64,9 +66,9 @@ export type WorkflowTimelineEntry = {
   }>;
 };
 
-export async function getWorkflowTimeline(workItemId: string): Promise<WorkflowTimelineEntry[]> {
-  await ensureDbSchema();
-
+export async function getWorkflowTimeline(
+  workItemId: string
+): Promise<WorkflowTimelineEntry[]> {
   const runs = await db
     .select()
     .from(workflowRuns)

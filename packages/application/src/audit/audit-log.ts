@@ -1,6 +1,8 @@
 import { randomUUID } from "node:crypto";
-import { auditLogs, db, ensureDbSchema } from "@nyte/db";
-import { and, count, desc, eq } from "@nyte/db/drizzle";
+
+import { db } from "@nyte/db/client";
+import { auditLogs } from "@nyte/db/schema";
+import { and, count, desc, eq } from "drizzle-orm";
 
 import { parseRecordPayload } from "../shared/payload";
 import { toIsoString } from "../shared/time";
@@ -47,9 +49,10 @@ export type AuditLogEntry = {
   createdAt: string;
 };
 
-export async function listAuditLogs(limit = 100, offset = 0): Promise<AuditLogEntry[]> {
-  await ensureDbSchema();
-
+export async function listAuditLogs(
+  limit = 100,
+  offset = 0
+): Promise<AuditLogEntry[]> {
   const rows = await db
     .select()
     .from(auditLogs)
@@ -61,7 +64,6 @@ export async function listAuditLogs(limit = 100, offset = 0): Promise<AuditLogEn
 }
 
 export async function countAuditLogs() {
-  await ensureDbSchema();
   const rows = await db.select({ total: count() }).from(auditLogs);
   const total = rows[0]?.total ?? 0;
   return Number(total);
@@ -71,13 +73,17 @@ export async function listAuditLogsByTarget(
   targetType: string,
   targetId: string,
   limit = 100,
-  offset = 0,
+  offset = 0
 ) {
-  await ensureDbSchema();
   const rows = await db
     .select()
     .from(auditLogs)
-    .where(and(eq(auditLogs.targetType, targetType), eq(auditLogs.targetId, targetId)))
+    .where(
+      and(
+        eq(auditLogs.targetType, targetType),
+        eq(auditLogs.targetId, targetId)
+      )
+    )
     .orderBy(desc(auditLogs.createdAt))
     .limit(limit)
     .offset(offset);
@@ -85,12 +91,19 @@ export async function listAuditLogsByTarget(
   return rows.map(toAuditLogEntry);
 }
 
-export async function countAuditLogsByTarget(targetType: string, targetId: string) {
-  await ensureDbSchema();
+export async function countAuditLogsByTarget(
+  targetType: string,
+  targetId: string
+) {
   const rows = await db
     .select({ total: count() })
     .from(auditLogs)
-    .where(and(eq(auditLogs.targetType, targetType), eq(auditLogs.targetId, targetId)));
+    .where(
+      and(
+        eq(auditLogs.targetType, targetType),
+        eq(auditLogs.targetId, targetId)
+      )
+    );
   const total = rows[0]?.total ?? 0;
   return Number(total);
 }

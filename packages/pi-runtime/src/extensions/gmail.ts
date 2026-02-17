@@ -8,7 +8,7 @@ import { PI_EXTENSION_NAMES } from "../contracts";
 import { deterministicHash } from "../hash";
 
 export async function gmailReadThreadContext(
-  request: GmailReadThreadContextRequest,
+  request: GmailReadThreadContextRequest
 ): Promise<GmailReadThreadContextResult> {
   return {
     name: PI_EXTENSION_NAMES.gmailReadThreadContext,
@@ -22,7 +22,9 @@ export async function gmailReadThreadContext(
   };
 }
 
-export async function gmailSaveDraft(request: GmailSaveDraftRequest): Promise<GmailSaveDraftResult> {
+export async function gmailSaveDraft(
+  request: GmailSaveDraftRequest
+): Promise<GmailSaveDraftResult> {
   return {
     name: PI_EXTENSION_NAMES.gmailSaveDraft,
     status: "executed",

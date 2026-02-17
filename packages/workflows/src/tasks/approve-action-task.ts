@@ -19,7 +19,12 @@ export async function approveActionTask({
   actorUserId = null,
   now = new Date(),
 }: ApproveActionTaskInput) {
-  const approvedItem = await approveWorkItem(itemId, now, idempotencyKey, payloadOverride);
+  const approvedItem = await approveWorkItem(
+    itemId,
+    now,
+    idempotencyKey,
+    payloadOverride
+  );
   const piExtension = await dispatchApprovedActionToPi({
     approvedItem,
     userId: actorUserId,

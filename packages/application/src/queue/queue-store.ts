@@ -1,18 +1,25 @@
-import { db, ensureDbSchema, gateEvaluations, proposedActions, workItems } from "@nyte/db";
-import { eq } from "@nyte/db/drizzle";
-import { createProposedActionId, createToolCallPayload } from "@nyte/domain/actions";
+import { db } from "@nyte/db/client";
+import { gateEvaluations, proposedActions, workItems } from "@nyte/db/schema";
+import {
+  createProposedActionId,
+  createToolCallPayload,
+} from "@nyte/domain/actions";
 import {
   evaluateNeedsYou,
   toWorkItem,
   type IntakeSignal,
   type WorkItem,
 } from "@nyte/domain/triage";
+import { eq } from "drizzle-orm";
 
 import { recordAuditLog } from "../audit/audit-log";
 import { DEFAULT_USER_ID, ensureDefaultUser } from "../shared/default-user";
 import { recordWorkflowRun } from "../workflow/workflow-log";
 
-async function upsertWorkItem(signal: IntakeSignal, now: Date): Promise<WorkItem | null> {
+async function upsertWorkItem(
+  signal: IntakeSignal,
+  now: Date
+): Promise<WorkItem | null> {
   const workItem = toWorkItem(signal, now);
   if (!workItem) {
     return null;
@@ -49,7 +56,9 @@ async function upsertWorkItem(signal: IntakeSignal, now: Date): Promise<WorkItem
       });
 
     const evaluations = evaluateNeedsYou(signal, now);
-    await tx.delete(gateEvaluations).where(eq(gateEvaluations.workItemId, workItem.id));
+    await tx
+      .delete(gateEvaluations)
+      .where(eq(gateEvaluations.workItemId, workItem.id));
     await tx.insert(gateEvaluations).values(
       evaluations.map((evaluation) => ({
         id: `${workItem.id}:${evaluation.gate}`,
@@ -58,11 +67,13 @@ async function upsertWorkItem(signal: IntakeSignal, now: Date): Promise<WorkItem
         matched: evaluation.matched,
         reason: evaluation.reason,
         score: evaluation.score,
-      })),
+      }))
     );
 
     const payload = createToolCallPayload(workItem);
-    await tx.delete(proposedActions).where(eq(proposedActions.workItemId, workItem.id));
+    await tx
+      .delete(proposedActions)
+      .where(eq(proposedActions.workItemId, workItem.id));
     await tx.insert(proposedActions).values({
       id: createProposedActionId(workItem.id),
       workItemId: workItem.id,
@@ -90,7 +101,9 @@ async function upsertWorkItem(signal: IntakeSignal, now: Date): Promise<WorkItem
         {
           kind: "gates.evaluated",
           payload: {
-            matched: evaluations.filter((entry) => entry.matched).map((entry) => entry.gate),
+            matched: evaluations
+              .filter((entry) => entry.matched)
+              .map((entry) => entry.gate),
           },
         },
         {
@@ -121,9 +134,8 @@ async function upsertWorkItem(signal: IntakeSignal, now: Date): Promise<WorkItem
 
 export async function persistSignals(
   signals: IntakeSignal[],
-  now = new Date(),
+  now = new Date()
 ): Promise<WorkItem[]> {
-  await ensureDbSchema();
   await ensureDefaultUser(now);
 
   const queue: WorkItem[] = [];

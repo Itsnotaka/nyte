@@ -1,4 +1,5 @@
 import { isWorkflowApiErrorResponse } from "@nyte/workflows";
+
 import { HTTP_METHODS } from "~/lib/shared/http-methods";
 
 export { HTTP_METHODS };
@@ -20,7 +21,10 @@ export async function readJsonSafe(response: Response): Promise<unknown> {
   }
 }
 
-export function resolveWorkflowApiError(payload: unknown, fallback: string): string {
+export function resolveWorkflowApiError(
+  payload: unknown,
+  fallback: string
+): string {
   if (isWorkflowApiErrorResponse(payload)) {
     return payload.error;
   }

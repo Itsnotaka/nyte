@@ -1,11 +1,14 @@
 import { WORKFLOW_TASK_IDS, type WorkflowTaskId } from "@nyte/workflows";
+
 import { NEEDS_YOU_MESSAGES } from "~/lib/needs-you/messages";
 import { NEEDS_YOU_API_ROUTES } from "~/lib/needs-you/routes";
 import { HTTP_METHODS, type HttpMethod } from "~/lib/shared/http-methods";
+
 import { HTTP_STATUS, type HttpStatusCode } from "./http-status";
 import { REQUEST_EVENTS } from "./request-events";
 
-export type NeedsYouRoutePath = (typeof NEEDS_YOU_API_ROUTES)[keyof typeof NEEDS_YOU_API_ROUTES];
+export type NeedsYouRoutePath =
+  (typeof NEEDS_YOU_API_ROUTES)[keyof typeof NEEDS_YOU_API_ROUTES];
 export type NeedsYouRouteMethod = HttpMethod;
 
 type BaseNeedsYouRouteConfig = {
@@ -44,15 +47,16 @@ export type DomainErrorStatuses = Pick<
   "notFound" | "conflict" | "domainInvalidPayload"
 >;
 
-type ActionRouteConfig<TEvents extends Record<string, string>> = BaseNeedsYouRouteConfig & {
-  events: TEvents;
-  messages: {
-    authRequired: string;
-    invalidPayload: string;
-    taskUnavailable: string;
+type ActionRouteConfig<TEvents extends Record<string, string>> =
+  BaseNeedsYouRouteConfig & {
+    events: TEvents;
+    messages: {
+      authRequired: string;
+      invalidPayload: string;
+      taskUnavailable: string;
+    };
+    statuses: ActionRouteStatuses;
   };
-  statuses: ActionRouteStatuses;
-};
 
 const ACTION_ROUTE_STATUSES = {
   ok: HTTP_STATUS.ok,

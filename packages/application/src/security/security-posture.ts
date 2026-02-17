@@ -7,9 +7,9 @@ type SecurityPostureInput = {
   security: {
     authzEnforced: boolean;
     authSecretConfigured: boolean;
-    authSecretSource: "env" | "dev-fallback";
+    authSecretSource: "env" | "missing";
     tokenEncryptionKeyConfigured: boolean;
-    tokenEncryptionKeySource: "env" | "dev-fallback";
+    tokenEncryptionKeySource: "env" | "missing";
     hasPreviousTokenKey: boolean;
     rateLimitMode: string;
     rateLimitProvider: string;
@@ -26,27 +26,40 @@ type SecurityPostureInput = {
   };
 };
 
-export function evaluateSecurityPosture(report: SecurityPostureInput): SecurityPosture {
+export function evaluateSecurityPosture(
+  report: SecurityPostureInput
+): SecurityPosture {
   const warnings: string[] = [];
 
   if (!report.security.authzEnforced) {
-    warnings.push("Session authorization is not enforced for current environment.");
+    warnings.push(
+      "Session authorization is not enforced for current environment."
+    );
   }
 
   if (report.security.authSecretSource !== "env") {
-    warnings.push("BETTER_AUTH_SECRET is using development fallback secret.");
+    warnings.push("BETTER_AUTH_SECRET is not configured.");
   }
 
   if (report.security.tokenEncryptionKeySource !== "env") {
-    warnings.push("NYTE_TOKEN_ENCRYPTION_KEY is using development fallback key.");
+    warnings.push("NYTE_TOKEN_ENCRYPTION_KEY is not configured.");
   }
 
-  if (report.security.rateLimitMode === "unkey" && report.security.rateLimitProvider !== "unkey") {
-    warnings.push("NYTE_RATE_LIMIT_MODE is set to unkey but UNKEY_ROOT_KEY is not configured.");
+  if (
+    report.security.rateLimitMode === "unkey" &&
+    report.security.rateLimitProvider !== "unkey"
+  ) {
+    warnings.push(
+      "NYTE_RATE_LIMIT_MODE is set to unkey but UNKEY_ROOT_KEY is not configured."
+    );
   } else if (report.security.rateLimitMode === "memory") {
-    warnings.push("NYTE_RATE_LIMIT_MODE is set to memory; using in-process rate limiter.");
+    warnings.push(
+      "NYTE_RATE_LIMIT_MODE is set to memory; using in-process rate limiter."
+    );
   } else if (report.security.rateLimitProvider !== "unkey") {
-    warnings.push("UNKEY_ROOT_KEY is not configured; using in-process fallback rate limiter.");
+    warnings.push(
+      "UNKEY_ROOT_KEY is not configured; using in-process fallback rate limiter."
+    );
   }
 
   if (!report.googleConnection.connected) {

@@ -1,14 +1,17 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ToolCallPayload, WorkItemWithAction } from "@nyte/domain/actions";
 import type { QueueSyncRequest, QueueSyncResponse } from "@nyte/workflows";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 
 import { authClient } from "~/lib/auth-client";
 import { GOOGLE_AUTH_PROVIDER } from "~/lib/auth-provider";
-import { approveNeedsYouAction, dismissNeedsYouAction } from "~/lib/needs-you/actions-client";
+import {
+  approveNeedsYouAction,
+  dismissNeedsYouAction,
+} from "~/lib/needs-you/actions-client";
 import {
   formatSyncFilteredNotice,
   NEEDS_YOU_MESSAGES,
@@ -41,7 +44,7 @@ export type UseNyteWorkspaceResult = {
   markAction: (
     item: WorkItemWithAction,
     status: ActionMutationStatus,
-    payloadOverride?: ToolCallPayload,
+    payloadOverride?: ToolCallPayload
   ) => Promise<void>;
 };
 
@@ -56,22 +59,27 @@ export function useNyteWorkspace({
   const router = useRouter();
   const queryClient = useQueryClient();
   const watchKeywordsRef = React.useRef<WatchKeywords>([]);
-  const [activeWatchKeywords, setActiveWatchKeywords] = React.useState<WatchKeywords>([]);
-  const [noticeState, setNoticeState] = React.useState<UserScopedMessage | null>(null);
-  const [mutationErrorState, setMutationErrorState] = React.useState<UserScopedMessage | null>(null);
+  const [activeWatchKeywords, setActiveWatchKeywords] =
+    React.useState<WatchKeywords>([]);
+  const [noticeState, setNoticeState] =
+    React.useState<UserScopedMessage | null>(null);
+  const [mutationErrorState, setMutationErrorState] =
+    React.useState<UserScopedMessage | null>(null);
 
-  const { data: session, isPending: isSessionPending } = authClient.useSession();
-  const sessionUserId = React.useMemo(() => resolveSessionUserId(session), [session]);
+  const { data: session, isPending: isSessionPending } =
+    authClient.useSession();
+  const sessionUserId = React.useMemo(
+    () => resolveSessionUserId(session),
+    [session]
+  );
   const syncQueryKey = React.useMemo(
     () => ["needs-you-sync", sessionUserId ?? "anonymous"] as const,
-    [sessionUserId],
+    [sessionUserId]
   );
 
   const connected = isSessionPending ? initialConnected : Boolean(session);
   const notice =
-    noticeState?.userId === sessionUserId
-      ? noticeState.value
-      : null;
+    noticeState?.userId === sessionUserId ? noticeState.value : null;
   const mutationError =
     mutationErrorState?.userId === sessionUserId
       ? mutationErrorState.value
@@ -81,13 +89,13 @@ export function useNyteWorkspace({
     (value: string | null) => {
       setNoticeState(value ? { userId: sessionUserId, value } : null);
     },
-    [sessionUserId],
+    [sessionUserId]
   );
   const setMutationError = React.useCallback(
     (value: string | null) => {
       setMutationErrorState(value ? { userId: sessionUserId, value } : null);
     },
-    [sessionUserId],
+    [sessionUserId]
   );
 
   const {
@@ -102,7 +110,8 @@ export function useNyteWorkspace({
     retry: false,
     refetchOnWindowFocus: false,
     queryFn: async () => {
-      const currentPayload = queryClient.getQueryData<QueueSyncResponse>(syncQueryKey);
+      const currentPayload =
+        queryClient.getQueryData<QueueSyncResponse>(syncQueryKey);
       return syncNeedsYou({
         cursor: currentPayload?.cursor,
         watchKeywords: watchKeywordsRef.current,
@@ -121,12 +130,15 @@ export function useNyteWorkspace({
       return null;
     }
 
-    return syncQueryError instanceof Error && syncQueryError.message.trim().length > 0
+    return syncQueryError instanceof Error &&
+      syncQueryError.message.trim().length > 0
       ? syncQueryError.message
       : NEEDS_YOU_MESSAGES.syncUnavailable;
   }, [mutationError, syncQueryError]);
 
-  const lastSyncedAt = syncPayload ? new Date(dataUpdatedAt).toISOString() : null;
+  const lastSyncedAt = syncPayload
+    ? new Date(dataUpdatedAt).toISOString()
+    : null;
 
   const approveMutation = useMutation({
     mutationFn: async ({
@@ -141,17 +153,20 @@ export function useNyteWorkspace({
     mutationFn: dismissNeedsYouAction,
   });
 
-  const runSync = React.useCallback(async (command: string) => {
-    setNotice(null);
-    setMutationError(null);
-    const parsedKeywords = parseWatchKeywordCommand(command);
-    watchKeywordsRef.current = parsedKeywords;
-    setActiveWatchKeywords(parsedKeywords);
-    const result = await refetchSync();
-    if (!result.error && parsedKeywords.length > 0) {
-      setNotice(formatSyncFilteredNotice(parsedKeywords));
-    }
-  }, [refetchSync, setMutationError, setNotice]);
+  const runSync = React.useCallback(
+    async (command: string) => {
+      setNotice(null);
+      setMutationError(null);
+      const parsedKeywords = parseWatchKeywordCommand(command);
+      watchKeywordsRef.current = parsedKeywords;
+      setActiveWatchKeywords(parsedKeywords);
+      const result = await refetchSync();
+      if (!result.error && parsedKeywords.length > 0) {
+        setNotice(formatSyncFilteredNotice(parsedKeywords));
+      }
+    },
+    [refetchSync, setMutationError, setNotice]
+  );
 
   const connectGoogle = React.useCallback(async () => {
     setNotice(null);
@@ -184,7 +199,7 @@ export function useNyteWorkspace({
     async (
       item: WorkItemWithAction,
       status: ActionMutationStatus,
-      payloadOverride?: ToolCallPayload,
+      payloadOverride?: ToolCallPayload
     ) => {
       setNotice(null);
       setMutationError(null);
@@ -207,7 +222,7 @@ export function useNyteWorkspace({
         setNotice(
           status === "approved"
             ? NEEDS_YOU_MESSAGES.actionApprovedNotice
-            : NEEDS_YOU_MESSAGES.actionDismissedNotice,
+            : NEEDS_YOU_MESSAGES.actionDismissedNotice
         );
       } catch (error) {
         const message =
@@ -225,7 +240,7 @@ export function useNyteWorkspace({
       setMutationError,
       setNotice,
       syncQueryKey,
-    ],
+    ]
   );
 
   return {

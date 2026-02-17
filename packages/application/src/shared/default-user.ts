@@ -1,4 +1,5 @@
-import { db, users } from "@nyte/db";
+import { db } from "@nyte/db/client";
+import { users } from "@nyte/db/schema";
 
 export const DEFAULT_USER_ID = "local-user";
 export const DEFAULT_USER_EMAIL = "local-user@nyte.dev";

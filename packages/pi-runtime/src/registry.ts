@@ -9,19 +9,24 @@ import type {
   GmailSaveDraftResult,
 } from "./contracts";
 import { PI_EXTENSION_NAMES } from "./contracts";
-import { calendarCreateEvent, calendarUpdateEvent } from "./extensions/calendar";
+import {
+  calendarCreateEvent,
+  calendarUpdateEvent,
+} from "./extensions/calendar";
 import { gmailReadThreadContext, gmailSaveDraft } from "./extensions/gmail";
 
 type PiExtensionRegistry = {
   [PI_EXTENSION_NAMES.gmailReadThreadContext]: (
-    request: GmailReadThreadContextRequest,
+    request: GmailReadThreadContextRequest
   ) => Promise<GmailReadThreadContextResult>;
-  [PI_EXTENSION_NAMES.gmailSaveDraft]: (request: GmailSaveDraftRequest) => Promise<GmailSaveDraftResult>;
+  [PI_EXTENSION_NAMES.gmailSaveDraft]: (
+    request: GmailSaveDraftRequest
+  ) => Promise<GmailSaveDraftResult>;
   [PI_EXTENSION_NAMES.calendarCreateEvent]: (
-    request: CalendarCreateEventRequest,
+    request: CalendarCreateEventRequest
   ) => Promise<CalendarCreateEventResult>;
   [PI_EXTENSION_NAMES.calendarUpdateEvent]: (
-    request: CalendarUpdateEventRequest,
+    request: CalendarUpdateEventRequest
   ) => Promise<CalendarUpdateEventResult>;
 };
 

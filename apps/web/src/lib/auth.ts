@@ -1,8 +1,10 @@
+import { db } from "@nyte/db/client";
+import * as schema from "@nyte/db/schema";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
-import { db, schema } from "@nyte/db";
-import { getAuthSecret } from "./server/runtime-secrets";
+
+import { env } from "./server/env";
 
 const gmailScopes = [
   "openid",
@@ -14,30 +16,23 @@ const gmailScopes = [
   "https://www.googleapis.com/auth/calendar.events",
 ];
 
-const googleClientId = process.env.GOOGLE_CLIENT_ID;
-const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
-const authSecret = getAuthSecret();
-
 export const auth = betterAuth({
   appName: "Nyte",
-  baseURL: process.env.BETTER_AUTH_URL ?? "http://localhost:3000",
-  secret: authSecret.value,
+  baseURL: env.BETTER_AUTH_URL ?? "http://localhost:3000",
+  secret: env.BETTER_AUTH_SECRET,
   database: drizzleAdapter(db, {
     provider: "pg",
     schema,
     usePlural: true,
   }),
   plugins: [nextCookies()],
-  socialProviders:
-    googleClientId && googleClientSecret
-      ? {
-          google: {
-            clientId: googleClientId,
-            clientSecret: googleClientSecret,
-            scope: gmailScopes,
-            accessType: "offline",
-            prompt: "consent",
-          },
-        }
-      : {},
+  socialProviders: {
+    google: {
+      clientId: env.GOOGLE_CLIENT_ID,
+      clientSecret: env.GOOGLE_CLIENT_SECRET,
+      scope: gmailScopes,
+      accessType: "offline",
+      prompt: "consent",
+    },
+  },
 });

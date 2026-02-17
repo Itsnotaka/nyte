@@ -1,12 +1,20 @@
-import { useForm } from "@tanstack/react-form";
 import type { WorkItemWithAction } from "@nyte/domain/actions";
-import { CalendarDaysIcon, MailIcon, WalletCardsIcon, XIcon } from "lucide-react";
+import { useForm } from "@tanstack/react-form";
+import {
+  CalendarDaysIcon,
+  MailIcon,
+  WalletCardsIcon,
+  XIcon,
+} from "lucide-react";
 
 import {
   NeedsYouActionContent,
   NeedsYouPrimaryActionIcon,
 } from "~/components/needs-you-action-content";
-import { primaryActionLabel, secondaryActionLabel } from "~/lib/needs-you/presenters";
+import {
+  primaryActionLabel,
+  secondaryActionLabel,
+} from "~/lib/needs-you/presenters";
 
 const GHOST_BUTTON_CLASS =
   "group/button focus-visible:ring-neutral-strong relative inline-flex shrink-0 cursor-pointer rounded-lg whitespace-nowrap transition-transform outline-none select-none focus-visible:ring-2 h-7 px-1.5";
@@ -16,7 +24,10 @@ const PRIMARY_BUTTON_CLASS =
 
 type NeedsYouCardProps = {
   item: WorkItemWithAction;
-  onApprove: (item: WorkItemWithAction, payloadOverride?: WorkItemWithAction["proposedAction"]) => void;
+  onApprove: (
+    item: WorkItemWithAction,
+    payloadOverride?: WorkItemWithAction["proposedAction"]
+  ) => void;
   onDismiss: (item: WorkItemWithAction) => void;
 };
 
@@ -32,14 +43,25 @@ function SourceIcon({ item }: { item: WorkItemWithAction }) {
   return <MailIcon className="size-3.5" />;
 }
 
-export function NeedsYouCard({ item, onApprove, onDismiss }: NeedsYouCardProps) {
+export function NeedsYouCard({
+  item,
+  onApprove,
+  onDismiss,
+}: NeedsYouCardProps) {
   const form = useForm({
     defaultValues: {
-      draftBody: item.proposedAction.kind === "gmail.createDraft" ? item.proposedAction.body : "",
+      draftBody:
+        item.proposedAction.kind === "gmail.createDraft"
+          ? item.proposedAction.body
+          : "",
       calendarTitle:
-        item.proposedAction.kind === "google-calendar.createEvent" ? item.proposedAction.title : "",
+        item.proposedAction.kind === "google-calendar.createEvent"
+          ? item.proposedAction.title
+          : "",
       refundReason:
-        item.proposedAction.kind === "billing.queueRefund" ? item.proposedAction.reason : "",
+        item.proposedAction.kind === "billing.queueRefund"
+          ? item.proposedAction.reason
+          : "",
     },
     onSubmit: async () => {},
   });
@@ -81,7 +103,9 @@ export function NeedsYouCard({ item, onApprove, onDismiss }: NeedsYouCardProps) 
             from
             <span className="border-neutral inline-flex items-center gap-1 rounded-lg border border-border bg-muted/70 px-1.5 py-px shadow-xs">
               <SourceIcon item={item} />
-              <span className="text-sm text-foreground px-0.5">{item.source}</span>
+              <span className="text-sm text-foreground px-0.5">
+                {item.source}
+              </span>
             </span>
           </span>
 
@@ -150,7 +174,9 @@ export function NeedsYouCard({ item, onApprove, onDismiss }: NeedsYouCardProps) 
               <span className="absolute inset-0 rounded-lg border border-transparent bg-muted transition group-hover/button:border-border group-hover/button:bg-background group-hover/button:shadow-xs" />
               <span className="relative z-10 flex items-center gap-1 text-sm text-foreground">
                 <XIcon className="size-3.5" />
-                <span className="px-0.5 leading-none">{secondaryActionLabel(item)}</span>
+                <span className="px-0.5 leading-none">
+                  {secondaryActionLabel(item)}
+                </span>
               </span>
             </button>
 
@@ -162,7 +188,9 @@ export function NeedsYouCard({ item, onApprove, onDismiss }: NeedsYouCardProps) 
               <span className="absolute inset-0 rounded-lg border border-border bg-gradient-to-t from-background to-background shadow-xs transition group-hover/button:to-muted" />
               <span className="relative z-10 flex items-center gap-1 text-sm text-foreground">
                 <NeedsYouPrimaryActionIcon item={item} />
-                <span className="px-0.5 leading-none">{primaryActionLabel(item)}</span>
+                <span className="px-0.5 leading-none">
+                  {primaryActionLabel(item)}
+                </span>
               </span>
             </button>
           </div>

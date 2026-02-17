@@ -1,16 +1,15 @@
+import { db } from "@nyte/db/client";
 import {
   calendarEvents,
-  db,
-  ensureDbSchema,
   feedbackEntries,
   gateEvaluations,
   gmailDrafts,
   proposedActions,
   workItems,
-} from "@nyte/db";
-import { and, desc, eq, inArray } from "@nyte/db/drizzle";
+} from "@nyte/db/schema";
 import type { ToolCallPayload, WorkItemWithAction } from "@nyte/domain/actions";
 import type { WorkItem } from "@nyte/domain/triage";
+import { and, desc, eq, inArray } from "drizzle-orm";
 
 import { parseToolCallPayload } from "../shared/payload";
 import { toIsoString } from "../shared/time";
@@ -49,7 +48,9 @@ type ActionPresentation = {
   cta: WorkItem["cta"];
 };
 
-function presentationForAction(kind: ToolCallPayload["kind"]): ActionPresentation {
+function presentationForAction(
+  kind: ToolCallPayload["kind"]
+): ActionPresentation {
   if (kind === "google-calendar.createEvent") {
     return {
       type: "calendar",
@@ -107,7 +108,12 @@ async function loadNeedsYouQueue(): Promise<WorkItemWithAction[]> {
         gate: gateEvaluations.gate,
       })
       .from(gateEvaluations)
-      .where(and(eq(gateEvaluations.workItemId, row.id), eq(gateEvaluations.matched, true)));
+      .where(
+        and(
+          eq(gateEvaluations.workItemId, row.id),
+          eq(gateEvaluations.matched, true)
+        )
+      );
 
     queue.push({
       id: row.id,
@@ -172,7 +178,7 @@ async function loadProcessed(): Promise<ProcessedEntry[]> {
     feedbackRows.map((entry) => [
       entry.workItemId,
       (entry.rating as "positive" | "negative" | null) ?? null,
-    ]),
+    ])
   );
 
   const rows = await db
@@ -259,8 +265,6 @@ async function loadProcessed(): Promise<ProcessedEntry[]> {
 }
 
 export async function getDashboardData(): Promise<DashboardData> {
-  await ensureDbSchema();
-
   const [needsYou, drafts, processed] = await Promise.all([
     loadNeedsYouQueue(),
     loadDrafts(),

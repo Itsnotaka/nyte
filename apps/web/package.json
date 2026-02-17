@@ -17,6 +17,7 @@
     "@nyte/domain": "workspace:^",
     "@nyte/integrations": "workspace:^",
     "@nyte/workflows": "workspace:^",
+    "@t3-oss/env-nextjs": "^0.13.10",
     "@tanstack/react-form": "^1.28.3",
     "@tanstack/react-query": "^5.90.21",
     "better-auth": "^1.4.18",
@@ -26,7 +27,8 @@
     "next": "16.1.6",
     "next-themes": "^0.4.6",
     "react": "^19.2.4",
-    "react-dom": "^19.2.4"
+    "react-dom": "^19.2.4",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@nyte/tailwind-config": "workspace:*",

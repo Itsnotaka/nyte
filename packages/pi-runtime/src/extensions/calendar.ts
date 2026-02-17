@@ -8,7 +8,7 @@ import { PI_EXTENSION_NAMES } from "../contracts";
 import { deterministicHash } from "../hash";
 
 export async function calendarCreateEvent(
-  request: CalendarCreateEventRequest,
+  request: CalendarCreateEventRequest
 ): Promise<CalendarCreateEventResult> {
   return {
     name: PI_EXTENSION_NAMES.calendarCreateEvent,
@@ -24,7 +24,7 @@ export async function calendarCreateEvent(
 }
 
 export async function calendarUpdateEvent(
-  request: CalendarUpdateEventRequest,
+  request: CalendarUpdateEventRequest
 ): Promise<CalendarUpdateEventResult> {
   return {
     name: PI_EXTENSION_NAMES.calendarUpdateEvent,

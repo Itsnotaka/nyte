@@ -5,4 +5,5 @@ export const WORKFLOW_TASK_IDS = {
   feedback: "workflow.feedback",
 } as const;
 
-export type WorkflowTaskId = (typeof WORKFLOW_TASK_IDS)[keyof typeof WORKFLOW_TASK_IDS];
+export type WorkflowTaskId =
+  (typeof WORKFLOW_TASK_IDS)[keyof typeof WORKFLOW_TASK_IDS];

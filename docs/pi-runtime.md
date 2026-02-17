@@ -2,7 +2,8 @@
 
 ## Purpose
 
-`packages/pi-runtime` defines tool extension contracts and handlers for provider-side execution.
+`packages/pi-runtime` defines tool extension contracts and handlers for
+provider-side execution.
 
 ## Available extensions
 
@@ -37,7 +38,8 @@ Each result returns:
 
 Runtime guard helper:
 
-- `isPiExtensionResult` for downstream consumers that validate PI execution envelopes at runtime.
+- `isPiExtensionResult` for downstream consumers that validate PI execution
+  envelopes at runtime.
 - `isPiExtensionName` for validating extension-name strings at runtime.
 
 ## Wiring
@@ -46,7 +48,8 @@ Runtime guard helper:
 - Executor: `packages/pi-runtime/src/execute-extension.ts`
 - Workflow dispatch: `packages/workflows/src/pi-dispatch.ts`
 
-Executor uses overload-based dispatch per extension request type to keep request/result typing precise without unsafe request casts.
+Executor uses overload-based dispatch per extension request type to keep
+request/result typing precise without unsafe request casts.
 
 PI is intentionally consumed only by the workflow layer.
 

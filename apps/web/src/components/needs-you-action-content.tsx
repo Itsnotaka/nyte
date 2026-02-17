@@ -1,5 +1,10 @@
 import type { WorkItemWithAction } from "@nyte/domain/actions";
-import { CalendarDaysIcon, MailIcon, PenLineIcon, WalletCardsIcon } from "lucide-react";
+import {
+  CalendarDaysIcon,
+  MailIcon,
+  PenLineIcon,
+  WalletCardsIcon,
+} from "lucide-react";
 
 import { actionContentViewModel } from "~/lib/needs-you/presenters";
 
@@ -43,7 +48,10 @@ function CalendarActionContent({ day, time }: CalendarActionContentProps) {
   );
 }
 
-function RefundActionContent({ amount, customerName }: RefundActionContentProps) {
+function RefundActionContent({
+  amount,
+  customerName,
+}: RefundActionContentProps) {
   return (
     <>
       <WalletCardsIcon className="size-4 shrink-0 text-foreground" />
@@ -63,7 +71,12 @@ export function NeedsYouActionContent({ item }: ActionContentProps) {
   }
 
   if (action.mode === "refund") {
-    return <RefundActionContent amount={action.amount} customerName={action.customerName} />;
+    return (
+      <RefundActionContent
+        amount={action.amount}
+        customerName={action.customerName}
+      />
+    );
   }
 
   return <DraftActionContent preview={action.preview} />;

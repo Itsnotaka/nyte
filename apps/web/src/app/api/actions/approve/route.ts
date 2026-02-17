@@ -5,10 +5,10 @@ import {
   type ApproveActionRequest,
 } from "@nyte/workflows";
 
-import { createApiRequestLogger } from "~/lib/server/request-log";
-import { NEEDS_YOU_ROUTE_CONFIG } from "~/lib/server/needs-you-route-config";
-import { resolveRequestSession } from "~/lib/server/request-session";
 import { type HttpStatusCode } from "~/lib/server/http-status";
+import { NEEDS_YOU_ROUTE_CONFIG } from "~/lib/server/needs-you-route-config";
+import { createApiRequestLogger } from "~/lib/server/request-log";
+import { resolveRequestSession } from "~/lib/server/request-session";
 import {
   parseBodyWithItemId,
   parseOptionalStringField,
@@ -84,7 +84,10 @@ export async function POST(request: Request) {
         status,
         taskId,
       });
-      return toWorkflowApiErrorJsonResponse(config.messages.authRequired, status);
+      return toWorkflowApiErrorJsonResponse(
+        config.messages.authRequired,
+        status
+      );
     }
 
     const payload = await parseRequestPayload(request, parseApproveBody);
@@ -96,7 +99,10 @@ export async function POST(request: Request) {
         status,
         taskId,
       });
-      return toWorkflowApiErrorJsonResponse(config.messages.invalidPayload, status);
+      return toWorkflowApiErrorJsonResponse(
+        config.messages.invalidPayload,
+        status
+      );
     }
     itemId = payload.itemId;
 
@@ -133,7 +139,7 @@ export async function POST(request: Request) {
     const resolved = resolveWorkflowRouteError(
       error,
       config.messages.taskUnavailable,
-      config.statuses.taskFailure,
+      config.statuses.taskFailure
     );
     status = resolved.status;
     requestLog.error(config.events.taskError, {

@@ -5,8 +5,10 @@ export const mockIntakeSignals: IntakeSignal[] = [
     id: "w_renewal",
     source: "Gmail",
     actor: "David Kim",
-    summary: "Sent over the signed term sheet and asked for countersignature confirmation.",
-    context: "Relationship context: strategic customer. Tone needs executive confidence.",
+    summary:
+      "Sent over the signed term sheet and asked for countersignature confirmation.",
+    context:
+      "Relationship context: strategic customer. Tone needs executive confidence.",
     preview:
       "Hi David — thanks for sending this through. I reviewed the terms and we are aligned to countersign by EOD...",
     intent: "draft_reply",
@@ -19,8 +21,10 @@ export const mockIntakeSignals: IntakeSignal[] = [
     id: "w_board",
     source: "Google Calendar",
     actor: "Rachel Torres",
-    summary: "Invited you to Quarterly Board Sync and requested updated agenda focus.",
-    context: "Time context: meeting starts this week. Requires your decision on attendance + prep.",
+    summary:
+      "Invited you to Quarterly Board Sync and requested updated agenda focus.",
+    context:
+      "Time context: meeting starts this week. Requires your decision on attendance + prep.",
     preview:
       "Proposed slot: Wed Jan 22, 2:00 PM. Agenda draft includes growth metrics and GTM follow-up.",
     intent: "schedule_event",
@@ -33,8 +37,10 @@ export const mockIntakeSignals: IntakeSignal[] = [
     id: "w_refund",
     source: "Gmail",
     actor: "Joe",
-    summary: "Requested a refund because Notion integration is still unavailable.",
-    context: "Impact context: customer trust risk if unresolved within 24 hours.",
+    summary:
+      "Requested a refund because Notion integration is still unavailable.",
+    context:
+      "Impact context: customer trust risk if unresolved within 24 hours.",
     preview:
       "Refund amount: $20. Draft includes apology, refund timing, and integration roadmap update.",
     intent: "refund_request",

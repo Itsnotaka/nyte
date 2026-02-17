@@ -1,21 +1,37 @@
 import { type ExecutionResult } from "@nyte/domain";
 import { isToolCallPayload, type ToolCallPayload } from "@nyte/domain/actions";
 import { isPiExtensionResult } from "@nyte/pi-runtime";
+
 import type { approveActionTask } from "./tasks/approve-action-task";
 import type { dismissActionTask } from "./tasks/dismiss-action-task";
 import type { feedbackTask } from "./tasks/feedback-task";
 import type { ingestSignalsTask } from "./tasks/ingest-signals-task";
 
-type TaskInput<TTask extends (...args: never[]) => unknown> = Parameters<TTask>[0];
-type TaskOutput<TTask extends (...args: never[]) => unknown> = Awaited<ReturnType<TTask>>;
+type TaskInput<TTask extends (...args: never[]) => unknown> =
+  Parameters<TTask>[0];
+type TaskOutput<TTask extends (...args: never[]) => unknown> = Awaited<
+  ReturnType<TTask>
+>;
 
-export type QueueSyncRequest = Omit<TaskInput<typeof ingestSignalsTask>, "accessToken" | "now">;
-export type QueueSyncResponse = Pick<TaskOutput<typeof ingestSignalsTask>, "cursor" | "needsYou">;
+export type QueueSyncRequest = Omit<
+  TaskInput<typeof ingestSignalsTask>,
+  "accessToken" | "now"
+>;
+export type QueueSyncResponse = Pick<
+  TaskOutput<typeof ingestSignalsTask>,
+  "cursor" | "needsYou"
+>;
 
-export type ApproveActionRequest = Omit<TaskInput<typeof approveActionTask>, "now" | "actorUserId">;
+export type ApproveActionRequest = Omit<
+  TaskInput<typeof approveActionTask>,
+  "now" | "actorUserId"
+>;
 export type ApproveActionResponse = TaskOutput<typeof approveActionTask>;
 
-export type DismissActionRequest = Omit<TaskInput<typeof dismissActionTask>, "now">;
+export type DismissActionRequest = Omit<
+  TaskInput<typeof dismissActionTask>,
+  "now"
+>;
 export type DismissActionResponse = TaskOutput<typeof dismissActionTask>;
 
 export type FeedbackActionRequest = Omit<TaskInput<typeof feedbackTask>, "now">;
@@ -63,7 +79,10 @@ function isExecutionResult(value: unknown): value is ExecutionResult {
   );
 }
 
-function matchesExecutionDestination(payload: ToolCallPayload, destination: unknown): boolean {
+function matchesExecutionDestination(
+  payload: ToolCallPayload,
+  destination: unknown
+): boolean {
   if (payload.kind === "gmail.createDraft") {
     return destination === "gmail_drafts";
   }
@@ -75,7 +94,9 @@ function matchesExecutionDestination(payload: ToolCallPayload, destination: unkn
   return destination === "refund_queue";
 }
 
-export function isWorkflowApiErrorResponse(value: unknown): value is WorkflowApiErrorResponse {
+export function isWorkflowApiErrorResponse(
+  value: unknown
+): value is WorkflowApiErrorResponse {
   const payload = asRecord(value);
   if (!payload) {
     return false;
@@ -85,7 +106,9 @@ export function isWorkflowApiErrorResponse(value: unknown): value is WorkflowApi
   return typeof error === "string" && error.trim().length > 0;
 }
 
-export function isQueueSyncResponse(value: unknown): value is QueueSyncResponse {
+export function isQueueSyncResponse(
+  value: unknown
+): value is QueueSyncResponse {
   const payload = asRecord(value);
   if (!payload) {
     return false;
@@ -98,7 +121,9 @@ export function isQueueSyncResponse(value: unknown): value is QueueSyncResponse 
   );
 }
 
-export function isApproveActionResponse(value: unknown): value is ApproveActionResponse {
+export function isApproveActionResponse(
+  value: unknown
+): value is ApproveActionResponse {
   const payload = asRecord(value);
   if (!payload) {
     return false;
@@ -114,13 +139,18 @@ export function isApproveActionResponse(value: unknown): value is ApproveActionR
 
   return (
     isNonEmptyString(payload.itemId) &&
-    matchesExecutionDestination(payload.payload, payload.execution.destination) &&
+    matchesExecutionDestination(
+      payload.payload,
+      payload.execution.destination
+    ) &&
     typeof payload.idempotent === "boolean" &&
     (payload.piExtension === null || isPiExtensionResult(payload.piExtension))
   );
 }
 
-export function isDismissActionResponse(value: unknown): value is DismissActionResponse {
+export function isDismissActionResponse(
+  value: unknown
+): value is DismissActionResponse {
   const payload = asRecord(value);
   if (!payload) {
     return false;
@@ -134,7 +164,9 @@ export function isDismissActionResponse(value: unknown): value is DismissActionR
   );
 }
 
-export function isFeedbackActionResponse(value: unknown): value is FeedbackActionResponse {
+export function isFeedbackActionResponse(
+  value: unknown
+): value is FeedbackActionResponse {
   const payload = asRecord(value);
   if (!payload) {
     return false;

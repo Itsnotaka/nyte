@@ -9,6 +9,11 @@ export type FeedbackTaskInput = {
   now?: RecordFeedbackParameters[3];
 };
 
-export async function feedbackTask({ itemId, rating, note, now = new Date() }: FeedbackTaskInput) {
+export async function feedbackTask({
+  itemId,
+  rating,
+  note,
+  now = new Date(),
+}: FeedbackTaskInput) {
   return recordFeedback(itemId, rating, note, now);
 }

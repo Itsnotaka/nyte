@@ -1,32 +1,28 @@
-import { eq } from "@nyte/db/drizzle";
+import { db } from "@nyte/db/client";
 import {
   calendarEvents,
-  db,
-  ensureDbSchema,
   gmailDrafts,
   proposedActions,
   workItems,
-} from "@nyte/db";
+} from "@nyte/db/schema";
 import { type ToolCallPayload } from "@nyte/domain/actions";
 import { executeProposedAction } from "@nyte/domain/execution";
+import { eq } from "drizzle-orm";
 
 import { recordAuditLog } from "../audit/audit-log";
 import { parseToolCallPayload } from "../shared/payload";
 import { toIsoString } from "../shared/time";
 import { recordWorkflowRun } from "../workflow/workflow-log";
 
-export type ApprovalErrorCode = "not_found" | "invalid_state" | "invalid_payload";
+export type ApprovalErrorCode =
+  | "not_found"
+  | "invalid_state"
+  | "invalid_payload";
 
 export class ApprovalError extends Error {
   readonly code: ApprovalErrorCode;
 
-  constructor({
-    code,
-    message,
-  }: {
-    code: ApprovalErrorCode;
-    message: string;
-  }) {
+  constructor({ code, message }: { code: ApprovalErrorCode; message: string }) {
     super(message);
     this.name = "ApprovalError";
     this.code = code;
@@ -37,7 +33,7 @@ async function resolveExecutionSnapshot(
   proposalId: string,
   payload: ToolCallPayload,
   updatedAt: unknown,
-  idempotencyKey?: string,
+  idempotencyKey?: string
 ) {
   if (payload.kind === "gmail.createDraft") {
     const draftRows = await db
@@ -51,11 +47,13 @@ async function resolveExecutionSnapshot(
       destination: "gmail_drafts" as const,
       providerReference:
         draft?.providerDraftId ??
-        executeProposedAction(payload, new Date(toIsoString(updatedAt)), { idempotencyKey })
-          .providerReference,
+        executeProposedAction(payload, new Date(toIsoString(updatedAt)), {
+          idempotencyKey,
+        }).providerReference,
       idempotencyKey:
         idempotencyKey ??
-        executeProposedAction(payload, new Date(toIsoString(updatedAt))).idempotencyKey,
+        executeProposedAction(payload, new Date(toIsoString(updatedAt)))
+          .idempotencyKey,
       executedAt: toIsoString(draft?.syncedAt ?? updatedAt),
     };
   }
@@ -72,18 +70,24 @@ async function resolveExecutionSnapshot(
       destination: "google_calendar" as const,
       providerReference:
         event?.providerEventId ??
-        executeProposedAction(payload, new Date(toIsoString(updatedAt)), { idempotencyKey })
-          .providerReference,
+        executeProposedAction(payload, new Date(toIsoString(updatedAt)), {
+          idempotencyKey,
+        }).providerReference,
       idempotencyKey:
         idempotencyKey ??
-        executeProposedAction(payload, new Date(toIsoString(updatedAt))).idempotencyKey,
+        executeProposedAction(payload, new Date(toIsoString(updatedAt)))
+          .idempotencyKey,
       executedAt: toIsoString(event?.syncedAt ?? updatedAt),
     };
   }
 
-  const execution = executeProposedAction(payload, new Date(toIsoString(updatedAt)), {
-    idempotencyKey,
-  });
+  const execution = executeProposedAction(
+    payload,
+    new Date(toIsoString(updatedAt)),
+    {
+      idempotencyKey,
+    }
+  );
   return execution;
 }
 
@@ -91,11 +95,13 @@ export async function approveWorkItem(
   itemId: string,
   now = new Date(),
   idempotencyKey?: string,
-  payloadOverride?: ToolCallPayload,
+  payloadOverride?: ToolCallPayload
 ) {
-  await ensureDbSchema();
-
-  const itemRows = await db.select().from(workItems).where(eq(workItems.id, itemId)).limit(1);
+  const itemRows = await db
+    .select()
+    .from(workItems)
+    .where(eq(workItems.id, itemId))
+    .limit(1);
   const workItem = itemRows.at(0);
   if (!workItem) {
     throw new ApprovalError({
@@ -138,7 +144,7 @@ export async function approveWorkItem(
       proposal.id,
       payload,
       workItem.updatedAt,
-      idempotencyKey,
+      idempotencyKey
     );
     await recordAuditLog({
       userId: workItem.userId,

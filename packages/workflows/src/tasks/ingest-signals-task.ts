@@ -4,7 +4,9 @@ import { pollGoogleCalendarIngestion } from "@nyte/integrations/calendar/polling
 import { pollGmailIngestion } from "@nyte/integrations/gmail/polling";
 
 type GmailPollingInput = Parameters<typeof pollGmailIngestion>[0];
-type DashboardNeedsYou = Awaited<ReturnType<typeof getDashboardData>>["needsYou"];
+type DashboardNeedsYou = Awaited<
+  ReturnType<typeof getDashboardData>
+>["needsYou"];
 
 export type IngestSignalsTaskInput = {
   accessToken: GmailPollingInput["accessToken"];

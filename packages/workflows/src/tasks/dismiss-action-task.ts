@@ -7,6 +7,9 @@ export type DismissActionTaskInput = {
   now?: DismissWorkItemParameters[1];
 };
 
-export async function dismissActionTask({ itemId, now = new Date() }: DismissActionTaskInput) {
+export async function dismissActionTask({
+  itemId,
+  now = new Date(),
+}: DismissActionTaskInput) {
   return dismissWorkItem(itemId, now);
 }

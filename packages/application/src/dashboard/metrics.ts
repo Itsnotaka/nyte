@@ -1,5 +1,6 @@
-import { db, ensureDbSchema, feedbackEntries, gateEvaluations, workItems } from "@nyte/db";
-import { and, eq } from "@nyte/db/drizzle";
+import { db } from "@nyte/db/client";
+import { feedbackEntries, gateEvaluations, workItems } from "@nyte/db/schema";
+import { and, eq } from "drizzle-orm";
 
 const GATES = ["decision", "time", "relationship", "impact", "watch"] as const;
 type GateKey = (typeof GATES)[number];
@@ -53,9 +54,9 @@ function median(values: number[]): number {
   return Math.round(((left + right) / 2) * 10) / 10;
 }
 
-export async function getMetricsSnapshot(now = new Date()): Promise<MetricsSnapshot> {
-  await ensureDbSchema();
-
+export async function getMetricsSnapshot(
+  now = new Date()
+): Promise<MetricsSnapshot> {
   const rows = await db.select().from(workItems);
   const feedbackRows = await db.select().from(feedbackEntries);
 
@@ -85,17 +86,20 @@ export async function getMetricsSnapshot(now = new Date()): Promise<MetricsSnaps
 
   const totalSurfaced = awaitingCount + completedCount + dismissedCount;
   const decisions = completedCount + dismissedCount;
-  const positiveFeedback = feedbackRows.filter((entry) => entry.rating === "positive").length;
+  const positiveFeedback = feedbackRows.filter(
+    (entry) => entry.rating === "positive"
+  ).length;
 
-  const gateHitCounts = Object.fromEntries(GATES.map((gate) => [gate, 0])) as Record<
-    GateKey,
-    number
-  >;
+  const gateHitCounts = Object.fromEntries(
+    GATES.map((gate) => [gate, 0])
+  ) as Record<GateKey, number>;
   for (const gate of GATES) {
     const hits = await db
       .select({ id: gateEvaluations.id })
       .from(gateEvaluations)
-      .where(and(eq(gateEvaluations.gate, gate), eq(gateEvaluations.matched, true)));
+      .where(
+        and(eq(gateEvaluations.gate, gate), eq(gateEvaluations.matched, true))
+      );
     gateHitCounts[gate] = hits.length;
   }
 

@@ -1,12 +1,15 @@
 # Nyte
 
-Nyte is a decision queue for high-impact Gmail and Google Calendar actions. It ingests signals, triages what needs human approval, and executes approved actions with a complete audit trail.
+Nyte is a decision queue for high-impact Gmail and Google Calendar actions. It
+ingests signals, triages what needs human approval, and executes approved
+actions with a complete audit trail.
 
 ## What runs where
 
 - `apps/web`: product UI and API gateway routes.
 - `packages/workflows`: task orchestration for ingest/approve/dismiss/feedback.
-- `packages/pi-runtime`: extension contracts and registry for Gmail/Calendar execution tools.
+- `packages/pi-runtime`: extension contracts and registry for Gmail/Calendar
+  execution tools.
 - `packages/db`: Drizzle Postgres schema, client, and migrations.
 - `packages/application`: domain use-cases and persistence orchestration.
 - `packages/integrations`: Gmail/Calendar ingestion adapters.
@@ -25,11 +28,13 @@ Nyte is a decision queue for high-impact Gmail and Google Calendar actions. It i
 
 1. Install dependencies:
    - `pnpm install`
-2. Configure env in `apps/web/.env.local`:
+2. Configure env in `apps/web/.env` (or `apps/web/.env.local`):
    - `DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/nyte`
    - `BETTER_AUTH_SECRET=...`
+   - `NYTE_TOKEN_ENCRYPTION_KEY=...`
    - Google OAuth variables (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`).
-   - Trigger variables (`TRIGGER_SECRET_KEY`, `TRIGGER_PROJECT_REF`) when using Trigger.dev runtime.
+   - Trigger variables (`TRIGGER_SECRET_KEY`, `TRIGGER_PROJECT_REF`) when using
+     Trigger.dev runtime.
 3. Apply database schema:
    - `pnpm db:push`
 4. Typecheck:
@@ -49,7 +54,8 @@ Nyte is a decision queue for high-impact Gmail and Google Calendar actions. It i
 ### Add a workflow task
 
 1. Create task in `packages/workflows/src/tasks`.
-2. Derive exported request/response types in `packages/workflows/src/contracts.ts`.
+2. Derive exported request/response types in
+   `packages/workflows/src/contracts.ts`.
 3. Expose from `packages/workflows/src/index.ts`.
 4. Wire in `apps/web/src/app/api/*` gateway route.
 

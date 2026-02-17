@@ -1,8 +1,13 @@
-import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
+import {
+  createCipheriv,
+  createDecipheriv,
+  createHash,
+  randomBytes,
+} from "node:crypto";
+
 import { Result } from "neverthrow";
 
 const ALGORITHM = "aes-256-gcm";
-const DEV_FALLBACK_KEY = "nyte-dev-token-encryption-key";
 const FORMAT_VERSION = "v1";
 const FORMAT_DELIMITER = ".";
 
@@ -11,23 +16,39 @@ type MaterializedKey = {
   value: Buffer;
 };
 
+export type TokenCryptoEnvironment = Record<string, string | undefined> & {
+  NYTE_TOKEN_ENCRYPTION_KEY?: string;
+  NYTE_TOKEN_ENCRYPTION_KEY_PREVIOUS?: string;
+};
+
+function normalizeSecret(value: string | undefined) {
+  const normalized = value?.trim();
+  return normalized && normalized.length > 0 ? normalized : null;
+}
+
 function deriveKey(source: string): Buffer {
   return createHash("sha256").update(source).digest();
 }
 
-function getEncryptionKeys(): MaterializedKey[] {
-  const configuredKey = process.env.NYTE_TOKEN_ENCRYPTION_KEY;
-  if (process.env.NODE_ENV === "production" && !configuredKey) {
-    throw new Error("NYTE_TOKEN_ENCRYPTION_KEY is required in production.");
+function getEncryptionKeys(
+  environment: TokenCryptoEnvironment
+): MaterializedKey[] {
+  const primarySource = normalizeSecret(environment.NYTE_TOKEN_ENCRYPTION_KEY);
+  if (!primarySource) {
+    throw new Error(
+      "NYTE_TOKEN_ENCRYPTION_KEY is required. Set it in apps/web/.env or apps/web/.env.local."
+    );
   }
 
-  const primarySource = configuredKey ?? DEV_FALLBACK_KEY;
-  const previousSources = (process.env.NYTE_TOKEN_ENCRYPTION_KEY_PREVIOUS ?? "")
+  const previousSources = (
+    normalizeSecret(environment.NYTE_TOKEN_ENCRYPTION_KEY_PREVIOUS) ?? ""
+  )
     .split(",")
     .map((entry) => entry.trim())
     .filter(Boolean);
 
-  return [primarySource, ...previousSources].map((source, index) => ({
+  const keySources = [...new Set([primarySource, ...previousSources])];
+  return keySources.map((source, index) => ({
     id: `k${index}`,
     value: deriveKey(source),
   }));
@@ -37,7 +58,10 @@ function encryptWithKey(value: string, key: Buffer) {
   const iv = randomBytes(12);
   const cipher = createCipheriv(ALGORITHM, key, iv);
 
-  const encrypted = Buffer.concat([cipher.update(value, "utf8"), cipher.final()]);
+  const encrypted = Buffer.concat([
+    cipher.update(value, "utf8"),
+    cipher.final(),
+  ]);
   const authTag = cipher.getAuthTag();
   return Buffer.concat([iv, authTag, encrypted]).toString("base64url");
 }
@@ -50,12 +74,18 @@ function decryptWithKey(payload: string, key: Buffer) {
 
   const decipher = createDecipheriv(ALGORITHM, key, iv);
   decipher.setAuthTag(authTag);
-  const decrypted = Buffer.concat([decipher.update(encrypted), decipher.final()]);
+  const decrypted = Buffer.concat([
+    decipher.update(encrypted),
+    decipher.final(),
+  ]);
   return decrypted.toString("utf8");
 }
 
-export function encryptSecret(value: string) {
-  const key = getEncryptionKeys()[0];
+export function encryptSecret(
+  value: string,
+  environment: TokenCryptoEnvironment = process.env
+) {
+  const key = getEncryptionKeys(environment)[0];
   if (!key) {
     throw new Error("No encryption key available.");
   }
@@ -64,8 +94,11 @@ export function encryptSecret(value: string) {
   return [FORMAT_VERSION, key.id, encrypted].join(FORMAT_DELIMITER);
 }
 
-export function decryptSecret(payload: string) {
-  const keys = getEncryptionKeys();
+export function decryptSecret(
+  payload: string,
+  environment: TokenCryptoEnvironment = process.env
+) {
+  const keys = getEncryptionKeys(environment);
   const segments = payload.split(FORMAT_DELIMITER);
   const formatVersion = segments[0];
   const keyId = segments[1];

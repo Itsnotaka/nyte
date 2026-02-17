@@ -1,6 +1,9 @@
 import type { ToolCallPayload } from "./actions";
 
-export type ActionDestination = "gmail_drafts" | "google_calendar" | "refund_queue";
+export type ActionDestination =
+  | "gmail_drafts"
+  | "google_calendar"
+  | "refund_queue";
 
 export type ExecutionResult = {
   status: "executed";
@@ -28,7 +31,12 @@ function deterministicHash(seed: string): string {
 
 function payloadSeed(payload: ToolCallPayload): string {
   if (payload.kind === "gmail.createDraft") {
-    return [payload.kind, payload.to.join(","), payload.subject, payload.body].join("|");
+    return [
+      payload.kind,
+      payload.to.join(","),
+      payload.subject,
+      payload.body,
+    ].join("|");
   }
 
   if (payload.kind === "google-calendar.createEvent") {
@@ -62,12 +70,13 @@ type ExecutionOptions = {
 export function executeProposedAction(
   payload: ToolCallPayload,
   now = new Date(),
-  options: ExecutionOptions = {},
+  options: ExecutionOptions = {}
 ): ExecutionResult {
   const destination = prefixes[payload.kind];
   const seed = payloadSeed(payload);
   const providerReference = `${destination}_${deterministicHash(seed)}`;
-  const idempotencyKey = options.idempotencyKey ?? defaultIdempotencyKey(payload);
+  const idempotencyKey =
+    options.idempotencyKey ?? defaultIdempotencyKey(payload);
 
   return {
     status: "executed",

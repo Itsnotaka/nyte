@@ -1,6 +1,7 @@
 import type { IntakeSignal } from "@nyte/domain/triage";
 
-const GOOGLE_CALENDAR_API = "https://www.googleapis.com/calendar/v3/calendars/primary/events";
+const GOOGLE_CALENDAR_API =
+  "https://www.googleapis.com/calendar/v3/calendars/primary/events";
 const DEFAULT_LOOKBACK_DAYS = 7;
 
 export type CalendarPollingInput = {
@@ -49,12 +50,16 @@ type GoogleCalendarEventsResponse = {
 
 function normalizeCursor(cursor: string | undefined, now: Date) {
   if (!cursor) {
-    return new Date(now.getTime() - DEFAULT_LOOKBACK_DAYS * 24 * 60 * 60 * 1000);
+    return new Date(
+      now.getTime() - DEFAULT_LOOKBACK_DAYS * 24 * 60 * 60 * 1000
+    );
   }
 
   const parsed = new Date(cursor);
   if (Number.isNaN(parsed.getTime())) {
-    return new Date(now.getTime() - DEFAULT_LOOKBACK_DAYS * 24 * 60 * 60 * 1000);
+    return new Date(
+      now.getTime() - DEFAULT_LOOKBACK_DAYS * 24 * 60 * 60 * 1000
+    );
   }
 
   return parsed;
@@ -106,7 +111,8 @@ function hasPendingResponse(event: GoogleCalendarEvent) {
   const selfAttendee = event.attendees?.find((attendee) => attendee.self);
   if (selfAttendee) {
     return (
-      selfAttendee.responseStatus === "needsAction" || selfAttendee.responseStatus === "tentative"
+      selfAttendee.responseStatus === "needsAction" ||
+      selfAttendee.responseStatus === "tentative"
     );
   }
 
@@ -115,7 +121,11 @@ function hasPendingResponse(event: GoogleCalendarEvent) {
 
 function inferRelationshipScore(actor: string, summary: string) {
   const haystack = `${actor} ${summary}`.toLowerCase();
-  if (haystack.includes("board") || haystack.includes("exec") || haystack.includes("investor")) {
+  if (
+    haystack.includes("board") ||
+    haystack.includes("exec") ||
+    haystack.includes("investor")
+  ) {
     return 0.88;
   }
 
@@ -138,7 +148,7 @@ function inferImpactScore(summary: string, description: string) {
 function toSignal(
   event: GoogleCalendarEvent,
   watchKeywords: string[],
-  now: Date,
+  now: Date
 ): IntakeSignal | null {
   if (event.status === "cancelled") {
     return null;
@@ -148,12 +158,17 @@ function toSignal(
     return null;
   }
 
-  const startsAt = normalizeDateTime(event.start?.dateTime ?? event.start?.date, now);
+  const startsAt = normalizeDateTime(
+    event.start?.dateTime ?? event.start?.date,
+    now
+  );
   const summary = event.summary?.trim() || "Untitled event";
   const actor = actorFromEvent(event);
   const description = truncate(event.description ?? "", 220);
   const haystack = `${summary} ${description} ${actor}`.toLowerCase();
-  const watchMatched = watchKeywords.some((keyword) => haystack.includes(keyword.toLowerCase()));
+  const watchMatched = watchKeywords.some((keyword) =>
+    haystack.includes(keyword.toLowerCase())
+  );
 
   return {
     id: `gcal:${event.id}`,
@@ -171,7 +186,10 @@ function toSignal(
   };
 }
 
-async function fetchGoogleJson<T>(url: string, accessToken: string): Promise<T> {
+async function fetchGoogleJson<T>(
+  url: string,
+  accessToken: string
+): Promise<T> {
   const response = await fetch(url, {
     method: "GET",
     headers: {
@@ -183,7 +201,7 @@ async function fetchGoogleJson<T>(url: string, accessToken: string): Promise<T> 
   if (!response.ok) {
     const detail = await response.text();
     throw new Error(
-      `Google Calendar API request failed with status ${response.status}: ${detail.slice(0, 240)}`,
+      `Google Calendar API request failed with status ${response.status}: ${detail.slice(0, 240)}`
     );
   }
 
@@ -211,7 +229,7 @@ export async function pollGoogleCalendarIngestion({
 
   const result = await fetchGoogleJson<GoogleCalendarEventsResponse>(
     `${GOOGLE_CALENDAR_API}?${params.toString()}`,
-    accessToken,
+    accessToken
   );
 
   const signals: IntakeSignal[] = [];

@@ -18,7 +18,10 @@ type NyteWorkspaceViewProps = {
   onSubmit: (command: string) => void;
   onConnect: () => void;
   onDisconnect: () => void;
-  onApprove: (item: WorkItemWithAction, payloadOverride?: WorkItemWithAction["proposedAction"]) => void;
+  onApprove: (
+    item: WorkItemWithAction,
+    payloadOverride?: WorkItemWithAction["proposedAction"]
+  ) => void;
   onDismiss: (item: WorkItemWithAction) => void;
 };
 
@@ -82,7 +85,11 @@ export function NyteWorkspaceView({
           </div>
         ) : null}
 
-        <NeedsYouList items={visibleItems} onApprove={onApprove} onDismiss={onDismiss} />
+        <NeedsYouList
+          items={visibleItems}
+          onApprove={onApprove}
+          onDismiss={onDismiss}
+        />
       </div>
     </main>
   );

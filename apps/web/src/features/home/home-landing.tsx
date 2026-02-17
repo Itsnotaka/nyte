@@ -27,13 +27,16 @@ export function HomeLanding() {
   return (
     <main className="min-h-dvh bg-[radial-gradient(circle_at_10%_12%,#6aa5ff_0%,transparent_30%),radial-gradient(circle_at_88%_16%,#f18bd1_0%,transparent_36%),radial-gradient(circle_at_86%_86%,#ff8359_0%,transparent_38%),radial-gradient(circle_at_16%_82%,#45c8ff_0%,transparent_36%),linear-gradient(125deg,#4f46e5_0%,#0ea5e9_40%,#f97316_100%)] px-4 py-10 md:py-14">
       <section className="mx-auto max-w-[760px] rounded-2xl border border-white/40 bg-white/90 p-6 shadow-2xl md:p-8">
-        <p className="text-xs font-medium tracking-[0.24em] text-zinc-500 uppercase">Nyte</p>
+        <p className="text-xs font-medium tracking-[0.24em] text-zinc-500 uppercase">
+          Nyte
+        </p>
         <h1 className="mt-3 text-3xl font-semibold text-zinc-900 md:text-4xl">
           Focus on decisions, not inbox triage.
         </h1>
         <p className="mt-3 text-sm leading-6 text-zinc-700 md:text-base">
-          Connect Google once. Nyte surfaces the messages and events that need your approval,
-          keeps proposed actions editable, and runs execution through a typed workflow boundary.
+          Connect Google once. Nyte surfaces the messages and events that need
+          your approval, keeps proposed actions editable, and runs execution
+          through a typed workflow boundary.
         </p>
 
         <div className="mt-5 grid gap-2 text-sm text-zinc-700">

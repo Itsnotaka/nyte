@@ -1,9 +1,8 @@
-import {
-  asRecord,
-  parseRequiredStringValue,
-} from "~/lib/shared/value-guards";
+import { asRecord, parseRequiredStringValue } from "~/lib/shared/value-guards";
 
-export function asObjectPayload(value: unknown): Record<string, unknown> | null {
+export function asObjectPayload(
+  value: unknown
+): Record<string, unknown> | null {
   return asRecord(value);
 }
 
@@ -14,10 +13,7 @@ export function parseRequiredString(value: unknown): string | null {
 export function parseRequiredStringField<
   TPayload extends Record<string, unknown>,
   TKey extends keyof TPayload,
->(
-  payload: TPayload,
-  key: TKey,
-): string | null {
+>(payload: TPayload, key: TKey): string | null {
   return parseRequiredString(payload[key]);
 }
 
@@ -33,7 +29,7 @@ export type ParsedBodyWithRequiredStringField = {
 
 export function parseBodyWithRequiredStringField(
   value: unknown,
-  key: string,
+  key: string
 ): ParsedBodyWithRequiredStringField | null {
   const body = asObjectPayload(value);
   if (!body) {
@@ -51,7 +47,9 @@ export function parseBodyWithRequiredStringField(
   };
 }
 
-export function parseBodyWithItemId(value: unknown): ParsedBodyWithItemId | null {
+export function parseBodyWithItemId(
+  value: unknown
+): ParsedBodyWithItemId | null {
   const parsed = parseBodyWithRequiredStringField(value, "itemId");
   if (!parsed) {
     return null;
@@ -67,7 +65,7 @@ export function parseOptionalString(
   value: unknown,
   options?: {
     requireNonEmpty?: boolean;
-  },
+  }
 ): string | undefined | null {
   if (value === undefined) {
     return undefined;
@@ -93,7 +91,7 @@ export function parseOptionalStringField<
   key: TKey,
   options?: {
     requireNonEmpty?: boolean;
-  },
+  }
 ): string | undefined | null {
   return parseOptionalString(payload[key], options);
 }
@@ -108,14 +106,14 @@ async function parseJsonBody(request: Request): Promise<unknown> {
 
 export async function parseRequestPayload<TPayload>(
   request: Request,
-  parser: (value: unknown) => TPayload | null,
+  parser: (value: unknown) => TPayload | null
 ): Promise<TPayload | null> {
   return parser(await parseJsonBody(request));
 }
 
 export function parseEnumValue<TValue extends string>(
   value: unknown,
-  allowedValues: readonly TValue[],
+  allowedValues: readonly TValue[]
 ): TValue | null {
   if (typeof value !== "string") {
     return null;

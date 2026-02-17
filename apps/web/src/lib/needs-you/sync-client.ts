@@ -3,21 +3,26 @@ import {
   type QueueSyncRequest,
   type QueueSyncResponse,
 } from "@nyte/workflows";
-import { NEEDS_YOU_MESSAGES } from "./messages";
+
 import {
   HTTP_METHODS,
   JSON_ACCEPT_HEADERS,
   readJsonSafe,
   resolveWorkflowApiError,
 } from "./http-client";
+import { NEEDS_YOU_MESSAGES } from "./messages";
 import { NEEDS_YOU_API_ROUTES } from "./routes";
 import { buildQueueSyncQueryParams } from "./sync-query";
 
-async function parseSyncPollResponse(response: Response): Promise<QueueSyncResponse> {
+async function parseSyncPollResponse(
+  response: Response
+): Promise<QueueSyncResponse> {
   const payload = await readJsonSafe(response);
 
   if (!response.ok) {
-    throw new Error(resolveWorkflowApiError(payload, NEEDS_YOU_MESSAGES.syncUnavailable));
+    throw new Error(
+      resolveWorkflowApiError(payload, NEEDS_YOU_MESSAGES.syncUnavailable)
+    );
   }
 
   if (!isQueueSyncResponse(payload)) {

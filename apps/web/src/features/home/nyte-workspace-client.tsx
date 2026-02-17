@@ -7,7 +7,9 @@ type WorkspaceClientProps = {
   initialConnected: boolean;
 };
 
-export function NyteWorkspaceClient({ initialConnected }: WorkspaceClientProps) {
+export function NyteWorkspaceClient({
+  initialConnected,
+}: WorkspaceClientProps) {
   const {
     connected,
     isSessionPending,
@@ -37,7 +39,9 @@ export function NyteWorkspaceClient({ initialConnected }: WorkspaceClientProps) 
       onSubmit={(command) => void runSync(command)}
       onConnect={() => void connectGoogle()}
       onDisconnect={() => void disconnectGoogle()}
-      onApprove={(item, payloadOverride) => void markAction(item, "approved", payloadOverride)}
+      onApprove={(item, payloadOverride) =>
+        void markAction(item, "approved", payloadOverride)
+      }
       onDismiss={(item) => void markAction(item, "dismissed")}
     />
   );

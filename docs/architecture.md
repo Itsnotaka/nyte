@@ -2,7 +2,8 @@
 
 ## Product goal
 
-Nyte reduces operator interruption by escalating only decision-critical email/calendar actions into one queue.
+Nyte reduces operator interruption by escalating only decision-critical
+email/calendar actions into one queue.
 
 ## Runtime planes
 
