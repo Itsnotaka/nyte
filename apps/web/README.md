@@ -12,6 +12,7 @@ Primary Nyte product surface: decision queue UI and thin API gateway.
 - optional watch-keyword input in composer to bias ingestion matches
 - Trigger.dev runtime config and exported task entrypoints
 - request-scoped structured logging with evlog
+- shared server helpers for session resolution and payload validation across routes
 
 ## API routes
 
