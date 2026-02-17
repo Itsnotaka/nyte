@@ -45,6 +45,7 @@ Recommended wrapping pattern:
   - sync flow: cursor presence and watch keyword count
   - deterministic execution stage (`local` or `trigger`) computed once per orchestration run
   - stage typing is sourced from workflow error contracts and reused in web route log contexts
+  - success emission uses a shared helper in the runner so local/trigger branches cannot drift in event fields
 - Web API routes emit request-scoped wide logs using `createRequestLogger`.
 - Log fields include: route/task identifiers, item IDs, user IDs, status, duration, typed error tags, plus sync-context (`hasCursor`, `watchKeywordCount`) when applicable.
 - Queue sync route now stamps `workflow.ingest-signals` task ID across start/success/precondition-failure/error/final-emission logs for easier correlation with runner logs.
