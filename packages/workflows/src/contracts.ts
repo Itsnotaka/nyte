@@ -52,3 +52,43 @@ export function isQueueSyncResponse(value: unknown): value is QueueSyncResponse 
     payload.cursor.trim().length > 0
   );
 }
+
+export function isApproveActionResponse(value: unknown): value is ApproveActionResponse {
+  const payload = asRecord(value);
+  if (!payload) {
+    return false;
+  }
+
+  return typeof payload.itemId === "string" && payload.itemId.trim().length > 0;
+}
+
+export function isDismissActionResponse(value: unknown): value is DismissActionResponse {
+  const payload = asRecord(value);
+  if (!payload) {
+    return false;
+  }
+
+  return (
+    typeof payload.itemId === "string" &&
+    payload.itemId.trim().length > 0 &&
+    payload.status === "dismissed" &&
+    typeof payload.dismissedAt === "string" &&
+    payload.dismissedAt.trim().length > 0 &&
+    typeof payload.idempotent === "boolean"
+  );
+}
+
+export function isFeedbackActionResponse(value: unknown): value is FeedbackActionResponse {
+  const payload = asRecord(value);
+  if (!payload) {
+    return false;
+  }
+
+  return (
+    typeof payload.itemId === "string" &&
+    payload.itemId.trim().length > 0 &&
+    (payload.rating === "positive" || payload.rating === "negative") &&
+    typeof payload.notedAt === "string" &&
+    payload.notedAt.trim().length > 0
+  );
+}

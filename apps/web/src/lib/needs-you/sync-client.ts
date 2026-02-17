@@ -20,7 +20,7 @@ async function parseSyncPollResponse(response: Response): Promise<QueueSyncRespo
   }
 
   if (!isQueueSyncResponse(payload)) {
-    throw new Error("Sync payload is invalid.");
+    throw new Error(NEEDS_YOU_MESSAGES.invalidSyncResponse);
   }
 
   return {

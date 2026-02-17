@@ -1,3 +1,8 @@
+import {
+  isApproveActionResponse,
+  isDismissActionResponse,
+  isFeedbackActionResponse,
+} from "@nyte/workflows";
 import type {
   ApproveActionRequest,
   ApproveActionResponse,
@@ -7,7 +12,6 @@ import type {
   FeedbackActionResponse,
 } from "@nyte/workflows";
 import type { ToolCallPayload } from "@nyte/domain/actions";
-import { asRecord } from "~/lib/shared/value-guards";
 import { NEEDS_YOU_MESSAGES } from "./messages";
 import {
   JSON_REQUEST_HEADERS,
@@ -20,10 +24,14 @@ async function postAction<TRequest extends object, TResponse extends object>({
   route,
   body,
   fallbackError,
+  invalidResponseError,
+  isResponse,
 }: {
   route: string;
   body: TRequest;
   fallbackError: string;
+  invalidResponseError: string;
+  isResponse: (payload: unknown) => payload is TResponse;
 }): Promise<TResponse> {
   const response = await fetch(route, {
     method: "POST",
@@ -36,11 +44,11 @@ async function postAction<TRequest extends object, TResponse extends object>({
     throw new Error(resolveWorkflowApiError(payload, fallbackError));
   }
 
-  if (!asRecord(payload)) {
-    throw new Error("Action response is invalid.");
+  if (!isResponse(payload)) {
+    throw new Error(invalidResponseError);
   }
 
-  return payload as TResponse;
+  return payload;
 }
 
 export async function approveNeedsYouAction(
@@ -55,6 +63,8 @@ export async function approveNeedsYouAction(
     route: NEEDS_YOU_API_ROUTES.approveAction,
     body,
     fallbackError: NEEDS_YOU_MESSAGES.approveUnavailable,
+    invalidResponseError: NEEDS_YOU_MESSAGES.invalidActionResponse,
+    isResponse: isApproveActionResponse,
   });
 }
 
@@ -64,6 +74,8 @@ export async function dismissNeedsYouAction(itemId: string): Promise<DismissActi
     route: NEEDS_YOU_API_ROUTES.dismissAction,
     body,
     fallbackError: NEEDS_YOU_MESSAGES.dismissUnavailable,
+    invalidResponseError: NEEDS_YOU_MESSAGES.invalidActionResponse,
+    isResponse: isDismissActionResponse,
   });
 }
 
@@ -77,5 +89,7 @@ export async function recordNeedsYouFeedback(
     route: NEEDS_YOU_API_ROUTES.feedbackAction,
     body,
     fallbackError: NEEDS_YOU_MESSAGES.feedbackUnavailable,
+    invalidResponseError: NEEDS_YOU_MESSAGES.invalidActionResponse,
+    isResponse: isFeedbackActionResponse,
   });
 }
