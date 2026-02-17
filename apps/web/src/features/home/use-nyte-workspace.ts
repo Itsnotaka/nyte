@@ -6,6 +6,7 @@ import type { QueueSyncRequest, QueueSyncResponse } from "@nyte/workflows";
 import * as React from "react";
 
 import { authClient } from "~/lib/auth-client";
+import { GOOGLE_AUTH_PROVIDER } from "~/lib/auth-provider";
 import { approveNeedsYouAction, dismissNeedsYouAction } from "~/lib/needs-you/actions-client";
 import { NEEDS_YOU_MESSAGES } from "~/lib/needs-you/messages";
 import { syncNeedsYou } from "~/lib/needs-you/sync-client";
@@ -155,7 +156,7 @@ export function useNyteWorkspace({
       exact: true,
     });
     await authClient.signIn.social({
-      provider: "google",
+      provider: GOOGLE_AUTH_PROVIDER,
       callbackURL: "/",
     });
   }, [queryClient, setMutationError, setNotice, syncQueryKey]);

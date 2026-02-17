@@ -19,6 +19,7 @@ import {
   toWorkflowApiErrorJsonResponse,
   toWorkflowRouteErrorJsonResponse,
 } from "~/lib/server/workflow-route-error";
+import { GOOGLE_AUTH_PROVIDER } from "~/lib/auth-provider";
 
 function parseCursor(searchParams: URLSearchParams): QueueSyncRequest["cursor"] {
   return parseRequiredString(searchParams.get("cursor")) ?? undefined;
@@ -84,7 +85,7 @@ export async function GET(request: Request) {
     const accessTokenResult = await auth.api.getAccessToken({
       headers: request.headers,
       body: {
-        providerId: "google",
+        providerId: GOOGLE_AUTH_PROVIDER,
       },
     });
 
