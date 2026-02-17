@@ -55,4 +55,5 @@ Recommended wrapping pattern:
 
 - Route layer maps known domain errors (`ApprovalError`, `DismissError`, `FeedbackError`) to HTTP statuses via explicit error `code` values (no message-text parsing), with code types exported from `@nyte/application/actions`.
 - Domain status resolution is config-driven per route (`not_found` -> 404, `invalid_state` -> 409, `invalid_payload` -> 422) through centralized needs-you route status metadata.
+- Task-failure HTTP status mapping is also sourced from route config metadata (default `502`) and passed into route error resolution.
 - Task layer propagates unexpected errors for orchestration-level retry/alerting.
