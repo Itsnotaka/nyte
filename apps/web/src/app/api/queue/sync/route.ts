@@ -71,7 +71,7 @@ export async function GET(request: Request) {
     if (!session) {
       status = 401;
       const response: WorkflowApiErrorResponse = {
-        error: "Connect Google to load Gmail and Calendar signals.",
+        error: NEEDS_YOU_MESSAGES.queueAuthRequired,
       };
       requestLog.warn(REQUEST_EVENTS.queueSync.unauthorized, {
         route,
@@ -94,8 +94,7 @@ export async function GET(request: Request) {
     if (!accessToken) {
       status = 409;
       const response: WorkflowApiErrorResponse = {
-        error:
-          "Google OAuth token is unavailable. Reconnect Google and grant Gmail + Calendar permissions.",
+        error: NEEDS_YOU_MESSAGES.queueTokenUnavailable,
       };
       requestLog.warn(REQUEST_EVENTS.queueSync.tokenMissing, {
         route,

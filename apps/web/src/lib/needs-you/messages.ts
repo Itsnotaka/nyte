@@ -1,4 +1,8 @@
 export const NEEDS_YOU_MESSAGES = {
+  actionAuthRequired: "Authentication required.",
+  queueAuthRequired: "Connect Google to load Gmail and Calendar signals.",
+  queueTokenUnavailable:
+    "Google OAuth token is unavailable. Reconnect Google and grant Gmail + Calendar permissions.",
   syncUnavailable: "Unable to sync Gmail + Calendar right now.",
   approveUnavailable: "Unable to approve action.",
   dismissUnavailable: "Unable to dismiss action.",
