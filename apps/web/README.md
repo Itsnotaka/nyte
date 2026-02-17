@@ -23,6 +23,7 @@ Primary Nyte product surface: decision queue UI and thin API gateway.
 - needs-you API route paths are centralized in a shared constants module used by both route handlers and clients
 - API request event names are centralized in a shared server constants module to keep evlog event taxonomy stable
 - needs-you user-facing fallback/validation/auth/token-failure message strings are centralized and shared across routes, clients, and hook-level fallback rendering
+- routes use shared workflow API error response helper to keep JSON error envelope formatting consistent
 
 ## API routes
 
