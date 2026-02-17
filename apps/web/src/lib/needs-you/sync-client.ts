@@ -1,5 +1,6 @@
 import type { QueueSyncResponse, WorkflowApiErrorResponse } from "@nyte/workflows";
 import { normalizeWatchKeywords } from "~/lib/shared/watch-keywords";
+import { asRecord } from "~/lib/shared/value-guards";
 import { readJsonSafe, resolveWorkflowApiError } from "./http-client";
 
 async function parseSyncPollResponse(response: Response): Promise<QueueSyncResponse> {
@@ -10,11 +11,12 @@ async function parseSyncPollResponse(response: Response): Promise<QueueSyncRespo
     throw new Error(resolveWorkflowApiError(payload, fallback));
   }
 
-  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+  const record = asRecord(payload);
+  if (!record) {
     throw new Error("Sync payload is invalid.");
   }
 
-  const queuePayload = payload as Partial<QueueSyncResponse> & Partial<WorkflowApiErrorResponse>;
+  const queuePayload = record as Partial<QueueSyncResponse> & Partial<WorkflowApiErrorResponse>;
   if (!Array.isArray(queuePayload.needsYou) || typeof queuePayload.cursor !== "string") {
     throw new Error("Sync payload is invalid.");
   }

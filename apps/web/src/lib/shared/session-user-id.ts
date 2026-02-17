@@ -1,14 +1,17 @@
+import { asRecord } from "./value-guards";
+
 export function resolveSessionUserId(value: unknown): string | null {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
+  const session = asRecord(value);
+  if (!session) {
     return null;
   }
 
-  const user = (value as { user?: unknown }).user;
-  if (!user || typeof user !== "object" || Array.isArray(user)) {
+  const user = asRecord(session.user);
+  if (!user) {
     return null;
   }
 
-  const userId = (user as { id?: unknown }).id;
+  const userId = user.id;
   if (typeof userId !== "string" || userId.trim().length === 0) {
     return null;
   }

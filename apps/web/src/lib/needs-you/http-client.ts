@@ -1,4 +1,5 @@
 import type { WorkflowApiErrorResponse } from "@nyte/workflows";
+import { asRecord } from "~/lib/shared/value-guards";
 
 export async function readJsonSafe(response: Response): Promise<unknown> {
   try {
@@ -11,11 +12,12 @@ export async function readJsonSafe(response: Response): Promise<unknown> {
 export function isWorkflowApiErrorResponse(
   payload: unknown,
 ): payload is WorkflowApiErrorResponse {
-  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+  const record = asRecord(payload);
+  if (!record) {
     return false;
   }
 
-  const error = (payload as { error?: unknown }).error;
+  const error = record.error;
   return typeof error === "string" && error.trim().length > 0;
 }
 
