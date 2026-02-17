@@ -20,6 +20,7 @@
 - Action API client also validates that successful responses are object payloads before casting to contract types.
 - Action and sync clients now validate successful payloads using runtime guards exported from `@nyte/workflows/contracts`.
 - Action success notices + fallback mutation error text are sourced from shared needs-you message constants.
+- Disconnected workspace empty-state prompt also reuses shared queue auth message constant.
 - Composer input uses TanStack Form field state.
 - API routes use request-scoped evlog logging helpers for structured operation traces.
 - Workflow route error handling is centralized in a shared server helper for consistent 502 mapping.
