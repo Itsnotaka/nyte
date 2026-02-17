@@ -54,6 +54,7 @@ const ACTION_ROUTE_STATUSES = {
   conflict: HTTP_STATUS.conflict,
   domainInvalidPayload: HTTP_STATUS.unprocessableEntity,
 } as const satisfies ActionRouteStatuses;
+const ACTION_ROUTE_METHOD: NeedsYouRouteMethod = "POST";
 
 export const NEEDS_YOU_ROUTE_CONFIG = {
   queueSync: {
@@ -74,7 +75,7 @@ export const NEEDS_YOU_ROUTE_CONFIG = {
   },
   actionApprove: {
     route: NEEDS_YOU_API_ROUTES.approveAction,
-    method: "POST",
+    method: ACTION_ROUTE_METHOD,
     taskId: WORKFLOW_TASK_IDS.approveAction,
     events: REQUEST_EVENTS.actionApprove,
     messages: {
@@ -86,7 +87,7 @@ export const NEEDS_YOU_ROUTE_CONFIG = {
   },
   actionDismiss: {
     route: NEEDS_YOU_API_ROUTES.dismissAction,
-    method: "POST",
+    method: ACTION_ROUTE_METHOD,
     taskId: WORKFLOW_TASK_IDS.dismissAction,
     events: REQUEST_EVENTS.actionDismiss,
     messages: {
@@ -98,7 +99,7 @@ export const NEEDS_YOU_ROUTE_CONFIG = {
   },
   actionFeedback: {
     route: NEEDS_YOU_API_ROUTES.feedbackAction,
-    method: "POST",
+    method: ACTION_ROUTE_METHOD,
     taskId: WORKFLOW_TASK_IDS.feedback,
     events: REQUEST_EVENTS.actionFeedback,
     messages: {
