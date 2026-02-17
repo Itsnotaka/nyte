@@ -2,6 +2,7 @@ import type { QueueSyncResponse, WorkflowApiErrorResponse } from "@nyte/workflow
 import { normalizeWatchKeywords } from "~/lib/shared/watch-keywords";
 import { asRecord } from "~/lib/shared/value-guards";
 import { readJsonSafe, resolveWorkflowApiError } from "./http-client";
+import { NEEDS_YOU_API_ROUTES } from "./routes";
 
 async function parseSyncPollResponse(response: Response): Promise<QueueSyncResponse> {
   const payload = await readJsonSafe(response);
@@ -45,7 +46,10 @@ export async function syncNeedsYou({
     params.append("watch", keyword);
   }
 
-  const url = params.size > 0 ? `/api/queue/sync?${params.toString()}` : "/api/queue/sync";
+  const url =
+    params.size > 0
+      ? `${NEEDS_YOU_API_ROUTES.sync}?${params.toString()}`
+      : NEEDS_YOU_API_ROUTES.sync;
 
   const response = await fetch(url, {
     method: "GET",

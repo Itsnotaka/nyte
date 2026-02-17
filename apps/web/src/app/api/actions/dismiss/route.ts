@@ -8,6 +8,7 @@ import {
 } from "@nyte/workflows";
 
 import { createApiRequestLogger } from "~/lib/server/request-log";
+import { NEEDS_YOU_API_ROUTES } from "~/lib/needs-you/routes";
 import { resolveRequestSession } from "~/lib/server/request-session";
 import {
   asObjectPayload,
@@ -37,7 +38,7 @@ function parseDismissBody(value: unknown): DismissActionRequest | null {
 }
 
 export async function POST(request: Request) {
-  const route = "/api/actions/dismiss";
+  const route = NEEDS_YOU_API_ROUTES.dismissAction;
   const taskId = WORKFLOW_TASK_IDS.dismissAction;
   const method = request.method;
   const startedAt = Date.now();

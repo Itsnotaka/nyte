@@ -8,6 +8,7 @@ import type {
 } from "@nyte/workflows";
 import type { ToolCallPayload } from "@nyte/domain/actions";
 import { readJsonSafe, resolveWorkflowApiError } from "./http-client";
+import { NEEDS_YOU_API_ROUTES } from "./routes";
 
 const JSON_HEADERS = {
   "content-type": "application/json",
@@ -46,7 +47,7 @@ export async function approveNeedsYouAction(
     payloadOverride,
   };
   return postAction<ApproveActionRequest, ApproveActionResponse>({
-    route: "/api/actions/approve",
+    route: NEEDS_YOU_API_ROUTES.approveAction,
     body,
     fallbackError: "Unable to approve action.",
   });
@@ -55,7 +56,7 @@ export async function approveNeedsYouAction(
 export async function dismissNeedsYouAction(itemId: string): Promise<DismissActionResponse> {
   const body: DismissActionRequest = { itemId };
   return postAction<DismissActionRequest, DismissActionResponse>({
-    route: "/api/actions/dismiss",
+    route: NEEDS_YOU_API_ROUTES.dismissAction,
     body,
     fallbackError: "Unable to dismiss action.",
   });
@@ -68,7 +69,7 @@ export async function recordNeedsYouFeedback(
 ): Promise<FeedbackActionResponse> {
   const body: FeedbackActionRequest = { itemId, rating, note };
   return postAction<FeedbackActionRequest, FeedbackActionResponse>({
-    route: "/api/actions/feedback",
+    route: NEEDS_YOU_API_ROUTES.feedbackAction,
     body,
     fallbackError: "Unable to save feedback.",
   });

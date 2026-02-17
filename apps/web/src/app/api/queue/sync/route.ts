@@ -7,6 +7,7 @@ import {
 } from "@nyte/workflows";
 
 import { auth } from "~/lib/auth";
+import { NEEDS_YOU_API_ROUTES } from "~/lib/needs-you/routes";
 import { createApiRequestLogger } from "~/lib/server/request-log";
 import { resolveRequestSession } from "~/lib/server/request-session";
 import {
@@ -40,7 +41,7 @@ function resolveAccessToken(value: unknown) {
 }
 
 export async function GET(request: Request) {
-  const route = "/api/queue/sync";
+  const route = NEEDS_YOU_API_ROUTES.sync;
   const taskId = WORKFLOW_TASK_IDS.ingestSignals;
   const method = request.method;
   const startedAt = Date.now();

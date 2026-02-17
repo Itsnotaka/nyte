@@ -8,6 +8,7 @@ import {
 } from "@nyte/workflows";
 
 import { createApiRequestLogger } from "~/lib/server/request-log";
+import { NEEDS_YOU_API_ROUTES } from "~/lib/needs-you/routes";
 import { resolveRequestSession } from "~/lib/server/request-session";
 import {
   asObjectPayload,
@@ -53,7 +54,7 @@ function parseFeedbackBody(value: unknown): FeedbackActionRequest | null {
 }
 
 export async function POST(request: Request) {
-  const route = "/api/actions/feedback";
+  const route = NEEDS_YOU_API_ROUTES.feedbackAction;
   const taskId = WORKFLOW_TASK_IDS.feedback;
   const method = request.method;
   const startedAt = Date.now();
