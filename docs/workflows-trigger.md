@@ -47,6 +47,7 @@ Recommended wrapping pattern:
 - Log fields include: route/task identifiers, item IDs, user IDs, status, duration, typed error tags, plus sync-context (`hasCursor`, `watchKeywordCount`) when applicable.
 - Queue sync route now stamps `workflow.ingest-signals` task ID across start/success/precondition-failure/error/final-emission logs for easier correlation with runner logs.
 - Action routes (`approve`, `dismiss`, `feedback`) now stamp their workflow task IDs on start, validation failures, domain failures, and final emitted request logs for end-to-end trace consistency.
+- Task-failure request logs use static event names (`*.task-error`) and carry human-readable error text in payload fields (instead of dynamic event names), preserving queryable log taxonomy.
 
 ## Failure model
 
