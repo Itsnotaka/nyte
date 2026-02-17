@@ -41,6 +41,7 @@ function resolveAccessToken(value: unknown) {
 
 export async function GET(request: Request) {
   const route = "/api/queue/sync";
+  const taskId = WORKFLOW_TASK_IDS.ingestSignals;
   const method = request.method;
   const startedAt = Date.now();
   const searchParams = new URL(request.url).searchParams;
@@ -53,7 +54,7 @@ export async function GET(request: Request) {
   requestLog.info("queue.sync.start", {
     route,
     method,
-    taskId: WORKFLOW_TASK_IDS.ingestSignals,
+    taskId,
     hasCursor: Boolean(cursor),
     watchKeywordCount: watchKeywords?.length ?? 0,
   });
@@ -74,7 +75,7 @@ export async function GET(request: Request) {
         method,
         status,
         userId,
-        taskId: WORKFLOW_TASK_IDS.ingestSignals,
+        taskId,
       });
       return Response.json(response, { status });
     }
@@ -98,7 +99,7 @@ export async function GET(request: Request) {
         method,
         status,
         userId,
-        taskId: WORKFLOW_TASK_IDS.ingestSignals,
+        taskId,
       });
       return Response.json(response, { status });
     }
@@ -118,7 +119,7 @@ export async function GET(request: Request) {
       method,
       status,
       userId,
-      taskId: WORKFLOW_TASK_IDS.ingestSignals,
+      taskId,
       hasCursor: Boolean(cursor),
       watchKeywordCount: watchKeywords?.length ?? 0,
     });
@@ -132,7 +133,7 @@ export async function GET(request: Request) {
       method,
       status,
       userId,
-      taskId: resolved.logData.taskId,
+      taskId: resolved.logData.taskId ?? taskId,
       stage: resolved.logData.stage,
       errorTag: resolved.logData.errorTag,
       message: resolved.logData.message,
@@ -144,6 +145,7 @@ export async function GET(request: Request) {
       method,
       status,
       userId,
+      taskId,
       durationMs: Date.now() - startedAt,
     });
   }
