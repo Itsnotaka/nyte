@@ -107,6 +107,7 @@ export async function POST(request: Request) {
       itemId,
       userId,
       taskId: resolved.logData.taskId,
+      stage: resolved.logData.stage,
       errorTag: resolved.logData.errorTag,
       message: resolved.logData.message,
     });

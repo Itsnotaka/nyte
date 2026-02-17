@@ -11,6 +11,7 @@ type WorkflowRouteErrorResolution = {
     message: string;
     taskId?: string;
     errorTag?: string;
+    stage?: "local" | "trigger";
   };
 };
 
@@ -28,6 +29,7 @@ export function resolveWorkflowRouteError(
         message: error.message,
         taskId: error.taskId,
         errorTag: error._tag,
+        stage: error.stage,
       },
     };
   }

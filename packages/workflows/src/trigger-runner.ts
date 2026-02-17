@@ -22,6 +22,10 @@ function isTriggerEnabled() {
   return Boolean(process.env.TRIGGER_SECRET_KEY?.trim());
 }
 
+function resolveTaskStage(): "local" | "trigger" {
+  return isTriggerEnabled() ? "trigger" : "local";
+}
+
 function toErrorMessage(value: unknown) {
   if (value instanceof Error && value.message.trim().length > 0) {
     return value.message;
@@ -32,11 +36,13 @@ function toErrorMessage(value: unknown) {
 
 function runTaskProgram<TOutput>({
   taskId,
+  stage,
   localRun,
   triggerRun,
   logContext,
 }: {
   taskId: string;
+  stage: "local" | "trigger";
   localRun: () => Promise<TOutput>;
   triggerRun: () => Promise<
     | {
@@ -51,7 +57,6 @@ function runTaskProgram<TOutput>({
   logContext?: Record<string, string | number | boolean | null | undefined>;
 }) {
   const startedAt = Date.now();
-  const stage = isTriggerEnabled() ? "trigger" : "local";
 
   return Effect.gen(function* () {
     yield* Effect.sync(() =>
@@ -64,7 +69,7 @@ function runTaskProgram<TOutput>({
       }),
     );
 
-    if (!isTriggerEnabled()) {
+    if (stage === "local") {
       const output = yield* Effect.tryPromise({
         try: () => localRun(),
         catch: (cause) =>
@@ -105,6 +110,7 @@ function runTaskProgram<TOutput>({
       return yield* Effect.fail(
         new WorkflowTaskResultError({
           taskId,
+          stage: "trigger",
           message: toErrorMessage(result.error),
           cause: result.error,
         }),
@@ -161,9 +167,11 @@ async function runTask<TOutput>({
   >;
   logContext?: Record<string, string | number | boolean | null | undefined>;
 }) {
+  const stage = resolveTaskStage();
   return Effect.runPromise(
     runTaskProgram({
       taskId,
+      stage,
       localRun,
       triggerRun,
       logContext,
@@ -175,7 +183,7 @@ async function runTask<TOutput>({
 
     const workflowTaskError: WorkflowTaskError = new WorkflowTaskExecutionError({
       taskId,
-      stage: isTriggerEnabled() ? "trigger" : "local",
+      stage,
       message: toErrorMessage(error),
       cause: error,
     });

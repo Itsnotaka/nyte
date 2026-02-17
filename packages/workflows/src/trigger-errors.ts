@@ -9,6 +9,7 @@ export class WorkflowTaskExecutionError extends Data.TaggedError("WorkflowTaskEx
 
 export class WorkflowTaskResultError extends Data.TaggedError("WorkflowTaskResultError")<{
   taskId: string;
+  stage: "trigger";
   message: string;
   cause: unknown;
 }> {}

@@ -23,6 +23,7 @@ export type RequestLogContext = {
   userId?: string | null;
   itemId?: string;
   taskId?: string;
+  stage?: "local" | "trigger";
   hasCursor?: boolean;
   watchKeywordCount?: number;
   rating?: string;

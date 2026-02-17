@@ -127,6 +127,7 @@ export async function GET(request: Request) {
       status,
       userId,
       taskId: resolved.logData.taskId,
+      stage: resolved.logData.stage,
       errorTag: resolved.logData.errorTag,
       message: resolved.logData.message,
     });
