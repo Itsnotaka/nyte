@@ -16,4 +16,6 @@ export const NEEDS_YOU_MESSAGES = {
   actionDismissedNotice: "Action dismissed.",
   actionUpdateUnavailable: "Unable to update action status.",
   noActionCards: "No action cards right now.",
+  syncFilteredByPrefix: "Sync filtered by",
+  disconnectNotice: "Disconnected Google session.",
 } as const;

@@ -142,7 +142,7 @@ export function useNyteWorkspace({
     setActiveWatchKeywords(parsedKeywords);
     const result = await refetchSync();
     if (!result.error && parsedKeywords.length > 0) {
-      setNotice(`Sync filtered by ${parsedKeywords.join(", ")}.`);
+      setNotice(`${NEEDS_YOU_MESSAGES.syncFilteredByPrefix} ${parsedKeywords.join(", ")}.`);
     }
   }, [refetchSync, setMutationError, setNotice]);
 
@@ -166,7 +166,7 @@ export function useNyteWorkspace({
     setMutationError(null);
     watchKeywordsRef.current = [];
     setActiveWatchKeywords([]);
-    setNotice("Disconnected Google session.");
+    setNotice(NEEDS_YOU_MESSAGES.disconnectNotice);
     queryClient.removeQueries({
       queryKey: syncQueryKey,
       exact: true,
