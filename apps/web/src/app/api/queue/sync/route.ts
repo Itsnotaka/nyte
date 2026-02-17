@@ -8,6 +8,7 @@ import {
 
 import { auth } from "~/lib/auth";
 import { NEEDS_YOU_API_ROUTES } from "~/lib/needs-you/routes";
+import { REQUEST_EVENTS } from "~/lib/server/request-events";
 import { createApiRequestLogger } from "~/lib/server/request-log";
 import { resolveRequestSession } from "~/lib/server/request-session";
 import {
@@ -52,7 +53,7 @@ export async function GET(request: Request) {
   let status = 200;
   let userId: string | null = null;
 
-  requestLog.info("queue.sync.start", {
+  requestLog.info(REQUEST_EVENTS.queueSync.start, {
     route,
     method,
     taskId,
@@ -71,7 +72,7 @@ export async function GET(request: Request) {
       const response: WorkflowApiErrorResponse = {
         error: "Connect Google to load Gmail and Calendar signals.",
       };
-      requestLog.warn("queue.sync.unauthorized", {
+      requestLog.warn(REQUEST_EVENTS.queueSync.unauthorized, {
         route,
         method,
         status,
@@ -95,7 +96,7 @@ export async function GET(request: Request) {
         error:
           "Google OAuth token is unavailable. Reconnect Google and grant Gmail + Calendar permissions.",
       };
-      requestLog.warn("queue.sync.token-missing", {
+      requestLog.warn(REQUEST_EVENTS.queueSync.tokenMissing, {
         route,
         method,
         status,
@@ -115,7 +116,7 @@ export async function GET(request: Request) {
       cursor: result.cursor,
       needsYou: result.needsYou,
     };
-    requestLog.info("queue.sync.success", {
+    requestLog.info(REQUEST_EVENTS.queueSync.success, {
       route,
       method,
       status,

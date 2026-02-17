@@ -9,6 +9,7 @@ import {
 
 import { createApiRequestLogger } from "~/lib/server/request-log";
 import { NEEDS_YOU_API_ROUTES } from "~/lib/needs-you/routes";
+import { REQUEST_EVENTS } from "~/lib/server/request-events";
 import { resolveRequestSession } from "~/lib/server/request-session";
 import {
   asObjectPayload,
@@ -63,7 +64,7 @@ export async function POST(request: Request) {
   let itemId: string | undefined;
   let userId: string | null = null;
 
-  requestLog.info("action.feedback.start", {
+  requestLog.info(REQUEST_EVENTS.actionFeedback.start, {
     route,
     method,
     taskId,
@@ -78,7 +79,7 @@ export async function POST(request: Request) {
     if (!session) {
       status = 401;
       const response: WorkflowApiErrorResponse = { error: ACTION_AUTH_REQUIRED_MESSAGE };
-      requestLog.warn("action.feedback.unauthorized", {
+      requestLog.warn(REQUEST_EVENTS.actionFeedback.unauthorized, {
         route,
         method,
         status,
@@ -91,7 +92,7 @@ export async function POST(request: Request) {
     if (!payload) {
       status = 400;
       const response: WorkflowApiErrorResponse = { error: "Invalid feedback payload." };
-      requestLog.warn("action.feedback.invalid-payload", {
+      requestLog.warn(REQUEST_EVENTS.actionFeedback.invalidPayload, {
         route,
         method,
         status,
@@ -107,7 +108,7 @@ export async function POST(request: Request) {
       note: payload.note,
     });
     const response: FeedbackActionResponse = result;
-    requestLog.info("action.feedback.success", {
+    requestLog.info(REQUEST_EVENTS.actionFeedback.success, {
       route,
       method,
       status,
@@ -120,7 +121,7 @@ export async function POST(request: Request) {
     if (error instanceof FeedbackError) {
       status = resolveWorkflowDomainStatus(error.message);
       const response: WorkflowApiErrorResponse = { error: error.message };
-      requestLog.warn("action.feedback.domain-error", {
+      requestLog.warn(REQUEST_EVENTS.actionFeedback.domainError, {
         route,
         method,
         status,

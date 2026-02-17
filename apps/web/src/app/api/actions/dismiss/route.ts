@@ -9,6 +9,7 @@ import {
 
 import { createApiRequestLogger } from "~/lib/server/request-log";
 import { NEEDS_YOU_API_ROUTES } from "~/lib/needs-you/routes";
+import { REQUEST_EVENTS } from "~/lib/server/request-events";
 import { resolveRequestSession } from "~/lib/server/request-session";
 import {
   asObjectPayload,
@@ -47,7 +48,7 @@ export async function POST(request: Request) {
   let itemId: string | undefined;
   let userId: string | null = null;
 
-  requestLog.info("action.dismiss.start", {
+  requestLog.info(REQUEST_EVENTS.actionDismiss.start, {
     route,
     method,
     taskId,
@@ -62,7 +63,7 @@ export async function POST(request: Request) {
     if (!session) {
       status = 401;
       const response: WorkflowApiErrorResponse = { error: ACTION_AUTH_REQUIRED_MESSAGE };
-      requestLog.warn("action.dismiss.unauthorized", {
+      requestLog.warn(REQUEST_EVENTS.actionDismiss.unauthorized, {
         route,
         method,
         status,
@@ -75,7 +76,7 @@ export async function POST(request: Request) {
     if (!payload) {
       status = 400;
       const response: WorkflowApiErrorResponse = { error: "Invalid dismissal payload." };
-      requestLog.warn("action.dismiss.invalid-payload", {
+      requestLog.warn(REQUEST_EVENTS.actionDismiss.invalidPayload, {
         route,
         method,
         status,
@@ -89,7 +90,7 @@ export async function POST(request: Request) {
       itemId: payload.itemId,
     });
     const response: DismissActionResponse = result;
-    requestLog.info("action.dismiss.success", {
+    requestLog.info(REQUEST_EVENTS.actionDismiss.success, {
       route,
       method,
       status,
@@ -102,7 +103,7 @@ export async function POST(request: Request) {
     if (error instanceof DismissError) {
       status = resolveWorkflowDomainStatus(error.message);
       const response: WorkflowApiErrorResponse = { error: error.message };
-      requestLog.warn("action.dismiss.domain-error", {
+      requestLog.warn(REQUEST_EVENTS.actionDismiss.domainError, {
         route,
         method,
         status,
