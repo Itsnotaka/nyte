@@ -10,9 +10,8 @@ import { NEEDS_YOU_ROUTE_CONFIG } from "~/lib/server/needs-you-route-config";
 import { resolveRequestSession } from "~/lib/server/request-session";
 import { type HttpStatusCode } from "~/lib/server/http-status";
 import {
-  asObjectPayload,
+  parseBodyWithRequiredStringField,
   parseRequiredString,
-  parseRequiredStringField,
 } from "~/lib/server/request-validation";
 import { normalizeWatchKeywords } from "~/lib/shared/watch-keywords";
 import {
@@ -36,12 +35,8 @@ function parseWatchKeywords(searchParams: URLSearchParams): QueueSyncRequest["wa
 }
 
 function resolveAccessToken(value: unknown) {
-  const payload = asObjectPayload(value);
-  if (!payload) {
-    return null;
-  }
-
-  return parseRequiredStringField(payload, "accessToken");
+  const parsed = parseBodyWithRequiredStringField(value, "accessToken");
+  return parsed?.value ?? null;
 }
 
 export async function GET(request: Request) {

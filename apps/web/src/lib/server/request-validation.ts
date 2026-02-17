@@ -36,20 +36,40 @@ export type ParsedBodyWithItemId = {
   itemId: string;
 };
 
-export function parseBodyWithItemId(value: unknown): ParsedBodyWithItemId | null {
+export type ParsedBodyWithRequiredStringField = {
+  body: Record<string, unknown>;
+  value: string;
+};
+
+export function parseBodyWithRequiredStringField(
+  value: unknown,
+  key: string,
+): ParsedBodyWithRequiredStringField | null {
   const body = asObjectPayload(value);
   if (!body) {
     return null;
   }
 
-  const itemId = parseItemId(body);
-  if (!itemId) {
+  const parsedValue = parseRequiredStringField(body, key);
+  if (!parsedValue) {
     return null;
   }
 
   return {
     body,
-    itemId,
+    value: parsedValue,
+  };
+}
+
+export function parseBodyWithItemId(value: unknown): ParsedBodyWithItemId | null {
+  const parsed = parseBodyWithRequiredStringField(value, "itemId");
+  if (!parsed) {
+    return null;
+  }
+
+  return {
+    body: parsed.body,
+    itemId: parsed.value,
   };
 }
 
