@@ -106,7 +106,11 @@ export async function POST(request: Request) {
       return toWorkflowApiErrorJsonResponse(error.message, status);
     }
 
-    const resolved = resolveWorkflowRouteError(error, config.messages.taskUnavailable);
+    const resolved = resolveWorkflowRouteError(
+      error,
+      config.messages.taskUnavailable,
+      config.statuses.taskFailure,
+    );
     status = resolved.status;
     requestLog.error(config.events.taskError, {
       route,

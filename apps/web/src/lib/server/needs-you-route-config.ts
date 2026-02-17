@@ -24,6 +24,7 @@ type QueueSyncRouteConfig = BaseNeedsYouRouteConfig & {
     ok: HttpStatusCode;
     unauthorized: HttpStatusCode;
     tokenUnavailable: HttpStatusCode;
+    taskFailure: HttpStatusCode;
   };
 };
 
@@ -31,6 +32,7 @@ export type ActionRouteStatuses = {
   ok: HttpStatusCode;
   unauthorized: HttpStatusCode;
   invalidPayload: HttpStatusCode;
+  taskFailure: HttpStatusCode;
   notFound: HttpStatusCode;
   conflict: HttpStatusCode;
   domainInvalidPayload: HttpStatusCode;
@@ -54,6 +56,7 @@ const ACTION_ROUTE_STATUSES = {
   ok: HTTP_STATUS.ok,
   unauthorized: HTTP_STATUS.unauthorized,
   invalidPayload: HTTP_STATUS.badRequest,
+  taskFailure: HTTP_STATUS.badGateway,
   notFound: HTTP_STATUS.notFound,
   conflict: HTTP_STATUS.conflict,
   domainInvalidPayload: HTTP_STATUS.unprocessableEntity,
@@ -75,6 +78,7 @@ export const NEEDS_YOU_ROUTE_CONFIG = {
       ok: HTTP_STATUS.ok,
       unauthorized: HTTP_STATUS.unauthorized,
       tokenUnavailable: HTTP_STATUS.conflict,
+      taskFailure: HTTP_STATUS.badGateway,
     },
   },
   actionApprove: {

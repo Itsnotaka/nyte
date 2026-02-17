@@ -27,10 +27,11 @@ export type WorkflowRouteErrorResolution = {
 export function resolveWorkflowRouteError(
   error: unknown,
   fallbackMessage: string,
+  status: HttpStatusCode = HTTP_STATUS.badGateway,
 ): WorkflowRouteErrorResolution {
   if (error instanceof WorkflowTaskExecutionError || error instanceof WorkflowTaskResultError) {
     return {
-      status: HTTP_STATUS.badGateway,
+      status,
       response: {
         error: error.message,
       },
@@ -47,7 +48,7 @@ export function resolveWorkflowRouteError(
     error instanceof Error && error.message.trim().length > 0 ? error.message : fallbackMessage;
 
   return {
-    status: HTTP_STATUS.badGateway,
+    status,
     response: {
       error: message,
     },
