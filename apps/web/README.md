@@ -17,6 +17,7 @@ Primary Nyte product surface: decision queue UI and thin API gateway.
 - shared validation covers object/string/enum parsing so route handlers stay thin
 - shared field-level string parsers are used for item/access-token/idempotency extraction in route payloads
 - shared field-level string parsers are generic over payload keys for stricter compile-time field access typing
+- shared body-level required-string parser (`parseBodyWithRequiredStringField`) now powers itemId + access-token extraction paths
 - malformed JSON action requests are treated as invalid payloads (HTTP 400), not orchestration failures
 - action routes share `parseRequestPayload` helper to combine safe JSON parsing + route-specific payload parser invocation
 - action routes share a centralized auth-required error message for consistent 401 responses
