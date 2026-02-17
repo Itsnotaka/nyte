@@ -16,6 +16,7 @@ Primary Nyte product surface: decision queue UI and thin API gateway.
 - shared validation covers object/string/enum parsing so route handlers stay thin
 - malformed JSON action requests are treated as invalid payloads (HTTP 400), not orchestration failures
 - action routes share a centralized auth-required error message for consistent 401 responses
+- needs-you clients share a small HTTP utility for safe JSON parsing and workflow API error extraction
 
 ## API routes
 
