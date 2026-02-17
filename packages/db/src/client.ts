@@ -22,4 +22,7 @@ export const db = drizzle({
   client: pool,
   schema,
 });
+
+export async function ensureDbSchema() {}
+
 export { schema };
