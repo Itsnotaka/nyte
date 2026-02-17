@@ -16,6 +16,7 @@ export function NyteWorkspaceClient({ initialConnected }: WorkspaceClientProps) 
     syncError,
     notice,
     lastSyncedAt,
+    activeWatchKeywords,
     visibleItems,
     runSync,
     connectGoogle,
@@ -31,6 +32,7 @@ export function NyteWorkspaceClient({ initialConnected }: WorkspaceClientProps) 
       syncError={syncError}
       notice={notice}
       lastSyncedAt={lastSyncedAt}
+      activeWatchKeywords={activeWatchKeywords}
       visibleItems={visibleItems}
       onSubmit={(command) => void runSync(command)}
       onConnect={() => void connectGoogle()}

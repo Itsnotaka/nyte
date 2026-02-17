@@ -12,6 +12,7 @@ type NyteWorkspaceViewProps = {
   syncError: string | null;
   notice: string | null;
   lastSyncedAt: string | null;
+  activeWatchKeywords: string[];
   visibleItems: WorkItemWithAction[];
   onSubmit: (command: string) => void;
   onConnect: () => void;
@@ -27,6 +28,7 @@ export function NyteWorkspaceView({
   syncError,
   notice,
   lastSyncedAt,
+  activeWatchKeywords,
   visibleItems,
   onSubmit,
   onConnect,
@@ -59,9 +61,12 @@ export function NyteWorkspaceView({
         ) : null}
 
         {lastSyncedAt ? (
-          <p className="mt-2 text-xs text-white/90">
-            Last synced {new Date(lastSyncedAt).toLocaleTimeString()}
-          </p>
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-white/90">
+            <p>Last synced {new Date(lastSyncedAt).toLocaleTimeString()}</p>
+            {activeWatchKeywords.length > 0 ? (
+              <p>Watch: {activeWatchKeywords.join(", ")}</p>
+            ) : null}
+          </div>
         ) : null}
 
         {!connected ? (

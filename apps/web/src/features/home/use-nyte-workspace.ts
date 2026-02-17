@@ -21,6 +21,7 @@ export type UseNyteWorkspaceResult = {
   syncError: string | null;
   notice: string | null;
   lastSyncedAt: string | null;
+  activeWatchKeywords: string[];
   visibleItems: WorkItemWithAction[];
   runSync: (command: string) => Promise<void>;
   connectGoogle: () => Promise<void>;
@@ -85,6 +86,7 @@ export function useNyteWorkspace({
 }: UseNyteWorkspaceInput): UseNyteWorkspaceResult {
   const queryClient = useQueryClient();
   const watchKeywordsRef = React.useRef<string[]>([]);
+  const [activeWatchKeywords, setActiveWatchKeywords] = React.useState<string[]>([]);
   const [noticeState, setNoticeState] = React.useState<UserScopedMessage | null>(null);
   const [mutationErrorState, setMutationErrorState] = React.useState<UserScopedMessage | null>(null);
 
@@ -172,13 +174,20 @@ export function useNyteWorkspace({
   const runSync = React.useCallback(async (command: string) => {
     setNotice(null);
     setMutationError(null);
-    watchKeywordsRef.current = parseWatchKeywords(command);
-    await refetchSync();
+    const parsedKeywords = parseWatchKeywords(command);
+    watchKeywordsRef.current = parsedKeywords;
+    setActiveWatchKeywords(parsedKeywords);
+    const result = await refetchSync();
+    if (!result.error && parsedKeywords.length > 0) {
+      setNotice(`Sync filtered by ${parsedKeywords.join(", ")}.`);
+    }
   }, [refetchSync, setMutationError, setNotice]);
 
   const connectGoogle = React.useCallback(async () => {
     setNotice(null);
     setMutationError(null);
+    watchKeywordsRef.current = [];
+    setActiveWatchKeywords([]);
     await queryClient.resetQueries({
       queryKey: syncQueryKey,
       exact: true,
@@ -192,6 +201,8 @@ export function useNyteWorkspace({
   const disconnectGoogle = React.useCallback(async () => {
     await authClient.signOut();
     setMutationError(null);
+    watchKeywordsRef.current = [];
+    setActiveWatchKeywords([]);
     setNotice("Disconnected Google session.");
     queryClient.removeQueries({
       queryKey: syncQueryKey,
@@ -251,6 +262,7 @@ export function useNyteWorkspace({
     syncError,
     notice,
     lastSyncedAt,
+    activeWatchKeywords,
     visibleItems,
     runSync,
     connectGoogle,
