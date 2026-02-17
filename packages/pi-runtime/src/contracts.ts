@@ -9,6 +9,10 @@ export const PI_EXTENSION_NAMES = {
 
 export type PiExtensionName = (typeof PI_EXTENSION_NAMES)[keyof typeof PI_EXTENSION_NAMES];
 
+export const PI_AUDIT_SOURCES = {
+  decisionQueue: "decision-queue",
+} as const;
+
 type PiAuthScope = {
   provider: "google";
   userId: string | null;
@@ -18,7 +22,7 @@ type PiAuthScope = {
 type PiAuditPayload = {
   workItemId: string;
   actionId: string;
-  source: "decision-queue";
+  source: (typeof PI_AUDIT_SOURCES)[keyof typeof PI_AUDIT_SOURCES];
 };
 
 type BaseExtensionRequest = {

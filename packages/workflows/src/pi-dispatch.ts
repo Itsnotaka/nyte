@@ -1,6 +1,7 @@
 import { approveWorkItem } from "@nyte/application/actions";
 import {
   executePiExtension,
+  PI_AUDIT_SOURCES,
   PI_EXTENSION_NAMES,
   type PiExtensionResult,
 } from "@nyte/pi-runtime";
@@ -31,7 +32,7 @@ export async function dispatchApprovedActionToPi({
     audit: {
       workItemId: approvedItem.itemId,
       actionId: `${approvedItem.itemId}:action`,
-      source: "decision-queue" as const,
+      source: PI_AUDIT_SOURCES.decisionQueue,
     },
   };
 
