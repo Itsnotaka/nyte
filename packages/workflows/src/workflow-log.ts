@@ -1,5 +1,6 @@
 import { initLogger, log } from "evlog";
 import type { WorkflowTaskStage } from "./trigger-errors";
+import type { FeedbackTaskInput } from "./tasks/feedback-task";
 
 let loggerInitialized = false;
 
@@ -26,7 +27,7 @@ export type WorkflowLogEvent = {
   message?: string;
   errorTag?: string;
   itemId?: string;
-  rating?: string;
+  rating?: FeedbackTaskInput["rating"];
   hasCursor?: boolean;
   watchKeywordCount?: number;
 };

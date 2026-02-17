@@ -1,5 +1,5 @@
 import { createRequestLogger, initLogger, type RequestLogger } from "evlog";
-import type { WorkflowTaskStage } from "@nyte/workflows";
+import type { FeedbackActionRequest, WorkflowTaskStage } from "@nyte/workflows";
 
 let loggerInitialized = false;
 
@@ -27,7 +27,7 @@ export type RequestLogContext = {
   stage?: WorkflowTaskStage;
   hasCursor?: boolean;
   watchKeywordCount?: number;
-  rating?: string;
+  rating?: FeedbackActionRequest["rating"];
   status?: number;
   errorTag?: string;
   message?: string;
