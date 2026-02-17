@@ -8,7 +8,11 @@ import {
 
 import { createApiRequestLogger } from "~/lib/server/request-log";
 import { resolveRequestSession } from "~/lib/server/request-session";
-import { asObjectPayload, parseRequiredString } from "~/lib/server/request-validation";
+import {
+  asObjectPayload,
+  parseJsonBody,
+  parseRequiredString,
+} from "~/lib/server/request-validation";
 import { resolveWorkflowRouteError } from "~/lib/server/workflow-route-error";
 
 function parseDismissBody(value: unknown): DismissActionRequest | null {
@@ -57,7 +61,7 @@ export async function POST(request: Request) {
       return Response.json(response, { status });
     }
 
-    const payload = parseDismissBody(await request.json());
+    const payload = parseDismissBody(await parseJsonBody(request));
     if (!payload) {
       status = 400;
       const response: WorkflowApiErrorResponse = { error: "Invalid dismissal payload." };

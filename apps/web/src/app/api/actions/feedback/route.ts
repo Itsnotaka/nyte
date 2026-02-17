@@ -10,6 +10,7 @@ import { createApiRequestLogger } from "~/lib/server/request-log";
 import { resolveRequestSession } from "~/lib/server/request-session";
 import {
   asObjectPayload,
+  parseJsonBody,
   parseOptionalString,
   parseRequiredString,
 } from "~/lib/server/request-validation";
@@ -72,7 +73,7 @@ export async function POST(request: Request) {
       return Response.json(response, { status });
     }
 
-    const payload = parseFeedbackBody(await request.json());
+    const payload = parseFeedbackBody(await parseJsonBody(request));
     if (!payload) {
       status = 400;
       const response: WorkflowApiErrorResponse = { error: "Invalid feedback payload." };
