@@ -7,6 +7,7 @@ import {
 
 import { auth } from "~/lib/auth";
 import { createApiRequestLogger } from "~/lib/server/request-log";
+import { resolveWorkflowRouteError } from "~/lib/server/workflow-route-error";
 
 type AccessTokenPayload = {
   accessToken?: unknown;
@@ -106,22 +107,18 @@ export async function GET(request: Request) {
     });
     return Response.json(response);
   } catch (error) {
-    status = 502;
-    const message =
-      error instanceof Error && error.message.trim().length > 0
-        ? error.message
-        : "Unable to sync Gmail and Calendar signals.";
+    const resolved = resolveWorkflowRouteError(error, "Unable to sync Gmail and Calendar signals.");
+    status = resolved.status;
 
-    const response: WorkflowApiErrorResponse = {
-      error: message,
-    };
-    requestLog.error(message, {
+    requestLog.error(resolved.logData.message, {
       route,
       method: request.method,
       status,
-      message,
+      taskId: resolved.logData.taskId,
+      errorTag: resolved.logData.errorTag,
+      message: resolved.logData.message,
     });
-    return Response.json(response, { status });
+    return Response.json(resolved.response, { status });
   } finally {
     requestLog.emit({
       route,

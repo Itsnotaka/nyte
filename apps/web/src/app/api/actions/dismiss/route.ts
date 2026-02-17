@@ -3,13 +3,12 @@ import {
   runDismissActionTask,
   type DismissActionRequest,
   type DismissActionResponse,
-  WorkflowTaskExecutionError,
-  WorkflowTaskResultError,
   type WorkflowApiErrorResponse,
 } from "@nyte/workflows";
 
 import { auth } from "~/lib/auth";
 import { createApiRequestLogger } from "~/lib/server/request-log";
+import { resolveWorkflowRouteError } from "~/lib/server/workflow-route-error";
 
 function parseDismissBody(value: unknown): DismissActionRequest | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -92,29 +91,18 @@ export async function POST(request: Request) {
       return Response.json(response, { status });
     }
 
-    if (error instanceof WorkflowTaskExecutionError || error instanceof WorkflowTaskResultError) {
-      status = 502;
-      const response: WorkflowApiErrorResponse = { error: error.message };
-      requestLog.error(error.message, {
-        route,
-        method: request.method,
-        status,
-        itemId,
-        taskId: error.taskId,
-        errorTag: error._tag,
-      });
-      return Response.json(response, { status });
-    }
-
-    status = 502;
-    const response: WorkflowApiErrorResponse = { error: "Unable to dismiss action." };
-    requestLog.error("Unable to dismiss action.", {
+    const resolved = resolveWorkflowRouteError(error, "Unable to dismiss action.");
+    status = resolved.status;
+    requestLog.error(resolved.logData.message, {
       route,
       method: request.method,
       status,
       itemId,
+      taskId: resolved.logData.taskId,
+      errorTag: resolved.logData.errorTag,
+      message: resolved.logData.message,
     });
-    return Response.json(response, { status });
+    return Response.json(resolved.response, { status });
   } finally {
     requestLog.emit({
       route,
