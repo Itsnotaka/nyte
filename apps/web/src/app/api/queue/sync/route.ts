@@ -8,7 +8,7 @@ import { auth } from "~/lib/auth";
 import { createApiRequestLogger } from "~/lib/server/request-log";
 import { NEEDS_YOU_ROUTE_CONFIG } from "~/lib/server/needs-you-route-config";
 import { resolveRequestSession } from "~/lib/server/request-session";
-import { type HttpStatusCode, HTTP_STATUS } from "~/lib/server/http-status";
+import { type HttpStatusCode } from "~/lib/server/http-status";
 import {
   asObjectPayload,
   parseRequiredString,
@@ -52,7 +52,7 @@ export async function GET(request: Request) {
   const cursor = parseCursor(searchParams);
   const watchKeywords = parseWatchKeywords(searchParams);
   const requestLog = createApiRequestLogger(request, route);
-  let status: HttpStatusCode = HTTP_STATUS.ok;
+  let status: HttpStatusCode = config.statuses.ok;
   let userId: string | null = null;
 
   requestLog.info(config.events.start, {

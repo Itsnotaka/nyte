@@ -15,6 +15,7 @@ export const NEEDS_YOU_ROUTE_CONFIG = {
       taskUnavailable: NEEDS_YOU_MESSAGES.syncUnavailable,
     },
     statuses: {
+      ok: HTTP_STATUS.ok,
       unauthorized: HTTP_STATUS.unauthorized,
       tokenUnavailable: HTTP_STATUS.conflict,
     },
@@ -29,6 +30,7 @@ export const NEEDS_YOU_ROUTE_CONFIG = {
       taskUnavailable: NEEDS_YOU_MESSAGES.approveUnavailable,
     },
     statuses: {
+      ok: HTTP_STATUS.ok,
       unauthorized: HTTP_STATUS.unauthorized,
       invalidPayload: HTTP_STATUS.badRequest,
     },
@@ -43,6 +45,7 @@ export const NEEDS_YOU_ROUTE_CONFIG = {
       taskUnavailable: NEEDS_YOU_MESSAGES.dismissUnavailable,
     },
     statuses: {
+      ok: HTTP_STATUS.ok,
       unauthorized: HTTP_STATUS.unauthorized,
       invalidPayload: HTTP_STATUS.badRequest,
     },
@@ -57,6 +60,7 @@ export const NEEDS_YOU_ROUTE_CONFIG = {
       taskUnavailable: NEEDS_YOU_MESSAGES.feedbackUnavailable,
     },
     statuses: {
+      ok: HTTP_STATUS.ok,
       unauthorized: HTTP_STATUS.unauthorized,
       invalidPayload: HTTP_STATUS.badRequest,
     },

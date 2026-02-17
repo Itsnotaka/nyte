@@ -9,7 +9,7 @@ import {
 import { createApiRequestLogger } from "~/lib/server/request-log";
 import { NEEDS_YOU_ROUTE_CONFIG } from "~/lib/server/needs-you-route-config";
 import { resolveRequestSession } from "~/lib/server/request-session";
-import { type HttpStatusCode, HTTP_STATUS } from "~/lib/server/http-status";
+import { type HttpStatusCode } from "~/lib/server/http-status";
 import {
   asObjectPayload,
   parseItemId,
@@ -63,7 +63,7 @@ export async function POST(request: Request) {
   const method = request.method;
   const startedAt = Date.now();
   const requestLog = createApiRequestLogger(request, route);
-  let status: HttpStatusCode = HTTP_STATUS.ok;
+  let status: HttpStatusCode = config.statuses.ok;
   let itemId: string | undefined;
   let userId: string | null = null;
 
