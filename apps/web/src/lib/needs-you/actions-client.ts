@@ -7,6 +7,7 @@ import type {
   FeedbackActionResponse,
 } from "@nyte/workflows";
 import type { ToolCallPayload } from "@nyte/domain/actions";
+import { asRecord } from "~/lib/shared/value-guards";
 import { readJsonSafe, resolveWorkflowApiError } from "./http-client";
 import { NEEDS_YOU_API_ROUTES } from "./routes";
 
@@ -33,6 +34,10 @@ async function postAction<TRequest, TResponse>({
   const payload = await readJsonSafe(response);
   if (!response.ok) {
     throw new Error(resolveWorkflowApiError(payload, fallbackError));
+  }
+
+  if (!asRecord(payload)) {
+    throw new Error("Action response is invalid.");
   }
 
   return payload as TResponse;
