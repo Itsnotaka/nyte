@@ -17,6 +17,8 @@ type WorkflowRouteErrorResolution = {
   };
 };
 
+export const ACTION_AUTH_REQUIRED_MESSAGE = "Authentication required.";
+
 export function resolveWorkflowRouteError(
   error: unknown,
   fallbackMessage: string,

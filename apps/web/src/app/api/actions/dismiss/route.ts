@@ -15,6 +15,7 @@ import {
   parseRequiredString,
 } from "~/lib/server/request-validation";
 import {
+  ACTION_AUTH_REQUIRED_MESSAGE,
   resolveWorkflowDomainStatus,
   resolveWorkflowRouteError,
 } from "~/lib/server/workflow-route-error";
@@ -56,7 +57,7 @@ export async function POST(request: Request) {
     userId = sessionUserId;
     if (!session) {
       status = 401;
-      const response: WorkflowApiErrorResponse = { error: "Authentication required." };
+      const response: WorkflowApiErrorResponse = { error: ACTION_AUTH_REQUIRED_MESSAGE };
       requestLog.warn("action.dismiss.unauthorized", {
         route,
         method: request.method,
