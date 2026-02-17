@@ -1,16 +1,9 @@
-import type { WorkItemWithAction } from "@nyte/domain/actions";
+import type { QueueSyncResponse, WorkflowApiErrorResponse } from "@nyte/workflows";
 
-export type SyncPollResponse = {
-  cursor: string;
-  needsYou: WorkItemWithAction[];
-};
-
-type SyncErrorPayload = {
-  error?: unknown;
-};
+export type SyncPollResponse = QueueSyncResponse;
 
 async function parseSyncPollResponse(response: Response): Promise<SyncPollResponse> {
-  const payload = (await response.json()) as Partial<SyncPollResponse> & SyncErrorPayload;
+  const payload = (await response.json()) as Partial<SyncPollResponse> & Partial<WorkflowApiErrorResponse>;
 
   if (!response.ok) {
     const fallback = "Unable to sync Gmail + Calendar right now.";

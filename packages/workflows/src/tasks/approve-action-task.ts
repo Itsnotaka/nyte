@@ -1,9 +1,11 @@
 import { approveWorkItem } from "@nyte/application/actions";
 
+type ApproveWorkItemParameters = Parameters<typeof approveWorkItem>;
+
 export type ApproveActionTaskInput = {
-  itemId: string;
-  idempotencyKey?: string;
-  now?: Date;
+  itemId: ApproveWorkItemParameters[0];
+  now?: ApproveWorkItemParameters[1];
+  idempotencyKey?: ApproveWorkItemParameters[2];
 };
 
 export async function approveActionTask({

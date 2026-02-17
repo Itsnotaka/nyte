@@ -1,19 +1,19 @@
 import { ApprovalError } from "@nyte/application/actions";
-import { approveActionTask } from "@nyte/workflows";
+import {
+  approveActionTask,
+  type ApproveActionRequest,
+  type ApproveActionResponse,
+  type WorkflowApiErrorResponse,
+} from "@nyte/workflows";
 
 import { auth } from "~/lib/auth";
 
-type ApproveActionBody = {
-  itemId?: unknown;
-  idempotencyKey?: unknown;
-};
-
-function parseApproveBody(value: unknown): { itemId: string; idempotencyKey?: string } | null {
+function parseApproveBody(value: unknown): ApproveActionRequest | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return null;
   }
 
-  const body = value as ApproveActionBody;
+  const body = value as Record<keyof ApproveActionRequest, unknown>;
   if (typeof body.itemId !== "string" || body.itemId.trim().length === 0) {
     return null;
   }
@@ -39,12 +39,14 @@ export async function POST(request: Request) {
     headers: request.headers,
   });
   if (!session) {
-    return Response.json({ error: "Authentication required." }, { status: 401 });
+    const response: WorkflowApiErrorResponse = { error: "Authentication required." };
+    return Response.json(response, { status: 401 });
   }
 
   const payload = parseApproveBody(await request.json());
   if (!payload) {
-    return Response.json({ error: "Invalid approval payload." }, { status: 400 });
+    const response: WorkflowApiErrorResponse = { error: "Invalid approval payload." };
+    return Response.json(response, { status: 400 });
   }
 
   try {
@@ -53,17 +55,20 @@ export async function POST(request: Request) {
       idempotencyKey: payload.idempotencyKey,
       now: new Date(),
     });
-    return Response.json({
+    const response: Pick<ApproveActionResponse, "itemId" | "idempotent" | "execution"> = {
       itemId: result.itemId,
       idempotent: result.idempotent,
       execution: result.execution,
-    });
+    };
+    return Response.json(response);
   } catch (error) {
     if (error instanceof ApprovalError) {
       const status = error.message.toLowerCase().includes("not found") ? 404 : 409;
-      return Response.json({ error: error.message }, { status });
+      const response: WorkflowApiErrorResponse = { error: error.message };
+      return Response.json(response, { status });
     }
 
-    return Response.json({ error: "Unable to approve action." }, { status: 502 });
+    const response: WorkflowApiErrorResponse = { error: "Unable to approve action." };
+    return Response.json(response, { status: 502 });
   }
 }

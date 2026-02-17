@@ -1,11 +1,11 @@
-import type { WorkItemWithAction } from "@nyte/domain/actions";
+import type { QueueActionItem } from "@nyte/workflows";
 
 import { NeedsYouCard } from "~/components/needs-you-card";
 
 type NeedsYouListProps = {
-  items: WorkItemWithAction[];
-  onApprove: (item: WorkItemWithAction) => void;
-  onDismiss: (item: WorkItemWithAction) => void;
+  items: QueueActionItem[];
+  onApprove: (item: QueueActionItem) => void;
+  onDismiss: (item: QueueActionItem) => void;
 };
 
 export function NeedsYouList({ items, onApprove, onDismiss }: NeedsYouListProps) {

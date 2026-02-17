@@ -1,20 +1,19 @@
 import { FeedbackError } from "@nyte/application/actions";
-import { feedbackTask } from "@nyte/workflows";
+import {
+  feedbackTask,
+  type FeedbackActionRequest,
+  type FeedbackActionResponse,
+  type WorkflowApiErrorResponse,
+} from "@nyte/workflows";
 
 import { auth } from "~/lib/auth";
 
-type FeedbackBody = {
-  itemId?: unknown;
-  rating?: unknown;
-  note?: unknown;
-};
-
-function parseFeedbackBody(value: unknown): { itemId: string; rating: "positive" | "negative"; note?: string } | null {
+function parseFeedbackBody(value: unknown): FeedbackActionRequest | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return null;
   }
 
-  const body = value as FeedbackBody;
+  const body = value as Record<keyof FeedbackActionRequest, unknown>;
   if (typeof body.itemId !== "string" || body.itemId.trim().length === 0) {
     return null;
   }
@@ -41,12 +40,14 @@ export async function POST(request: Request) {
     headers: request.headers,
   });
   if (!session) {
-    return Response.json({ error: "Authentication required." }, { status: 401 });
+    const response: WorkflowApiErrorResponse = { error: "Authentication required." };
+    return Response.json(response, { status: 401 });
   }
 
   const payload = parseFeedbackBody(await request.json());
   if (!payload) {
-    return Response.json({ error: "Invalid feedback payload." }, { status: 400 });
+    const response: WorkflowApiErrorResponse = { error: "Invalid feedback payload." };
+    return Response.json(response, { status: 400 });
   }
 
   try {
@@ -56,13 +57,16 @@ export async function POST(request: Request) {
       note: payload.note,
       now: new Date(),
     });
-    return Response.json(result);
+    const response: FeedbackActionResponse = result;
+    return Response.json(response);
   } catch (error) {
     if (error instanceof FeedbackError) {
       const status = error.message.toLowerCase().includes("not found") ? 404 : 409;
-      return Response.json({ error: error.message }, { status });
+      const response: WorkflowApiErrorResponse = { error: error.message };
+      return Response.json(response, { status });
     }
 
-    return Response.json({ error: "Unable to record feedback." }, { status: 502 });
+    const response: WorkflowApiErrorResponse = { error: "Unable to record feedback." };
+    return Response.json(response, { status: 502 });
   }
 }

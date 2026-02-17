@@ -1,4 +1,9 @@
-import { ingestSignalsTask } from "@nyte/workflows";
+import {
+  ingestSignalsTask,
+  type QueueSyncRequest,
+  type QueueSyncResponse,
+  type WorkflowApiErrorResponse,
+} from "@nyte/workflows";
 
 import { auth } from "~/lib/auth";
 
@@ -6,7 +11,7 @@ type AccessTokenPayload = {
   accessToken?: unknown;
 };
 
-function parseCursor(request: Request) {
+function parseCursor(request: Request): QueueSyncRequest["cursor"] {
   const cursor = new URL(request.url).searchParams.get("cursor")?.trim();
   if (!cursor) {
     return undefined;
@@ -33,8 +38,11 @@ export async function GET(request: Request) {
     headers: request.headers,
   });
   if (!session) {
+    const response: WorkflowApiErrorResponse = {
+      error: "Connect Google to load Gmail and Calendar signals.",
+    };
     return Response.json(
-      { error: "Connect Google to load Gmail and Calendar signals." },
+      response,
       { status: 401 },
     );
   }
@@ -48,11 +56,12 @@ export async function GET(request: Request) {
 
   const accessToken = resolveAccessToken(accessTokenResult);
   if (!accessToken) {
+    const response: WorkflowApiErrorResponse = {
+      error:
+        "Google OAuth token is unavailable. Reconnect Google and grant Gmail + Calendar permissions.",
+    };
     return Response.json(
-      {
-        error:
-          "Google OAuth token is unavailable. Reconnect Google and grant Gmail + Calendar permissions.",
-      },
+      response,
       { status: 409 },
     );
   }
@@ -64,16 +73,20 @@ export async function GET(request: Request) {
       now: new Date(),
     });
 
-    return Response.json({
+    const response: QueueSyncResponse = {
       cursor: result.cursor,
       needsYou: result.needsYou,
-    });
+    };
+    return Response.json(response);
   } catch (error) {
     const message =
       error instanceof Error && error.message.trim().length > 0
         ? error.message
         : "Unable to sync Gmail and Calendar signals.";
 
-    return Response.json({ error: message }, { status: 502 });
+    const response: WorkflowApiErrorResponse = {
+      error: message,
+    };
+    return Response.json(response, { status: 502 });
   }
 }

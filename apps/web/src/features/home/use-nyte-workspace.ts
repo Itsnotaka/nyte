@@ -1,12 +1,12 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { WorkItemWithAction } from "@nyte/domain/actions";
+import type { QueueActionItem, QueueActionStatus } from "@nyte/workflows";
 import * as React from "react";
 
 import { authClient } from "~/lib/auth-client";
 import { approveNeedsYouAction, dismissNeedsYouAction } from "~/lib/needs-you/actions-client";
-import { syncNeedsYou } from "~/lib/needs-you/sync-client";
+import { type SyncPollResponse, syncNeedsYou } from "~/lib/needs-you/sync-client";
 
 type UseNyteWorkspaceInput = {
   initialConnected: boolean;
@@ -20,11 +20,16 @@ export type UseNyteWorkspaceResult = {
   syncError: string | null;
   notice: string | null;
   lastSyncedAt: string | null;
-  visibleItems: WorkItemWithAction[];
+  visibleItems: QueueActionItem[];
   runSync: () => Promise<void>;
   connectGoogle: () => Promise<void>;
   disconnectGoogle: () => Promise<void>;
-  markAction: (item: WorkItemWithAction, status: "approved" | "dismissed") => Promise<void>;
+  markAction: (item: QueueActionItem, status: QueueActionStatus) => Promise<void>;
+};
+
+type UserScopedMessage = {
+  userId: string | null;
+  value: string;
 };
 
 function resolveSessionUserId(value: unknown): string | null {
@@ -49,9 +54,8 @@ export function useNyteWorkspace({
   initialConnected,
 }: UseNyteWorkspaceInput): UseNyteWorkspaceResult {
   const queryClient = useQueryClient();
-  const [notice, setNotice] = React.useState<string | null>(null);
-  const [mutationError, setMutationError] = React.useState<string | null>(null);
-  const cursorRef = React.useRef<string | null>(null);
+  const [noticeState, setNoticeState] = React.useState<UserScopedMessage | null>(null);
+  const [mutationErrorState, setMutationErrorState] = React.useState<UserScopedMessage | null>(null);
 
   const { data: session, isPending: isSessionPending } = authClient.useSession();
   const sessionUserId = React.useMemo(() => resolveSessionUserId(session), [session]);
@@ -61,6 +65,27 @@ export function useNyteWorkspace({
   );
 
   const connected = isSessionPending ? initialConnected : Boolean(session);
+  const notice =
+    noticeState?.userId === sessionUserId
+      ? noticeState.value
+      : null;
+  const mutationError =
+    mutationErrorState?.userId === sessionUserId
+      ? mutationErrorState.value
+      : null;
+
+  const setNotice = React.useCallback(
+    (value: string | null) => {
+      setNoticeState(value ? { userId: sessionUserId, value } : null);
+    },
+    [sessionUserId],
+  );
+  const setMutationError = React.useCallback(
+    (value: string | null) => {
+      setMutationErrorState(value ? { userId: sessionUserId, value } : null);
+    },
+    [sessionUserId],
+  );
 
   const {
     data: syncPayload,
@@ -74,17 +99,10 @@ export function useNyteWorkspace({
     retry: false,
     refetchOnWindowFocus: false,
     queryFn: async () => {
-      const payload = await syncNeedsYou(cursorRef.current);
-      cursorRef.current = payload.cursor;
-      return payload;
+      const currentPayload = queryClient.getQueryData<SyncPollResponse>(syncQueryKey);
+      return syncNeedsYou(currentPayload?.cursor ?? null);
     },
   });
-
-  React.useEffect(() => {
-    cursorRef.current = null;
-    setNotice(null);
-    setMutationError(null);
-  }, [sessionUserId]);
 
   const visibleItems = connected ? (syncPayload?.needsYou ?? []) : [];
 
@@ -120,7 +138,6 @@ export function useNyteWorkspace({
   const connectGoogle = React.useCallback(async () => {
     setNotice(null);
     setMutationError(null);
-    cursorRef.current = null;
     await queryClient.resetQueries({
       queryKey: syncQueryKey,
       exact: true,
@@ -133,7 +150,6 @@ export function useNyteWorkspace({
 
   const disconnectGoogle = React.useCallback(async () => {
     await authClient.signOut();
-    cursorRef.current = null;
     setMutationError(null);
     setNotice("Disconnected Google session.");
     queryClient.removeQueries({
@@ -143,7 +159,7 @@ export function useNyteWorkspace({
   }, [queryClient, syncQueryKey]);
 
   const markAction = React.useCallback(
-    async (item: WorkItemWithAction, status: "approved" | "dismissed") => {
+    async (item: QueueActionItem, status: QueueActionStatus) => {
       setNotice(null);
       setMutationError(null);
 

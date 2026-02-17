@@ -1,4 +1,4 @@
-import type { WorkItemWithAction } from "@nyte/domain/actions";
+import type { QueueActionItem } from "@nyte/workflows";
 import { CalendarDaysIcon, MailIcon, WalletCardsIcon, XIcon } from "lucide-react";
 
 import {
@@ -14,12 +14,12 @@ const PRIMARY_BUTTON_CLASS =
   "group/button focus-visible:ring-neutral-strong relative inline-flex shrink-0 cursor-pointer rounded-lg whitespace-nowrap transition-transform outline-none select-none focus-visible:ring-2 h-7 px-1.5";
 
 type NeedsYouCardProps = {
-  item: WorkItemWithAction;
-  onApprove: (item: WorkItemWithAction) => void;
-  onDismiss: (item: WorkItemWithAction) => void;
+  item: QueueActionItem;
+  onApprove: (item: QueueActionItem) => void;
+  onDismiss: (item: QueueActionItem) => void;
 };
 
-function SourceIcon({ item }: { item: WorkItemWithAction }) {
+function SourceIcon({ item }: { item: QueueActionItem }) {
   if (item.type === "calendar") {
     return <CalendarDaysIcon className="size-3.5" />;
   }

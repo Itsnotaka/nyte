@@ -1,20 +1,22 @@
 import { getDashboardData } from "@nyte/application/dashboard";
 import { persistSignals } from "@nyte/application/queue";
-import type { WorkItemWithAction } from "@nyte/domain/actions";
 import { pollGoogleCalendarIngestion } from "@nyte/integrations/calendar/polling";
 import { pollGmailIngestion } from "@nyte/integrations/gmail/polling";
 
+type GmailPollingInput = Parameters<typeof pollGmailIngestion>[0];
+type DashboardNeedsYou = Awaited<ReturnType<typeof getDashboardData>>["needsYou"];
+
 export type IngestSignalsTaskInput = {
-  accessToken: string;
-  cursor?: string;
-  watchKeywords?: string[];
-  now?: Date;
+  accessToken: GmailPollingInput["accessToken"];
+  cursor?: GmailPollingInput["cursor"];
+  watchKeywords?: GmailPollingInput["watchKeywords"];
+  now?: GmailPollingInput["now"];
 };
 
 export type IngestSignalsTaskResult = {
   cursor: string;
   queuedCount: number;
-  needsYou: WorkItemWithAction[];
+  needsYou: DashboardNeedsYou;
 };
 
 export async function ingestSignalsTask({

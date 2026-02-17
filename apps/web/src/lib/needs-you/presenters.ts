@@ -1,4 +1,4 @@
-import type { WorkItemWithAction } from "@nyte/domain/actions";
+import type { QueueActionItem } from "@nyte/workflows";
 
 export type ActionContentViewModel =
   | {
@@ -16,7 +16,7 @@ export type ActionContentViewModel =
       customerName: string;
     };
 
-export function primaryActionLabel(item: WorkItemWithAction) {
+export function primaryActionLabel(item: QueueActionItem) {
   if (item.type === "calendar") {
     return "Accept";
   }
@@ -28,7 +28,7 @@ export function primaryActionLabel(item: WorkItemWithAction) {
   return "Review Reply";
 }
 
-export function secondaryActionLabel(item: WorkItemWithAction) {
+export function secondaryActionLabel(item: QueueActionItem) {
   if (item.type === "calendar") {
     return "Decline";
   }
@@ -67,7 +67,7 @@ function truncate(value: string, max = 140) {
   return `${normalized.slice(0, Math.max(0, max - 1)).trimEnd()}…`;
 }
 
-export function actionContentViewModel(item: WorkItemWithAction): ActionContentViewModel {
+export function actionContentViewModel(item: QueueActionItem): ActionContentViewModel {
   if (item.proposedAction.kind === "google-calendar.createEvent") {
     const { day, time } = splitCalendarDate(item.proposedAction.startsAt);
     return {
