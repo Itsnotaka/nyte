@@ -1,4 +1,5 @@
-import { isToolCallPayload } from "@nyte/domain/actions";
+import { type ExecutionResult } from "@nyte/domain";
+import { isToolCallPayload, type ToolCallPayload } from "@nyte/domain/actions";
 import { isPiExtensionResult } from "@nyte/pi-runtime";
 import type { approveActionTask } from "./tasks/approve-action-task";
 import type { dismissActionTask } from "./tasks/dismiss-action-task";
@@ -36,7 +37,7 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
 }
 
-function isExecutionResult(value: unknown): boolean {
+function isExecutionResult(value: unknown): value is ExecutionResult {
   const payload = asRecord(value);
   if (!payload) {
     return false;
@@ -55,6 +56,18 @@ function isExecutionResult(value: unknown): boolean {
     isNonEmptyString(payload.idempotencyKey) &&
     isNonEmptyString(payload.executedAt)
   );
+}
+
+function matchesExecutionDestination(payload: ToolCallPayload, destination: unknown): boolean {
+  if (payload.kind === "gmail.createDraft") {
+    return destination === "gmail_drafts";
+  }
+
+  if (payload.kind === "google-calendar.createEvent") {
+    return destination === "google_calendar";
+  }
+
+  return destination === "refund_queue";
 }
 
 export function isWorkflowApiErrorResponse(value: unknown): value is WorkflowApiErrorResponse {
@@ -86,10 +99,17 @@ export function isApproveActionResponse(value: unknown): value is ApproveActionR
     return false;
   }
 
+  if (!isToolCallPayload(payload.payload)) {
+    return false;
+  }
+
+  if (!isExecutionResult(payload.execution)) {
+    return false;
+  }
+
   return (
     isNonEmptyString(payload.itemId) &&
-    isToolCallPayload(payload.payload) &&
-    isExecutionResult(payload.execution) &&
+    matchesExecutionDestination(payload.payload, payload.execution.destination) &&
     typeof payload.idempotent === "boolean" &&
     (payload.piExtension === null || isPiExtensionResult(payload.piExtension))
   );
