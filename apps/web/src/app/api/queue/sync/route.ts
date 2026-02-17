@@ -130,7 +130,7 @@ export async function GET(request: Request) {
     const resolved = resolveWorkflowRouteError(error, "Unable to sync Gmail and Calendar signals.");
     status = resolved.status;
 
-    requestLog.error(resolved.logData.message, {
+    requestLog.error(REQUEST_EVENTS.queueSync.taskError, {
       route,
       method,
       status,

@@ -135,7 +135,7 @@ export async function POST(request: Request) {
 
     const resolved = resolveWorkflowRouteError(error, "Unable to record feedback.");
     status = resolved.status;
-    requestLog.error(resolved.logData.message, {
+    requestLog.error(REQUEST_EVENTS.actionFeedback.taskError, {
       route,
       method,
       status,

@@ -117,7 +117,7 @@ export async function POST(request: Request) {
 
     const resolved = resolveWorkflowRouteError(error, "Unable to dismiss action.");
     status = resolved.status;
-    requestLog.error(resolved.logData.message, {
+    requestLog.error(REQUEST_EVENTS.actionDismiss.taskError, {
       route,
       method,
       status,

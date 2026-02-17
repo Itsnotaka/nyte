@@ -4,6 +4,7 @@ export const REQUEST_EVENTS = {
     unauthorized: "queue.sync.unauthorized",
     tokenMissing: "queue.sync.token-missing",
     success: "queue.sync.success",
+    taskError: "queue.sync.task-error",
   },
   actionApprove: {
     start: "action.approve.start",
@@ -11,6 +12,7 @@ export const REQUEST_EVENTS = {
     invalidPayload: "action.approve.invalid-payload",
     success: "action.approve.success",
     domainError: "action.approve.domain-error",
+    taskError: "action.approve.task-error",
   },
   actionDismiss: {
     start: "action.dismiss.start",
@@ -18,6 +20,7 @@ export const REQUEST_EVENTS = {
     invalidPayload: "action.dismiss.invalid-payload",
     success: "action.dismiss.success",
     domainError: "action.dismiss.domain-error",
+    taskError: "action.dismiss.task-error",
   },
   actionFeedback: {
     start: "action.feedback.start",
@@ -25,5 +28,6 @@ export const REQUEST_EVENTS = {
     invalidPayload: "action.feedback.invalid-payload",
     success: "action.feedback.success",
     domainError: "action.feedback.domain-error",
+    taskError: "action.feedback.task-error",
   },
 } as const;
