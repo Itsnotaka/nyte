@@ -70,7 +70,9 @@ async function fetchGoogleJson<T>(url: string, accessToken: string): Promise<T> 
 
   if (!response.ok) {
     const detail = await response.text();
-    throw new Error(`Gmail API request failed with status ${response.status}: ${detail.slice(0, 240)}`);
+    throw new Error(
+      `Gmail API request failed with status ${response.status}: ${detail.slice(0, 240)}`,
+    );
   }
 
   return (await response.json()) as T;
@@ -94,7 +96,7 @@ function extractActor(fromHeader: string) {
     return "Unknown sender";
   }
 
-  const nameMatch = trimmed.match(/^(?:\"?([^\"<]+)\"?\s*)?<[^>]+>$/);
+  const nameMatch = trimmed.match(/^(?:"?([^"<]+)"?\s*)?<[^>]+>$/);
   if (nameMatch?.[1]) {
     return nameMatch[1].trim();
   }
@@ -143,7 +145,11 @@ function inferRelationshipScore(subject: string, actor: string) {
   return 0.52;
 }
 
-function inferImpactScore(subject: string, snippet: string, intent: "draft_reply" | "refund_request") {
+function inferImpactScore(
+  subject: string,
+  snippet: string,
+  intent: "draft_reply" | "refund_request",
+) {
   const haystack = `${subject} ${snippet}`.toLowerCase();
 
   if (intent === "refund_request") {
@@ -170,16 +176,10 @@ function inferDeadline(intent: "draft_reply" | "refund_request", now: Date) {
   return undefined;
 }
 
-function toSignal(
-  snapshot: GmailThreadSnapshot,
-  watchKeywords: string[],
-  now: Date,
-): IntakeSignal {
+function toSignal(snapshot: GmailThreadSnapshot, watchKeywords: string[], now: Date): IntakeSignal {
   const intent = inferIntent(snapshot.subject, snapshot.snippet);
   const haystack = `${snapshot.subject} ${snapshot.snippet}`.toLowerCase();
-  const watchMatched = watchKeywords.some((keyword) =>
-    haystack.includes(keyword.toLowerCase()),
-  );
+  const watchMatched = watchKeywords.some((keyword) => haystack.includes(keyword.toLowerCase()));
 
   return {
     id: `gmail:${snapshot.id}`,
@@ -197,7 +197,10 @@ function toSignal(
   };
 }
 
-async function fetchMessageSnapshot(accessToken: string, messageId: string): Promise<GmailThreadSnapshot> {
+async function fetchMessageSnapshot(
+  accessToken: string,
+  messageId: string,
+): Promise<GmailThreadSnapshot> {
   const params = new URLSearchParams({
     format: "metadata",
     metadataHeaders: "From",
@@ -259,8 +262,7 @@ export async function pollGmailIngestion({
   );
 
   snapshots.sort(
-    (left, right) =>
-      new Date(right.receivedAt).getTime() - new Date(left.receivedAt).getTime(),
+    (left, right) => new Date(right.receivedAt).getTime() - new Date(left.receivedAt).getTime(),
   );
 
   return {

@@ -90,7 +90,13 @@ function actorFromEvent(event: GoogleCalendarEvent) {
 
   const organizerEmail = event.organizer?.email?.trim();
   if (organizerEmail) {
-    return organizerEmail.split("@").at(0)?.replace(/[._-]+/g, " ").trim() ?? organizerEmail;
+    return (
+      organizerEmail
+        .split("@")
+        .at(0)
+        ?.replace(/[._-]+/g, " ")
+        .trim() ?? organizerEmail
+    );
   }
 
   return "Calendar organizer";
@@ -99,7 +105,9 @@ function actorFromEvent(event: GoogleCalendarEvent) {
 function hasPendingResponse(event: GoogleCalendarEvent) {
   const selfAttendee = event.attendees?.find((attendee) => attendee.self);
   if (selfAttendee) {
-    return selfAttendee.responseStatus === "needsAction" || selfAttendee.responseStatus === "tentative";
+    return (
+      selfAttendee.responseStatus === "needsAction" || selfAttendee.responseStatus === "tentative"
+    );
   }
 
   return event.organizer?.self !== true;
@@ -116,7 +124,11 @@ function inferRelationshipScore(actor: string, summary: string) {
 
 function inferImpactScore(summary: string, description: string) {
   const haystack = `${summary} ${description}`.toLowerCase();
-  if (haystack.includes("board") || haystack.includes("quarterly") || haystack.includes("customer")) {
+  if (
+    haystack.includes("board") ||
+    haystack.includes("quarterly") ||
+    haystack.includes("customer")
+  ) {
     return 0.79;
   }
 
@@ -141,9 +153,7 @@ function toSignal(
   const actor = actorFromEvent(event);
   const description = truncate(event.description ?? "", 220);
   const haystack = `${summary} ${description} ${actor}`.toLowerCase();
-  const watchMatched = watchKeywords.some((keyword) =>
-    haystack.includes(keyword.toLowerCase()),
-  );
+  const watchMatched = watchKeywords.some((keyword) => haystack.includes(keyword.toLowerCase()));
 
   return {
     id: `gcal:${event.id}`,

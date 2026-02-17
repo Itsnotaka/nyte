@@ -15,7 +15,7 @@
     "@nyte/db": "workspace:^",
     "@nyte/domain": "workspace:^",
     "@nyte/integrations": "workspace:^",
-    "@nyte/ui": "workspace:*",
+    "@tanstack/react-query": "^5.90.21",
     "better-auth": "^1.4.18",
     "drizzle-orm": "^0.45.1",
     "lucide-react": "^0.563.0",

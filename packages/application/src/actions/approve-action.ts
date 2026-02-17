@@ -9,52 +9,17 @@ import {
 } from "@nyte/db";
 import { type ToolCallPayload } from "@nyte/domain/actions";
 import { executeProposedAction } from "@nyte/domain/execution";
-import { Result } from "neverthrow";
 
-import { recordAuditLog } from "./audit-log";
-import { recordWorkflowRun } from "./workflow-log";
+import { recordAuditLog } from "../audit/audit-log";
+import { parseToolCallPayload } from "../shared/payload";
+import { toIsoString } from "../shared/time";
+import { recordWorkflowRun } from "../workflow/workflow-log";
 
 export class ApprovalError extends Error {
   constructor(message: string) {
     super(message);
     this.name = "ApprovalError";
   }
-}
-
-const TOOL_CALL_KINDS = new Set<ToolCallPayload["kind"]>([
-  "gmail.createDraft",
-  "google-calendar.createEvent",
-  "billing.queueRefund",
-]);
-
-function safeParsePayload(payloadJson: string): ToolCallPayload | null {
-  const parsedPayload = Result.fromThrowable(JSON.parse, () => null)(payloadJson);
-  if (parsedPayload.isErr()) {
-    return null;
-  }
-  const parsed = parsedPayload.value as unknown;
-  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
-    return null;
-  }
-
-  const kind = (parsed as { kind?: unknown }).kind;
-  if (typeof kind !== "string" || !TOOL_CALL_KINDS.has(kind as ToolCallPayload["kind"])) {
-    return null;
-  }
-
-  return parsed as ToolCallPayload;
-}
-
-function toIso(value: unknown): string {
-  if (value instanceof Date) {
-    return value.toISOString();
-  }
-
-  if (typeof value === "number") {
-    return new Date(value).toISOString();
-  }
-
-  return new Date().toISOString();
 }
 
 async function resolveExecutionSnapshot(
@@ -75,11 +40,12 @@ async function resolveExecutionSnapshot(
       destination: "gmail_drafts" as const,
       providerReference:
         draft?.providerDraftId ??
-        executeProposedAction(payload, new Date(toIso(updatedAt)), { idempotencyKey })
+        executeProposedAction(payload, new Date(toIsoString(updatedAt)), { idempotencyKey })
           .providerReference,
       idempotencyKey:
-        idempotencyKey ?? executeProposedAction(payload, new Date(toIso(updatedAt))).idempotencyKey,
-      executedAt: toIso(draft?.syncedAt ?? updatedAt),
+        idempotencyKey ??
+        executeProposedAction(payload, new Date(toIsoString(updatedAt))).idempotencyKey,
+      executedAt: toIsoString(draft?.syncedAt ?? updatedAt),
     };
   }
 
@@ -95,15 +61,16 @@ async function resolveExecutionSnapshot(
       destination: "google_calendar" as const,
       providerReference:
         event?.providerEventId ??
-        executeProposedAction(payload, new Date(toIso(updatedAt)), { idempotencyKey })
+        executeProposedAction(payload, new Date(toIsoString(updatedAt)), { idempotencyKey })
           .providerReference,
       idempotencyKey:
-        idempotencyKey ?? executeProposedAction(payload, new Date(toIso(updatedAt))).idempotencyKey,
-      executedAt: toIso(event?.syncedAt ?? updatedAt),
+        idempotencyKey ??
+        executeProposedAction(payload, new Date(toIsoString(updatedAt))).idempotencyKey,
+      executedAt: toIsoString(event?.syncedAt ?? updatedAt),
     };
   }
 
-  const execution = executeProposedAction(payload, new Date(toIso(updatedAt)), {
+  const execution = executeProposedAction(payload, new Date(toIsoString(updatedAt)), {
     idempotencyKey,
   });
   return execution;
@@ -132,7 +99,7 @@ export async function approveWorkItem(itemId: string, now = new Date(), idempote
     throw new ApprovalError("No proposed action found for work item.");
   }
 
-  const payload = safeParsePayload(proposal.payloadJson);
+  const payload = parseToolCallPayload(proposal.payloadJson);
   if (!payload) {
     throw new ApprovalError("Proposed action payload is invalid.");
   }

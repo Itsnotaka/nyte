@@ -1,1 +1,1 @@
-export * from "@nyte/application/runtime-secrets";
+export { getAuthSecret, getTokenEncryptionKeySource } from "@nyte/application/security";

@@ -1,7 +1,9 @@
 import { randomUUID } from "node:crypto";
 import { and, count, desc, eq } from "drizzle-orm";
 import { auditLogs, db, ensureDbSchema } from "@nyte/db";
-import { Result } from "neverthrow";
+
+import { parseRecordPayload } from "../shared/payload";
+import { toIsoString } from "../shared/time";
 
 type AuditExecutor = Pick<typeof db, "insert">;
 
@@ -44,36 +46,6 @@ export type AuditLogEntry = {
   payload: Record<string, unknown>;
   createdAt: string;
 };
-
-function toIso(value: unknown): string {
-  if (value instanceof Date) {
-    return value.toISOString();
-  }
-
-  if (typeof value === "number") {
-    return new Date(value).toISOString();
-  }
-
-  return new Date().toISOString();
-}
-
-function safeParsePayload(payloadJson: string): Record<string, unknown> {
-  const parsedPayload = Result.fromThrowable(JSON.parse, () => null)(payloadJson);
-  if (parsedPayload.isErr()) {
-    return {
-      parseError: true,
-      rawPayload: payloadJson,
-    };
-  }
-  const parsed = parsedPayload.value as unknown;
-  if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
-    return parsed as Record<string, unknown>;
-  }
-
-  return {
-    value: parsed,
-  };
-}
 
 export async function listAuditLogs(limit = 100, offset = 0): Promise<AuditLogEntry[]> {
   await ensureDbSchema();
@@ -130,7 +102,7 @@ function toAuditLogEntry(row: typeof auditLogs.$inferSelect): AuditLogEntry {
     action: row.action,
     targetType: row.targetType,
     targetId: row.targetId,
-    payload: safeParsePayload(row.payloadJson),
-    createdAt: toIso(row.createdAt),
+    payload: parseRecordPayload(row.payloadJson),
+    createdAt: toIsoString(row.createdAt),
   };
 }

@@ -1,39 +1,12 @@
 import { and, eq, inArray, lt } from "drizzle-orm";
-import {
-  auditLogs,
-  db,
-  ensureDbSchema,
-  policyRules,
-  users,
-  workflowEvents,
-  workflowRuns,
-} from "@nyte/db";
+import { auditLogs, db, ensureDbSchema, policyRules, workflowEvents, workflowRuns } from "@nyte/db";
 
-import { recordAuditLog } from "./audit-log";
+import { recordAuditLog } from "../audit/audit-log";
+import { DEFAULT_USER_ID, ensureDefaultUser } from "../shared/default-user";
 
-const DEFAULT_USER_ID = "local-user";
-const DEFAULT_USER_EMAIL = "local-user@nyte.dev";
 const DEFAULT_RETENTION_DAYS = 30;
 const RETENTION_RULE_ID = "policy:workflow_retention_days";
 let lastAutoPruneAt = 0;
-
-async function ensureDefaultUser(now: Date) {
-  await db
-    .insert(users)
-    .values({
-      id: DEFAULT_USER_ID,
-      email: DEFAULT_USER_EMAIL,
-      name: "Local Nyte User",
-      createdAt: now,
-      updatedAt: now,
-    })
-    .onConflictDoUpdate({
-      target: users.id,
-      set: {
-        updatedAt: now,
-      },
-    });
-}
 
 export class WorkflowRetentionError extends Error {
   constructor(message: string) {

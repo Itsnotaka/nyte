@@ -32,9 +32,7 @@ async function parseSyncPollResponse(response: Response): Promise<SyncPollRespon
 }
 
 export async function syncNeedsYou(cursor: string | null): Promise<SyncPollResponse> {
-  const url = cursor
-    ? `/api/sync/poll?cursor=${encodeURIComponent(cursor)}`
-    : "/api/sync/poll";
+  const url = cursor ? `/api/sync/poll?cursor=${encodeURIComponent(cursor)}` : "/api/sync/poll";
 
   const response = await fetch(url, {
     method: "GET",

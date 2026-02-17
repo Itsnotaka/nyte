@@ -11,7 +11,9 @@ import {
 } from "@nyte/db";
 import type { ToolCallPayload, WorkItemWithAction } from "@nyte/domain/actions";
 import type { WorkItem } from "@nyte/domain/triage";
-import { Result } from "neverthrow";
+
+import { parseToolCallPayload } from "../shared/payload";
+import { toIsoString } from "../shared/time";
 
 export type ProcessedEntry = {
   id: string;
@@ -46,42 +48,6 @@ type ActionPresentation = {
   secondaryLabel: string;
   cta: WorkItem["cta"];
 };
-
-const TOOL_CALL_KINDS = new Set<ToolCallPayload["kind"]>([
-  "gmail.createDraft",
-  "google-calendar.createEvent",
-  "billing.queueRefund",
-]);
-
-function toIso(value: unknown): string {
-  if (value instanceof Date) {
-    return value.toISOString();
-  }
-
-  if (typeof value === "number") {
-    return new Date(value).toISOString();
-  }
-
-  return new Date().toISOString();
-}
-
-function safeParsePayload(payloadJson: string): ToolCallPayload | null {
-  const parsedPayload = Result.fromThrowable(JSON.parse, () => null)(payloadJson);
-  if (parsedPayload.isErr()) {
-    return null;
-  }
-  const parsed = parsedPayload.value as unknown;
-  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
-    return null;
-  }
-
-  const kind = (parsed as { kind?: unknown }).kind;
-  if (typeof kind !== "string" || !TOOL_CALL_KINDS.has(kind as ToolCallPayload["kind"])) {
-    return null;
-  }
-
-  return parsed as ToolCallPayload;
-}
 
 function presentationForAction(kind: ToolCallPayload["kind"]): ActionPresentation {
   if (kind === "google-calendar.createEvent") {
@@ -130,7 +96,7 @@ async function loadNeedsYouQueue(): Promise<WorkItemWithAction[]> {
       continue;
     }
 
-    const payload = safeParsePayload(proposal.payloadJson);
+    const payload = parseToolCallPayload(proposal.payloadJson);
     if (!payload) {
       continue;
     }
@@ -178,7 +144,7 @@ async function loadDrafts(): Promise<DraftEntry[]> {
 
   return rows
     .map((row) => {
-      const payload = safeParsePayload(row.payloadJson);
+      const payload = parseToolCallPayload(row.payloadJson);
       if (!payload) {
         return null;
       }
@@ -236,13 +202,13 @@ async function loadProcessed(): Promise<ProcessedEntry[]> {
         action: "Dismissed",
         status: "dismissed",
         detail: "Dismissed from Needs You queue.",
-        at: toIso(row.updatedAt),
+        at: toIsoString(row.updatedAt),
         feedback: feedbackByItem.get(row.id) ?? null,
       });
       continue;
     }
 
-    const payload = safeParsePayload(action.payloadJson);
+    const payload = parseToolCallPayload(action.payloadJson);
     if (!payload) {
       processed.push({
         id: `${row.id}:${action.id}`,
@@ -251,7 +217,7 @@ async function loadProcessed(): Promise<ProcessedEntry[]> {
         action: "Unknown action",
         status: "executed",
         detail: "action_payload • unreadable",
-        at: toIso(row.updatedAt),
+        at: toIsoString(row.updatedAt),
         feedback: feedbackByItem.get(row.id) ?? null,
       });
       continue;
@@ -284,7 +250,7 @@ async function loadProcessed(): Promise<ProcessedEntry[]> {
       action: presentationForAction(payload.kind).actionLabel,
       status: "executed",
       detail,
-      at: toIso(row.updatedAt),
+      at: toIsoString(row.updatedAt),
       feedback: feedbackByItem.get(row.id) ?? null,
     });
   }

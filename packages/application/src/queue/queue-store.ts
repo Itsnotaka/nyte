@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { db, ensureDbSchema, gateEvaluations, proposedActions, users, workItems } from "@nyte/db";
+import { db, ensureDbSchema, gateEvaluations, proposedActions, workItems } from "@nyte/db";
 import { createToolCallPayload } from "@nyte/domain/actions";
 import {
   evaluateNeedsYou,
@@ -8,29 +8,9 @@ import {
   type WorkItem,
 } from "@nyte/domain/triage";
 
-import { recordAuditLog } from "./audit-log";
-import { recordWorkflowRun } from "./workflow-log";
-
-const DEFAULT_USER_ID = "local-user";
-const DEFAULT_USER_EMAIL = "local-user@nyte.dev";
-
-async function ensureDefaultUser(now: Date) {
-  await db
-    .insert(users)
-    .values({
-      id: DEFAULT_USER_ID,
-      email: DEFAULT_USER_EMAIL,
-      name: "Local Nyte User",
-      createdAt: now,
-      updatedAt: now,
-    })
-    .onConflictDoUpdate({
-      target: users.id,
-      set: {
-        updatedAt: now,
-      },
-    });
-}
+import { recordAuditLog } from "../audit/audit-log";
+import { DEFAULT_USER_ID, ensureDefaultUser } from "../shared/default-user";
+import { recordWorkflowRun } from "../workflow/workflow-log";
 
 async function upsertWorkItem(signal: IntakeSignal, now: Date): Promise<WorkItem | null> {
   const workItem = toWorkItem(signal, now);

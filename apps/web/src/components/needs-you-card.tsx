@@ -5,10 +5,7 @@ import {
   NeedsYouActionContent,
   NeedsYouPrimaryActionIcon,
 } from "~/components/needs-you-action-content";
-import {
-  primaryActionLabel,
-  secondaryActionLabel,
-} from "~/lib/needs-you/presenters";
+import { primaryActionLabel, secondaryActionLabel } from "~/lib/needs-you/presenters";
 
 const GHOST_BUTTON_CLASS =
   "group/button focus-visible:ring-neutral-strong relative inline-flex shrink-0 cursor-pointer rounded-lg whitespace-nowrap transition-transform outline-none select-none focus-visible:ring-2 h-7 px-1.5";
@@ -72,17 +69,11 @@ export function NeedsYouCard({ item, onApprove, onDismiss }: NeedsYouCardProps) 
               <span className="absolute inset-0 rounded-lg border border-transparent bg-muted transition group-hover/button:border-border group-hover/button:bg-background group-hover/button:shadow-xs" />
               <span className="relative z-10 flex items-center gap-1 text-sm text-foreground">
                 <XIcon className="size-3.5" />
-                <span className="px-0.5 leading-none">
-                  {secondaryActionLabel(item)}
-                </span>
+                <span className="px-0.5 leading-none">{secondaryActionLabel(item)}</span>
               </span>
             </button>
 
-            <button
-              type="button"
-              className={PRIMARY_BUTTON_CLASS}
-              onClick={() => onApprove(item)}
-            >
+            <button type="button" className={PRIMARY_BUTTON_CLASS} onClick={() => onApprove(item)}>
               <span className="absolute inset-0 rounded-lg border border-border bg-gradient-to-t from-background to-background shadow-xs transition group-hover/button:to-muted" />
               <span className="relative z-10 flex items-center gap-1 text-sm text-foreground">
                 <NeedsYouPrimaryActionIcon item={item} />

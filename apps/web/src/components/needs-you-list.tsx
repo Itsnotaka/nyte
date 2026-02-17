@@ -8,20 +8,11 @@ type NeedsYouListProps = {
   onDismiss: (item: WorkItemWithAction) => void;
 };
 
-export function NeedsYouList({
-  items,
-  onApprove,
-  onDismiss,
-}: NeedsYouListProps) {
+export function NeedsYouList({ items, onApprove, onDismiss }: NeedsYouListProps) {
   return (
     <section className="mt-8 space-y-2 overflow-hidden">
       {items.map((item) => (
-        <NeedsYouCard
-          key={item.id}
-          item={item}
-          onApprove={onApprove}
-          onDismiss={onDismiss}
-        />
+        <NeedsYouCard key={item.id} item={item} onApprove={onApprove} onDismiss={onDismiss} />
       ))}
     </section>
   );

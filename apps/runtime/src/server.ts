@@ -130,7 +130,7 @@ export function createRuntimeServer() {
 export function createRuntimeServerWithOptions(options: RuntimeServerOptions = {}) {
   const handleCommand = options.handleCommand ?? handleRuntimeCommand;
 
-  return createServer((request, response) => {
+  return createServer(async (request, response) => {
     const routeType = request.method === "POST" ? resolveRouteType(request.url) : null;
     if (!routeType) {
       writeJson(response, 404, { error: "Not found." });
@@ -143,49 +143,48 @@ export function createRuntimeServerWithOptions(options: RuntimeServerOptions = {
       return;
     }
 
-    void readBody(request).then((bodyResult) => {
-      if (bodyResult.isErr()) {
-        writeJson(response, 400, { error: bodyResult.error.message });
-        return;
-      }
+    const bodyResult = await readBody(request);
+    if (bodyResult.isErr()) {
+      writeJson(response, 400, { error: bodyResult.error.message });
+      return;
+    }
 
-      const parsedBody = parseJson(bodyResult.value);
-      if (parsedBody.isErr()) {
-        writeJson(response, 400, { error: parsedBody.error.message });
-        return;
-      }
+    const parsedBody = parseJson(bodyResult.value);
+    if (parsedBody.isErr()) {
+      writeJson(response, 400, { error: parsedBody.error.message });
+      return;
+    }
 
-      if (!isRuntimeCommand(parsedBody.value)) {
-        writeJson(response, 400, { error: "Request body must satisfy RuntimeCommand contract." });
-        return;
-      }
+    if (!isRuntimeCommand(parsedBody.value)) {
+      writeJson(response, 400, { error: "Request body must satisfy RuntimeCommand contract." });
+      return;
+    }
 
-      const requestId = parsedBody.value.context.requestId;
+    const requestId = parsedBody.value.context.requestId;
 
-      if (routeType !== "runtime.command" && parsedBody.value.type !== routeType) {
-        writeJson(
-          response,
-          400,
-          {
-            error: "Runtime command type does not match endpoint.",
-          },
-          requestId,
-        );
-        return;
-      }
-
-      void ResultAsync.fromPromise(
-        Promise.resolve(handleCommand(parsedBody.value)),
-        () => new Error("Failed to process runtime command."),
-      ).match(
-        (commandResult) => {
-          writeJson(response, 200, commandResult as Record<string, unknown>, requestId);
+    if (routeType !== "runtime.command" && parsedBody.value.type !== routeType) {
+      writeJson(
+        response,
+        400,
+        {
+          error: "Runtime command type does not match endpoint.",
         },
-        () => {
-          writeJson(response, 500, { error: "Failed to process runtime command." }, requestId);
-        },
+        requestId,
       );
-    });
+      return;
+    }
+
+    const commandResult = await ResultAsync.fromPromise(
+      Promise.resolve(handleCommand(parsedBody.value)),
+      () => new Error("Failed to process runtime command."),
+    );
+
+    if (commandResult.isErr()) {
+      writeJson(response, 500, { error: "Failed to process runtime command." }, requestId);
+      return;
+    }
+
+    writeJson(response, 200, commandResult.value as Record<string, unknown>, requestId);
   });
 }
 

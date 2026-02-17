@@ -1,34 +1,14 @@
 import { and, desc, eq } from "drizzle-orm";
-import { db, ensureDbSchema, policyRules, users } from "@nyte/db";
+import { db, ensureDbSchema, policyRules } from "@nyte/db";
 
-import { recordAuditLog } from "./audit-log";
-
-const DEFAULT_USER_ID = "local-user";
-const DEFAULT_USER_EMAIL = "local-user@nyte.dev";
+import { recordAuditLog } from "../audit/audit-log";
+import { DEFAULT_USER_ID, ensureDefaultUser } from "../shared/default-user";
 
 export class PolicyRuleError extends Error {
   constructor(message: string) {
     super(message);
     this.name = "PolicyRuleError";
   }
-}
-
-async function ensureDefaultUser(now: Date) {
-  await db
-    .insert(users)
-    .values({
-      id: DEFAULT_USER_ID,
-      email: DEFAULT_USER_EMAIL,
-      name: "Local Nyte User",
-      createdAt: now,
-      updatedAt: now,
-    })
-    .onConflictDoUpdate({
-      target: users.id,
-      set: {
-        updatedAt: now,
-      },
-    });
 }
 
 function normalizeKeyword(keyword: string) {

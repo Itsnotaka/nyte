@@ -1,6 +1,11 @@
-import { ApprovalError, approveWorkItem } from "@nyte/application/approve-action";
-import { dismissWorkItem, DismissError } from "@nyte/application/dismiss-action";
-import { FeedbackError, recordFeedback } from "@nyte/application/feedback";
+import {
+  ApprovalError,
+  approveWorkItem,
+  DismissError,
+  dismissWorkItem,
+  FeedbackError,
+  recordFeedback,
+} from "@nyte/application/actions";
 import type { RuntimeCommand, RuntimeCommandResult, RuntimeErrorResult } from "@nyte/contracts";
 import { ResultAsync } from "neverthrow";
 
@@ -64,7 +69,7 @@ export function createRuntimeCommandHandler(deps: RuntimeCommandHandlerDeps = DE
     if (command.type === "runtime.ingest") {
       return toRuntimeError(
         requestId,
-        "not_supported",
+        "bad_request",
         "Runtime ingestion is disabled in the web-first app.",
       );
     }

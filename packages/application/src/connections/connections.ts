@@ -1,12 +1,12 @@
 import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
-import { connectedAccounts, db, ensureDbSchema, users } from "@nyte/db";
+import { connectedAccounts, db, ensureDbSchema } from "@nyte/db";
 
-import { recordAuditLog } from "./audit-log";
-import { decryptSecret, encryptSecret } from "./token-crypto";
+import { recordAuditLog } from "../audit/audit-log";
+import { DEFAULT_USER_ID, ensureDefaultUser } from "../shared/default-user";
+import { toIsoStringOrNull } from "../shared/time";
+import { decryptSecret, encryptSecret } from "../security/token-crypto";
 
-const DEFAULT_USER_ID = "local-user";
-const DEFAULT_USER_EMAIL = "local-user@nyte.dev";
 const GOOGLE_SCOPES = [
   "https://www.googleapis.com/auth/gmail.readonly",
   "https://www.googleapis.com/auth/gmail.compose",
@@ -21,36 +21,6 @@ export type GoogleConnectionStatus = {
   connectedAt: string | null;
   updatedAt: string | null;
 };
-
-async function ensureDefaultUser(now: Date) {
-  await db
-    .insert(users)
-    .values({
-      id: DEFAULT_USER_ID,
-      email: DEFAULT_USER_EMAIL,
-      name: "Local Nyte User",
-      createdAt: now,
-      updatedAt: now,
-    })
-    .onConflictDoUpdate({
-      target: users.id,
-      set: {
-        updatedAt: now,
-      },
-    });
-}
-
-function toIso(value: unknown): string | null {
-  if (value instanceof Date) {
-    return value.toISOString();
-  }
-
-  if (typeof value === "number") {
-    return new Date(value).toISOString();
-  }
-
-  return null;
-}
 
 export async function getGoogleConnectionStatus(): Promise<GoogleConnectionStatus> {
   await ensureDbSchema();
@@ -77,8 +47,8 @@ export async function getGoogleConnectionStatus(): Promise<GoogleConnectionStatu
     provider: "google",
     providerAccountId: row.providerAccountId,
     scopes: row.scopes.split(" ").filter(Boolean),
-    connectedAt: toIso(row.connectedAt),
-    updatedAt: toIso(row.updatedAt),
+    connectedAt: toIsoStringOrNull(row.connectedAt),
+    updatedAt: toIsoStringOrNull(row.updatedAt),
   };
 }
 

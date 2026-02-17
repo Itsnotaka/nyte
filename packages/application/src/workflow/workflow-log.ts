@@ -1,7 +1,9 @@
 import { randomUUID } from "node:crypto";
 import { asc, desc, eq } from "drizzle-orm";
 import { db, ensureDbSchema, workflowEvents, workflowRuns } from "@nyte/db";
-import { Result } from "neverthrow";
+
+import { parseRecordPayload } from "../shared/payload";
+import { toIsoString } from "../shared/time";
 
 type WorkflowLogEvent = {
   kind: string;
@@ -62,36 +64,6 @@ export type WorkflowTimelineEntry = {
   }>;
 };
 
-function safeParsePayload(payloadJson: string): Record<string, unknown> {
-  const parsedPayload = Result.fromThrowable(JSON.parse, () => null)(payloadJson);
-  if (parsedPayload.isErr()) {
-    return {
-      parseError: true,
-      rawPayload: payloadJson,
-    };
-  }
-  const parsed = parsedPayload.value as unknown;
-  if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
-    return parsed as Record<string, unknown>;
-  }
-
-  return {
-    value: parsed,
-  };
-}
-
-function toIso(value: unknown): string {
-  if (value instanceof Date) {
-    return value.toISOString();
-  }
-
-  if (typeof value === "number") {
-    return new Date(value).toISOString();
-  }
-
-  return new Date().toISOString();
-}
-
 export async function getWorkflowTimeline(workItemId: string): Promise<WorkflowTimelineEntry[]> {
   await ensureDbSchema();
 
@@ -113,11 +85,11 @@ export async function getWorkflowTimeline(workItemId: string): Promise<WorkflowT
       runId: run.id,
       phase: run.phase,
       status: run.status,
-      at: toIso(run.createdAt),
+      at: toIsoString(run.createdAt),
       events: events.map((event) => ({
         kind: event.kind,
-        payload: safeParsePayload(event.payloadJson),
-        at: toIso(event.createdAt),
+        payload: parseRecordPayload(event.payloadJson),
+        at: toIsoString(event.createdAt),
       })),
     });
   }

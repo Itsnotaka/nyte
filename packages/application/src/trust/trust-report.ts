@@ -1,10 +1,10 @@
-import { getGoogleConnectionStatus } from "./connections";
-import { getMetricsSnapshot } from "./metrics";
-import { listWatchKeywords } from "./policy-rules";
-import { getWorkflowRetentionDays } from "./workflow-retention";
-import { getAuthSecret, getTokenEncryptionKeySource } from "./runtime-secrets";
-import { evaluateSecurityPosture, type SecurityPosture } from "./security-posture";
-import { listAuditLogs } from "./audit-log";
+import { getGoogleConnectionStatus } from "../connections/connections";
+import { listAuditLogs } from "../audit/audit-log";
+import { getMetricsSnapshot } from "../dashboard/metrics";
+import { listWatchKeywords } from "../policy/policy-rules";
+import { getWorkflowRetentionDays } from "../policy/workflow-retention";
+import { getAuthSecret, getTokenEncryptionKeySource } from "../security/runtime-secrets";
+import { evaluateSecurityPosture, type SecurityPosture } from "../security/security-posture";
 
 export type RateLimitMode = "auto" | "memory" | "unkey";
 export type RateLimitProvider = "memory" | "unkey";

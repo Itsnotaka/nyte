@@ -1,6 +1,6 @@
 import { headers } from "next/headers";
 
-import { NyteWorkspaceClient } from "~/components/nyte-workspace-client";
+import { NyteWorkspaceClient } from "~/features/home";
 import { auth } from "~/lib/auth";
 
 export default async function Page() {
