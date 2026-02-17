@@ -22,6 +22,16 @@ function parseCursor(request: Request): QueueSyncRequest["cursor"] {
   return cursor;
 }
 
+function parseWatchKeywords(request: Request): QueueSyncRequest["watchKeywords"] {
+  const keywords = new URL(request.url).searchParams
+    .getAll("watch")
+    .map((entry) => entry.trim().toLowerCase())
+    .filter((entry) => entry.length >= 3)
+    .slice(0, 8);
+
+  return keywords.length > 0 ? keywords : undefined;
+}
+
 function resolveAccessToken(payload: AccessTokenPayload) {
   if (typeof payload.accessToken !== "string") {
     return null;
@@ -91,9 +101,11 @@ export async function GET(request: Request) {
       );
     }
 
+    const watchKeywords = parseWatchKeywords(request);
     const result = await runIngestSignalsTask({
       accessToken,
       cursor: parseCursor(request),
+      watchKeywords,
     });
 
     const response: QueueSyncResponse = {
@@ -104,6 +116,7 @@ export async function GET(request: Request) {
       route,
       method: request.method,
       status,
+      message: watchKeywords ? `watch_keywords=${watchKeywords.length}` : undefined,
     });
     return Response.json(response);
   } catch (error) {

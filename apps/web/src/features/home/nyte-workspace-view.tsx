@@ -13,7 +13,7 @@ type NyteWorkspaceViewProps = {
   notice: string | null;
   lastSyncedAt: string | null;
   visibleItems: WorkItemWithAction[];
-  onSubmit: () => void;
+  onSubmit: (command: string) => void;
   onConnect: () => void;
   onDisconnect: () => void;
   onApprove: (item: WorkItemWithAction, payloadOverride?: WorkItemWithAction["proposedAction"]) => void;

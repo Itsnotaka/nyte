@@ -9,14 +9,11 @@ const GHOST_BUTTON_CLASS =
 const PRIMARY_BUTTON_CLASS =
   "group/button focus-visible:ring-neutral-strong relative inline-flex shrink-0 cursor-pointer rounded-lg whitespace-nowrap transition-transform outline-none select-none focus-visible:ring-2 h-7 px-1.5";
 
-const DEFAULT_COMMAND =
-  "Gmail draft an email to our largest customer about the renewal timeline and next steps";
-
 type WorkflowComposerProps = {
   connected: boolean;
   isSyncing: boolean;
   isSessionPending: boolean;
-  onSubmit: () => void;
+  onSubmit: (command: string) => void;
   onConnect: () => void;
   onDisconnect: () => void;
 };
@@ -31,14 +28,14 @@ export function WorkflowComposer({
 }: WorkflowComposerProps) {
   const form = useForm({
     defaultValues: {
-      command: DEFAULT_COMMAND,
+      command: "",
     },
-    onSubmit: async () => {
+    onSubmit: async ({ value }) => {
       if (!connected) {
         return;
       }
 
-      onSubmit();
+      onSubmit(value.command);
     },
   });
 
@@ -59,7 +56,8 @@ export function WorkflowComposer({
                 <input
                   id={field.name}
                   name={field.name}
-                  aria-label="Specify a workflow to handle..."
+                  aria-label="Optional watch keywords for sync"
+                  placeholder="Optional watch keywords (comma separated)"
                   className="w-full min-h-[32px] border-0 bg-transparent py-2 pl-3.5 pr-2 text-sm text-foreground outline-none focus:ring-0"
                   value={field.state.value}
                   onBlur={field.handleBlur}
@@ -124,13 +122,13 @@ export function WorkflowComposer({
             <button
               type="button"
               className={PRIMARY_BUTTON_CLASS}
-              onClick={onSubmit}
+              onClick={() => void form.handleSubmit()}
               disabled={!connected || isSyncing}
             >
               <span className="absolute inset-0 rounded-lg border border-border bg-gradient-to-t from-background to-background shadow-xs transition group-hover/button:to-muted disabled:opacity-50" />
               <span className="relative z-10 flex items-center gap-1 text-sm text-foreground">
                 <RefreshCwIcon className={`size-4 ${isSyncing ? "animate-spin" : ""}`} />
-                <span className="px-0.5 leading-none">Go</span>
+                <span className="px-0.5 leading-none">Sync</span>
                 <span className="hidden h-4 items-center rounded border border-border bg-muted px-1 text-[10px] text-muted-foreground shadow-xs sm:inline-flex">
                   ↵
                 </span>

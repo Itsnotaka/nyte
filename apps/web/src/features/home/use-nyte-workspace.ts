@@ -22,7 +22,7 @@ export type UseNyteWorkspaceResult = {
   notice: string | null;
   lastSyncedAt: string | null;
   visibleItems: WorkItemWithAction[];
-  runSync: () => Promise<void>;
+  runSync: (command: string) => Promise<void>;
   connectGoogle: () => Promise<void>;
   disconnectGoogle: () => Promise<void>;
   markAction: (
@@ -36,6 +36,31 @@ type UserScopedMessage = {
   userId: string | null;
   value: string;
 };
+
+function parseWatchKeywords(command: string): string[] {
+  const normalized = command.trim();
+  if (!normalized) {
+    return [];
+  }
+
+  const candidates = normalized.includes(",")
+    ? normalized.split(",")
+    : normalized.split(/\s+/);
+
+  const keywords = new Set<string>();
+  for (const candidate of candidates) {
+    const keyword = candidate.trim().toLowerCase();
+    if (keyword.length < 3) {
+      continue;
+    }
+    keywords.add(keyword);
+    if (keywords.size >= 8) {
+      break;
+    }
+  }
+
+  return [...keywords];
+}
 
 function resolveSessionUserId(value: unknown): string | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -59,6 +84,7 @@ export function useNyteWorkspace({
   initialConnected,
 }: UseNyteWorkspaceInput): UseNyteWorkspaceResult {
   const queryClient = useQueryClient();
+  const watchKeywordsRef = React.useRef<string[]>([]);
   const [noticeState, setNoticeState] = React.useState<UserScopedMessage | null>(null);
   const [mutationErrorState, setMutationErrorState] = React.useState<UserScopedMessage | null>(null);
 
@@ -105,7 +131,10 @@ export function useNyteWorkspace({
     refetchOnWindowFocus: false,
     queryFn: async () => {
       const currentPayload = queryClient.getQueryData<QueueSyncResponse>(syncQueryKey);
-      return syncNeedsYou(currentPayload?.cursor ?? null);
+      return syncNeedsYou({
+        cursor: currentPayload?.cursor ?? null,
+        watchKeywords: watchKeywordsRef.current,
+      });
     },
   });
 
@@ -140,11 +169,12 @@ export function useNyteWorkspace({
     mutationFn: dismissNeedsYouAction,
   });
 
-  const runSync = React.useCallback(async () => {
+  const runSync = React.useCallback(async (command: string) => {
     setNotice(null);
     setMutationError(null);
+    watchKeywordsRef.current = parseWatchKeywords(command);
     await refetchSync();
-  }, [refetchSync]);
+  }, [refetchSync, setMutationError, setNotice]);
 
   const connectGoogle = React.useCallback(async () => {
     setNotice(null);
@@ -157,7 +187,7 @@ export function useNyteWorkspace({
       provider: "google",
       callbackURL: "/",
     });
-  }, [queryClient, syncQueryKey]);
+  }, [queryClient, setMutationError, setNotice, syncQueryKey]);
 
   const disconnectGoogle = React.useCallback(async () => {
     await authClient.signOut();
@@ -167,7 +197,7 @@ export function useNyteWorkspace({
       queryKey: syncQueryKey,
       exact: true,
     });
-  }, [queryClient, syncQueryKey]);
+  }, [queryClient, setMutationError, setNotice, syncQueryKey]);
 
   const markAction = React.useCallback(
     async (
@@ -202,7 +232,15 @@ export function useNyteWorkspace({
         setMutationError(message);
       }
     },
-    [approveMutation, dismissMutation, queryClient, refetchSync, syncQueryKey],
+    [
+      approveMutation,
+      dismissMutation,
+      queryClient,
+      refetchSync,
+      setMutationError,
+      setNotice,
+      syncQueryKey,
+    ],
   );
 
   return {

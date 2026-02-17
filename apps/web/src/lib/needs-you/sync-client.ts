@@ -23,8 +23,24 @@ async function parseSyncPollResponse(response: Response): Promise<QueueSyncRespo
   };
 }
 
-export async function syncNeedsYou(cursor: string | null): Promise<QueueSyncResponse> {
-  const url = cursor ? `/api/queue/sync?cursor=${encodeURIComponent(cursor)}` : "/api/queue/sync";
+type SyncNeedsYouInput = {
+  cursor: string | null;
+  watchKeywords?: string[];
+};
+
+export async function syncNeedsYou({
+  cursor,
+  watchKeywords = [],
+}: SyncNeedsYouInput): Promise<QueueSyncResponse> {
+  const params = new URLSearchParams();
+  if (cursor) {
+    params.set("cursor", cursor);
+  }
+  for (const keyword of watchKeywords) {
+    params.append("watch", keyword);
+  }
+
+  const url = params.size > 0 ? `/api/queue/sync?${params.toString()}` : "/api/queue/sync";
 
   const response = await fetch(url, {
     method: "GET",
