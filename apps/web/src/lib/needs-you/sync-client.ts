@@ -26,10 +26,7 @@ async function parseSyncPollResponse(response: Response): Promise<QueueSyncRespo
   return payload;
 }
 
-type SyncNeedsYouInput = {
-  cursor: QueueSyncRequest["cursor"];
-  watchKeywords?: QueueSyncRequest["watchKeywords"];
-};
+type SyncNeedsYouInput = Pick<QueueSyncRequest, "cursor" | "watchKeywords">;
 
 export async function syncNeedsYou({
   cursor,
