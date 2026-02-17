@@ -6,7 +6,6 @@ import { NeedsYouList } from "~/components/needs-you-list";
 import { WorkflowComposer } from "~/components/workflow-composer";
 
 type NyteWorkspaceViewProps = {
-  command: string;
   connected: boolean;
   isSessionPending: boolean;
   isSyncing: boolean;
@@ -14,7 +13,6 @@ type NyteWorkspaceViewProps = {
   notice: string | null;
   lastSyncedAt: string | null;
   visibleItems: WorkItemWithAction[];
-  onCommandChange: (value: string) => void;
   onSubmit: () => void;
   onConnect: () => void;
   onDisconnect: () => void;
@@ -23,7 +21,6 @@ type NyteWorkspaceViewProps = {
 };
 
 export function NyteWorkspaceView({
-  command,
   connected,
   isSessionPending,
   isSyncing,
@@ -31,7 +28,6 @@ export function NyteWorkspaceView({
   notice,
   lastSyncedAt,
   visibleItems,
-  onCommandChange,
   onSubmit,
   onConnect,
   onDisconnect,
@@ -42,11 +38,9 @@ export function NyteWorkspaceView({
     <main className="min-h-dvh bg-[radial-gradient(circle_at_10%_12%,#6aa5ff_0%,transparent_30%),radial-gradient(circle_at_88%_16%,#f18bd1_0%,transparent_36%),radial-gradient(circle_at_86%_86%,#ff8359_0%,transparent_38%),radial-gradient(circle_at_16%_82%,#45c8ff_0%,transparent_36%),linear-gradient(125deg,#4f46e5_0%,#0ea5e9_40%,#f97316_100%)] px-4 py-10 md:py-14">
       <div className="mx-auto max-w-[700px]">
         <WorkflowComposer
-          command={command}
           connected={connected}
           isSyncing={isSyncing}
           isSessionPending={isSessionPending}
-          onCommandChange={onCommandChange}
           onSubmit={onSubmit}
           onConnect={onConnect}
           onDisconnect={onDisconnect}

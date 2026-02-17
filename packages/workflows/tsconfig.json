@@ -1,0 +1,5 @@
+{
+  "extends": "@nyte/tsconfig/base",
+  "include": ["src"],
+  "exclude": ["node_modules", "dist"]
+}

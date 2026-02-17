@@ -1,17 +1,9 @@
-import { withToolCalls } from "@nyte/domain/actions";
-import { createNeedsYouQueue } from "@nyte/domain/triage";
-import { pollGoogleCalendarIngestion } from "@nyte/integrations/calendar/polling";
-import { pollGmailIngestion } from "@nyte/integrations/gmail/polling";
+import { ingestSignalsTask } from "@nyte/workflows";
 
 import { auth } from "~/lib/auth";
 
 type AccessTokenPayload = {
   accessToken?: unknown;
-};
-
-type SyncPollResponse = {
-  cursor: string;
-  needsYou: ReturnType<typeof withToolCalls>;
 };
 
 function parseCursor(request: Request) {
@@ -65,32 +57,17 @@ export async function GET(request: Request) {
     );
   }
 
-  const now = new Date();
-  const cursor = parseCursor(request);
-
   try {
-    const [gmailResult, calendarResult] = await Promise.all([
-      pollGmailIngestion({
-        accessToken,
-        cursor,
-        now,
-      }),
-      pollGoogleCalendarIngestion({
-        accessToken,
-        cursor,
-        now,
-      }),
-    ]);
+    const result = await ingestSignalsTask({
+      accessToken,
+      cursor: parseCursor(request),
+      now: new Date(),
+    });
 
-    const signals = [...gmailResult.signals, ...calendarResult.signals];
-    const needsYou = withToolCalls(createNeedsYouQueue(signals, now));
-
-    const response: SyncPollResponse = {
-      cursor: now.toISOString(),
-      needsYou,
-    };
-
-    return Response.json(response);
+    return Response.json({
+      cursor: result.cursor,
+      needsYou: result.needsYou,
+    });
   } catch (error) {
     const message =
       error instanceof Error && error.message.trim().length > 0

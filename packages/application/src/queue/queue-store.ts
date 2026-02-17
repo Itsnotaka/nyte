@@ -1,5 +1,5 @@
-import { eq } from "drizzle-orm";
 import { db, ensureDbSchema, gateEvaluations, proposedActions, workItems } from "@nyte/db";
+import { eq } from "@nyte/db/drizzle";
 import { createToolCallPayload } from "@nyte/domain/actions";
 import {
   evaluateNeedsYou,

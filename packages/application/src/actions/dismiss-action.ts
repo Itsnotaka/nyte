@@ -1,5 +1,5 @@
-import { eq } from "drizzle-orm";
 import { db, ensureDbSchema, proposedActions, workItems } from "@nyte/db";
+import { eq } from "@nyte/db/drizzle";
 
 import { recordAuditLog } from "../audit/audit-log";
 import { recordWorkflowRun } from "../workflow/workflow-log";

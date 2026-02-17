@@ -1,5 +1,5 @@
-import { and, eq, inArray, lt } from "drizzle-orm";
 import { auditLogs, db, ensureDbSchema, policyRules, workflowEvents, workflowRuns } from "@nyte/db";
+import { and, eq, inArray, lt } from "@nyte/db/drizzle";
 
 import { recordAuditLog } from "../audit/audit-log";
 import { DEFAULT_USER_ID, ensureDefaultUser } from "../shared/default-user";

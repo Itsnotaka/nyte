@@ -9,15 +9,14 @@ type WorkspaceClientProps = {
 
 export function NyteWorkspaceClient({ initialConnected }: WorkspaceClientProps) {
   const {
-    command,
     connected,
     isSessionPending,
     isSyncing,
+    isMutating,
     syncError,
     notice,
     lastSyncedAt,
     visibleItems,
-    setCommand,
     runSync,
     connectGoogle,
     disconnectGoogle,
@@ -26,20 +25,18 @@ export function NyteWorkspaceClient({ initialConnected }: WorkspaceClientProps) 
 
   return (
     <NyteWorkspaceView
-      command={command}
       connected={connected}
       isSessionPending={isSessionPending}
-      isSyncing={isSyncing}
+      isSyncing={isSyncing || isMutating}
       syncError={syncError}
       notice={notice}
       lastSyncedAt={lastSyncedAt}
       visibleItems={visibleItems}
-      onCommandChange={setCommand}
       onSubmit={() => void runSync()}
       onConnect={() => void connectGoogle()}
       onDisconnect={() => void disconnectGoogle()}
-      onApprove={(item) => markAction(item, "approved")}
-      onDismiss={(item) => markAction(item, "dismissed")}
+      onApprove={(item) => void markAction(item, "approved")}
+      onDismiss={(item) => void markAction(item, "dismissed")}
     />
   );
 }

@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq } from "@nyte/db/drizzle";
 import {
   calendarEvents,
   db,

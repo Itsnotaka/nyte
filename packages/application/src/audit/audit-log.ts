@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
-import { and, count, desc, eq } from "drizzle-orm";
 import { auditLogs, db, ensureDbSchema } from "@nyte/db";
+import { and, count, desc, eq } from "@nyte/db/drizzle";
 
 import { parseRecordPayload } from "../shared/payload";
 import { toIsoString } from "../shared/time";

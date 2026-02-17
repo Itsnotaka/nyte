@@ -1,0 +1,22 @@
+{
+  "name": "@nyte/workflows",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsgo --noEmit",
+    "clean": "rm -rf .turbo .cache node_modules dist"
+  },
+  "dependencies": {
+    "@nyte/application": "workspace:*",
+    "@nyte/domain": "workspace:*",
+    "@nyte/integrations": "workspace:*"
+  },
+  "devDependencies": {
+    "@nyte/tsconfig": "workspace:*",
+    "typescript": "^5.9.3"
+  }
+}

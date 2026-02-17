@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
-import { eq } from "drizzle-orm";
 import { connectedAccounts, db, ensureDbSchema } from "@nyte/db";
+import { eq } from "@nyte/db/drizzle";
 
 import { recordAuditLog } from "../audit/audit-log";
 import { DEFAULT_USER_ID, ensureDefaultUser } from "../shared/default-user";
