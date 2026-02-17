@@ -34,6 +34,7 @@ function runTaskProgram<TOutput>({
   taskId,
   localRun,
   triggerRun,
+  logContext,
 }: {
   taskId: string;
   localRun: () => Promise<TOutput>;
@@ -47,6 +48,7 @@ function runTaskProgram<TOutput>({
         error: unknown;
       }
   >;
+  logContext?: Record<string, string | number | boolean | null | undefined>;
 }) {
   const startedAt = Date.now();
   const stage = isTriggerEnabled() ? "trigger" : "local";
@@ -58,6 +60,7 @@ function runTaskProgram<TOutput>({
         event: "task.start",
         taskId,
         stage,
+        ...logContext,
       }),
     );
 
@@ -80,6 +83,7 @@ function runTaskProgram<TOutput>({
           taskId,
           stage,
           durationMs: Date.now() - startedAt,
+          ...logContext,
         }),
       );
 
@@ -114,6 +118,7 @@ function runTaskProgram<TOutput>({
         taskId,
         stage,
         durationMs: Date.now() - startedAt,
+        ...logContext,
       }),
     );
 
@@ -129,6 +134,7 @@ function runTaskProgram<TOutput>({
           durationMs: Date.now() - startedAt,
           errorTag: error._tag,
           message: error.message,
+          ...logContext,
         }),
       ),
     ),
@@ -139,6 +145,7 @@ async function runTask<TOutput>({
   taskId,
   localRun,
   triggerRun,
+  logContext,
 }: {
   taskId: string;
   localRun: () => Promise<TOutput>;
@@ -152,12 +159,14 @@ async function runTask<TOutput>({
         error: unknown;
       }
   >;
+  logContext?: Record<string, string | number | boolean | null | undefined>;
 }) {
   return Effect.runPromise(
     runTaskProgram({
       taskId,
       localRun,
       triggerRun,
+      logContext,
     }),
   ).catch((error: unknown) => {
     if (error instanceof WorkflowTaskExecutionError || error instanceof WorkflowTaskResultError) {
@@ -185,6 +194,10 @@ export async function runIngestSignalsTask(input: TriggerableIngestSignalsInput)
     localRun: () => ingestSignalsTask(input),
     triggerRun: () =>
       tasks.triggerAndWait<typeof triggerIngestSignalsTask>(triggerIngestSignalsTask.id, input),
+    logContext: {
+      hasCursor: input.cursor ? "yes" : "no",
+      watchKeywordCount: input.watchKeywords?.length ?? 0,
+    },
   });
 }
 
@@ -194,6 +207,9 @@ export async function runApproveActionTask(input: TriggerableApproveActionInput)
     localRun: () => approveActionTask(input),
     triggerRun: () =>
       tasks.triggerAndWait<typeof triggerApproveActionTask>(triggerApproveActionTask.id, input),
+    logContext: {
+      itemId: input.itemId,
+    },
   });
 }
 
@@ -203,6 +219,9 @@ export async function runDismissActionTask(input: TriggerableDismissActionInput)
     localRun: () => dismissActionTask(input),
     triggerRun: () =>
       tasks.triggerAndWait<typeof triggerDismissActionTask>(triggerDismissActionTask.id, input),
+    logContext: {
+      itemId: input.itemId,
+    },
   });
 }
 
@@ -212,5 +231,9 @@ export async function runFeedbackTask(input: TriggerableFeedbackInput) {
     localRun: () => feedbackTask(input),
     triggerRun: () =>
       tasks.triggerAndWait<typeof triggerFeedbackTask>(triggerFeedbackTask.id, input),
+    logContext: {
+      itemId: input.itemId,
+      rating: input.rating,
+    },
   });
 }
