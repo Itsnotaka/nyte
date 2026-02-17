@@ -58,6 +58,7 @@ function parseApproveBody(value: unknown): ApproveActionRequest | null {
 
 export async function POST(request: Request) {
   const route = "/api/actions/approve";
+  const taskId = WORKFLOW_TASK_IDS.approveAction;
   const method = request.method;
   const startedAt = Date.now();
   const requestLog = createApiRequestLogger(request, route);
@@ -68,6 +69,7 @@ export async function POST(request: Request) {
   requestLog.info("action.approve.start", {
     route,
     method,
+    taskId,
   });
 
   try {
@@ -83,6 +85,7 @@ export async function POST(request: Request) {
         route,
         method,
         status,
+        taskId,
       });
       return Response.json(response, { status });
     }
@@ -95,6 +98,7 @@ export async function POST(request: Request) {
         route,
         method,
         status,
+        taskId,
       });
       return Response.json(response, { status });
     }
@@ -113,7 +117,7 @@ export async function POST(request: Request) {
       status,
       itemId,
       userId,
-      taskId: WORKFLOW_TASK_IDS.approveAction,
+      taskId,
     });
     return Response.json(response);
   } catch (error) {
@@ -126,6 +130,7 @@ export async function POST(request: Request) {
         status,
         itemId,
         userId,
+        taskId,
         message: error.message,
       });
       return Response.json(response, { status });
@@ -139,7 +144,7 @@ export async function POST(request: Request) {
       status,
       itemId,
       userId,
-      taskId: resolved.logData.taskId,
+      taskId: resolved.logData.taskId ?? taskId,
       stage: resolved.logData.stage,
       errorTag: resolved.logData.errorTag,
       message: resolved.logData.message,
@@ -152,6 +157,7 @@ export async function POST(request: Request) {
       status,
       itemId,
       userId,
+      taskId,
       durationMs: Date.now() - startedAt,
     });
   }
