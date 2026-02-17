@@ -25,6 +25,11 @@ export type WorkflowApiErrorResponse = {
   error: string;
 };
 
+export const FEEDBACK_ACTION_RATINGS = [
+  "positive",
+  "negative",
+] as const satisfies readonly FeedbackActionRequest["rating"][];
+
 function asRecord(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return null;
@@ -137,7 +142,8 @@ export function isFeedbackActionResponse(value: unknown): value is FeedbackActio
 
   return (
     isNonEmptyString(payload.itemId) &&
-    (payload.rating === "positive" || payload.rating === "negative") &&
+    (payload.rating === FEEDBACK_ACTION_RATINGS[0] ||
+      payload.rating === FEEDBACK_ACTION_RATINGS[1]) &&
     isNonEmptyString(payload.notedAt)
   );
 }

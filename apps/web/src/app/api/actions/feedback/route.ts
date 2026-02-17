@@ -1,5 +1,6 @@
 import { FeedbackError } from "@nyte/application/actions";
 import {
+  FEEDBACK_ACTION_RATINGS,
   runFeedbackTask,
   type FeedbackActionRequest,
   type FeedbackActionResponse,
@@ -22,8 +23,6 @@ import {
   toWorkflowApiErrorResponse,
 } from "~/lib/server/workflow-route-error";
 
-const FEEDBACK_RATINGS = ["positive", "negative"] as const satisfies readonly FeedbackActionRequest["rating"][];
-
 function parseFeedbackBody(value: unknown): FeedbackActionRequest | null {
   const body = asObjectPayload(value);
   if (!body) {
@@ -35,7 +34,7 @@ function parseFeedbackBody(value: unknown): FeedbackActionRequest | null {
     return null;
   }
 
-  const rating = parseEnumValue(body.rating, FEEDBACK_RATINGS);
+  const rating = parseEnumValue(body.rating, FEEDBACK_ACTION_RATINGS);
   if (!rating) {
     return null;
   }
