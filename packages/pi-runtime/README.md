@@ -7,6 +7,7 @@ PI extension contracts and registry for provider execution.
 ## Responsibilities
 
 - define extension request/result contracts
+- define canonical extension-name constants (`PI_EXTENSION_NAMES`)
 - expose runtime guard helper (`isPiExtensionResult`) for downstream contract validation
 - expose extension handlers for Gmail and Calendar
 - provide registry and generic execution function

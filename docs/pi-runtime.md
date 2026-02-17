@@ -11,6 +11,10 @@
 - `calendar.createEvent`
 - `calendar.updateEvent`
 
+Canonical extension name constants:
+
+- `PI_EXTENSION_NAMES` exported from `packages/pi-runtime/src/contracts.ts`
+
 ## Contract model
 
 Each request carries:
