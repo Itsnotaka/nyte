@@ -41,6 +41,7 @@ function resolveAccessToken(value: unknown) {
 
 export async function GET(request: Request) {
   const route = "/api/queue/sync";
+  const method = request.method;
   const startedAt = Date.now();
   const searchParams = new URL(request.url).searchParams;
   const cursor = parseCursor(searchParams);
@@ -51,7 +52,7 @@ export async function GET(request: Request) {
 
   requestLog.info("queue.sync.start", {
     route,
-    method: request.method,
+    method,
     hasCursor: Boolean(cursor),
     watchKeywordCount: watchKeywords?.length ?? 0,
   });
@@ -69,7 +70,7 @@ export async function GET(request: Request) {
       };
       requestLog.warn("queue.sync.unauthorized", {
         route,
-        method: request.method,
+        method,
         status,
         userId,
       });
@@ -92,7 +93,7 @@ export async function GET(request: Request) {
       };
       requestLog.warn("queue.sync.token-missing", {
         route,
-        method: request.method,
+        method,
         status,
         userId,
       });
@@ -111,7 +112,7 @@ export async function GET(request: Request) {
     };
     requestLog.info("queue.sync.success", {
       route,
-      method: request.method,
+      method,
       status,
       hasCursor: Boolean(cursor),
       watchKeywordCount: watchKeywords?.length ?? 0,
@@ -123,7 +124,7 @@ export async function GET(request: Request) {
 
     requestLog.error(resolved.logData.message, {
       route,
-      method: request.method,
+      method,
       status,
       userId,
       taskId: resolved.logData.taskId,
@@ -135,7 +136,7 @@ export async function GET(request: Request) {
   } finally {
     requestLog.emit({
       route,
-      method: request.method,
+      method,
       status,
       userId,
       durationMs: Date.now() - startedAt,

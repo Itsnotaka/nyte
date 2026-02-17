@@ -54,6 +54,7 @@ function parseFeedbackBody(value: unknown): FeedbackActionRequest | null {
 
 export async function POST(request: Request) {
   const route = "/api/actions/feedback";
+  const method = request.method;
   const startedAt = Date.now();
   const requestLog = createApiRequestLogger(request, route);
   let status = 200;
@@ -62,7 +63,7 @@ export async function POST(request: Request) {
 
   requestLog.info("action.feedback.start", {
     route,
-    method: request.method,
+    method,
   });
 
   try {
@@ -76,7 +77,7 @@ export async function POST(request: Request) {
       const response: WorkflowApiErrorResponse = { error: ACTION_AUTH_REQUIRED_MESSAGE };
       requestLog.warn("action.feedback.unauthorized", {
         route,
-        method: request.method,
+        method,
         status,
       });
       return Response.json(response, { status });
@@ -88,7 +89,7 @@ export async function POST(request: Request) {
       const response: WorkflowApiErrorResponse = { error: "Invalid feedback payload." };
       requestLog.warn("action.feedback.invalid-payload", {
         route,
-        method: request.method,
+        method,
         status,
       });
       return Response.json(response, { status });
@@ -103,7 +104,7 @@ export async function POST(request: Request) {
     const response: FeedbackActionResponse = result;
     requestLog.info("action.feedback.success", {
       route,
-      method: request.method,
+      method,
       status,
       itemId,
       userId,
@@ -116,7 +117,7 @@ export async function POST(request: Request) {
       const response: WorkflowApiErrorResponse = { error: error.message };
       requestLog.warn("action.feedback.domain-error", {
         route,
-        method: request.method,
+        method,
         status,
         itemId,
         userId,
@@ -129,7 +130,7 @@ export async function POST(request: Request) {
     status = resolved.status;
     requestLog.error(resolved.logData.message, {
       route,
-      method: request.method,
+      method,
       status,
       itemId,
       userId,
@@ -142,7 +143,7 @@ export async function POST(request: Request) {
   } finally {
     requestLog.emit({
       route,
-      method: request.method,
+      method,
       status,
       itemId,
       userId,

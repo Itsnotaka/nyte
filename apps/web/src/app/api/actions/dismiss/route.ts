@@ -38,6 +38,7 @@ function parseDismissBody(value: unknown): DismissActionRequest | null {
 
 export async function POST(request: Request) {
   const route = "/api/actions/dismiss";
+  const method = request.method;
   const startedAt = Date.now();
   const requestLog = createApiRequestLogger(request, route);
   let status = 200;
@@ -46,7 +47,7 @@ export async function POST(request: Request) {
 
   requestLog.info("action.dismiss.start", {
     route,
-    method: request.method,
+    method,
   });
 
   try {
@@ -60,7 +61,7 @@ export async function POST(request: Request) {
       const response: WorkflowApiErrorResponse = { error: ACTION_AUTH_REQUIRED_MESSAGE };
       requestLog.warn("action.dismiss.unauthorized", {
         route,
-        method: request.method,
+        method,
         status,
       });
       return Response.json(response, { status });
@@ -72,7 +73,7 @@ export async function POST(request: Request) {
       const response: WorkflowApiErrorResponse = { error: "Invalid dismissal payload." };
       requestLog.warn("action.dismiss.invalid-payload", {
         route,
-        method: request.method,
+        method,
         status,
       });
       return Response.json(response, { status });
@@ -85,7 +86,7 @@ export async function POST(request: Request) {
     const response: DismissActionResponse = result;
     requestLog.info("action.dismiss.success", {
       route,
-      method: request.method,
+      method,
       status,
       itemId,
       userId,
@@ -98,7 +99,7 @@ export async function POST(request: Request) {
       const response: WorkflowApiErrorResponse = { error: error.message };
       requestLog.warn("action.dismiss.domain-error", {
         route,
-        method: request.method,
+        method,
         status,
         itemId,
         userId,
@@ -111,7 +112,7 @@ export async function POST(request: Request) {
     status = resolved.status;
     requestLog.error(resolved.logData.message, {
       route,
-      method: request.method,
+      method,
       status,
       itemId,
       userId,
@@ -124,7 +125,7 @@ export async function POST(request: Request) {
   } finally {
     requestLog.emit({
       route,
-      method: request.method,
+      method,
       status,
       itemId,
       userId,
