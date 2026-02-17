@@ -21,11 +21,6 @@ export function workflowInfo(event: Record<string, unknown>) {
   log.info(event);
 }
 
-export function workflowWarn(event: Record<string, unknown>) {
-  ensureLoggerInitialized();
-  log.warn(event);
-}
-
 export function workflowError(event: Record<string, unknown>) {
   ensureLoggerInitialized();
   log.error(event);
