@@ -16,7 +16,7 @@ function ensureLoggerInitialized() {
   loggerInitialized = true;
 }
 
-type RequestLogContext = {
+export type RequestLogContext = {
   route: string;
   method: string;
   requestId?: string | null;
@@ -29,10 +29,12 @@ type RequestLogContext = {
   durationMs?: number;
 };
 
+export type ApiRequestLogger = RequestLogger<RequestLogContext>;
+
 export function createApiRequestLogger(
   request: Request,
   route: string,
-): RequestLogger<RequestLogContext> {
+): ApiRequestLogger {
   ensureLoggerInitialized();
 
   return createRequestLogger<RequestLogContext>({

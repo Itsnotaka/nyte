@@ -6,9 +6,8 @@ import {
   type WorkflowApiErrorResponse,
 } from "@nyte/workflows";
 
-import { auth } from "~/lib/auth";
 import { createApiRequestLogger } from "~/lib/server/request-log";
-import { resolveSessionUserId } from "~/lib/shared/session-user-id";
+import { resolveRequestSession } from "~/lib/server/request-session";
 import { resolveWorkflowRouteError } from "~/lib/server/workflow-route-error";
 
 function parseDismissBody(value: unknown): DismissActionRequest | null {
@@ -40,13 +39,11 @@ export async function POST(request: Request) {
   });
 
   try {
-    const session = await auth.api.getSession({
-      headers: request.headers,
+    const { session, userId: sessionUserId } = await resolveRequestSession({
+      request,
+      requestLog,
     });
-    userId = resolveSessionUserId(session);
-    requestLog.set({
-      userId,
-    });
+    userId = sessionUserId;
     if (!session) {
       status = 401;
       const response: WorkflowApiErrorResponse = { error: "Authentication required." };

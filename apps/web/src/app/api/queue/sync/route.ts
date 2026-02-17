@@ -7,7 +7,7 @@ import {
 
 import { auth } from "~/lib/auth";
 import { createApiRequestLogger } from "~/lib/server/request-log";
-import { resolveSessionUserId } from "~/lib/shared/session-user-id";
+import { resolveRequestSession } from "~/lib/server/request-session";
 import { resolveWorkflowRouteError } from "~/lib/server/workflow-route-error";
 
 type AccessTokenPayload = {
@@ -59,13 +59,11 @@ export async function GET(request: Request) {
   });
 
   try {
-    const session = await auth.api.getSession({
-      headers: request.headers,
+    const { session, userId: sessionUserId } = await resolveRequestSession({
+      request,
+      requestLog,
     });
-    userId = resolveSessionUserId(session);
-    requestLog.set({
-      userId,
-    });
+    userId = sessionUserId;
     if (!session) {
       status = 401;
       const response: WorkflowApiErrorResponse = {
@@ -75,12 +73,9 @@ export async function GET(request: Request) {
         route,
         method: request.method,
         status,
-      userId,
+        userId,
       });
-      return Response.json(
-        response,
-        { status },
-      );
+      return Response.json(response, { status });
     }
 
     const accessTokenResult = (await auth.api.getAccessToken({
@@ -101,12 +96,9 @@ export async function GET(request: Request) {
         route,
         method: request.method,
         status,
-      userId,
+        userId,
       });
-      return Response.json(
-        response,
-        { status },
-      );
+      return Response.json(response, { status });
     }
 
     const watchKeywords = parseWatchKeywords(request);
