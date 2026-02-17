@@ -7,7 +7,7 @@ import {
 } from "@nyte/workflows";
 import { HTTP_STATUS, type HttpStatusCode } from "./http-status";
 
-type WorkflowRouteErrorResolution = {
+export type WorkflowRouteErrorResolution = {
   status: HttpStatusCode;
   response: WorkflowApiErrorResponse;
   logData: {
@@ -63,4 +63,8 @@ export function toWorkflowApiErrorResponse(error: string): WorkflowApiErrorRespo
 
 export function toWorkflowApiErrorJsonResponse(error: string, status: HttpStatusCode) {
   return Response.json(toWorkflowApiErrorResponse(error), { status });
+}
+
+export function toWorkflowRouteErrorJsonResponse(resolution: WorkflowRouteErrorResolution) {
+  return Response.json(resolution.response, { status: resolution.status });
 }

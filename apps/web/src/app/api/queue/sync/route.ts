@@ -18,6 +18,7 @@ import { normalizeWatchKeywords } from "~/lib/shared/watch-keywords";
 import {
   resolveWorkflowRouteError,
   toWorkflowApiErrorJsonResponse,
+  toWorkflowRouteErrorJsonResponse,
 } from "~/lib/server/workflow-route-error";
 
 function parseCursor(searchParams: URLSearchParams): QueueSyncRequest["cursor"] {
@@ -135,7 +136,7 @@ export async function GET(request: Request) {
       errorTag: resolved.logData.errorTag,
       message: resolved.logData.message,
     });
-    return Response.json(resolved.response, { status });
+    return toWorkflowRouteErrorJsonResponse(resolved);
   } finally {
     requestLog.emit({
       route,

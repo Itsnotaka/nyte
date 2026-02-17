@@ -21,6 +21,7 @@ import {
   resolveWorkflowDomainStatus,
   resolveWorkflowRouteError,
   toWorkflowApiErrorJsonResponse,
+  toWorkflowRouteErrorJsonResponse,
 } from "~/lib/server/workflow-route-error";
 
 function parseFeedbackBody(value: unknown): FeedbackActionRequest | null {
@@ -141,7 +142,7 @@ export async function POST(request: Request) {
       errorTag: resolved.logData.errorTag,
       message: resolved.logData.message,
     });
-    return Response.json(resolved.response, { status });
+    return toWorkflowRouteErrorJsonResponse(resolved);
   } finally {
     requestLog.emit({
       route,
