@@ -1,4 +1,5 @@
 import type { QueueSyncResponse, WorkflowApiErrorResponse } from "@nyte/workflows";
+import { normalizeWatchKeywords } from "~/lib/shared/watch-keywords";
 
 async function parseSyncPollResponse(response: Response): Promise<QueueSyncResponse> {
   const payload = (await response.json()) as Partial<QueueSyncResponse> &
@@ -32,11 +33,12 @@ export async function syncNeedsYou({
   cursor,
   watchKeywords = [],
 }: SyncNeedsYouInput): Promise<QueueSyncResponse> {
+  const normalizedWatchKeywords = normalizeWatchKeywords(watchKeywords);
   const params = new URLSearchParams();
   if (cursor) {
     params.set("cursor", cursor);
   }
-  for (const keyword of watchKeywords) {
+  for (const keyword of normalizedWatchKeywords) {
     params.append("watch", keyword);
   }
 
