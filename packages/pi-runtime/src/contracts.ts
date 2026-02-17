@@ -20,6 +20,13 @@ export const PI_AUTH_PROVIDERS = {
 
 export type PiAuthProvider = (typeof PI_AUTH_PROVIDERS)[keyof typeof PI_AUTH_PROVIDERS];
 
+export const PI_AUTH_SCOPES = {
+  googleWorkspace: [
+    "https://www.googleapis.com/auth/gmail.compose",
+    "https://www.googleapis.com/auth/calendar.events",
+  ],
+} as const;
+
 type PiAuthScope = {
   provider: PiAuthProvider;
   userId: string | null;

@@ -3,16 +3,12 @@ import {
   executePiExtension,
   PI_AUDIT_SOURCES,
   PI_AUTH_PROVIDERS,
+  PI_AUTH_SCOPES,
   PI_EXTENSION_NAMES,
   type PiExtensionResult,
 } from "@nyte/pi-runtime";
 
 type ApprovedWorkItem = Awaited<ReturnType<typeof approveWorkItem>>;
-
-const GOOGLE_EXTENSION_SCOPES = [
-  "https://www.googleapis.com/auth/gmail.compose",
-  "https://www.googleapis.com/auth/calendar.events",
-] as const;
 
 type PiDispatchInput = {
   approvedItem: ApprovedWorkItem;
@@ -27,7 +23,7 @@ export async function dispatchApprovedActionToPi({
     auth: {
       provider: PI_AUTH_PROVIDERS.google,
       userId,
-      scopes: [...GOOGLE_EXTENSION_SCOPES],
+      scopes: [...PI_AUTH_SCOPES.googleWorkspace],
     },
     idempotencyKey: approvedItem.execution.idempotencyKey,
     audit: {
