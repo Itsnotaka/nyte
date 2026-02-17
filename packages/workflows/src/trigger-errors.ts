@@ -1,0 +1,16 @@
+import { Data } from "effect";
+
+export class WorkflowTaskExecutionError extends Data.TaggedError("WorkflowTaskExecutionError")<{
+  taskId: string;
+  stage: "local" | "trigger";
+  message: string;
+  cause: unknown;
+}> {}
+
+export class WorkflowTaskResultError extends Data.TaggedError("WorkflowTaskResultError")<{
+  taskId: string;
+  message: string;
+  cause: unknown;
+}> {}
+
+export type WorkflowTaskError = WorkflowTaskExecutionError | WorkflowTaskResultError;

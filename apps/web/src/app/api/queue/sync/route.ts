@@ -6,6 +6,7 @@ import {
 } from "@nyte/workflows";
 
 import { auth } from "~/lib/auth";
+import { createApiRequestLogger } from "~/lib/server/request-log";
 
 type AccessTokenPayload = {
   accessToken?: unknown;
@@ -34,39 +35,61 @@ function resolveAccessToken(payload: AccessTokenPayload) {
 }
 
 export async function GET(request: Request) {
-  const session = await auth.api.getSession({
-    headers: request.headers,
+  const route = "/api/queue/sync";
+  const startedAt = Date.now();
+  const requestLog = createApiRequestLogger(request, route);
+  let status = 200;
+
+  requestLog.info("queue.sync.start", {
+    route,
+    method: request.method,
   });
-  if (!session) {
-    const response: WorkflowApiErrorResponse = {
-      error: "Connect Google to load Gmail and Calendar signals.",
-    };
-    return Response.json(
-      response,
-      { status: 401 },
-    );
-  }
-
-  const accessTokenResult = (await auth.api.getAccessToken({
-    headers: request.headers,
-    body: {
-      providerId: "google",
-    },
-  })) as AccessTokenPayload;
-
-  const accessToken = resolveAccessToken(accessTokenResult);
-  if (!accessToken) {
-    const response: WorkflowApiErrorResponse = {
-      error:
-        "Google OAuth token is unavailable. Reconnect Google and grant Gmail + Calendar permissions.",
-    };
-    return Response.json(
-      response,
-      { status: 409 },
-    );
-  }
 
   try {
+    const session = await auth.api.getSession({
+      headers: request.headers,
+    });
+    if (!session) {
+      status = 401;
+      const response: WorkflowApiErrorResponse = {
+        error: "Connect Google to load Gmail and Calendar signals.",
+      };
+      requestLog.warn("queue.sync.unauthorized", {
+        route,
+        method: request.method,
+        status,
+      });
+      return Response.json(
+        response,
+        { status },
+      );
+    }
+
+    const accessTokenResult = (await auth.api.getAccessToken({
+      headers: request.headers,
+      body: {
+        providerId: "google",
+      },
+    })) as AccessTokenPayload;
+
+    const accessToken = resolveAccessToken(accessTokenResult);
+    if (!accessToken) {
+      status = 409;
+      const response: WorkflowApiErrorResponse = {
+        error:
+          "Google OAuth token is unavailable. Reconnect Google and grant Gmail + Calendar permissions.",
+      };
+      requestLog.warn("queue.sync.token-missing", {
+        route,
+        method: request.method,
+        status,
+      });
+      return Response.json(
+        response,
+        { status },
+      );
+    }
+
     const result = await runIngestSignalsTask({
       accessToken,
       cursor: parseCursor(request),
@@ -76,8 +99,14 @@ export async function GET(request: Request) {
       cursor: result.cursor,
       needsYou: result.needsYou,
     };
+    requestLog.info("queue.sync.success", {
+      route,
+      method: request.method,
+      status,
+    });
     return Response.json(response);
   } catch (error) {
+    status = 502;
     const message =
       error instanceof Error && error.message.trim().length > 0
         ? error.message
@@ -86,6 +115,19 @@ export async function GET(request: Request) {
     const response: WorkflowApiErrorResponse = {
       error: message,
     };
-    return Response.json(response, { status: 502 });
+    requestLog.error(message, {
+      route,
+      method: request.method,
+      status,
+      message,
+    });
+    return Response.json(response, { status });
+  } finally {
+    requestLog.emit({
+      route,
+      method: request.method,
+      status,
+      durationMs: Date.now() - startedAt,
+    });
   }
 }

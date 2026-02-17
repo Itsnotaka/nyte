@@ -1,5 +1,6 @@
 export * from "./contracts";
 export * from "./pi-dispatch";
+export * from "./trigger-errors";
 export * from "./trigger-runner";
 export * from "./trigger-tasks";
 export * from "./tasks/approve-action-task";

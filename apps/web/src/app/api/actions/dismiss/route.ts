@@ -3,10 +3,13 @@ import {
   runDismissActionTask,
   type DismissActionRequest,
   type DismissActionResponse,
+  WorkflowTaskExecutionError,
+  WorkflowTaskResultError,
   type WorkflowApiErrorResponse,
 } from "@nyte/workflows";
 
 import { auth } from "~/lib/auth";
+import { createApiRequestLogger } from "~/lib/server/request-log";
 
 function parseDismissBody(value: unknown): DismissActionRequest | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -24,34 +27,101 @@ function parseDismissBody(value: unknown): DismissActionRequest | null {
 }
 
 export async function POST(request: Request) {
-  const session = await auth.api.getSession({
-    headers: request.headers,
-  });
-  if (!session) {
-    const response: WorkflowApiErrorResponse = { error: "Authentication required." };
-    return Response.json(response, { status: 401 });
-  }
+  const route = "/api/actions/dismiss";
+  const startedAt = Date.now();
+  const requestLog = createApiRequestLogger(request, route);
+  let status = 200;
+  let itemId: string | undefined;
 
-  const payload = parseDismissBody(await request.json());
-  if (!payload) {
-    const response: WorkflowApiErrorResponse = { error: "Invalid dismissal payload." };
-    return Response.json(response, { status: 400 });
-  }
+  requestLog.info("action.dismiss.start", {
+    route,
+    method: request.method,
+  });
 
   try {
+    const session = await auth.api.getSession({
+      headers: request.headers,
+    });
+    if (!session) {
+      status = 401;
+      const response: WorkflowApiErrorResponse = { error: "Authentication required." };
+      requestLog.warn("action.dismiss.unauthorized", {
+        route,
+        method: request.method,
+        status,
+      });
+      return Response.json(response, { status });
+    }
+
+    const payload = parseDismissBody(await request.json());
+    if (!payload) {
+      status = 400;
+      const response: WorkflowApiErrorResponse = { error: "Invalid dismissal payload." };
+      requestLog.warn("action.dismiss.invalid-payload", {
+        route,
+        method: request.method,
+        status,
+      });
+      return Response.json(response, { status });
+    }
+    itemId = payload.itemId;
+
     const result = await runDismissActionTask({
       itemId: payload.itemId,
     });
     const response: DismissActionResponse = result;
+    requestLog.info("action.dismiss.success", {
+      route,
+      method: request.method,
+      status,
+      itemId,
+      taskId: "workflow.dismiss-action",
+    });
     return Response.json(response);
   } catch (error) {
     if (error instanceof DismissError) {
-      const status = error.message.toLowerCase().includes("not found") ? 404 : 409;
+      status = error.message.toLowerCase().includes("not found") ? 404 : 409;
       const response: WorkflowApiErrorResponse = { error: error.message };
+      requestLog.warn("action.dismiss.domain-error", {
+        route,
+        method: request.method,
+        status,
+        itemId,
+        message: error.message,
+      });
       return Response.json(response, { status });
     }
 
+    if (error instanceof WorkflowTaskExecutionError || error instanceof WorkflowTaskResultError) {
+      status = 502;
+      const response: WorkflowApiErrorResponse = { error: error.message };
+      requestLog.error(error.message, {
+        route,
+        method: request.method,
+        status,
+        itemId,
+        taskId: error.taskId,
+        errorTag: error._tag,
+      });
+      return Response.json(response, { status });
+    }
+
+    status = 502;
     const response: WorkflowApiErrorResponse = { error: "Unable to dismiss action." };
-    return Response.json(response, { status: 502 });
+    requestLog.error("Unable to dismiss action.", {
+      route,
+      method: request.method,
+      status,
+      itemId,
+    });
+    return Response.json(response, { status });
+  } finally {
+    requestLog.emit({
+      route,
+      method: request.method,
+      status,
+      itemId,
+      durationMs: Date.now() - startedAt,
+    });
   }
 }
