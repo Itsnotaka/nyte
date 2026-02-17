@@ -10,6 +10,7 @@
 
 - Query key scoped by authenticated user id (`needs-you-sync`).
 - Sync cursor is sourced from cached query payload, not effect-managed refs.
+- Composer input is interpreted as optional watch keywords and sent to sync route as query params.
 - Approve/dismiss actions use TanStack Query mutations and query invalidation.
 - Composer input uses TanStack Form field state.
 - API routes use request-scoped evlog logging helpers for structured operation traces.
