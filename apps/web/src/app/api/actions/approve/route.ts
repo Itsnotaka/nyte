@@ -5,7 +5,6 @@ import {
   runApproveActionTask,
   type ApproveActionRequest,
   type ApproveActionResponse,
-  type WorkflowApiErrorResponse,
 } from "@nyte/workflows";
 
 import { createApiRequestLogger } from "~/lib/server/request-log";
@@ -22,6 +21,7 @@ import {
 import {
   resolveWorkflowDomainStatus,
   resolveWorkflowRouteError,
+  toWorkflowApiErrorResponse,
 } from "~/lib/server/workflow-route-error";
 
 function parseApproveBody(value: unknown): ApproveActionRequest | null {
@@ -82,7 +82,7 @@ export async function POST(request: Request) {
     userId = sessionUserId;
     if (!session) {
       status = 401;
-      const response: WorkflowApiErrorResponse = { error: NEEDS_YOU_MESSAGES.actionAuthRequired };
+      const response = toWorkflowApiErrorResponse(NEEDS_YOU_MESSAGES.actionAuthRequired);
       requestLog.warn(REQUEST_EVENTS.actionApprove.unauthorized, {
         route,
         method,
@@ -95,9 +95,7 @@ export async function POST(request: Request) {
     const payload = parseApproveBody(await parseJsonBody(request));
     if (!payload) {
       status = 400;
-      const response: WorkflowApiErrorResponse = {
-        error: NEEDS_YOU_MESSAGES.invalidApprovePayload,
-      };
+      const response = toWorkflowApiErrorResponse(NEEDS_YOU_MESSAGES.invalidApprovePayload);
       requestLog.warn(REQUEST_EVENTS.actionApprove.invalidPayload, {
         route,
         method,
@@ -127,7 +125,7 @@ export async function POST(request: Request) {
   } catch (error) {
     if (error instanceof ApprovalError) {
       status = resolveWorkflowDomainStatus(error.message);
-      const response: WorkflowApiErrorResponse = { error: error.message };
+      const response = toWorkflowApiErrorResponse(error.message);
       requestLog.warn(REQUEST_EVENTS.actionApprove.domainError, {
         route,
         method,

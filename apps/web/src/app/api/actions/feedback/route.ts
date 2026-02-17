@@ -4,7 +4,6 @@ import {
   runFeedbackTask,
   type FeedbackActionRequest,
   type FeedbackActionResponse,
-  type WorkflowApiErrorResponse,
 } from "@nyte/workflows";
 
 import { createApiRequestLogger } from "~/lib/server/request-log";
@@ -22,6 +21,7 @@ import {
 import {
   resolveWorkflowDomainStatus,
   resolveWorkflowRouteError,
+  toWorkflowApiErrorResponse,
 } from "~/lib/server/workflow-route-error";
 
 const FEEDBACK_RATINGS = ["positive", "negative"] as const satisfies readonly FeedbackActionRequest["rating"][];
@@ -78,7 +78,7 @@ export async function POST(request: Request) {
     userId = sessionUserId;
     if (!session) {
       status = 401;
-      const response: WorkflowApiErrorResponse = { error: NEEDS_YOU_MESSAGES.actionAuthRequired };
+      const response = toWorkflowApiErrorResponse(NEEDS_YOU_MESSAGES.actionAuthRequired);
       requestLog.warn(REQUEST_EVENTS.actionFeedback.unauthorized, {
         route,
         method,
@@ -91,9 +91,7 @@ export async function POST(request: Request) {
     const payload = parseFeedbackBody(await parseJsonBody(request));
     if (!payload) {
       status = 400;
-      const response: WorkflowApiErrorResponse = {
-        error: NEEDS_YOU_MESSAGES.invalidFeedbackPayload,
-      };
+      const response = toWorkflowApiErrorResponse(NEEDS_YOU_MESSAGES.invalidFeedbackPayload);
       requestLog.warn(REQUEST_EVENTS.actionFeedback.invalidPayload, {
         route,
         method,
@@ -122,7 +120,7 @@ export async function POST(request: Request) {
   } catch (error) {
     if (error instanceof FeedbackError) {
       status = resolveWorkflowDomainStatus(error.message);
-      const response: WorkflowApiErrorResponse = { error: error.message };
+      const response = toWorkflowApiErrorResponse(error.message);
       requestLog.warn(REQUEST_EVENTS.actionFeedback.domainError, {
         route,
         method,

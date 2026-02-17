@@ -3,7 +3,6 @@ import {
   runIngestSignalsTask,
   type QueueSyncRequest,
   type QueueSyncResponse,
-  type WorkflowApiErrorResponse,
 } from "@nyte/workflows";
 
 import { auth } from "~/lib/auth";
@@ -18,7 +17,10 @@ import {
   parseRequiredStringField,
 } from "~/lib/server/request-validation";
 import { normalizeWatchKeywords } from "~/lib/shared/watch-keywords";
-import { resolveWorkflowRouteError } from "~/lib/server/workflow-route-error";
+import {
+  resolveWorkflowRouteError,
+  toWorkflowApiErrorResponse,
+} from "~/lib/server/workflow-route-error";
 
 function parseCursor(searchParams: URLSearchParams): QueueSyncRequest["cursor"] {
   return parseRequiredString(searchParams.get("cursor")) ?? undefined;
@@ -70,9 +72,7 @@ export async function GET(request: Request) {
     userId = sessionUserId;
     if (!session) {
       status = 401;
-      const response: WorkflowApiErrorResponse = {
-        error: NEEDS_YOU_MESSAGES.queueAuthRequired,
-      };
+      const response = toWorkflowApiErrorResponse(NEEDS_YOU_MESSAGES.queueAuthRequired);
       requestLog.warn(REQUEST_EVENTS.queueSync.unauthorized, {
         route,
         method,
@@ -93,9 +93,7 @@ export async function GET(request: Request) {
     const accessToken = resolveAccessToken(accessTokenResult);
     if (!accessToken) {
       status = 409;
-      const response: WorkflowApiErrorResponse = {
-        error: NEEDS_YOU_MESSAGES.queueTokenUnavailable,
-      };
+      const response = toWorkflowApiErrorResponse(NEEDS_YOU_MESSAGES.queueTokenUnavailable);
       requestLog.warn(REQUEST_EVENTS.queueSync.tokenMissing, {
         route,
         method,

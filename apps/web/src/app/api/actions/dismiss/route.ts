@@ -4,7 +4,6 @@ import {
   runDismissActionTask,
   type DismissActionRequest,
   type DismissActionResponse,
-  type WorkflowApiErrorResponse,
 } from "@nyte/workflows";
 
 import { createApiRequestLogger } from "~/lib/server/request-log";
@@ -20,6 +19,7 @@ import {
 import {
   resolveWorkflowDomainStatus,
   resolveWorkflowRouteError,
+  toWorkflowApiErrorResponse,
 } from "~/lib/server/workflow-route-error";
 
 function parseDismissBody(value: unknown): DismissActionRequest | null {
@@ -62,7 +62,7 @@ export async function POST(request: Request) {
     userId = sessionUserId;
     if (!session) {
       status = 401;
-      const response: WorkflowApiErrorResponse = { error: NEEDS_YOU_MESSAGES.actionAuthRequired };
+      const response = toWorkflowApiErrorResponse(NEEDS_YOU_MESSAGES.actionAuthRequired);
       requestLog.warn(REQUEST_EVENTS.actionDismiss.unauthorized, {
         route,
         method,
@@ -75,9 +75,7 @@ export async function POST(request: Request) {
     const payload = parseDismissBody(await parseJsonBody(request));
     if (!payload) {
       status = 400;
-      const response: WorkflowApiErrorResponse = {
-        error: NEEDS_YOU_MESSAGES.invalidDismissPayload,
-      };
+      const response = toWorkflowApiErrorResponse(NEEDS_YOU_MESSAGES.invalidDismissPayload);
       requestLog.warn(REQUEST_EVENTS.actionDismiss.invalidPayload, {
         route,
         method,
@@ -104,7 +102,7 @@ export async function POST(request: Request) {
   } catch (error) {
     if (error instanceof DismissError) {
       status = resolveWorkflowDomainStatus(error.message);
-      const response: WorkflowApiErrorResponse = { error: error.message };
+      const response = toWorkflowApiErrorResponse(error.message);
       requestLog.warn(REQUEST_EVENTS.actionDismiss.domainError, {
         route,
         method,
