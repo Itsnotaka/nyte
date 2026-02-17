@@ -14,7 +14,10 @@ import {
   parseOptionalString,
   parseRequiredString,
 } from "~/lib/server/request-validation";
-import { resolveWorkflowRouteError } from "~/lib/server/workflow-route-error";
+import {
+  resolveWorkflowDomainStatus,
+  resolveWorkflowRouteError,
+} from "~/lib/server/workflow-route-error";
 
 function parseFeedbackBody(value: unknown): FeedbackActionRequest | null {
   const body = asObjectPayload(value);
@@ -103,7 +106,7 @@ export async function POST(request: Request) {
     return Response.json(response);
   } catch (error) {
     if (error instanceof FeedbackError) {
-      status = error.message.toLowerCase().includes("not found") ? 404 : 409;
+      status = resolveWorkflowDomainStatus(error.message);
       const response: WorkflowApiErrorResponse = { error: error.message };
       requestLog.warn("action.feedback.domain-error", {
         route,

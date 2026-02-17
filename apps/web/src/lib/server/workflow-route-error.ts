@@ -48,3 +48,7 @@ export function resolveWorkflowRouteError(
     },
   };
 }
+
+export function resolveWorkflowDomainStatus(message: string): 404 | 409 {
+  return message.toLowerCase().includes("not found") ? 404 : 409;
+}
