@@ -2,6 +2,7 @@ import { approveWorkItem } from "@nyte/application/actions";
 import {
   executePiExtension,
   PI_AUDIT_SOURCES,
+  PI_AUTH_PROVIDERS,
   PI_EXTENSION_NAMES,
   type PiExtensionResult,
 } from "@nyte/pi-runtime";
@@ -24,7 +25,7 @@ export async function dispatchApprovedActionToPi({
 }: PiDispatchInput): Promise<PiExtensionResult | null> {
   const extensionContext = {
     auth: {
-      provider: "google" as const,
+      provider: PI_AUTH_PROVIDERS.google,
       userId,
       scopes: [...GOOGLE_EXTENSION_SCOPES],
     },

@@ -14,8 +14,14 @@ export const PI_AUDIT_SOURCES = {
   decisionQueue: "decision-queue",
 } as const;
 
+export const PI_AUTH_PROVIDERS = {
+  google: "google",
+} as const;
+
+export type PiAuthProvider = (typeof PI_AUTH_PROVIDERS)[keyof typeof PI_AUTH_PROVIDERS];
+
 type PiAuthScope = {
-  provider: "google";
+  provider: PiAuthProvider;
   userId: string | null;
   scopes: string[];
 };
