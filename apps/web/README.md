@@ -24,7 +24,7 @@ Primary Nyte product surface: decision queue UI and thin API gateway.
 - API request event names are centralized in a shared server constants module to keep evlog event taxonomy stable
 - route/method/task/event/message/status wiring for needs-you API handlers is centralized in a single server-side config module
 - that config is constrained with explicit TypeScript `satisfies` typing for route/task/event/message/status completeness
-- action routes reuse a shared status-map template in that config (400/401/404/409/422 + 200) to avoid drift
+- action routes reuse shared method/status templates in that config (`POST` + 400/401/404/409/422 + 200) to avoid drift
 - request log context method typing is sourced from the same centralized needs-you method union
 - request log context route typing is sourced from centralized needs-you route path constants
 - needs-you user-facing fallback/validation/auth/token-failure message strings are centralized and shared across routes, clients, and hook-level fallback rendering
