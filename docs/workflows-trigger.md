@@ -28,6 +28,7 @@ Recommended wrapping pattern:
 1. Keep input/output types sourced from `packages/workflows/src/contracts.ts`.
 2. Reuse runtime contract guards from the same module (`isWorkflowApiErrorResponse`, `isQueueSyncResponse`, `isApproveActionResponse`, `isDismissActionResponse`, `isFeedbackActionResponse`) in clients/gateways instead of redefining ad hoc payload checks.
    - approve guard validates payload kind, execution snapshot shape, payload↔execution destination consistency, idempotency flag, and optional PI extension result envelope.
+   - feedback rating literals are exported once (`FEEDBACK_ACTION_RATINGS`) and reused by route payload parsing + runtime guard logic.
 3. Wrap each task in Trigger task definitions in an app-specific trigger runtime file.
 4. Preserve idempotency key flow from approve requests to PI extension dispatch.
 5. Keep retries at task-wrapper level; keep domain/application logic deterministic.
