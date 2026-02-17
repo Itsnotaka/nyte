@@ -11,7 +11,6 @@ import type {
   FeedbackActionRequest,
   FeedbackActionResponse,
 } from "@nyte/workflows";
-import type { ToolCallPayload } from "@nyte/domain/actions";
 import { NEEDS_YOU_MESSAGES } from "./messages";
 import {
   JSON_REQUEST_HEADERS,
@@ -52,8 +51,8 @@ async function postAction<TRequest extends object, TResponse extends object>({
 }
 
 export async function approveNeedsYouAction(
-  itemId: string,
-  payloadOverride?: ToolCallPayload,
+  itemId: ApproveActionRequest["itemId"],
+  payloadOverride?: ApproveActionRequest["payloadOverride"],
 ): Promise<ApproveActionResponse> {
   const body: ApproveActionRequest = {
     itemId,
@@ -68,7 +67,9 @@ export async function approveNeedsYouAction(
   });
 }
 
-export async function dismissNeedsYouAction(itemId: string): Promise<DismissActionResponse> {
+export async function dismissNeedsYouAction(
+  itemId: DismissActionRequest["itemId"],
+): Promise<DismissActionResponse> {
   const body: DismissActionRequest = { itemId };
   return postAction<DismissActionRequest, DismissActionResponse>({
     route: NEEDS_YOU_API_ROUTES.dismissAction,
@@ -80,9 +81,9 @@ export async function dismissNeedsYouAction(itemId: string): Promise<DismissActi
 }
 
 export async function recordNeedsYouFeedback(
-  itemId: string,
+  itemId: FeedbackActionRequest["itemId"],
   rating: FeedbackActionRequest["rating"],
-  note?: string,
+  note?: FeedbackActionRequest["note"],
 ): Promise<FeedbackActionResponse> {
   const body: FeedbackActionRequest = { itemId, rating, note };
   return postAction<FeedbackActionRequest, FeedbackActionResponse>({
