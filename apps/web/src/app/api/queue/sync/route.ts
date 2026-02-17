@@ -14,8 +14,8 @@ type AccessTokenPayload = {
   accessToken?: unknown;
 };
 
-function parseCursor(request: Request): QueueSyncRequest["cursor"] {
-  const cursor = new URL(request.url).searchParams.get("cursor")?.trim();
+function parseCursor(searchParams: URLSearchParams): QueueSyncRequest["cursor"] {
+  const cursor = searchParams.get("cursor")?.trim();
   if (!cursor) {
     return undefined;
   }
@@ -23,8 +23,8 @@ function parseCursor(request: Request): QueueSyncRequest["cursor"] {
   return cursor;
 }
 
-function parseWatchKeywords(request: Request): QueueSyncRequest["watchKeywords"] {
-  const keywords = new URL(request.url).searchParams
+function parseWatchKeywords(searchParams: URLSearchParams): QueueSyncRequest["watchKeywords"] {
+  const keywords = searchParams
     .getAll("watch")
     .map((entry) => entry.trim().toLowerCase())
     .filter((entry) => entry.length >= 3)
@@ -49,8 +49,9 @@ function resolveAccessToken(payload: AccessTokenPayload) {
 export async function GET(request: Request) {
   const route = "/api/queue/sync";
   const startedAt = Date.now();
-  const cursor = parseCursor(request);
-  const watchKeywords = parseWatchKeywords(request);
+  const searchParams = new URL(request.url).searchParams;
+  const cursor = parseCursor(searchParams);
+  const watchKeywords = parseWatchKeywords(searchParams);
   const requestLog = createApiRequestLogger(request, route);
   let status = 200;
   let userId: string | null = null;
