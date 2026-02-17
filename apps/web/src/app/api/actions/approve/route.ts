@@ -9,6 +9,7 @@ import {
 } from "@nyte/workflows";
 
 import { createApiRequestLogger } from "~/lib/server/request-log";
+import { NEEDS_YOU_MESSAGES } from "~/lib/needs-you/messages";
 import { NEEDS_YOU_API_ROUTES } from "~/lib/needs-you/routes";
 import { REQUEST_EVENTS } from "~/lib/server/request-events";
 import { resolveRequestSession } from "~/lib/server/request-session";
@@ -95,7 +96,9 @@ export async function POST(request: Request) {
     const payload = parseApproveBody(await parseJsonBody(request));
     if (!payload) {
       status = 400;
-      const response: WorkflowApiErrorResponse = { error: "Invalid approval payload." };
+      const response: WorkflowApiErrorResponse = {
+        error: NEEDS_YOU_MESSAGES.invalidApprovePayload,
+      };
       requestLog.warn(REQUEST_EVENTS.actionApprove.invalidPayload, {
         route,
         method,
@@ -138,7 +141,7 @@ export async function POST(request: Request) {
       return Response.json(response, { status });
     }
 
-    const resolved = resolveWorkflowRouteError(error, "Unable to approve action.");
+    const resolved = resolveWorkflowRouteError(error, NEEDS_YOU_MESSAGES.approveUnavailable);
     status = resolved.status;
     requestLog.error(REQUEST_EVENTS.actionApprove.taskError, {
       route,

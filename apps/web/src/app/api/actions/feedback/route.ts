@@ -8,6 +8,7 @@ import {
 } from "@nyte/workflows";
 
 import { createApiRequestLogger } from "~/lib/server/request-log";
+import { NEEDS_YOU_MESSAGES } from "~/lib/needs-you/messages";
 import { NEEDS_YOU_API_ROUTES } from "~/lib/needs-you/routes";
 import { REQUEST_EVENTS } from "~/lib/server/request-events";
 import { resolveRequestSession } from "~/lib/server/request-session";
@@ -91,7 +92,9 @@ export async function POST(request: Request) {
     const payload = parseFeedbackBody(await parseJsonBody(request));
     if (!payload) {
       status = 400;
-      const response: WorkflowApiErrorResponse = { error: "Invalid feedback payload." };
+      const response: WorkflowApiErrorResponse = {
+        error: NEEDS_YOU_MESSAGES.invalidFeedbackPayload,
+      };
       requestLog.warn(REQUEST_EVENTS.actionFeedback.invalidPayload, {
         route,
         method,
@@ -133,7 +136,7 @@ export async function POST(request: Request) {
       return Response.json(response, { status });
     }
 
-    const resolved = resolveWorkflowRouteError(error, "Unable to record feedback.");
+    const resolved = resolveWorkflowRouteError(error, NEEDS_YOU_MESSAGES.feedbackUnavailable);
     status = resolved.status;
     requestLog.error(REQUEST_EVENTS.actionFeedback.taskError, {
       route,

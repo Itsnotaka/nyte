@@ -7,6 +7,7 @@ import * as React from "react";
 
 import { authClient } from "~/lib/auth-client";
 import { approveNeedsYouAction, dismissNeedsYouAction } from "~/lib/needs-you/actions-client";
+import { NEEDS_YOU_MESSAGES } from "~/lib/needs-you/messages";
 import { syncNeedsYou } from "~/lib/needs-you/sync-client";
 import { resolveSessionUserId } from "~/lib/shared/session-user-id";
 import { parseWatchKeywordCommand } from "~/lib/shared/watch-keywords";
@@ -114,7 +115,7 @@ export function useNyteWorkspace({
 
     return syncQueryError instanceof Error && syncQueryError.message.trim().length > 0
       ? syncQueryError.message
-      : "Unable to sync Gmail + Calendar right now.";
+      : NEEDS_YOU_MESSAGES.syncUnavailable;
   }, [mutationError, syncQueryError]);
 
   const lastSyncedAt = syncPayload ? new Date(dataUpdatedAt).toISOString() : null;

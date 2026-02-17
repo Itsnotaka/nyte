@@ -4,6 +4,7 @@ import {
   type QueueSyncResponse,
 } from "@nyte/workflows";
 import { normalizeWatchKeywords } from "~/lib/shared/watch-keywords";
+import { NEEDS_YOU_MESSAGES } from "./messages";
 import {
   JSON_ACCEPT_HEADERS,
   readJsonSafe,
@@ -15,8 +16,7 @@ async function parseSyncPollResponse(response: Response): Promise<QueueSyncRespo
   const payload = await readJsonSafe(response);
 
   if (!response.ok) {
-    const fallback = "Unable to sync Gmail + Calendar right now.";
-    throw new Error(resolveWorkflowApiError(payload, fallback));
+    throw new Error(resolveWorkflowApiError(payload, NEEDS_YOU_MESSAGES.syncUnavailable));
   }
 
   if (!isQueueSyncResponse(payload)) {

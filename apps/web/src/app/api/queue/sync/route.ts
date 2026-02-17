@@ -7,6 +7,7 @@ import {
 } from "@nyte/workflows";
 
 import { auth } from "~/lib/auth";
+import { NEEDS_YOU_MESSAGES } from "~/lib/needs-you/messages";
 import { NEEDS_YOU_API_ROUTES } from "~/lib/needs-you/routes";
 import { REQUEST_EVENTS } from "~/lib/server/request-events";
 import { createApiRequestLogger } from "~/lib/server/request-log";
@@ -127,7 +128,7 @@ export async function GET(request: Request) {
     });
     return Response.json(response);
   } catch (error) {
-    const resolved = resolveWorkflowRouteError(error, "Unable to sync Gmail and Calendar signals.");
+    const resolved = resolveWorkflowRouteError(error, NEEDS_YOU_MESSAGES.syncUnavailable);
     status = resolved.status;
 
     requestLog.error(REQUEST_EVENTS.queueSync.taskError, {

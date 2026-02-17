@@ -8,6 +8,7 @@ import type {
 } from "@nyte/workflows";
 import type { ToolCallPayload } from "@nyte/domain/actions";
 import { asRecord } from "~/lib/shared/value-guards";
+import { NEEDS_YOU_MESSAGES } from "./messages";
 import {
   JSON_REQUEST_HEADERS,
   readJsonSafe,
@@ -53,7 +54,7 @@ export async function approveNeedsYouAction(
   return postAction<ApproveActionRequest, ApproveActionResponse>({
     route: NEEDS_YOU_API_ROUTES.approveAction,
     body,
-    fallbackError: "Unable to approve action.",
+    fallbackError: NEEDS_YOU_MESSAGES.approveUnavailable,
   });
 }
 
@@ -62,7 +63,7 @@ export async function dismissNeedsYouAction(itemId: string): Promise<DismissActi
   return postAction<DismissActionRequest, DismissActionResponse>({
     route: NEEDS_YOU_API_ROUTES.dismissAction,
     body,
-    fallbackError: "Unable to dismiss action.",
+    fallbackError: NEEDS_YOU_MESSAGES.dismissUnavailable,
   });
 }
 
@@ -75,6 +76,6 @@ export async function recordNeedsYouFeedback(
   return postAction<FeedbackActionRequest, FeedbackActionResponse>({
     route: NEEDS_YOU_API_ROUTES.feedbackAction,
     body,
-    fallbackError: "Unable to save feedback.",
+    fallbackError: NEEDS_YOU_MESSAGES.feedbackUnavailable,
   });
 }
