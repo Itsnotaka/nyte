@@ -41,6 +41,16 @@ function toErrorMessage(value: unknown) {
   return "Trigger.dev task failed.";
 }
 
+type TriggerTaskRunResult<TOutput> =
+  | {
+      ok: true;
+      output: TOutput;
+    }
+  | {
+      ok: false;
+      error: unknown;
+    };
+
 function runTaskProgram<TOutput>({
   taskId,
   stage,
@@ -51,16 +61,7 @@ function runTaskProgram<TOutput>({
   taskId: WorkflowTaskId;
   stage: WorkflowTaskStage;
   localRun: () => Promise<TOutput>;
-  triggerRun: () => Promise<
-    | {
-        ok: true;
-        output: TOutput;
-      }
-    | {
-        ok: false;
-        error: unknown;
-      }
-  >;
+  triggerRun: () => Promise<TriggerTaskRunResult<TOutput>>;
   logContext?: WorkflowTaskLogContext;
 }) {
   const startedAt = Date.now();
@@ -153,16 +154,7 @@ async function runTask<TOutput>({
 }: {
   taskId: WorkflowTaskId;
   localRun: () => Promise<TOutput>;
-  triggerRun: () => Promise<
-    | {
-        ok: true;
-        output: TOutput;
-      }
-    | {
-        ok: false;
-        error: unknown;
-      }
-  >;
+  triggerRun: () => Promise<TriggerTaskRunResult<TOutput>>;
   logContext?: WorkflowTaskLogContext;
 }) {
   const stage = resolveTaskStage();
