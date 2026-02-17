@@ -9,7 +9,11 @@ import {
 import { auth } from "~/lib/auth";
 import { createApiRequestLogger } from "~/lib/server/request-log";
 import { resolveRequestSession } from "~/lib/server/request-session";
-import { asObjectPayload, parseRequiredString } from "~/lib/server/request-validation";
+import {
+  asObjectPayload,
+  parseRequiredString,
+  parseRequiredStringField,
+} from "~/lib/server/request-validation";
 import { normalizeWatchKeywords } from "~/lib/shared/watch-keywords";
 import { resolveWorkflowRouteError } from "~/lib/server/workflow-route-error";
 
@@ -32,7 +36,7 @@ function resolveAccessToken(value: unknown) {
     return null;
   }
 
-  return parseRequiredString(payload.accessToken);
+  return parseRequiredStringField(payload, "accessToken");
 }
 
 export async function GET(request: Request) {

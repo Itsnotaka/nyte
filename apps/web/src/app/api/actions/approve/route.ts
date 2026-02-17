@@ -13,8 +13,8 @@ import { resolveRequestSession } from "~/lib/server/request-session";
 import {
   asObjectPayload,
   parseJsonBody,
-  parseOptionalString,
-  parseRequiredString,
+  parseOptionalStringField,
+  parseRequiredStringField,
 } from "~/lib/server/request-validation";
 import {
   ACTION_AUTH_REQUIRED_MESSAGE,
@@ -28,12 +28,12 @@ function parseApproveBody(value: unknown): ApproveActionRequest | null {
     return null;
   }
 
-  const itemId = parseRequiredString(body.itemId);
+  const itemId = parseRequiredStringField(body, "itemId");
   if (!itemId) {
     return null;
   }
 
-  const idempotencyKey = parseOptionalString(body.idempotencyKey, {
+  const idempotencyKey = parseOptionalStringField(body, "idempotencyKey", {
     requireNonEmpty: true,
   });
   if (idempotencyKey === null) {

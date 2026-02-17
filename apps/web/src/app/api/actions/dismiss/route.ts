@@ -12,7 +12,7 @@ import { resolveRequestSession } from "~/lib/server/request-session";
 import {
   asObjectPayload,
   parseJsonBody,
-  parseRequiredString,
+  parseRequiredStringField,
 } from "~/lib/server/request-validation";
 import {
   ACTION_AUTH_REQUIRED_MESSAGE,
@@ -26,7 +26,7 @@ function parseDismissBody(value: unknown): DismissActionRequest | null {
     return null;
   }
 
-  const itemId = parseRequiredString(body.itemId);
+  const itemId = parseRequiredStringField(body, "itemId");
   if (!itemId) {
     return null;
   }

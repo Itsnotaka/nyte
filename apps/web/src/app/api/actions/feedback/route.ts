@@ -13,8 +13,8 @@ import {
   asObjectPayload,
   parseEnumValue,
   parseJsonBody,
-  parseOptionalString,
-  parseRequiredString,
+  parseOptionalStringField,
+  parseRequiredStringField,
 } from "~/lib/server/request-validation";
 import {
   ACTION_AUTH_REQUIRED_MESSAGE,
@@ -30,7 +30,7 @@ function parseFeedbackBody(value: unknown): FeedbackActionRequest | null {
     return null;
   }
 
-  const itemId = parseRequiredString(body.itemId);
+  const itemId = parseRequiredStringField(body, "itemId");
   if (!itemId) {
     return null;
   }
@@ -40,7 +40,7 @@ function parseFeedbackBody(value: unknown): FeedbackActionRequest | null {
     return null;
   }
 
-  const note = parseOptionalString(body.note);
+  const note = parseOptionalStringField(body, "note");
   if (note === null) {
     return null;
   }

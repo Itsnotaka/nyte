@@ -17,6 +17,13 @@ export function parseRequiredString(value: unknown): string | null {
   return normalized;
 }
 
+export function parseRequiredStringField(
+  payload: Record<string, unknown>,
+  key: string,
+): string | null {
+  return parseRequiredString(payload[key]);
+}
+
 export function parseOptionalString(
   value: unknown,
   options?: {
@@ -37,6 +44,16 @@ export function parseOptionalString(
   }
 
   return normalized;
+}
+
+export function parseOptionalStringField(
+  payload: Record<string, unknown>,
+  key: string,
+  options?: {
+    requireNonEmpty?: boolean;
+  },
+): string | undefined | null {
+  return parseOptionalString(payload[key], options);
 }
 
 export async function parseJsonBody(request: Request): Promise<unknown> {
