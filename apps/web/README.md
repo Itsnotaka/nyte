@@ -41,6 +41,8 @@ Primary Nyte product surface: decision queue UI and thin API gateway.
 - request log context route typing is sourced from centralized needs-you route path constants
 - needs-you user-facing fallback/validation/auth/token-failure message strings are centralized and shared across routes, clients, and hook-level fallback rendering
 - routes use shared workflow API error response helpers to keep error envelope creation + both direct/resolved JSON response construction consistent
+- routes also share a helper for workflow-task-id fallback resolution in task-error log payloads
+- workflow error helpers also centralize resolver-taskId fallback logic used in route error logs
 - API routes and error resolvers share centralized HTTP status constants and `HttpStatusCode` union typing to avoid repeated magic numbers
 - request-log context `status` field also uses shared `HttpStatusCode` typing
 - action route payload parsing reuses shared `parseBodyWithItemId` helper so object + itemId validation semantics stay identical
