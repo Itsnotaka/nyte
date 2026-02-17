@@ -1,38 +1,22 @@
 import {
   runIngestSignalsTask,
-  type QueueSyncRequest,
 } from "@nyte/workflows";
 
 import { auth } from "~/lib/auth";
-import { NEEDS_YOU_QUERY_PARAMS } from "~/lib/needs-you/query-params";
+import { parseQueueSyncQueryParams } from "~/lib/needs-you/sync-query";
 import { createApiRequestLogger } from "~/lib/server/request-log";
 import { NEEDS_YOU_ROUTE_CONFIG } from "~/lib/server/needs-you-route-config";
 import { resolveRequestSession } from "~/lib/server/request-session";
 import { type HttpStatusCode } from "~/lib/server/http-status";
 import {
   parseBodyWithRequiredStringField,
-  parseRequiredString,
 } from "~/lib/server/request-validation";
-import { normalizeWatchKeywords } from "~/lib/shared/watch-keywords";
 import {
   resolveWorkflowRouteError,
   toWorkflowApiErrorJsonResponse,
   toWorkflowRouteErrorJsonResponse,
 } from "~/lib/server/workflow-route-error";
 import { GOOGLE_AUTH_PROVIDER } from "~/lib/auth-provider";
-
-function parseCursor(searchParams: URLSearchParams): QueueSyncRequest["cursor"] {
-  return parseRequiredString(searchParams.get(NEEDS_YOU_QUERY_PARAMS.cursor)) ?? undefined;
-}
-
-function parseWatchKeywords(searchParams: URLSearchParams): QueueSyncRequest["watchKeywords"] {
-  const keywords = normalizeWatchKeywords(searchParams.getAll(NEEDS_YOU_QUERY_PARAMS.watch));
-  if (keywords.length === 0) {
-    return undefined;
-  }
-
-  return keywords;
-}
 
 function resolveAccessToken(value: unknown) {
   const parsed = parseBodyWithRequiredStringField(value, "accessToken");
@@ -46,8 +30,7 @@ export async function GET(request: Request) {
   const method = config.method;
   const startedAt = Date.now();
   const searchParams = new URL(request.url).searchParams;
-  const cursor = parseCursor(searchParams);
-  const watchKeywords = parseWatchKeywords(searchParams);
+  const { cursor, watchKeywords } = parseQueueSyncQueryParams(searchParams);
   const requestLog = createApiRequestLogger(request, route, method);
   let status: HttpStatusCode = config.statuses.ok;
   let userId: string | null = null;
