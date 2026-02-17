@@ -13,6 +13,7 @@
 - Workflow task lifecycle event names are centralized in `packages/workflows/src/workflow-log.ts` (`WORKFLOW_TASK_EVENTS`) and reused in orchestration logging.
 - Task runner orchestration lives in `packages/workflows/src/trigger-runner.ts`.
   - Uses Effect runtime to model trigger/local fallback execution and typed failure conversion.
+  - Uses a shared typed trigger-result union (`ok/output/error`) across runner helper signatures.
 - Trigger task definitions include explicit retry policy and queue concurrency settings.
 - Structured logs are emitted with `evlog` for task start/success/failure.
 - Web Trigger runtime entrypoints:
