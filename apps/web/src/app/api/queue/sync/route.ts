@@ -17,7 +17,7 @@ import {
 import { normalizeWatchKeywords } from "~/lib/shared/watch-keywords";
 import {
   resolveWorkflowRouteError,
-  toWorkflowApiErrorResponse,
+  toWorkflowApiErrorJsonResponse,
 } from "~/lib/server/workflow-route-error";
 
 function parseCursor(searchParams: URLSearchParams): QueueSyncRequest["cursor"] {
@@ -71,7 +71,6 @@ export async function GET(request: Request) {
     userId = sessionUserId;
     if (!session) {
       status = config.statuses.unauthorized;
-      const response = toWorkflowApiErrorResponse(config.messages.authRequired);
       requestLog.warn(config.events.unauthorized, {
         route,
         method,
@@ -79,7 +78,7 @@ export async function GET(request: Request) {
         userId,
         taskId,
       });
-      return Response.json(response, { status });
+      return toWorkflowApiErrorJsonResponse(config.messages.authRequired, status);
     }
 
     const accessTokenResult = await auth.api.getAccessToken({
@@ -92,7 +91,6 @@ export async function GET(request: Request) {
     const accessToken = resolveAccessToken(accessTokenResult);
     if (!accessToken) {
       status = config.statuses.tokenUnavailable;
-      const response = toWorkflowApiErrorResponse(config.messages.tokenUnavailable);
       requestLog.warn(config.events.tokenMissing, {
         route,
         method,
@@ -100,7 +98,7 @@ export async function GET(request: Request) {
         userId,
         taskId,
       });
-      return Response.json(response, { status });
+      return toWorkflowApiErrorJsonResponse(config.messages.tokenUnavailable, status);
     }
 
     const result = await runIngestSignalsTask({

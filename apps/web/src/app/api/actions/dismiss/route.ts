@@ -17,7 +17,7 @@ import {
 import {
   resolveWorkflowDomainStatus,
   resolveWorkflowRouteError,
-  toWorkflowApiErrorResponse,
+  toWorkflowApiErrorJsonResponse,
 } from "~/lib/server/workflow-route-error";
 
 function parseDismissBody(value: unknown): DismissActionRequest | null {
@@ -61,27 +61,25 @@ export async function POST(request: Request) {
     userId = sessionUserId;
     if (!session) {
       status = config.statuses.unauthorized;
-      const response = toWorkflowApiErrorResponse(config.messages.authRequired);
       requestLog.warn(config.events.unauthorized, {
         route,
         method,
         status,
         taskId,
       });
-      return Response.json(response, { status });
+      return toWorkflowApiErrorJsonResponse(config.messages.authRequired, status);
     }
 
     const payload = parseDismissBody(await parseJsonBody(request));
     if (!payload) {
       status = config.statuses.invalidPayload;
-      const response = toWorkflowApiErrorResponse(config.messages.invalidPayload);
       requestLog.warn(config.events.invalidPayload, {
         route,
         method,
         status,
         taskId,
       });
-      return Response.json(response, { status });
+      return toWorkflowApiErrorJsonResponse(config.messages.invalidPayload, status);
     }
     itemId = payload.itemId;
 
@@ -101,7 +99,6 @@ export async function POST(request: Request) {
   } catch (error) {
     if (error instanceof DismissError) {
       status = resolveWorkflowDomainStatus(error.message);
-      const response = toWorkflowApiErrorResponse(error.message);
       requestLog.warn(config.events.domainError, {
         route,
         method,
@@ -111,7 +108,7 @@ export async function POST(request: Request) {
         taskId,
         message: error.message,
       });
-      return Response.json(response, { status });
+      return toWorkflowApiErrorJsonResponse(error.message, status);
     }
 
     const resolved = resolveWorkflowRouteError(error, config.messages.taskUnavailable);

@@ -60,3 +60,7 @@ export function resolveWorkflowDomainStatus(message: string): 404 | 409 {
 export function toWorkflowApiErrorResponse(error: string): WorkflowApiErrorResponse {
   return { error };
 }
+
+export function toWorkflowApiErrorJsonResponse(error: string, status: HttpStatusCode) {
+  return Response.json(toWorkflowApiErrorResponse(error), { status });
+}
