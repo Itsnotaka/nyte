@@ -21,13 +21,24 @@ function parseCursor(searchParams: URLSearchParams): QueueSyncRequest["cursor"] 
 }
 
 function parseWatchKeywords(searchParams: URLSearchParams): QueueSyncRequest["watchKeywords"] {
-  const keywords = searchParams
-    .getAll("watch")
-    .map((entry) => entry.trim().toLowerCase())
-    .filter((entry) => entry.length >= 3)
-    .slice(0, 8);
+  const keywords = new Set<string>();
+  for (const rawKeyword of searchParams.getAll("watch")) {
+    const keyword = rawKeyword.trim().toLowerCase();
+    if (keyword.length < 3) {
+      continue;
+    }
 
-  return keywords.length > 0 ? keywords : undefined;
+    keywords.add(keyword);
+    if (keywords.size >= 8) {
+      break;
+    }
+  }
+
+  if (keywords.size === 0) {
+    return undefined;
+  }
+
+  return Array.from(keywords);
 }
 
 function resolveAccessToken(value: unknown) {
