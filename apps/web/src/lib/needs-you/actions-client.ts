@@ -24,13 +24,11 @@ async function postAction<TRequest extends object, TResponse extends object>({
   route,
   body,
   fallbackError,
-  invalidResponseError,
   isResponse,
 }: {
   route: string;
   body: TRequest;
   fallbackError: string;
-  invalidResponseError: string;
   isResponse: (payload: unknown) => payload is TResponse;
 }): Promise<TResponse> {
   const response = await fetch(route, {
@@ -45,7 +43,7 @@ async function postAction<TRequest extends object, TResponse extends object>({
   }
 
   if (!isResponse(payload)) {
-    throw new Error(invalidResponseError);
+    throw new Error(NEEDS_YOU_MESSAGES.invalidActionResponse);
   }
 
   return payload;
@@ -63,7 +61,6 @@ export async function approveNeedsYouAction(
     route: NEEDS_YOU_API_ROUTES.approveAction,
     body,
     fallbackError: NEEDS_YOU_MESSAGES.approveUnavailable,
-    invalidResponseError: NEEDS_YOU_MESSAGES.invalidActionResponse,
     isResponse: isApproveActionResponse,
   });
 }
@@ -76,7 +73,6 @@ export async function dismissNeedsYouAction(
     route: NEEDS_YOU_API_ROUTES.dismissAction,
     body,
     fallbackError: NEEDS_YOU_MESSAGES.dismissUnavailable,
-    invalidResponseError: NEEDS_YOU_MESSAGES.invalidActionResponse,
     isResponse: isDismissActionResponse,
   });
 }
@@ -91,7 +87,6 @@ export async function recordNeedsYouFeedback(
     route: NEEDS_YOU_API_ROUTES.feedbackAction,
     body,
     fallbackError: NEEDS_YOU_MESSAGES.feedbackUnavailable,
-    invalidResponseError: NEEDS_YOU_MESSAGES.invalidActionResponse,
     isResponse: isFeedbackActionResponse,
   });
 }
