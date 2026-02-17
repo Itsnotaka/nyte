@@ -11,7 +11,7 @@ import {
   type WorkflowTaskStage,
 } from "@nyte/workflows";
 import type { DomainErrorStatuses } from "./needs-you-route-config";
-import { HTTP_STATUS, type HttpStatusCode } from "./http-status";
+import type { HttpStatusCode } from "./http-status";
 
 export type WorkflowRouteErrorResolution = {
   status: HttpStatusCode;
@@ -27,7 +27,7 @@ export type WorkflowRouteErrorResolution = {
 export function resolveWorkflowRouteError(
   error: unknown,
   fallbackMessage: string,
-  status: HttpStatusCode = HTTP_STATUS.badGateway,
+  status: HttpStatusCode,
 ): WorkflowRouteErrorResolution {
   if (error instanceof WorkflowTaskExecutionError || error instanceof WorkflowTaskResultError) {
     return {
