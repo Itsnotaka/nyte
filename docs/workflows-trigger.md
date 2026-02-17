@@ -8,6 +8,10 @@
   - `dismissActionTask`
   - `feedbackTask`
 - `apps/web` routes call these tasks directly as the gateway boundary.
+- Trigger task definitions live in `packages/workflows/src/trigger-tasks.ts`.
+- Web Trigger runtime entrypoints:
+  - config: `apps/web/trigger.config.ts`
+  - task exports: `apps/web/trigger/workflows.ts`
 
 ## Trigger.dev integration boundary
 

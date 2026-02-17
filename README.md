@@ -29,10 +29,13 @@ Nyte is a decision queue for high-impact Gmail and Google Calendar actions. It i
    - `DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/nyte`
    - `BETTER_AUTH_SECRET=...`
    - Google OAuth variables (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`).
+   - Trigger variables (`TRIGGER_SECRET_KEY`, `TRIGGER_PROJECT_REF`) when using Trigger.dev runtime.
 3. Apply database schema:
    - `pnpm db:push`
 4. Typecheck:
    - `pnpm typecheck`
+5. Trigger task dev runtime (optional):
+   - `pnpm --filter web trigger:dev`
 
 ## Extend the system
 
