@@ -5,10 +5,11 @@ import { HTTP_STATUS, type HttpStatusCode } from "./http-status";
 import { REQUEST_EVENTS } from "./request-events";
 
 type NeedsYouRoutePath = (typeof NEEDS_YOU_API_ROUTES)[keyof typeof NEEDS_YOU_API_ROUTES];
+export type NeedsYouRouteMethod = "GET" | "POST";
 
 type BaseNeedsYouRouteConfig = {
   route: NeedsYouRoutePath;
-  method: "GET" | "POST";
+  method: NeedsYouRouteMethod;
   taskId: WorkflowTaskId;
 };
 

@@ -4,6 +4,7 @@ import type {
   WorkflowTaskId,
   WorkflowTaskStage,
 } from "@nyte/workflows";
+import type { NeedsYouRouteMethod } from "./needs-you-route-config";
 
 let loggerInitialized = false;
 
@@ -23,7 +24,7 @@ function ensureLoggerInitialized() {
 
 export type RequestLogContext = {
   route: string;
-  method: string;
+  method: NeedsYouRouteMethod;
   requestId?: string | null;
   userId?: string | null;
   itemId?: string;
