@@ -1,4 +1,8 @@
-import { isQueueSyncResponse, type QueueSyncResponse } from "@nyte/workflows";
+import {
+  isQueueSyncResponse,
+  type QueueSyncRequest,
+  type QueueSyncResponse,
+} from "@nyte/workflows";
 import { normalizeWatchKeywords } from "~/lib/shared/watch-keywords";
 import {
   JSON_ACCEPT_HEADERS,
@@ -26,8 +30,8 @@ async function parseSyncPollResponse(response: Response): Promise<QueueSyncRespo
 }
 
 type SyncNeedsYouInput = {
-  cursor: string | null;
-  watchKeywords?: string[];
+  cursor: QueueSyncRequest["cursor"] | null;
+  watchKeywords?: QueueSyncRequest["watchKeywords"];
 };
 
 export async function syncNeedsYou({

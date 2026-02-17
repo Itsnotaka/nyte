@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ToolCallPayload, WorkItemWithAction } from "@nyte/domain/actions";
-import type { QueueSyncResponse } from "@nyte/workflows";
+import type { QueueSyncRequest, QueueSyncResponse } from "@nyte/workflows";
 import * as React from "react";
 
 import { authClient } from "~/lib/auth-client";
@@ -15,6 +15,8 @@ type UseNyteWorkspaceInput = {
   initialConnected: boolean;
 };
 
+type WatchKeywords = NonNullable<QueueSyncRequest["watchKeywords"]>;
+
 export type UseNyteWorkspaceResult = {
   connected: boolean;
   isSessionPending: boolean;
@@ -23,7 +25,7 @@ export type UseNyteWorkspaceResult = {
   syncError: string | null;
   notice: string | null;
   lastSyncedAt: string | null;
-  activeWatchKeywords: string[];
+  activeWatchKeywords: WatchKeywords;
   visibleItems: WorkItemWithAction[];
   runSync: (command: string) => Promise<void>;
   connectGoogle: () => Promise<void>;
@@ -44,8 +46,8 @@ export function useNyteWorkspace({
   initialConnected,
 }: UseNyteWorkspaceInput): UseNyteWorkspaceResult {
   const queryClient = useQueryClient();
-  const watchKeywordsRef = React.useRef<string[]>([]);
-  const [activeWatchKeywords, setActiveWatchKeywords] = React.useState<string[]>([]);
+  const watchKeywordsRef = React.useRef<WatchKeywords>([]);
+  const [activeWatchKeywords, setActiveWatchKeywords] = React.useState<WatchKeywords>([]);
   const [noticeState, setNoticeState] = React.useState<UserScopedMessage | null>(null);
   const [mutationErrorState, setMutationErrorState] = React.useState<UserScopedMessage | null>(null);
 
