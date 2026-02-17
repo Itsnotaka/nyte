@@ -26,8 +26,40 @@ function resolveApiError(payload: unknown, fallback: string) {
   return fallback;
 }
 
-async function readJson<TPayload>(response: Response): Promise<TPayload> {
-  return (await response.json()) as TPayload;
+const JSON_HEADERS = {
+  "content-type": "application/json",
+  accept: "application/json",
+} as const;
+
+async function readJson(response: Response): Promise<unknown> {
+  try {
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+async function postAction<TRequest, TResponse>({
+  route,
+  body,
+  fallbackError,
+}: {
+  route: string;
+  body: TRequest;
+  fallbackError: string;
+}): Promise<TResponse> {
+  const response = await fetch(route, {
+    method: "POST",
+    headers: JSON_HEADERS,
+    body: JSON.stringify(body),
+  });
+
+  const payload = await readJson(response);
+  if (!response.ok) {
+    throw new Error(resolveApiError(payload, fallbackError));
+  }
+
+  return payload as TResponse;
 }
 
 export async function approveNeedsYouAction(
@@ -38,40 +70,20 @@ export async function approveNeedsYouAction(
     itemId,
     payloadOverride,
   };
-  const response = await fetch("/api/actions/approve", {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      accept: "application/json",
-    },
-    body: JSON.stringify(body),
+  return postAction<ApproveActionRequest, ApproveActionResponse>({
+    route: "/api/actions/approve",
+    body,
+    fallbackError: "Unable to approve action.",
   });
-
-  const payload = await readJson<unknown>(response);
-  if (!response.ok) {
-    throw new Error(resolveApiError(payload, "Unable to approve action."));
-  }
-
-  return payload as ApproveActionResponse;
 }
 
 export async function dismissNeedsYouAction(itemId: string): Promise<DismissActionResponse> {
   const body: DismissActionRequest = { itemId };
-  const response = await fetch("/api/actions/dismiss", {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      accept: "application/json",
-    },
-    body: JSON.stringify(body),
+  return postAction<DismissActionRequest, DismissActionResponse>({
+    route: "/api/actions/dismiss",
+    body,
+    fallbackError: "Unable to dismiss action.",
   });
-
-  const payload = await readJson<unknown>(response);
-  if (!response.ok) {
-    throw new Error(resolveApiError(payload, "Unable to dismiss action."));
-  }
-
-  return payload as DismissActionResponse;
 }
 
 export async function recordNeedsYouFeedback(
@@ -80,19 +92,9 @@ export async function recordNeedsYouFeedback(
   note?: string,
 ): Promise<FeedbackActionResponse> {
   const body: FeedbackActionRequest = { itemId, rating, note };
-  const response = await fetch("/api/actions/feedback", {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      accept: "application/json",
-    },
-    body: JSON.stringify(body),
+  return postAction<FeedbackActionRequest, FeedbackActionResponse>({
+    route: "/api/actions/feedback",
+    body,
+    fallbackError: "Unable to save feedback.",
   });
-
-  const payload = await readJson<unknown>(response);
-  if (!response.ok) {
-    throw new Error(resolveApiError(payload, "Unable to save feedback."));
-  }
-
-  return payload as FeedbackActionResponse;
 }
