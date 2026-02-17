@@ -15,9 +15,9 @@ import { resolveRequestSession } from "~/lib/server/request-session";
 import { HTTP_STATUS } from "~/lib/server/http-status";
 import {
   asObjectPayload,
+  parseItemId,
   parseJsonBody,
   parseOptionalStringField,
-  parseRequiredStringField,
 } from "~/lib/server/request-validation";
 import {
   resolveWorkflowDomainStatus,
@@ -31,7 +31,7 @@ function parseApproveBody(value: unknown): ApproveActionRequest | null {
     return null;
   }
 
-  const itemId = parseRequiredStringField(body, "itemId");
+  const itemId = parseItemId(body);
   if (!itemId) {
     return null;
   }

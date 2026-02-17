@@ -14,10 +14,10 @@ import { resolveRequestSession } from "~/lib/server/request-session";
 import { HTTP_STATUS } from "~/lib/server/http-status";
 import {
   asObjectPayload,
+  parseItemId,
   parseEnumValue,
   parseJsonBody,
   parseOptionalStringField,
-  parseRequiredStringField,
 } from "~/lib/server/request-validation";
 import {
   resolveWorkflowDomainStatus,
@@ -33,7 +33,7 @@ function parseFeedbackBody(value: unknown): FeedbackActionRequest | null {
     return null;
   }
 
-  const itemId = parseRequiredStringField(body, "itemId");
+  const itemId = parseItemId(body);
   if (!itemId) {
     return null;
   }
