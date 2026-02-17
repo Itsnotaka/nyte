@@ -1,4 +1,5 @@
 import {
+  WORKFLOW_TASK_IDS,
   runIngestSignalsTask,
   type QueueSyncRequest,
   type QueueSyncResponse,
@@ -48,6 +49,7 @@ export async function GET(request: Request) {
   requestLog.info("queue.sync.start", {
     route,
     method,
+    taskId: WORKFLOW_TASK_IDS.ingestSignals,
     hasCursor: Boolean(cursor),
     watchKeywordCount: watchKeywords?.length ?? 0,
   });
@@ -68,6 +70,7 @@ export async function GET(request: Request) {
         method,
         status,
         userId,
+        taskId: WORKFLOW_TASK_IDS.ingestSignals,
       });
       return Response.json(response, { status });
     }
@@ -91,6 +94,7 @@ export async function GET(request: Request) {
         method,
         status,
         userId,
+        taskId: WORKFLOW_TASK_IDS.ingestSignals,
       });
       return Response.json(response, { status });
     }
@@ -109,6 +113,8 @@ export async function GET(request: Request) {
       route,
       method,
       status,
+      userId,
+      taskId: WORKFLOW_TASK_IDS.ingestSignals,
       hasCursor: Boolean(cursor),
       watchKeywordCount: watchKeywords?.length ?? 0,
     });
