@@ -1,5 +1,5 @@
 {
-  "name": "@nyte/workflows",
+  "name": "@nyte/pi-runtime",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -11,10 +11,7 @@
     "clean": "rm -rf .turbo .cache node_modules dist"
   },
   "dependencies": {
-    "@nyte/application": "workspace:*",
-    "@nyte/domain": "workspace:*",
-    "@nyte/integrations": "workspace:*",
-    "@nyte/pi-runtime": "workspace:*"
+    "@nyte/domain": "workspace:*"
   },
   "devDependencies": {
     "@nyte/tsconfig": "workspace:*",

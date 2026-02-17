@@ -55,11 +55,7 @@ export async function POST(request: Request) {
       idempotencyKey: payload.idempotencyKey,
       now: new Date(),
     });
-    const response: Pick<ApproveActionResponse, "itemId" | "idempotent" | "execution"> = {
-      itemId: result.itemId,
-      idempotent: result.idempotent,
-      execution: result.execution,
-    };
+    const response: ApproveActionResponse = result;
     return Response.json(response);
   } catch (error) {
     if (error instanceof ApprovalError) {

@@ -1,5 +1,7 @@
 import { approveWorkItem } from "@nyte/application/actions";
 
+import { dispatchApprovedActionToPi } from "../pi-dispatch";
+
 type ApproveWorkItemParameters = Parameters<typeof approveWorkItem>;
 
 export type ApproveActionTaskInput = {
@@ -13,5 +15,13 @@ export async function approveActionTask({
   idempotencyKey,
   now = new Date(),
 }: ApproveActionTaskInput) {
-  return approveWorkItem(itemId, now, idempotencyKey);
+  const approvedItem = await approveWorkItem(itemId, now, idempotencyKey);
+  const piExtension = await dispatchApprovedActionToPi({
+    approvedItem,
+  });
+
+  return {
+    ...approvedItem,
+    piExtension,
+  };
 }

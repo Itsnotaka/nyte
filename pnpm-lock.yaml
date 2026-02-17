@@ -169,6 +169,19 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
 
+  packages/pi-runtime:
+    dependencies:
+      '@nyte/domain':
+        specifier: workspace:*
+        version: link:../domain
+    devDependencies:
+      '@nyte/tsconfig':
+        specifier: workspace:*
+        version: link:../../tooling/typescript
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
   packages/ui:
     dependencies:
       '@base-ui/react':
@@ -250,6 +263,9 @@ importers:
       '@nyte/integrations':
         specifier: workspace:*
         version: link:../integrations
+      '@nyte/pi-runtime':
+        specifier: workspace:*
+        version: link:../pi-runtime
     devDependencies:
       '@nyte/tsconfig':
         specifier: workspace:*
