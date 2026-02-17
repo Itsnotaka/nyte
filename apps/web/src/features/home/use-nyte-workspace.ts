@@ -96,7 +96,7 @@ export function useNyteWorkspace({
     queryFn: async () => {
       const currentPayload = queryClient.getQueryData<QueueSyncResponse>(syncQueryKey);
       return syncNeedsYou({
-        cursor: currentPayload?.cursor ?? null,
+        cursor: currentPayload?.cursor,
         watchKeywords: watchKeywordsRef.current,
       });
     },

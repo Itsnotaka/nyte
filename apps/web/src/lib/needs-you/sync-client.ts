@@ -30,7 +30,7 @@ async function parseSyncPollResponse(response: Response): Promise<QueueSyncRespo
 }
 
 type SyncNeedsYouInput = {
-  cursor: QueueSyncRequest["cursor"] | null;
+  cursor: QueueSyncRequest["cursor"];
   watchKeywords?: QueueSyncRequest["watchKeywords"];
 };
 
