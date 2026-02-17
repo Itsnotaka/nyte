@@ -1,8 +1,43 @@
-import { WORKFLOW_TASK_IDS } from "@nyte/workflows";
+import { WORKFLOW_TASK_IDS, type WorkflowTaskId } from "@nyte/workflows";
 import { NEEDS_YOU_MESSAGES } from "~/lib/needs-you/messages";
 import { NEEDS_YOU_API_ROUTES } from "~/lib/needs-you/routes";
-import { HTTP_STATUS } from "./http-status";
+import { HTTP_STATUS, type HttpStatusCode } from "./http-status";
 import { REQUEST_EVENTS } from "./request-events";
+
+type NeedsYouRoutePath = (typeof NEEDS_YOU_API_ROUTES)[keyof typeof NEEDS_YOU_API_ROUTES];
+
+type BaseNeedsYouRouteConfig = {
+  route: NeedsYouRoutePath;
+  taskId: WorkflowTaskId;
+};
+
+type QueueSyncRouteConfig = BaseNeedsYouRouteConfig & {
+  events: typeof REQUEST_EVENTS.queueSync;
+  messages: {
+    authRequired: string;
+    tokenUnavailable: string;
+    taskUnavailable: string;
+  };
+  statuses: {
+    ok: HttpStatusCode;
+    unauthorized: HttpStatusCode;
+    tokenUnavailable: HttpStatusCode;
+  };
+};
+
+type ActionRouteConfig<TEvents extends Record<string, string>> = BaseNeedsYouRouteConfig & {
+  events: TEvents;
+  messages: {
+    authRequired: string;
+    invalidPayload: string;
+    taskUnavailable: string;
+  };
+  statuses: {
+    ok: HttpStatusCode;
+    unauthorized: HttpStatusCode;
+    invalidPayload: HttpStatusCode;
+  };
+};
 
 export const NEEDS_YOU_ROUTE_CONFIG = {
   queueSync: {
@@ -65,4 +100,9 @@ export const NEEDS_YOU_ROUTE_CONFIG = {
       invalidPayload: HTTP_STATUS.badRequest,
     },
   },
-} as const;
+} as const satisfies {
+  queueSync: QueueSyncRouteConfig;
+  actionApprove: ActionRouteConfig<typeof REQUEST_EVENTS.actionApprove>;
+  actionDismiss: ActionRouteConfig<typeof REQUEST_EVENTS.actionDismiss>;
+  actionFeedback: ActionRouteConfig<typeof REQUEST_EVENTS.actionFeedback>;
+};
