@@ -27,6 +27,15 @@ type QueueSyncRouteConfig = BaseNeedsYouRouteConfig & {
   };
 };
 
+type ActionRouteStatuses = {
+  ok: HttpStatusCode;
+  unauthorized: HttpStatusCode;
+  invalidPayload: HttpStatusCode;
+  notFound: HttpStatusCode;
+  conflict: HttpStatusCode;
+  domainInvalidPayload: HttpStatusCode;
+};
+
 type ActionRouteConfig<TEvents extends Record<string, string>> = BaseNeedsYouRouteConfig & {
   events: TEvents;
   messages: {
@@ -34,15 +43,17 @@ type ActionRouteConfig<TEvents extends Record<string, string>> = BaseNeedsYouRou
     invalidPayload: string;
     taskUnavailable: string;
   };
-  statuses: {
-    ok: HttpStatusCode;
-    unauthorized: HttpStatusCode;
-    invalidPayload: HttpStatusCode;
-    notFound: HttpStatusCode;
-    conflict: HttpStatusCode;
-    domainInvalidPayload: HttpStatusCode;
-  };
+  statuses: ActionRouteStatuses;
 };
+
+const ACTION_ROUTE_STATUSES = {
+  ok: HTTP_STATUS.ok,
+  unauthorized: HTTP_STATUS.unauthorized,
+  invalidPayload: HTTP_STATUS.badRequest,
+  notFound: HTTP_STATUS.notFound,
+  conflict: HTTP_STATUS.conflict,
+  domainInvalidPayload: HTTP_STATUS.unprocessableEntity,
+} as const satisfies ActionRouteStatuses;
 
 export const NEEDS_YOU_ROUTE_CONFIG = {
   queueSync: {
@@ -71,14 +82,7 @@ export const NEEDS_YOU_ROUTE_CONFIG = {
       invalidPayload: NEEDS_YOU_MESSAGES.invalidApprovePayload,
       taskUnavailable: NEEDS_YOU_MESSAGES.approveUnavailable,
     },
-    statuses: {
-      ok: HTTP_STATUS.ok,
-      unauthorized: HTTP_STATUS.unauthorized,
-      invalidPayload: HTTP_STATUS.badRequest,
-      notFound: HTTP_STATUS.notFound,
-      conflict: HTTP_STATUS.conflict,
-      domainInvalidPayload: HTTP_STATUS.unprocessableEntity,
-    },
+    statuses: ACTION_ROUTE_STATUSES,
   },
   actionDismiss: {
     route: NEEDS_YOU_API_ROUTES.dismissAction,
@@ -90,14 +94,7 @@ export const NEEDS_YOU_ROUTE_CONFIG = {
       invalidPayload: NEEDS_YOU_MESSAGES.invalidDismissPayload,
       taskUnavailable: NEEDS_YOU_MESSAGES.dismissUnavailable,
     },
-    statuses: {
-      ok: HTTP_STATUS.ok,
-      unauthorized: HTTP_STATUS.unauthorized,
-      invalidPayload: HTTP_STATUS.badRequest,
-      notFound: HTTP_STATUS.notFound,
-      conflict: HTTP_STATUS.conflict,
-      domainInvalidPayload: HTTP_STATUS.unprocessableEntity,
-    },
+    statuses: ACTION_ROUTE_STATUSES,
   },
   actionFeedback: {
     route: NEEDS_YOU_API_ROUTES.feedbackAction,
@@ -109,14 +106,7 @@ export const NEEDS_YOU_ROUTE_CONFIG = {
       invalidPayload: NEEDS_YOU_MESSAGES.invalidFeedbackPayload,
       taskUnavailable: NEEDS_YOU_MESSAGES.feedbackUnavailable,
     },
-    statuses: {
-      ok: HTTP_STATUS.ok,
-      unauthorized: HTTP_STATUS.unauthorized,
-      invalidPayload: HTTP_STATUS.badRequest,
-      notFound: HTTP_STATUS.notFound,
-      conflict: HTTP_STATUS.conflict,
-      domainInvalidPayload: HTTP_STATUS.unprocessableEntity,
-    },
+    statuses: ACTION_ROUTE_STATUSES,
   },
 } as const satisfies {
   queueSync: QueueSyncRouteConfig;
