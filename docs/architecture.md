@@ -23,6 +23,8 @@ Nyte reduces operator interruption by escalating only decision-critical email/ca
 - Extension contracts + tool handlers: `packages/pi-runtime`
 - Task-level composition and handoff boundaries: `packages/workflows`
   - orchestration runtime semantics in workflows use bounded Effect programs
+- Observability:
+  - `evlog` structured logging in API gateway routes and workflow orchestration
 
 ## Decision queue flow
 

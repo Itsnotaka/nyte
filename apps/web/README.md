@@ -10,6 +10,7 @@ Primary Nyte product surface: decision queue UI and thin API gateway.
 - queue sync and action mutation routes
 - rendering and mutating decision queue state with TanStack Query + TanStack Form
 - Trigger.dev runtime config and exported task entrypoints
+- request-scoped structured logging with evlog
 
 ## API routes
 

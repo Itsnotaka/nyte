@@ -12,6 +12,7 @@
 - Task runner orchestration lives in `packages/workflows/src/trigger-runner.ts`.
   - Uses Effect runtime to model trigger/local fallback execution and typed failure conversion.
 - Trigger task definitions include explicit retry policy and queue concurrency settings.
+- Structured logs are emitted with `evlog` for task start/success/failure.
 - Web Trigger runtime entrypoints:
   - config: `apps/web/trigger.config.ts`
   - task exports: `apps/web/trigger/workflows.ts`
@@ -27,6 +28,15 @@ Recommended wrapping pattern:
 3. Preserve idempotency key flow from approve requests to PI extension dispatch.
 4. Keep retries at task-wrapper level; keep domain/application logic deterministic.
 5. Keep Effect usage bounded to workflow orchestration only; do not spread into UI or schema modules.
+
+## Logging model
+
+- Workflow runner emits structured events:
+  - `task.start`
+  - `task.success`
+  - `task.failure`
+- Web API routes emit request-scoped wide logs using `createRequestLogger`.
+- Log fields include: route/task identifiers, item IDs, status, duration, and typed error tags.
 
 ## Failure model
 

@@ -10,6 +10,8 @@ Task orchestration boundary for Nyte decision queue operations.
 - approve/dismiss/feedback task entrypoints
 - dispatch approved actions to PI extension runtime
 - expose shared route contracts derived from task signatures
+- emit structured orchestration logs with evlog
+- model orchestration failures with typed Effect error channels
 
 ## Public exports
 
