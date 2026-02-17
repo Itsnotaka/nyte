@@ -51,10 +51,8 @@ export function resolveWorkflowRouteError(
   };
 }
 
-export function resolveWorkflowDomainStatus(message: string): 404 | 409 {
-  return message.toLowerCase().includes("not found")
-    ? HTTP_STATUS.notFound
-    : HTTP_STATUS.conflict;
+export function resolveWorkflowDomainStatus(errorCode: string): 404 | 409 {
+  return errorCode === "not_found" ? HTTP_STATUS.notFound : HTTP_STATUS.conflict;
 }
 
 export function toWorkflowApiErrorResponse(error: string): WorkflowApiErrorResponse {

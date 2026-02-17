@@ -16,9 +16,18 @@ import { toIsoString } from "../shared/time";
 import { recordWorkflowRun } from "../workflow/workflow-log";
 
 export class ApprovalError extends Error {
-  constructor(message: string) {
+  readonly code: "not_found" | "invalid_state" | "invalid_payload";
+
+  constructor({
+    code,
+    message,
+  }: {
+    code: "not_found" | "invalid_state" | "invalid_payload";
+    message: string;
+  }) {
     super(message);
     this.name = "ApprovalError";
+    this.code = code;
   }
 }
 
@@ -87,10 +96,16 @@ export async function approveWorkItem(
   const itemRows = await db.select().from(workItems).where(eq(workItems.id, itemId)).limit(1);
   const workItem = itemRows.at(0);
   if (!workItem) {
-    throw new ApprovalError("Work item not found.");
+    throw new ApprovalError({
+      code: "not_found",
+      message: "Work item not found.",
+    });
   }
   if (workItem.status === "dismissed") {
-    throw new ApprovalError("Work item is dismissed and cannot be approved.");
+    throw new ApprovalError({
+      code: "invalid_state",
+      message: "Work item is dismissed and cannot be approved.",
+    });
   }
 
   const action = await db
@@ -101,12 +116,18 @@ export async function approveWorkItem(
 
   const proposal = action.at(0);
   if (!proposal) {
-    throw new ApprovalError("No proposed action found for work item.");
+    throw new ApprovalError({
+      code: "not_found",
+      message: "No proposed action found for work item.",
+    });
   }
 
   const payload = parseToolCallPayload(proposal.payloadJson);
   if (!payload) {
-    throw new ApprovalError("Proposed action payload is invalid.");
+    throw new ApprovalError({
+      code: "invalid_payload",
+      message: "Proposed action payload is invalid.",
+    });
   }
   const payloadForExecution = payloadOverride ?? payload;
 
