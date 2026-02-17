@@ -3,6 +3,12 @@ import type { WorkflowTaskStage } from "./trigger-errors";
 import type { WorkflowTaskId } from "./task-ids";
 import type { FeedbackTaskInput } from "./tasks/feedback-task";
 
+export const WORKFLOW_TASK_EVENTS = {
+  start: "task.start",
+  success: "task.success",
+  failure: "task.failure",
+} as const;
+
 let loggerInitialized = false;
 
 function ensureLoggerInitialized() {
@@ -21,7 +27,7 @@ function ensureLoggerInitialized() {
 
 export type WorkflowLogEvent = {
   scope: "workflow.task";
-  event: "task.start" | "task.success" | "task.failure";
+  event: (typeof WORKFLOW_TASK_EVENTS)[keyof typeof WORKFLOW_TASK_EVENTS];
   taskId: WorkflowTaskId;
   stage: WorkflowTaskStage;
   durationMs?: number;

@@ -21,6 +21,7 @@ import { WORKFLOW_TASK_IDS, type WorkflowTaskId } from "./task-ids";
 import {
   workflowError,
   workflowInfo,
+  WORKFLOW_TASK_EVENTS,
   type WorkflowTaskLogContext,
 } from "./workflow-log";
 
@@ -68,7 +69,7 @@ function runTaskProgram<TOutput>({
     yield* Effect.sync(() =>
       workflowInfo({
         scope: "workflow.task",
-        event: "task.start",
+        event: WORKFLOW_TASK_EVENTS.start,
         taskId,
         stage,
         ...logContext,
@@ -90,7 +91,7 @@ function runTaskProgram<TOutput>({
       yield* Effect.sync(() =>
         workflowInfo({
           scope: "workflow.task",
-          event: "task.success",
+          event: WORKFLOW_TASK_EVENTS.success,
           taskId,
           stage,
           durationMs: Date.now() - startedAt,
@@ -126,7 +127,7 @@ function runTaskProgram<TOutput>({
     yield* Effect.sync(() =>
       workflowInfo({
         scope: "workflow.task",
-        event: "task.success",
+        event: WORKFLOW_TASK_EVENTS.success,
         taskId,
         stage,
         durationMs: Date.now() - startedAt,
@@ -140,7 +141,7 @@ function runTaskProgram<TOutput>({
       Effect.sync(() =>
         workflowError({
           scope: "workflow.task",
-          event: "task.failure",
+          event: WORKFLOW_TASK_EVENTS.failure,
           taskId,
           stage,
           durationMs: Date.now() - startedAt,
