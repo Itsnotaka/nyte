@@ -17,6 +17,7 @@
 - Active watch keywords are surfaced in workspace UI after each sync for operator clarity.
 - Approve/dismiss actions use TanStack Query mutations and query invalidation.
 - Action API client uses a shared POST helper + safe JSON parsing for consistent error handling across approve/dismiss/feedback.
+- Invalid action-response fallback message is now owned by that shared POST helper (not repeated at call sites).
 - Action API client also validates that successful responses are object payloads before casting to contract types.
 - Action and sync clients now validate successful payloads using runtime guards exported from `@nyte/workflows/contracts`.
 - Action success notices + fallback mutation error text are sourced from shared needs-you message constants.
