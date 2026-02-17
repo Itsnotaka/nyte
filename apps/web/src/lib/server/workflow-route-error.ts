@@ -10,6 +10,7 @@ import {
   type WorkflowApiErrorResponse,
   type WorkflowTaskStage,
 } from "@nyte/workflows";
+import type { DomainErrorStatuses } from "./needs-you-route-config";
 import { HTTP_STATUS, type HttpStatusCode } from "./http-status";
 
 export type WorkflowRouteErrorResolution = {
@@ -58,11 +59,7 @@ export function resolveWorkflowRouteError(
 
 export function resolveWorkflowDomainStatus(
   errorCode: ApprovalErrorCode | DismissErrorCode | FeedbackErrorCode,
-  statuses: {
-    notFound: HttpStatusCode;
-    conflict: HttpStatusCode;
-    domainInvalidPayload: HttpStatusCode;
-  },
+  statuses: DomainErrorStatuses,
 ): HttpStatusCode {
   if (errorCode === "not_found") {
     return statuses.notFound;

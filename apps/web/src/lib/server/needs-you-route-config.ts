@@ -27,7 +27,7 @@ type QueueSyncRouteConfig = BaseNeedsYouRouteConfig & {
   };
 };
 
-type ActionRouteStatuses = {
+export type ActionRouteStatuses = {
   ok: HttpStatusCode;
   unauthorized: HttpStatusCode;
   invalidPayload: HttpStatusCode;
@@ -35,6 +35,10 @@ type ActionRouteStatuses = {
   conflict: HttpStatusCode;
   domainInvalidPayload: HttpStatusCode;
 };
+export type DomainErrorStatuses = Pick<
+  ActionRouteStatuses,
+  "notFound" | "conflict" | "domainInvalidPayload"
+>;
 
 type ActionRouteConfig<TEvents extends Record<string, string>> = BaseNeedsYouRouteConfig & {
   events: TEvents;
