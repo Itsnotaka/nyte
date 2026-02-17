@@ -8,7 +8,10 @@ import * as React from "react";
 import { authClient } from "~/lib/auth-client";
 import { GOOGLE_AUTH_PROVIDER } from "~/lib/auth-provider";
 import { approveNeedsYouAction, dismissNeedsYouAction } from "~/lib/needs-you/actions-client";
-import { NEEDS_YOU_MESSAGES } from "~/lib/needs-you/messages";
+import {
+  formatSyncFilteredNotice,
+  NEEDS_YOU_MESSAGES,
+} from "~/lib/needs-you/messages";
 import { syncNeedsYou } from "~/lib/needs-you/sync-client";
 import { resolveSessionUserId } from "~/lib/shared/session-user-id";
 import { parseWatchKeywordCommand } from "~/lib/shared/watch-keywords";
@@ -142,7 +145,7 @@ export function useNyteWorkspace({
     setActiveWatchKeywords(parsedKeywords);
     const result = await refetchSync();
     if (!result.error && parsedKeywords.length > 0) {
-      setNotice(`${NEEDS_YOU_MESSAGES.syncFilteredByPrefix} ${parsedKeywords.join(", ")}.`);
+      setNotice(formatSyncFilteredNotice(parsedKeywords));
     }
   }, [refetchSync, setMutationError, setNotice]);
 
