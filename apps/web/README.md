@@ -26,6 +26,7 @@ Primary Nyte product surface: decision queue UI and thin API gateway.
 - that config is constrained with explicit TypeScript `satisfies` typing for route/task/event/message/status completeness
 - action routes reuse shared method/status templates in that config (`POST` + 400/401/404/409/422 + 200) to avoid drift
 - request log context method typing is sourced from the same centralized needs-you method union
+- request logger initialization also uses that centralized method value (not raw `request.method`)
 - request log context route typing is sourced from centralized needs-you route path constants
 - needs-you user-facing fallback/validation/auth/token-failure message strings are centralized and shared across routes, clients, and hook-level fallback rendering
 - routes use shared workflow API error response helpers to keep error envelope creation + both direct/resolved JSON response construction consistent
