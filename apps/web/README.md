@@ -25,6 +25,7 @@ Primary Nyte product surface: decision queue UI and thin API gateway.
 - route/method/task/event/message/status wiring for needs-you API handlers is centralized in a single server-side config module
 - that config is constrained with explicit TypeScript `satisfies` typing for route/task/event/message/status completeness
 - request log context method typing is sourced from the same centralized needs-you method union
+- request log context route typing is sourced from centralized needs-you route path constants
 - needs-you user-facing fallback/validation/auth/token-failure message strings are centralized and shared across routes, clients, and hook-level fallback rendering
 - routes use shared workflow API error response helpers to keep error envelope creation + both direct/resolved JSON response construction consistent
 - API routes and error resolvers share centralized HTTP status constants and `HttpStatusCode` union typing to avoid repeated magic numbers
