@@ -1,26 +1,27 @@
 import type { QueueSyncResponse, WorkflowApiErrorResponse } from "@nyte/workflows";
 import { normalizeWatchKeywords } from "~/lib/shared/watch-keywords";
+import { readJsonSafe, resolveWorkflowApiError } from "./http-client";
 
 async function parseSyncPollResponse(response: Response): Promise<QueueSyncResponse> {
-  const payload = (await response.json()) as Partial<QueueSyncResponse> &
-    Partial<WorkflowApiErrorResponse>;
+  const payload = await readJsonSafe(response);
 
   if (!response.ok) {
     const fallback = "Unable to sync Gmail + Calendar right now.";
-    const message =
-      typeof payload.error === "string" && payload.error.trim().length > 0
-        ? payload.error
-        : fallback;
-    throw new Error(message);
+    throw new Error(resolveWorkflowApiError(payload, fallback));
   }
 
-  if (!Array.isArray(payload.needsYou) || typeof payload.cursor !== "string") {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    throw new Error("Sync payload is invalid.");
+  }
+
+  const queuePayload = payload as Partial<QueueSyncResponse> & Partial<WorkflowApiErrorResponse>;
+  if (!Array.isArray(queuePayload.needsYou) || typeof queuePayload.cursor !== "string") {
     throw new Error("Sync payload is invalid.");
   }
 
   return {
-    cursor: payload.cursor,
-    needsYou: payload.needsYou,
+    cursor: queuePayload.cursor,
+    needsYou: queuePayload.needsYou,
   };
 }
 

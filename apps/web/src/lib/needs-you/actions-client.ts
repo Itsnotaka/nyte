@@ -5,39 +5,14 @@ import type {
   DismissActionResponse,
   FeedbackActionRequest,
   FeedbackActionResponse,
-  WorkflowApiErrorResponse,
 } from "@nyte/workflows";
 import type { ToolCallPayload } from "@nyte/domain/actions";
-
-function isWorkflowApiErrorResponse(payload: unknown): payload is WorkflowApiErrorResponse {
-  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
-    return false;
-  }
-
-  const error = (payload as { error?: unknown }).error;
-  return typeof error === "string" && error.trim().length > 0;
-}
-
-function resolveApiError(payload: unknown, fallback: string) {
-  if (isWorkflowApiErrorResponse(payload)) {
-    return payload.error;
-  }
-
-  return fallback;
-}
+import { readJsonSafe, resolveWorkflowApiError } from "./http-client";
 
 const JSON_HEADERS = {
   "content-type": "application/json",
   accept: "application/json",
 } as const;
-
-async function readJson(response: Response): Promise<unknown> {
-  try {
-    return await response.json();
-  } catch {
-    return null;
-  }
-}
 
 async function postAction<TRequest, TResponse>({
   route,
@@ -54,9 +29,9 @@ async function postAction<TRequest, TResponse>({
     body: JSON.stringify(body),
   });
 
-  const payload = await readJson(response);
+  const payload = await readJsonSafe(response);
   if (!response.ok) {
-    throw new Error(resolveApiError(payload, fallbackError));
+    throw new Error(resolveWorkflowApiError(payload, fallbackError));
   }
 
   return payload as TResponse;
