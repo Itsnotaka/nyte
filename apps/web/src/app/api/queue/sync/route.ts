@@ -107,11 +107,7 @@ export async function GET(request: Request) {
       cursor,
       watchKeywords,
     });
-
-    const response: QueueSyncResponse = {
-      cursor: result.cursor,
-      needsYou: result.needsYou,
-    };
+    const response: QueueSyncResponse = result;
     requestLog.info(config.events.success, {
       route,
       method,
