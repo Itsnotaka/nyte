@@ -6,7 +6,6 @@ import {
 } from "@nyte/workflows";
 
 import { createApiRequestLogger } from "~/lib/server/request-log";
-import { NEEDS_YOU_MESSAGES } from "~/lib/needs-you/messages";
 import { NEEDS_YOU_ROUTE_CONFIG } from "~/lib/server/needs-you-route-config";
 import { resolveRequestSession } from "~/lib/server/request-session";
 import { HTTP_STATUS } from "~/lib/server/http-status";
@@ -78,7 +77,7 @@ export async function POST(request: Request) {
     userId = sessionUserId;
     if (!session) {
       status = HTTP_STATUS.unauthorized;
-      const response = toWorkflowApiErrorResponse(NEEDS_YOU_MESSAGES.actionAuthRequired);
+      const response = toWorkflowApiErrorResponse(config.messages.authRequired);
       requestLog.warn(config.events.unauthorized, {
         route,
         method,
@@ -91,7 +90,7 @@ export async function POST(request: Request) {
     const payload = parseFeedbackBody(await parseJsonBody(request));
     if (!payload) {
       status = HTTP_STATUS.badRequest;
-      const response = toWorkflowApiErrorResponse(NEEDS_YOU_MESSAGES.invalidFeedbackPayload);
+      const response = toWorkflowApiErrorResponse(config.messages.invalidPayload);
       requestLog.warn(config.events.invalidPayload, {
         route,
         method,
@@ -133,7 +132,7 @@ export async function POST(request: Request) {
       return Response.json(response, { status });
     }
 
-    const resolved = resolveWorkflowRouteError(error, NEEDS_YOU_MESSAGES.feedbackUnavailable);
+    const resolved = resolveWorkflowRouteError(error, config.messages.taskUnavailable);
     status = resolved.status;
     requestLog.error(config.events.taskError, {
       route,

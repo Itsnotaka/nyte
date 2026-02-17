@@ -5,7 +5,6 @@ import {
 } from "@nyte/workflows";
 
 import { auth } from "~/lib/auth";
-import { NEEDS_YOU_MESSAGES } from "~/lib/needs-you/messages";
 import { createApiRequestLogger } from "~/lib/server/request-log";
 import { NEEDS_YOU_ROUTE_CONFIG } from "~/lib/server/needs-you-route-config";
 import { resolveRequestSession } from "~/lib/server/request-session";
@@ -72,7 +71,7 @@ export async function GET(request: Request) {
     userId = sessionUserId;
     if (!session) {
       status = HTTP_STATUS.unauthorized;
-      const response = toWorkflowApiErrorResponse(NEEDS_YOU_MESSAGES.queueAuthRequired);
+      const response = toWorkflowApiErrorResponse(config.messages.authRequired);
       requestLog.warn(config.events.unauthorized, {
         route,
         method,
@@ -93,7 +92,7 @@ export async function GET(request: Request) {
     const accessToken = resolveAccessToken(accessTokenResult);
     if (!accessToken) {
       status = HTTP_STATUS.conflict;
-      const response = toWorkflowApiErrorResponse(NEEDS_YOU_MESSAGES.queueTokenUnavailable);
+      const response = toWorkflowApiErrorResponse(config.messages.tokenUnavailable);
       requestLog.warn(config.events.tokenMissing, {
         route,
         method,
@@ -125,7 +124,7 @@ export async function GET(request: Request) {
     });
     return Response.json(response);
   } catch (error) {
-    const resolved = resolveWorkflowRouteError(error, NEEDS_YOU_MESSAGES.syncUnavailable);
+    const resolved = resolveWorkflowRouteError(error, config.messages.taskUnavailable);
     status = resolved.status;
 
     requestLog.error(config.events.taskError, {
