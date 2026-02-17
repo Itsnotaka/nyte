@@ -28,6 +28,7 @@ Primary Nyte product surface: decision queue UI and thin API gateway.
 - routes use shared workflow API error response helpers to keep error envelope creation + both direct/resolved JSON response construction consistent
 - API routes and error resolvers share centralized HTTP status constants and `HttpStatusCode` union typing to avoid repeated magic numbers
 - action route payload parsing also reuses shared `itemId` field parser to keep validation semantics identical
+- domain status mapping now uses explicit error codes from application actions (`not_found` vs conflict-like codes), not message parsing
 
 ## API routes
 
