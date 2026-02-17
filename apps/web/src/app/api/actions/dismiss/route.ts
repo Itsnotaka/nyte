@@ -10,7 +10,7 @@ import { resolveRequestSession } from "~/lib/server/request-session";
 import { type HttpStatusCode } from "~/lib/server/http-status";
 import {
   parseBodyWithItemId,
-  parseJsonBody,
+  parseRequestPayload,
 } from "~/lib/server/request-validation";
 import {
   resolveWorkflowDomainStatus,
@@ -64,7 +64,7 @@ export async function POST(request: Request) {
       return toWorkflowApiErrorJsonResponse(config.messages.authRequired, status);
     }
 
-    const payload = parseDismissBody(await parseJsonBody(request));
+    const payload = await parseRequestPayload(request, parseDismissBody);
     if (!payload) {
       status = config.statuses.invalidPayload;
       requestLog.warn(config.events.invalidPayload, {

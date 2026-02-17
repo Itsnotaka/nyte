@@ -96,6 +96,13 @@ export async function parseJsonBody(request: Request): Promise<unknown> {
   }
 }
 
+export async function parseRequestPayload<TPayload>(
+  request: Request,
+  parser: (value: unknown) => TPayload | null,
+): Promise<TPayload | null> {
+  return parser(await parseJsonBody(request));
+}
+
 export function parseEnumValue<TValue extends string>(
   value: unknown,
   allowedValues: readonly TValue[],
