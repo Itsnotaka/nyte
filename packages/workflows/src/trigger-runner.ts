@@ -115,7 +115,7 @@ function runTaskProgram<TOutput>({
       return yield* Effect.fail(
         new WorkflowTaskResultError({
           taskId,
-          stage: "trigger",
+          stage,
           message: toErrorMessage(result.error),
           cause: result.error,
         }),
