@@ -7,6 +7,7 @@ Primary Nyte product surface: decision queue UI and thin API gateway.
 ## Responsibilities
 
 - authentication/session handling
+- shared auth provider constants for route/hook parity (e.g., Google provider id)
 - queue sync and action mutation routes
 - rendering and mutating decision queue state with TanStack Query + TanStack Form
 - optional watch-keyword input in composer to bias ingestion matches
