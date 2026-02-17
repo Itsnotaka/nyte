@@ -39,6 +39,7 @@ Recommended wrapping pattern:
   - action flows: `itemId` (approve/dismiss/feedback) and `rating` (feedback)
   - sync flow: cursor presence and watch keyword count
   - deterministic execution stage (`local` or `trigger`) computed once per orchestration run
+  - stage typing is sourced from workflow error contracts and reused in web route log contexts
 - Web API routes emit request-scoped wide logs using `createRequestLogger`.
 - Log fields include: route/task identifiers, item IDs, user IDs, status, duration, typed error tags, plus sync-context (`hasCursor`, `watchKeywordCount`) when applicable.
 
