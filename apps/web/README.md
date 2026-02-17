@@ -17,6 +17,7 @@ Primary Nyte product surface: decision queue UI and thin API gateway.
 - malformed JSON action requests are treated as invalid payloads (HTTP 400), not orchestration failures
 - action routes share a centralized auth-required error message for consistent 401 responses
 - needs-you clients share a small HTTP utility for safe JSON parsing and workflow API error extraction
+- unknown-object checks are centralized via shared value guards to avoid repeated unsafe casts
 
 ## API routes
 
