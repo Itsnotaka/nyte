@@ -5,15 +5,16 @@ import { recordAuditLog } from "../audit/audit-log";
 import { recordWorkflowRun } from "../workflow/workflow-log";
 
 export type FeedbackRating = "positive" | "negative";
+export type FeedbackErrorCode = "not_found" | "invalid_state";
 
 export class FeedbackError extends Error {
-  readonly code: "not_found" | "invalid_state";
+  readonly code: FeedbackErrorCode;
 
   constructor({
     code,
     message,
   }: {
-    code: "not_found" | "invalid_state";
+    code: FeedbackErrorCode;
     message: string;
   }) {
     super(message);

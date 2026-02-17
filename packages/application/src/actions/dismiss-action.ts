@@ -4,14 +4,16 @@ import { eq } from "@nyte/db/drizzle";
 import { recordAuditLog } from "../audit/audit-log";
 import { recordWorkflowRun } from "../workflow/workflow-log";
 
+export type DismissErrorCode = "not_found" | "invalid_state";
+
 export class DismissError extends Error {
-  readonly code: "not_found" | "invalid_state";
+  readonly code: DismissErrorCode;
 
   constructor({
     code,
     message,
   }: {
-    code: "not_found" | "invalid_state";
+    code: DismissErrorCode;
     message: string;
   }) {
     super(message);

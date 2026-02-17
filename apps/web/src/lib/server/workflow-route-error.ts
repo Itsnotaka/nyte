@@ -1,3 +1,8 @@
+import type {
+  ApprovalErrorCode,
+  DismissErrorCode,
+  FeedbackErrorCode,
+} from "@nyte/application/actions";
 import {
   WorkflowTaskExecutionError,
   type WorkflowTaskId,
@@ -51,7 +56,9 @@ export function resolveWorkflowRouteError(
   };
 }
 
-export function resolveWorkflowDomainStatus(errorCode: string): 404 | 409 {
+export function resolveWorkflowDomainStatus(
+  errorCode: ApprovalErrorCode | DismissErrorCode | FeedbackErrorCode,
+): 404 | 409 {
   return errorCode === "not_found" ? HTTP_STATUS.notFound : HTTP_STATUS.conflict;
 }
 

@@ -15,14 +15,16 @@ import { parseToolCallPayload } from "../shared/payload";
 import { toIsoString } from "../shared/time";
 import { recordWorkflowRun } from "../workflow/workflow-log";
 
+export type ApprovalErrorCode = "not_found" | "invalid_state" | "invalid_payload";
+
 export class ApprovalError extends Error {
-  readonly code: "not_found" | "invalid_state" | "invalid_payload";
+  readonly code: ApprovalErrorCode;
 
   constructor({
     code,
     message,
   }: {
-    code: "not_found" | "invalid_state" | "invalid_payload";
+    code: ApprovalErrorCode;
     message: string;
   }) {
     super(message);
