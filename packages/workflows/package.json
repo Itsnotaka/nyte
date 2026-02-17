@@ -15,7 +15,8 @@
     "@nyte/domain": "workspace:*",
     "@nyte/integrations": "workspace:*",
     "@nyte/pi-runtime": "workspace:*",
-    "@trigger.dev/sdk": "^4.3.3"
+    "@trigger.dev/sdk": "^4.3.3",
+    "effect": "^3.19.17"
   },
   "devDependencies": {
     "@nyte/tsconfig": "workspace:*",
