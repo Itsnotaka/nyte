@@ -17,9 +17,12 @@ export function parseRequiredString(value: unknown): string | null {
   return normalized;
 }
 
-export function parseRequiredStringField(
-  payload: Record<string, unknown>,
-  key: string,
+export function parseRequiredStringField<
+  TPayload extends Record<string, unknown>,
+  TKey extends keyof TPayload,
+>(
+  payload: TPayload,
+  key: TKey,
 ): string | null {
   return parseRequiredString(payload[key]);
 }
@@ -72,9 +75,12 @@ export function parseOptionalString(
   return normalized;
 }
 
-export function parseOptionalStringField(
-  payload: Record<string, unknown>,
-  key: string,
+export function parseOptionalStringField<
+  TPayload extends Record<string, unknown>,
+  TKey extends keyof TPayload,
+>(
+  payload: TPayload,
+  key: TKey,
   options?: {
     requireNonEmpty?: boolean;
   },
