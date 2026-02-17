@@ -23,10 +23,7 @@ async function parseSyncPollResponse(response: Response): Promise<QueueSyncRespo
     throw new Error(NEEDS_YOU_MESSAGES.invalidSyncResponse);
   }
 
-  return {
-    cursor: payload.cursor,
-    needsYou: payload.needsYou,
-  };
+  return payload;
 }
 
 type SyncNeedsYouInput = {
