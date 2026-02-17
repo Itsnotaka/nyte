@@ -22,7 +22,7 @@ Application/service layer for Nyte workflows. This package orchestrates use-case
 - src/queue: signal/work-item persistence
 - src/security: auth/runtime secret + token crypto + posture evaluation
 - src/workflow: workflow run/event timeline logging
-- src/shared: common helpers (time, payload parsing, default user)
+- src/shared: common helpers (time, typed payload parsing, default user)
 
 ## Public exports
 
