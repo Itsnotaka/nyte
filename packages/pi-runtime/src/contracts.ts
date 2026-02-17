@@ -104,3 +104,37 @@ export type PiExtensionResult =
   | GmailSaveDraftResult
   | CalendarCreateEventResult
   | CalendarUpdateEventResult;
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  return value as Record<string, unknown>;
+}
+
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+export function isPiExtensionResult(value: unknown): value is PiExtensionResult {
+  const payload = asRecord(value);
+  if (!payload) {
+    return false;
+  }
+
+  const name = payload.name;
+  const isValidName =
+    name === "gmail.readThreadContext" ||
+    name === "gmail.saveDraft" ||
+    name === "calendar.createEvent" ||
+    name === "calendar.updateEvent";
+
+  return (
+    isValidName &&
+    payload.status === "executed" &&
+    isNonEmptyString(payload.idempotencyKey) &&
+    isNonEmptyString(payload.executedAt) &&
+    asRecord(payload.output) !== null
+  );
+}

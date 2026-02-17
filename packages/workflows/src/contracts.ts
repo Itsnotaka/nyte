@@ -1,4 +1,5 @@
 import { isToolCallPayload } from "@nyte/domain/actions";
+import { isPiExtensionResult } from "@nyte/pi-runtime";
 import type { approveActionTask } from "./tasks/approve-action-task";
 import type { dismissActionTask } from "./tasks/dismiss-action-task";
 import type { feedbackTask } from "./tasks/feedback-task";
@@ -56,32 +57,6 @@ function isExecutionResult(value: unknown): boolean {
   );
 }
 
-function isPiExtensionResultOrNull(value: unknown): boolean {
-  if (value === null) {
-    return true;
-  }
-
-  const payload = asRecord(value);
-  if (!payload) {
-    return false;
-  }
-
-  const name = payload.name;
-  const isValidName =
-    name === "gmail.readThreadContext" ||
-    name === "gmail.saveDraft" ||
-    name === "calendar.createEvent" ||
-    name === "calendar.updateEvent";
-
-  return (
-    isValidName &&
-    payload.status === "executed" &&
-    isNonEmptyString(payload.idempotencyKey) &&
-    isNonEmptyString(payload.executedAt) &&
-    asRecord(payload.output) !== null
-  );
-}
-
 export function isWorkflowApiErrorResponse(value: unknown): value is WorkflowApiErrorResponse {
   const payload = asRecord(value);
   if (!payload) {
@@ -116,7 +91,7 @@ export function isApproveActionResponse(value: unknown): value is ApproveActionR
     isToolCallPayload(payload.payload) &&
     isExecutionResult(payload.execution) &&
     typeof payload.idempotent === "boolean" &&
-    isPiExtensionResultOrNull(payload.piExtension)
+    (payload.piExtension === null || isPiExtensionResult(payload.piExtension))
   );
 }
 
