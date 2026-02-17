@@ -11,6 +11,7 @@ import { createApiRequestLogger } from "~/lib/server/request-log";
 import { resolveRequestSession } from "~/lib/server/request-session";
 import {
   asObjectPayload,
+  parseEnumValue,
   parseJsonBody,
   parseOptionalString,
   parseRequiredString,
@@ -19,6 +20,8 @@ import {
   resolveWorkflowDomainStatus,
   resolveWorkflowRouteError,
 } from "~/lib/server/workflow-route-error";
+
+const FEEDBACK_RATINGS = ["positive", "negative"] as const satisfies readonly FeedbackActionRequest["rating"][];
 
 function parseFeedbackBody(value: unknown): FeedbackActionRequest | null {
   const body = asObjectPayload(value);
@@ -31,7 +34,8 @@ function parseFeedbackBody(value: unknown): FeedbackActionRequest | null {
     return null;
   }
 
-  if (body.rating !== "positive" && body.rating !== "negative") {
+  const rating = parseEnumValue(body.rating, FEEDBACK_RATINGS);
+  if (!rating) {
     return null;
   }
 
@@ -42,7 +46,7 @@ function parseFeedbackBody(value: unknown): FeedbackActionRequest | null {
 
   return {
     itemId,
-    rating: body.rating,
+    rating,
     note,
   };
 }

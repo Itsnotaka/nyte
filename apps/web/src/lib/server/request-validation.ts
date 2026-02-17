@@ -48,3 +48,20 @@ export async function parseJsonBody(request: Request): Promise<unknown> {
     return null;
   }
 }
+
+export function parseEnumValue<TValue extends string>(
+  value: unknown,
+  allowedValues: readonly TValue[],
+): TValue | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  for (const allowedValue of allowedValues) {
+    if (value === allowedValue) {
+      return allowedValue;
+    }
+  }
+
+  return null;
+}
