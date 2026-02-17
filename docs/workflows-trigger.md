@@ -26,7 +26,7 @@ The task functions are intentionally framework-agnostic and can be wrapped in Tr
 Recommended wrapping pattern:
 
 1. Keep input/output types sourced from `packages/workflows/src/contracts.ts`.
-2. Reuse runtime contract guards from the same module (`isWorkflowApiErrorResponse`, `isQueueSyncResponse`) in clients/gateways instead of redefining ad hoc payload checks (queue guard enforces non-empty `cursor` + array `needsYou`).
+2. Reuse runtime contract guards from the same module (`isWorkflowApiErrorResponse`, `isQueueSyncResponse`, `isApproveActionResponse`, `isDismissActionResponse`, `isFeedbackActionResponse`) in clients/gateways instead of redefining ad hoc payload checks.
 3. Wrap each task in Trigger task definitions in an app-specific trigger runtime file.
 4. Preserve idempotency key flow from approve requests to PI extension dispatch.
 5. Keep retries at task-wrapper level; keep domain/application logic deterministic.

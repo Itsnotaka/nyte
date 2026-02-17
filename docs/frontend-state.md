@@ -18,6 +18,7 @@
 - Approve/dismiss actions use TanStack Query mutations and query invalidation.
 - Action API client uses a shared POST helper + safe JSON parsing for consistent error handling across approve/dismiss/feedback.
 - Action API client also validates that successful responses are object payloads before casting to contract types.
+- Action and sync clients now validate successful payloads using runtime guards exported from `@nyte/workflows/contracts`.
 - Composer input uses TanStack Form field state.
 - API routes use request-scoped evlog logging helpers for structured operation traces.
 - Workflow route error handling is centralized in a shared server helper for consistent 502 mapping.
