@@ -15,7 +15,7 @@ import {
 } from "./http-client";
 import { NEEDS_YOU_API_ROUTES } from "./routes";
 
-async function postAction<TRequest, TResponse>({
+async function postAction<TRequest extends object, TResponse extends object>({
   route,
   body,
   fallbackError,
