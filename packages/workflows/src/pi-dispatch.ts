@@ -1,4 +1,5 @@
 import { approveWorkItem } from "@nyte/application/actions";
+import { createProposedActionId } from "@nyte/domain/actions";
 import {
   executePiExtension,
   PI_AUDIT_SOURCES,
@@ -28,7 +29,7 @@ export async function dispatchApprovedActionToPi({
     idempotencyKey: approvedItem.execution.idempotencyKey,
     audit: {
       workItemId: approvedItem.itemId,
-      actionId: `${approvedItem.itemId}:action`,
+      actionId: createProposedActionId(approvedItem.itemId),
       source: PI_AUDIT_SOURCES.decisionQueue,
     },
   };

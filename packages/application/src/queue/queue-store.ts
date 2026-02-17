@@ -1,6 +1,6 @@
 import { db, ensureDbSchema, gateEvaluations, proposedActions, workItems } from "@nyte/db";
 import { eq } from "@nyte/db/drizzle";
-import { createToolCallPayload } from "@nyte/domain/actions";
+import { createProposedActionId, createToolCallPayload } from "@nyte/domain/actions";
 import {
   evaluateNeedsYou,
   toWorkItem,
@@ -64,7 +64,7 @@ async function upsertWorkItem(signal: IntakeSignal, now: Date): Promise<WorkItem
     const payload = createToolCallPayload(workItem);
     await tx.delete(proposedActions).where(eq(proposedActions.workItemId, workItem.id));
     await tx.insert(proposedActions).values({
-      id: `${workItem.id}:action`,
+      id: createProposedActionId(workItem.id),
       workItemId: workItem.id,
       actionType: payload.kind,
       status: "pending",

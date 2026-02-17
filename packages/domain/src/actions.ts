@@ -33,6 +33,10 @@ export type WorkItemWithAction = WorkItem & {
   proposedAction: ToolCallPayload;
 };
 
+export function createProposedActionId(workItemId: string): string {
+  return `${workItemId}:action`;
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
