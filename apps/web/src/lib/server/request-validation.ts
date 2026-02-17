@@ -21,10 +21,6 @@ export function parseRequiredStringField<
   return parseRequiredString(payload[key]);
 }
 
-export function parseItemId(payload: Record<string, unknown>): string | null {
-  return parseRequiredStringField(payload, "itemId");
-}
-
 export type ParsedBodyWithItemId = {
   body: Record<string, unknown>;
   itemId: string;
