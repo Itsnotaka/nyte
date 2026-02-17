@@ -26,6 +26,7 @@ Primary Nyte product surface: decision queue UI and thin API gateway.
 - that config is constrained with explicit TypeScript `satisfies` typing for route/task/event/message/status completeness
 - action routes reuse shared method/status templates in that config (`POST` + 400/401/404/409/422 + 200) to avoid drift
 - all routes now also source task-failure status (`502`) from config instead of hardcoding in error resolver callers
+- route error resolver now requires explicit task-failure status input to enforce config-driven mapping
 - request log context method typing is sourced from the same centralized needs-you method union
 - request logger initialization also uses that centralized method value (not raw `request.method`)
 - request log context route typing is sourced from centralized needs-you route path constants
