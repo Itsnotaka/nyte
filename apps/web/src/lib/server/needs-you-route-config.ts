@@ -27,6 +27,7 @@ type QueueSyncRouteConfig = BaseNeedsYouRouteConfig & {
     taskFailure: HttpStatusCode;
   };
 };
+type QueueSyncStatuses = QueueSyncRouteConfig["statuses"];
 
 export type ActionRouteStatuses = {
   ok: HttpStatusCode;
@@ -62,11 +63,18 @@ const ACTION_ROUTE_STATUSES = {
   domainInvalidPayload: HTTP_STATUS.unprocessableEntity,
 } as const satisfies ActionRouteStatuses;
 const ACTION_ROUTE_METHOD: NeedsYouRouteMethod = "POST";
+const QUEUE_SYNC_STATUSES = {
+  ok: HTTP_STATUS.ok,
+  unauthorized: HTTP_STATUS.unauthorized,
+  tokenUnavailable: HTTP_STATUS.conflict,
+  taskFailure: HTTP_STATUS.badGateway,
+} as const satisfies QueueSyncStatuses;
+const QUEUE_SYNC_METHOD: NeedsYouRouteMethod = "GET";
 
 export const NEEDS_YOU_ROUTE_CONFIG = {
   queueSync: {
     route: NEEDS_YOU_API_ROUTES.sync,
-    method: "GET",
+    method: QUEUE_SYNC_METHOD,
     taskId: WORKFLOW_TASK_IDS.ingestSignals,
     events: REQUEST_EVENTS.queueSync,
     messages: {
@@ -74,12 +82,7 @@ export const NEEDS_YOU_ROUTE_CONFIG = {
       tokenUnavailable: NEEDS_YOU_MESSAGES.queueTokenUnavailable,
       taskUnavailable: NEEDS_YOU_MESSAGES.syncUnavailable,
     },
-    statuses: {
-      ok: HTTP_STATUS.ok,
-      unauthorized: HTTP_STATUS.unauthorized,
-      tokenUnavailable: HTTP_STATUS.conflict,
-      taskFailure: HTTP_STATUS.badGateway,
-    },
+    statuses: QUEUE_SYNC_STATUSES,
   },
   actionApprove: {
     route: NEEDS_YOU_API_ROUTES.approveAction,
