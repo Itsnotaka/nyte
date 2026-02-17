@@ -13,6 +13,7 @@ import type {
 } from "@nyte/workflows";
 import { NEEDS_YOU_MESSAGES } from "./messages";
 import {
+  HTTP_METHODS,
   JSON_REQUEST_HEADERS,
   readJsonSafe,
   resolveWorkflowApiError,
@@ -33,7 +34,7 @@ async function postAction<TRequest extends object, TResponse extends object>({
   isResponse: (payload: unknown) => payload is TResponse;
 }): Promise<TResponse> {
   const response = await fetch(route, {
-    method: "POST",
+    method: HTTP_METHODS.post,
     headers: JSON_REQUEST_HEADERS,
     body: JSON.stringify(body),
   });

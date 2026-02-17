@@ -9,6 +9,11 @@ export const JSON_REQUEST_HEADERS = {
   ...JSON_ACCEPT_HEADERS,
 } as const;
 
+export const HTTP_METHODS = {
+  get: "GET",
+  post: "POST",
+} as const;
+
 export async function readJsonSafe(response: Response): Promise<unknown> {
   try {
     return await response.json();

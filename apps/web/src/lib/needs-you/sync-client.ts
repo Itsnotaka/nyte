@@ -6,6 +6,7 @@ import {
 import { normalizeWatchKeywords } from "~/lib/shared/watch-keywords";
 import { NEEDS_YOU_MESSAGES } from "./messages";
 import {
+  HTTP_METHODS,
   JSON_ACCEPT_HEADERS,
   readJsonSafe,
   resolveWorkflowApiError,
@@ -48,7 +49,7 @@ export async function syncNeedsYou({
       : NEEDS_YOU_API_ROUTES.sync;
 
   const response = await fetch(url, {
-    method: "GET",
+    method: HTTP_METHODS.get,
     headers: JSON_ACCEPT_HEADERS,
     cache: "no-store",
   });
