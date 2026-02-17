@@ -46,5 +46,9 @@ export function isQueueSyncResponse(value: unknown): value is QueueSyncResponse 
     return false;
   }
 
-  return Array.isArray(payload.needsYou) && typeof payload.cursor === "string";
+  return (
+    Array.isArray(payload.needsYou) &&
+    typeof payload.cursor === "string" &&
+    payload.cursor.trim().length > 0
+  );
 }
