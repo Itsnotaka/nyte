@@ -11,6 +11,7 @@ import { NEEDS_YOU_API_ROUTES } from "~/lib/needs-you/routes";
 import { REQUEST_EVENTS } from "~/lib/server/request-events";
 import { createApiRequestLogger } from "~/lib/server/request-log";
 import { resolveRequestSession } from "~/lib/server/request-session";
+import { HTTP_STATUS } from "~/lib/server/http-status";
 import {
   asObjectPayload,
   parseRequiredString,
@@ -53,7 +54,7 @@ export async function GET(request: Request) {
   const cursor = parseCursor(searchParams);
   const watchKeywords = parseWatchKeywords(searchParams);
   const requestLog = createApiRequestLogger(request, route);
-  let status = 200;
+  let status: number = HTTP_STATUS.ok;
   let userId: string | null = null;
 
   requestLog.info(REQUEST_EVENTS.queueSync.start, {
@@ -71,7 +72,7 @@ export async function GET(request: Request) {
     });
     userId = sessionUserId;
     if (!session) {
-      status = 401;
+      status = HTTP_STATUS.unauthorized;
       const response = toWorkflowApiErrorResponse(NEEDS_YOU_MESSAGES.queueAuthRequired);
       requestLog.warn(REQUEST_EVENTS.queueSync.unauthorized, {
         route,
@@ -92,7 +93,7 @@ export async function GET(request: Request) {
 
     const accessToken = resolveAccessToken(accessTokenResult);
     if (!accessToken) {
-      status = 409;
+      status = HTTP_STATUS.conflict;
       const response = toWorkflowApiErrorResponse(NEEDS_YOU_MESSAGES.queueTokenUnavailable);
       requestLog.warn(REQUEST_EVENTS.queueSync.tokenMissing, {
         route,

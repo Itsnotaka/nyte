@@ -11,6 +11,7 @@ import { NEEDS_YOU_MESSAGES } from "~/lib/needs-you/messages";
 import { NEEDS_YOU_API_ROUTES } from "~/lib/needs-you/routes";
 import { REQUEST_EVENTS } from "~/lib/server/request-events";
 import { resolveRequestSession } from "~/lib/server/request-session";
+import { HTTP_STATUS } from "~/lib/server/http-status";
 import {
   asObjectPayload,
   parseJsonBody,
@@ -44,7 +45,7 @@ export async function POST(request: Request) {
   const method = request.method;
   const startedAt = Date.now();
   const requestLog = createApiRequestLogger(request, route);
-  let status = 200;
+  let status: number = HTTP_STATUS.ok;
   let itemId: string | undefined;
   let userId: string | null = null;
 
@@ -61,7 +62,7 @@ export async function POST(request: Request) {
     });
     userId = sessionUserId;
     if (!session) {
-      status = 401;
+      status = HTTP_STATUS.unauthorized;
       const response = toWorkflowApiErrorResponse(NEEDS_YOU_MESSAGES.actionAuthRequired);
       requestLog.warn(REQUEST_EVENTS.actionDismiss.unauthorized, {
         route,
@@ -74,7 +75,7 @@ export async function POST(request: Request) {
 
     const payload = parseDismissBody(await parseJsonBody(request));
     if (!payload) {
-      status = 400;
+      status = HTTP_STATUS.badRequest;
       const response = toWorkflowApiErrorResponse(NEEDS_YOU_MESSAGES.invalidDismissPayload);
       requestLog.warn(REQUEST_EVENTS.actionDismiss.invalidPayload, {
         route,

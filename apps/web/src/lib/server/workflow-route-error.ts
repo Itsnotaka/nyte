@@ -5,6 +5,7 @@ import {
   type WorkflowApiErrorResponse,
   type WorkflowTaskStage,
 } from "@nyte/workflows";
+import { HTTP_STATUS } from "./http-status";
 
 type WorkflowRouteErrorResolution = {
   status: number;
@@ -23,7 +24,7 @@ export function resolveWorkflowRouteError(
 ): WorkflowRouteErrorResolution {
   if (error instanceof WorkflowTaskExecutionError || error instanceof WorkflowTaskResultError) {
     return {
-      status: 502,
+      status: HTTP_STATUS.badGateway,
       response: {
         error: error.message,
       },
@@ -40,7 +41,7 @@ export function resolveWorkflowRouteError(
     error instanceof Error && error.message.trim().length > 0 ? error.message : fallbackMessage;
 
   return {
-    status: 502,
+    status: HTTP_STATUS.badGateway,
     response: {
       error: message,
     },
@@ -51,7 +52,9 @@ export function resolveWorkflowRouteError(
 }
 
 export function resolveWorkflowDomainStatus(message: string): 404 | 409 {
-  return message.toLowerCase().includes("not found") ? 404 : 409;
+  return message.toLowerCase().includes("not found")
+    ? HTTP_STATUS.notFound
+    : HTTP_STATUS.conflict;
 }
 
 export function toWorkflowApiErrorResponse(error: string): WorkflowApiErrorResponse {
