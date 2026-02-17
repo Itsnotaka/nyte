@@ -1,8 +1,11 @@
 import type { QueueSyncRequest } from "@nyte/workflows";
 import { normalizeWatchKeywords } from "~/lib/shared/watch-keywords";
-import { NEEDS_YOU_QUERY_PARAMS } from "./query-params";
 
 type SyncQuery = Pick<QueueSyncRequest, "cursor" | "watchKeywords">;
+const NEEDS_YOU_QUERY_PARAMS = {
+  cursor: "cursor",
+  watch: "watch",
+} as const;
 
 function parseRequiredQueryString(value: string | null): string | undefined {
   if (typeof value !== "string") {
