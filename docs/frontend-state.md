@@ -16,6 +16,7 @@
 - Sync route normalizes, deduplicates, and caps watch keywords before ingestion dispatch.
 - Active watch keywords are surfaced in workspace UI after each sync for operator clarity.
 - Approve/dismiss actions use TanStack Query mutations and query invalidation.
+- Workspace hook uses a shared local action-status union type for approve/dismiss mutation flow typing.
 - Action API client uses a shared POST helper + safe JSON parsing for consistent error handling across approve/dismiss/feedback.
 - Invalid action-response fallback message is now owned by that shared POST helper (not repeated at call sites).
 - Action API client also validates that successful responses are object payloads before casting to contract types.
