@@ -1,5 +1,4 @@
 import { Effect } from "effect";
-import { log } from "evlog";
 import { tasks } from "@trigger.dev/sdk/v3";
 
 import {
@@ -17,6 +16,7 @@ import {
   WorkflowTaskResultError,
   type WorkflowTaskError,
 } from "./trigger-errors";
+import { workflowError, workflowInfo } from "./workflow-log";
 
 function isTriggerEnabled() {
   return Boolean(process.env.TRIGGER_SECRET_KEY?.trim());
@@ -53,7 +53,7 @@ function runTaskProgram<TOutput>({
 
   return Effect.gen(function* () {
     yield* Effect.sync(() =>
-      log.info({
+      workflowInfo({
         scope: "workflow.task",
         event: "task.start",
         taskId,
@@ -74,7 +74,7 @@ function runTaskProgram<TOutput>({
       });
 
       yield* Effect.sync(() =>
-        log.info({
+        workflowInfo({
           scope: "workflow.task",
           event: "task.success",
           taskId,
@@ -108,7 +108,7 @@ function runTaskProgram<TOutput>({
     }
 
     yield* Effect.sync(() =>
-      log.info({
+      workflowInfo({
         scope: "workflow.task",
         event: "task.success",
         taskId,
@@ -121,7 +121,7 @@ function runTaskProgram<TOutput>({
   }).pipe(
     Effect.tapError((error) =>
       Effect.sync(() =>
-        log.error({
+        workflowError({
           scope: "workflow.task",
           event: "task.failure",
           taskId,
