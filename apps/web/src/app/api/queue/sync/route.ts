@@ -1,5 +1,4 @@
 import {
-  WORKFLOW_TASK_IDS,
   runIngestSignalsTask,
   type QueueSyncRequest,
   type QueueSyncResponse,
@@ -7,9 +6,8 @@ import {
 
 import { auth } from "~/lib/auth";
 import { NEEDS_YOU_MESSAGES } from "~/lib/needs-you/messages";
-import { NEEDS_YOU_API_ROUTES } from "~/lib/needs-you/routes";
-import { REQUEST_EVENTS } from "~/lib/server/request-events";
 import { createApiRequestLogger } from "~/lib/server/request-log";
+import { NEEDS_YOU_ROUTE_CONFIG } from "~/lib/server/needs-you-route-config";
 import { resolveRequestSession } from "~/lib/server/request-session";
 import { HTTP_STATUS } from "~/lib/server/http-status";
 import {
@@ -46,8 +44,9 @@ function resolveAccessToken(value: unknown) {
 }
 
 export async function GET(request: Request) {
-  const route = NEEDS_YOU_API_ROUTES.sync;
-  const taskId = WORKFLOW_TASK_IDS.ingestSignals;
+  const config = NEEDS_YOU_ROUTE_CONFIG.queueSync;
+  const route = config.route;
+  const taskId = config.taskId;
   const method = request.method;
   const startedAt = Date.now();
   const searchParams = new URL(request.url).searchParams;
@@ -57,7 +56,7 @@ export async function GET(request: Request) {
   let status: number = HTTP_STATUS.ok;
   let userId: string | null = null;
 
-  requestLog.info(REQUEST_EVENTS.queueSync.start, {
+  requestLog.info(config.events.start, {
     route,
     method,
     taskId,
@@ -74,7 +73,7 @@ export async function GET(request: Request) {
     if (!session) {
       status = HTTP_STATUS.unauthorized;
       const response = toWorkflowApiErrorResponse(NEEDS_YOU_MESSAGES.queueAuthRequired);
-      requestLog.warn(REQUEST_EVENTS.queueSync.unauthorized, {
+      requestLog.warn(config.events.unauthorized, {
         route,
         method,
         status,
@@ -95,7 +94,7 @@ export async function GET(request: Request) {
     if (!accessToken) {
       status = HTTP_STATUS.conflict;
       const response = toWorkflowApiErrorResponse(NEEDS_YOU_MESSAGES.queueTokenUnavailable);
-      requestLog.warn(REQUEST_EVENTS.queueSync.tokenMissing, {
+      requestLog.warn(config.events.tokenMissing, {
         route,
         method,
         status,
@@ -115,7 +114,7 @@ export async function GET(request: Request) {
       cursor: result.cursor,
       needsYou: result.needsYou,
     };
-    requestLog.info(REQUEST_EVENTS.queueSync.success, {
+    requestLog.info(config.events.success, {
       route,
       method,
       status,
@@ -129,7 +128,7 @@ export async function GET(request: Request) {
     const resolved = resolveWorkflowRouteError(error, NEEDS_YOU_MESSAGES.syncUnavailable);
     status = resolved.status;
 
-    requestLog.error(REQUEST_EVENTS.queueSync.taskError, {
+    requestLog.error(config.events.taskError, {
       route,
       method,
       status,

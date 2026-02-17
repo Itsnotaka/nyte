@@ -1,6 +1,5 @@
 import { FeedbackError } from "@nyte/application/actions";
 import {
-  WORKFLOW_TASK_IDS,
   runFeedbackTask,
   type FeedbackActionRequest,
   type FeedbackActionResponse,
@@ -8,8 +7,7 @@ import {
 
 import { createApiRequestLogger } from "~/lib/server/request-log";
 import { NEEDS_YOU_MESSAGES } from "~/lib/needs-you/messages";
-import { NEEDS_YOU_API_ROUTES } from "~/lib/needs-you/routes";
-import { REQUEST_EVENTS } from "~/lib/server/request-events";
+import { NEEDS_YOU_ROUTE_CONFIG } from "~/lib/server/needs-you-route-config";
 import { resolveRequestSession } from "~/lib/server/request-session";
 import { HTTP_STATUS } from "~/lib/server/http-status";
 import {
@@ -56,8 +54,9 @@ function parseFeedbackBody(value: unknown): FeedbackActionRequest | null {
 }
 
 export async function POST(request: Request) {
-  const route = NEEDS_YOU_API_ROUTES.feedbackAction;
-  const taskId = WORKFLOW_TASK_IDS.feedback;
+  const config = NEEDS_YOU_ROUTE_CONFIG.actionFeedback;
+  const route = config.route;
+  const taskId = config.taskId;
   const method = request.method;
   const startedAt = Date.now();
   const requestLog = createApiRequestLogger(request, route);
@@ -65,7 +64,7 @@ export async function POST(request: Request) {
   let itemId: string | undefined;
   let userId: string | null = null;
 
-  requestLog.info(REQUEST_EVENTS.actionFeedback.start, {
+  requestLog.info(config.events.start, {
     route,
     method,
     taskId,
@@ -80,7 +79,7 @@ export async function POST(request: Request) {
     if (!session) {
       status = HTTP_STATUS.unauthorized;
       const response = toWorkflowApiErrorResponse(NEEDS_YOU_MESSAGES.actionAuthRequired);
-      requestLog.warn(REQUEST_EVENTS.actionFeedback.unauthorized, {
+      requestLog.warn(config.events.unauthorized, {
         route,
         method,
         status,
@@ -93,7 +92,7 @@ export async function POST(request: Request) {
     if (!payload) {
       status = HTTP_STATUS.badRequest;
       const response = toWorkflowApiErrorResponse(NEEDS_YOU_MESSAGES.invalidFeedbackPayload);
-      requestLog.warn(REQUEST_EVENTS.actionFeedback.invalidPayload, {
+      requestLog.warn(config.events.invalidPayload, {
         route,
         method,
         status,
@@ -109,7 +108,7 @@ export async function POST(request: Request) {
       note: payload.note,
     });
     const response: FeedbackActionResponse = result;
-    requestLog.info(REQUEST_EVENTS.actionFeedback.success, {
+    requestLog.info(config.events.success, {
       route,
       method,
       status,
@@ -122,7 +121,7 @@ export async function POST(request: Request) {
     if (error instanceof FeedbackError) {
       status = resolveWorkflowDomainStatus(error.message);
       const response = toWorkflowApiErrorResponse(error.message);
-      requestLog.warn(REQUEST_EVENTS.actionFeedback.domainError, {
+      requestLog.warn(config.events.domainError, {
         route,
         method,
         status,
@@ -136,7 +135,7 @@ export async function POST(request: Request) {
 
     const resolved = resolveWorkflowRouteError(error, NEEDS_YOU_MESSAGES.feedbackUnavailable);
     status = resolved.status;
-    requestLog.error(REQUEST_EVENTS.actionFeedback.taskError, {
+    requestLog.error(config.events.taskError, {
       route,
       method,
       status,

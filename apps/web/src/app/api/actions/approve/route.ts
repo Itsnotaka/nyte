@@ -1,7 +1,6 @@
 import { ApprovalError } from "@nyte/application/actions";
 import { isToolCallPayload } from "@nyte/domain/actions";
 import {
-  WORKFLOW_TASK_IDS,
   runApproveActionTask,
   type ApproveActionRequest,
   type ApproveActionResponse,
@@ -9,8 +8,7 @@ import {
 
 import { createApiRequestLogger } from "~/lib/server/request-log";
 import { NEEDS_YOU_MESSAGES } from "~/lib/needs-you/messages";
-import { NEEDS_YOU_API_ROUTES } from "~/lib/needs-you/routes";
-import { REQUEST_EVENTS } from "~/lib/server/request-events";
+import { NEEDS_YOU_ROUTE_CONFIG } from "~/lib/server/needs-you-route-config";
 import { resolveRequestSession } from "~/lib/server/request-session";
 import { HTTP_STATUS } from "~/lib/server/http-status";
 import {
@@ -60,8 +58,9 @@ function parseApproveBody(value: unknown): ApproveActionRequest | null {
 }
 
 export async function POST(request: Request) {
-  const route = NEEDS_YOU_API_ROUTES.approveAction;
-  const taskId = WORKFLOW_TASK_IDS.approveAction;
+  const config = NEEDS_YOU_ROUTE_CONFIG.actionApprove;
+  const route = config.route;
+  const taskId = config.taskId;
   const method = request.method;
   const startedAt = Date.now();
   const requestLog = createApiRequestLogger(request, route);
@@ -69,7 +68,7 @@ export async function POST(request: Request) {
   let itemId: string | undefined;
   let userId: string | null = null;
 
-  requestLog.info(REQUEST_EVENTS.actionApprove.start, {
+  requestLog.info(config.events.start, {
     route,
     method,
     taskId,
@@ -84,7 +83,7 @@ export async function POST(request: Request) {
     if (!session) {
       status = HTTP_STATUS.unauthorized;
       const response = toWorkflowApiErrorResponse(NEEDS_YOU_MESSAGES.actionAuthRequired);
-      requestLog.warn(REQUEST_EVENTS.actionApprove.unauthorized, {
+      requestLog.warn(config.events.unauthorized, {
         route,
         method,
         status,
@@ -97,7 +96,7 @@ export async function POST(request: Request) {
     if (!payload) {
       status = HTTP_STATUS.badRequest;
       const response = toWorkflowApiErrorResponse(NEEDS_YOU_MESSAGES.invalidApprovePayload);
-      requestLog.warn(REQUEST_EVENTS.actionApprove.invalidPayload, {
+      requestLog.warn(config.events.invalidPayload, {
         route,
         method,
         status,
@@ -114,7 +113,7 @@ export async function POST(request: Request) {
       actorUserId: userId,
     });
     const response: ApproveActionResponse = result;
-    requestLog.info(REQUEST_EVENTS.actionApprove.success, {
+    requestLog.info(config.events.success, {
       route,
       method,
       status,
@@ -127,7 +126,7 @@ export async function POST(request: Request) {
     if (error instanceof ApprovalError) {
       status = resolveWorkflowDomainStatus(error.message);
       const response = toWorkflowApiErrorResponse(error.message);
-      requestLog.warn(REQUEST_EVENTS.actionApprove.domainError, {
+      requestLog.warn(config.events.domainError, {
         route,
         method,
         status,
@@ -141,7 +140,7 @@ export async function POST(request: Request) {
 
     const resolved = resolveWorkflowRouteError(error, NEEDS_YOU_MESSAGES.approveUnavailable);
     status = resolved.status;
-    requestLog.error(REQUEST_EVENTS.actionApprove.taskError, {
+    requestLog.error(config.events.taskError, {
       route,
       method,
       status,

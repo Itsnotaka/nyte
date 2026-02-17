@@ -1,6 +1,5 @@
 import { DismissError } from "@nyte/application/actions";
 import {
-  WORKFLOW_TASK_IDS,
   runDismissActionTask,
   type DismissActionRequest,
   type DismissActionResponse,
@@ -8,8 +7,7 @@ import {
 
 import { createApiRequestLogger } from "~/lib/server/request-log";
 import { NEEDS_YOU_MESSAGES } from "~/lib/needs-you/messages";
-import { NEEDS_YOU_API_ROUTES } from "~/lib/needs-you/routes";
-import { REQUEST_EVENTS } from "~/lib/server/request-events";
+import { NEEDS_YOU_ROUTE_CONFIG } from "~/lib/server/needs-you-route-config";
 import { resolveRequestSession } from "~/lib/server/request-session";
 import { HTTP_STATUS } from "~/lib/server/http-status";
 import {
@@ -40,8 +38,9 @@ function parseDismissBody(value: unknown): DismissActionRequest | null {
 }
 
 export async function POST(request: Request) {
-  const route = NEEDS_YOU_API_ROUTES.dismissAction;
-  const taskId = WORKFLOW_TASK_IDS.dismissAction;
+  const config = NEEDS_YOU_ROUTE_CONFIG.actionDismiss;
+  const route = config.route;
+  const taskId = config.taskId;
   const method = request.method;
   const startedAt = Date.now();
   const requestLog = createApiRequestLogger(request, route);
@@ -49,7 +48,7 @@ export async function POST(request: Request) {
   let itemId: string | undefined;
   let userId: string | null = null;
 
-  requestLog.info(REQUEST_EVENTS.actionDismiss.start, {
+  requestLog.info(config.events.start, {
     route,
     method,
     taskId,
@@ -64,7 +63,7 @@ export async function POST(request: Request) {
     if (!session) {
       status = HTTP_STATUS.unauthorized;
       const response = toWorkflowApiErrorResponse(NEEDS_YOU_MESSAGES.actionAuthRequired);
-      requestLog.warn(REQUEST_EVENTS.actionDismiss.unauthorized, {
+      requestLog.warn(config.events.unauthorized, {
         route,
         method,
         status,
@@ -77,7 +76,7 @@ export async function POST(request: Request) {
     if (!payload) {
       status = HTTP_STATUS.badRequest;
       const response = toWorkflowApiErrorResponse(NEEDS_YOU_MESSAGES.invalidDismissPayload);
-      requestLog.warn(REQUEST_EVENTS.actionDismiss.invalidPayload, {
+      requestLog.warn(config.events.invalidPayload, {
         route,
         method,
         status,
@@ -91,7 +90,7 @@ export async function POST(request: Request) {
       itemId: payload.itemId,
     });
     const response: DismissActionResponse = result;
-    requestLog.info(REQUEST_EVENTS.actionDismiss.success, {
+    requestLog.info(config.events.success, {
       route,
       method,
       status,
@@ -104,7 +103,7 @@ export async function POST(request: Request) {
     if (error instanceof DismissError) {
       status = resolveWorkflowDomainStatus(error.message);
       const response = toWorkflowApiErrorResponse(error.message);
-      requestLog.warn(REQUEST_EVENTS.actionDismiss.domainError, {
+      requestLog.warn(config.events.domainError, {
         route,
         method,
         status,
@@ -118,7 +117,7 @@ export async function POST(request: Request) {
 
     const resolved = resolveWorkflowRouteError(error, NEEDS_YOU_MESSAGES.dismissUnavailable);
     status = resolved.status;
-    requestLog.error(REQUEST_EVENTS.actionDismiss.taskError, {
+    requestLog.error(config.events.taskError, {
       route,
       method,
       status,
