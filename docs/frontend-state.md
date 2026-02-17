@@ -31,3 +31,4 @@
 
 These contracts are imported from `@nyte/workflows` and reused directly in route handlers and clients.
 Queue request field typing (cursor/watch keywords) is also sourced from workflow contracts in sync client + workspace hook state.
+Cursor propagation now uses contract-native optional semantics (undefined when absent) instead of introducing client-local `null` variants.
