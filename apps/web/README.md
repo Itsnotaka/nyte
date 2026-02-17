@@ -25,6 +25,7 @@ Primary Nyte product surface: decision queue UI and thin API gateway.
 - same utility also centralizes standard JSON request/accept header constants and HTTP method constants for client calls
 - HTTP method constants are shared from a cross-layer module used by both client fetch helpers and server route config typing
 - unknown-object checks are centralized via shared value guards to avoid repeated unsafe casts
+- shared value guards also provide reusable required-string normalization used by server validation and sync query parsing
 - needs-you API route paths are centralized in a shared constants module used by both route handlers and clients
 - needs-you sync query parameter keys (`cursor`, `watch`) are centralized inside shared sync-query utilities and reused by client and route parser
 - queue sync query building/parsing is centralized in shared utilities consumed by both client and route
