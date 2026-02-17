@@ -32,6 +32,7 @@ Recommended wrapping pattern:
    - feedback rating literals are exported once (`FEEDBACK_ACTION_RATINGS`) and reused by route payload parsing + runtime guard logic.
 3. Wrap each task in Trigger task definitions in an app-specific trigger runtime file.
 4. Preserve idempotency key flow from approve requests to PI extension dispatch.
+   - audit action identifiers now reuse domain `createProposedActionId` helper so ingestion + PI dispatch share the same ID construction.
 5. Keep retries at task-wrapper level; keep domain/application logic deterministic.
 6. Keep Effect usage bounded to workflow orchestration only; do not spread into UI or schema modules.
 
