@@ -11,6 +11,7 @@
 - Query key scoped by authenticated user id (`needs-you-sync`).
 - Sync cursor is sourced from cached query payload, not effect-managed refs.
 - Composer input is interpreted as optional watch keywords and sent to sync route as query params.
+- Sync route normalizes, deduplicates, and caps watch keywords before ingestion dispatch.
 - Active watch keywords are surfaced in workspace UI after each sync for operator clarity.
 - Approve/dismiss actions use TanStack Query mutations and query invalidation.
 - Composer input uses TanStack Form field state.
