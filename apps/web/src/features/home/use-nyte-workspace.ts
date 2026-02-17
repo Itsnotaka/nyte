@@ -9,6 +9,7 @@ import { authClient } from "~/lib/auth-client";
 import { approveNeedsYouAction, dismissNeedsYouAction } from "~/lib/needs-you/actions-client";
 import { syncNeedsYou } from "~/lib/needs-you/sync-client";
 import { resolveSessionUserId } from "~/lib/shared/session-user-id";
+import { parseWatchKeywordCommand } from "~/lib/shared/watch-keywords";
 
 type UseNyteWorkspaceInput = {
   initialConnected: boolean;
@@ -38,31 +39,6 @@ type UserScopedMessage = {
   userId: string | null;
   value: string;
 };
-
-function parseWatchKeywords(command: string): string[] {
-  const normalized = command.trim();
-  if (!normalized) {
-    return [];
-  }
-
-  const candidates = normalized.includes(",")
-    ? normalized.split(",")
-    : normalized.split(/\s+/);
-
-  const keywords = new Set<string>();
-  for (const candidate of candidates) {
-    const keyword = candidate.trim().toLowerCase();
-    if (keyword.length < 3) {
-      continue;
-    }
-    keywords.add(keyword);
-    if (keywords.size >= 8) {
-      break;
-    }
-  }
-
-  return [...keywords];
-}
 
 export function useNyteWorkspace({
   initialConnected,
@@ -157,7 +133,7 @@ export function useNyteWorkspace({
   const runSync = React.useCallback(async (command: string) => {
     setNotice(null);
     setMutationError(null);
-    const parsedKeywords = parseWatchKeywords(command);
+    const parsedKeywords = parseWatchKeywordCommand(command);
     watchKeywordsRef.current = parsedKeywords;
     setActiveWatchKeywords(parsedKeywords);
     const result = await refetchSync();

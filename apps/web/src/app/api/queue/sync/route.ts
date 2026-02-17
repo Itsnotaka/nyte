@@ -9,6 +9,7 @@ import { auth } from "~/lib/auth";
 import { createApiRequestLogger } from "~/lib/server/request-log";
 import { resolveRequestSession } from "~/lib/server/request-session";
 import { asObjectPayload, parseRequiredString } from "~/lib/server/request-validation";
+import { normalizeWatchKeywords } from "~/lib/shared/watch-keywords";
 import { resolveWorkflowRouteError } from "~/lib/server/workflow-route-error";
 
 function parseCursor(searchParams: URLSearchParams): QueueSyncRequest["cursor"] {
@@ -21,24 +22,12 @@ function parseCursor(searchParams: URLSearchParams): QueueSyncRequest["cursor"] 
 }
 
 function parseWatchKeywords(searchParams: URLSearchParams): QueueSyncRequest["watchKeywords"] {
-  const keywords = new Set<string>();
-  for (const rawKeyword of searchParams.getAll("watch")) {
-    const keyword = rawKeyword.trim().toLowerCase();
-    if (keyword.length < 3) {
-      continue;
-    }
-
-    keywords.add(keyword);
-    if (keywords.size >= 8) {
-      break;
-    }
-  }
-
-  if (keywords.size === 0) {
+  const keywords = normalizeWatchKeywords(searchParams.getAll("watch"));
+  if (keywords.length === 0) {
     return undefined;
   }
 
-  return Array.from(keywords);
+  return keywords;
 }
 
 function resolveAccessToken(value: unknown) {
