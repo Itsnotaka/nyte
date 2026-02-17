@@ -8,6 +8,7 @@ export const PI_EXTENSION_NAMES = {
 } as const;
 
 export type PiExtensionName = (typeof PI_EXTENSION_NAMES)[keyof typeof PI_EXTENSION_NAMES];
+const PI_EXTENSION_NAME_SET = new Set<PiExtensionName>(Object.values(PI_EXTENSION_NAMES));
 
 export const PI_AUDIT_SOURCES = {
   decisionQueue: "decision-queue",
@@ -124,21 +125,18 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
 }
 
+export function isPiExtensionName(value: unknown): value is PiExtensionName {
+  return typeof value === "string" && PI_EXTENSION_NAME_SET.has(value as PiExtensionName);
+}
+
 export function isPiExtensionResult(value: unknown): value is PiExtensionResult {
   const payload = asRecord(value);
   if (!payload) {
     return false;
   }
 
-  const name = payload.name;
-  const isValidName =
-    name === PI_EXTENSION_NAMES.gmailReadThreadContext ||
-    name === PI_EXTENSION_NAMES.gmailSaveDraft ||
-    name === PI_EXTENSION_NAMES.calendarCreateEvent ||
-    name === PI_EXTENSION_NAMES.calendarUpdateEvent;
-
   return (
-    isValidName &&
+    isPiExtensionName(payload.name) &&
     payload.status === "executed" &&
     isNonEmptyString(payload.idempotencyKey) &&
     isNonEmptyString(payload.executedAt) &&
