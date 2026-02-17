@@ -10,6 +10,7 @@
 - `apps/web` routes call these tasks directly as the gateway boundary.
 - Trigger task definitions live in `packages/workflows/src/trigger-tasks.ts`.
 - Task IDs are centralized in `packages/workflows/src/task-ids.ts` and reused by Trigger task defs, runner wrappers, and API route logging.
+- Workflow task lifecycle event names are centralized in `packages/workflows/src/workflow-log.ts` (`WORKFLOW_TASK_EVENTS`) and reused in orchestration logging.
 - Task runner orchestration lives in `packages/workflows/src/trigger-runner.ts`.
   - Uses Effect runtime to model trigger/local fallback execution and typed failure conversion.
 - Trigger task definitions include explicit retry policy and queue concurrency settings.
