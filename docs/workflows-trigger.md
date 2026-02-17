@@ -53,5 +53,5 @@ Recommended wrapping pattern:
 
 ## Failure model
 
-- Route layer maps known domain errors (`ApprovalError`, `DismissError`, `FeedbackError`) to HTTP statuses via explicit error `code` values (no message-text parsing).
+- Route layer maps known domain errors (`ApprovalError`, `DismissError`, `FeedbackError`) to HTTP statuses via explicit error `code` values (no message-text parsing), with code types exported from `@nyte/application/actions`.
 - Task layer propagates unexpected errors for orchestration-level retry/alerting.

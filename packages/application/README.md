@@ -8,7 +8,7 @@ Application/service layer for Nyte workflows. This package orchestrates use-case
 
 - queue persistence from intake signals
 - approve/dismiss/feedback workflow transitions
-- emit explicit domain error codes from actions for deterministic gateway status mapping
+- emit explicit domain error codes from actions for deterministic gateway status mapping (`ApprovalErrorCode`, `DismissErrorCode`, `FeedbackErrorCode`)
 - dashboard + metrics read models
 - policy rules and workflow retention controls
 - trust/audit/security posture reporting
