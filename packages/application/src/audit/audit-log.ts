@@ -4,10 +4,32 @@ import { db } from "@nyte/db/client";
 import { auditLogs } from "@nyte/db/schema";
 import { and, count, desc, eq } from "drizzle-orm";
 
-import { parseRecordPayload } from "../shared/payload";
-import { toIsoString } from "../shared/time";
-
 type AuditExecutor = Pick<typeof db, "insert">;
+
+function toIsoString(value: Date): string {
+  const timestamp = value.getTime();
+  if (Number.isNaN(timestamp)) {
+    throw new TypeError("Invalid date value.");
+  }
+
+  return value.toISOString();
+}
+
+function parseRecordPayload(payloadJson: string): Record<string, unknown> {
+  try {
+    const parsed: unknown = JSON.parse(payloadJson);
+    if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
+      return parsed as Record<string, unknown>;
+    }
+
+    return { value: parsed };
+  } catch {
+    return {
+      parseError: true,
+      rawPayload: payloadJson,
+    };
+  }
+}
 
 export type AuditLogInput = {
   userId?: string | null;

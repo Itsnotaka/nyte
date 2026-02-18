@@ -1,5 +1,9 @@
 import { db } from "@nyte/db/client";
-import { gateEvaluations, proposedActions, workItems } from "@nyte/db/schema";
+import {
+  gateEvaluations,
+  proposedActions,
+  workItems,
+} from "@nyte/db/schema";
 import {
   createProposedActionId,
   createToolCallPayload,
@@ -14,10 +18,10 @@ import { eq } from "drizzle-orm";
 
 import { recordAuditLog } from "../audit/audit-log";
 import { recordWorkItemRun } from "../run-log";
-import { DEFAULT_USER_ID, ensureDefaultUser } from "../shared/default-user";
 
 async function upsertWorkItem(
   signal: IntakeSignal,
+  userId: string,
   now: Date
 ): Promise<WorkItem | null> {
   const workItem = toWorkItem(signal, now);
@@ -30,7 +34,7 @@ async function upsertWorkItem(
       .insert(workItems)
       .values({
         id: workItem.id,
-        userId: DEFAULT_USER_ID,
+        userId,
         source: workItem.source,
         actor: workItem.actor,
         summary: workItem.summary,
@@ -116,7 +120,7 @@ async function upsertWorkItem(
     });
 
     await recordAuditLog({
-      userId: DEFAULT_USER_ID,
+      userId,
       action: "work-item.ingested",
       targetType: "work_item",
       targetId: workItem.id,
@@ -134,13 +138,12 @@ async function upsertWorkItem(
 
 export async function persistSignals(
   signals: IntakeSignal[],
+  userId: string,
   now = new Date()
 ): Promise<WorkItem[]> {
-  await ensureDefaultUser(now);
-
   const queue: WorkItem[] = [];
   for (const signal of signals) {
-    const workItem = await upsertWorkItem(signal, now);
+    const workItem = await upsertWorkItem(signal, userId, now);
     if (workItem) {
       queue.push(workItem);
     }

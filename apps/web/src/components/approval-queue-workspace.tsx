@@ -350,6 +350,7 @@ export function ApprovalQueueWorkspace() {
                               {item.proposedAction.kind ===
                               "gmail.createDraft" ? (
                                 <Textarea
+                                  aria-label={`Draft body for ${item.summary}`}
                                   className="min-h-24 text-sm/6"
                                   value={
                                     draftBodyByItemId[item.id] ??
@@ -367,6 +368,7 @@ export function ApprovalQueueWorkspace() {
                               {item.proposedAction.kind ===
                               "google-calendar.createEvent" ? (
                                 <Input
+                                  aria-label={`Calendar title for ${item.summary}`}
                                   value={
                                     calendarTitleByItemId[item.id] ??
                                     item.proposedAction.title
@@ -383,6 +385,7 @@ export function ApprovalQueueWorkspace() {
                               {item.proposedAction.kind ===
                               "billing.queueRefund" ? (
                                 <Input
+                                  aria-label={`Refund reason for ${item.summary}`}
                                   value={
                                     refundReasonByItemId[item.id] ??
                                     item.proposedAction.reason
@@ -401,6 +404,7 @@ export function ApprovalQueueWorkspace() {
                               <Button
                                 type="button"
                                 variant="outline"
+                                disabled={isMutating}
                                 onClick={() =>
                                   void markAction(item, "dismissed")
                                 }
@@ -411,6 +415,7 @@ export function ApprovalQueueWorkspace() {
 
                               <Button
                                 type="button"
+                                disabled={isMutating}
                                 onClick={() =>
                                   void markAction(
                                     item,
@@ -438,9 +443,9 @@ export function ApprovalQueueWorkspace() {
               isSyncing={isSyncing || isMutating}
               isSessionPending={isSessionPending}
               activeWatchKeywords={activeWatchKeywords}
-              onSubmit={(command) => void runSync(command)}
-              onConnect={() => void connectGoogle()}
-              onDisconnect={() => void disconnectGoogle()}
+              onSubmit={runSync}
+              onConnect={connectGoogle}
+              onDisconnect={disconnectGoogle}
             />
 
             <Card className="animate-in fade-in slide-in-from-bottom-2 border-border/70 bg-card/70 backdrop-blur-xl duration-300">

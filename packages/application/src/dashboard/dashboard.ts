@@ -7,12 +7,31 @@ import {
   proposedActions,
   workItems,
 } from "@nyte/db/schema";
-import type { ToolCallPayload, WorkItemWithAction } from "@nyte/domain/actions";
+import {
+  isToolCallPayload,
+  type ToolCallPayload,
+  type WorkItemWithAction,
+} from "@nyte/domain/actions";
 import type { WorkItem } from "@nyte/domain/triage";
 import { and, desc, eq, inArray } from "drizzle-orm";
 
-import { parseToolCallPayload } from "../shared/payload";
-import { toIsoString } from "../shared/time";
+function toIsoString(value: Date): string {
+  const timestamp = value.getTime();
+  if (Number.isNaN(timestamp)) {
+    throw new TypeError("Invalid date value.");
+  }
+
+  return value.toISOString();
+}
+
+function parseToolCallPayload(payloadJson: string): ToolCallPayload | null {
+  try {
+    const parsed: unknown = JSON.parse(payloadJson);
+    return isToolCallPayload(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
 
 export type ProcessedEntry = {
   id: string;

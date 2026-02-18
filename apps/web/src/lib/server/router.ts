@@ -16,27 +16,39 @@ import { GOOGLE_AUTH_PROVIDER } from "~/lib/auth-provider";
 
 import { authedProcedure, router } from "./trpc";
 
+const WATCH_KEYWORD_MIN_LENGTH = 3;
+const WATCH_KEYWORD_MAX_LENGTH = 64;
+const WATCH_KEYWORD_LIMIT = 8;
+
+const watchKeywordSchema = z
+  .string()
+  .trim()
+  .min(WATCH_KEYWORD_MIN_LENGTH)
+  .max(WATCH_KEYWORD_MAX_LENGTH);
+
+const watchKeywordsSchema = z.array(watchKeywordSchema).max(WATCH_KEYWORD_LIMIT);
+
 const toolCallPayloadSchema = z.union([
   z.object({
     kind: z.literal("gmail.createDraft"),
-    to: z.array(z.string()),
-    subject: z.string(),
-    body: z.string(),
+    to: z.array(z.string().email()).min(1).max(20),
+    subject: z.string().trim().min(1).max(300),
+    body: z.string().trim().min(1).max(5000),
   }),
   z.object({
     kind: z.literal("google-calendar.createEvent"),
-    title: z.string(),
-    startsAt: z.string(),
-    endsAt: z.string(),
-    attendees: z.array(z.string()),
-    description: z.string(),
+    title: z.string().trim().min(1).max(300),
+    startsAt: z.string().datetime({ offset: true }),
+    endsAt: z.string().datetime({ offset: true }),
+    attendees: z.array(z.string().email()).max(50),
+    description: z.string().trim().min(1).max(5000),
   }),
   z.object({
     kind: z.literal("billing.queueRefund"),
-    customerName: z.string(),
-    amount: z.number(),
+    customerName: z.string().trim().min(1).max(300),
+    amount: z.number().finite().nonnegative(),
     currency: z.literal("USD"),
-    reason: z.string(),
+    reason: z.string().trim().min(1).max(5000),
   }),
 ]);
 
@@ -71,7 +83,7 @@ export const appRouter = router({
       .input(
         z.object({
           cursor: z.string().optional(),
-          watchKeywords: z.array(z.string()).optional(),
+          watchKeywords: watchKeywordsSchema.optional(),
         })
       )
       .query(async ({ input, ctx }) => {
@@ -91,6 +103,7 @@ export const appRouter = router({
         }
 
         return runIngestSignalsTask({
+          userId: ctx.userId,
           accessToken,
           cursor: input.cursor,
           watchKeywords: input.watchKeywords,

@@ -1,11 +1,10 @@
-import { initLogger, log } from "evlog";
+import { createRequestLogger, initLogger, type RequestLogger } from "evlog";
 
 import type { WorkflowTaskId } from "./task-ids";
 import type { FeedbackTaskInput } from "./tasks/feedback-task";
 import type { WorkflowTaskStage } from "./trigger-errors";
 
 export const WORKFLOW_TASK_EVENTS = {
-  start: "task.start",
   success: "task.success",
   failure: "task.failure",
 } as const;
@@ -31,7 +30,7 @@ export type WorkflowLogEvent = {
   event: (typeof WORKFLOW_TASK_EVENTS)[keyof typeof WORKFLOW_TASK_EVENTS];
   taskId: WorkflowTaskId;
   stage: WorkflowTaskStage;
-  durationMs?: number;
+  durationMs: number;
   message?: string;
   errorTag?: string;
   itemId?: string;
@@ -42,15 +41,72 @@ export type WorkflowLogEvent = {
 
 export type WorkflowTaskLogContext = Omit<
   WorkflowLogEvent,
-  "scope" | "event" | "taskId" | "stage" | "durationMs" | "message" | "errorTag"
+  | "scope"
+  | "event"
+  | "taskId"
+  | "stage"
+  | "durationMs"
+  | "message"
+  | "errorTag"
 >;
 
-export function workflowInfo(event: WorkflowLogEvent) {
+type WorkflowTaskLoggerInput = {
+  taskId: WorkflowTaskId;
+  stage: WorkflowTaskStage;
+} & WorkflowTaskLogContext;
+
+type WorkflowTaskLogger = {
+  success: (durationMs: number) => void;
+  failure: (input: {
+    durationMs: number;
+    message: string;
+    errorTag: string;
+  }) => void;
+};
+
+function createWorkflowLogger(
+  context: WorkflowTaskLoggerInput
+): RequestLogger<WorkflowLogEvent> {
   ensureLoggerInitialized();
-  log.info(event);
+  const logger = createRequestLogger<WorkflowLogEvent>({
+    method: "TASK",
+    path: `/workflow/${context.taskId}`,
+  });
+  logger.set({
+    scope: "workflow.task",
+    ...context,
+  });
+
+  return logger;
 }
 
-export function workflowError(event: WorkflowLogEvent) {
-  ensureLoggerInitialized();
-  log.error(event);
+export function createWorkflowTaskLogger(
+  context: WorkflowTaskLoggerInput
+): WorkflowTaskLogger {
+  const logger = createWorkflowLogger(context);
+
+  return {
+    success(durationMs) {
+      logger.emit({
+        event: WORKFLOW_TASK_EVENTS.success,
+        durationMs,
+      });
+    },
+
+    failure({ durationMs, message, errorTag }) {
+      logger.error(message, {
+        event: WORKFLOW_TASK_EVENTS.failure,
+        durationMs,
+        message,
+        errorTag,
+      });
+      logger.emit({
+        event: WORKFLOW_TASK_EVENTS.failure,
+        durationMs,
+        message,
+        errorTag,
+        _forceKeep: true,
+      });
+    },
+  };
 }

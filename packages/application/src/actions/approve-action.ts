@@ -5,14 +5,12 @@ import {
   proposedActions,
   workItems,
 } from "@nyte/db/schema";
-import { type ToolCallPayload } from "@nyte/domain/actions";
+import { isToolCallPayload, type ToolCallPayload } from "@nyte/domain/actions";
 import { executeProposedAction } from "@nyte/domain/execution";
 import { eq } from "drizzle-orm";
 
 import { recordAuditLog } from "../audit/audit-log";
 import { recordWorkItemRun } from "../run-log";
-import { parseToolCallPayload } from "../shared/payload";
-import { toIsoString } from "../shared/time";
 
 export type ApprovalErrorCode =
   | "not_found"
@@ -26,6 +24,36 @@ export class ApprovalError extends Error {
     super(message);
     this.name = "ApprovalError";
     this.code = code;
+  }
+}
+
+function toIsoString(value: unknown): string {
+  if (value instanceof Date) {
+    if (Number.isNaN(value.getTime())) {
+      throw new TypeError("Invalid date value.");
+    }
+
+    return value.toISOString();
+  }
+
+  if (typeof value === "number" || typeof value === "string") {
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+      throw new TypeError("Invalid date value.");
+    }
+
+    return parsed.toISOString();
+  }
+
+  throw new TypeError("Invalid date value.");
+}
+
+function parseToolCallPayload(payloadJson: string): ToolCallPayload | null {
+  try {
+    const parsed: unknown = JSON.parse(payloadJson);
+    return isToolCallPayload(parsed) ? parsed : null;
+  } catch {
+    return null;
   }
 }
 

@@ -15,6 +15,7 @@ type QueueCursorEnvelope = {
 };
 
 export type IngestSignalsTaskInput = {
+  userId: string;
   accessToken: GmailIngestionInput["accessToken"];
   cursor?: GmailIngestionInput["cursor"];
   watchKeywords?: GmailIngestionInput["watchKeywords"];
@@ -120,6 +121,7 @@ function getErrorMessage(error: unknown): string {
 }
 
 export async function ingestSignalsTask({
+  userId,
   accessToken,
   cursor,
   watchKeywords = [],
@@ -169,7 +171,7 @@ export async function ingestSignalsTask({
         : calendarCursor,
   });
 
-  await persistSignals(signals, now);
+  await persistSignals(signals, userId, now);
   const dashboard = await getDashboardData();
 
   return {

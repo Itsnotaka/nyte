@@ -8,6 +8,7 @@ import {
 } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import * as React from "react";
+import { z } from "zod";
 
 import { authClient } from "~/lib/auth-client";
 import { GOOGLE_AUTH_PROVIDER } from "~/lib/auth-provider";
@@ -15,7 +16,65 @@ import { QUEUE_MESSAGES, formatSyncFilteredNotice } from "~/lib/queue/messages";
 import { useTRPC, useTRPCClient } from "~/lib/trpc";
 
 const MIN_WATCH_KEYWORD_LENGTH = 3;
+const MAX_WATCH_KEYWORD_LENGTH = 64;
 const MAX_WATCH_KEYWORDS = 8;
+const WATCH_COMMAND_PREFIX = "watch";
+const WATCH_KEYWORD_SEPARATORS = new Set([" ", "\n", "\t", "\r", ","]);
+
+const watchKeywordSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .min(MIN_WATCH_KEYWORD_LENGTH)
+  .max(MAX_WATCH_KEYWORD_LENGTH);
+
+const watchKeywordCommandSchema = z.string().trim().transform((command) => {
+  const tokens: string[] = [];
+  let currentToken = "";
+
+  for (const character of command) {
+    if (WATCH_KEYWORD_SEPARATORS.has(character)) {
+      if (currentToken.length > 0) {
+        tokens.push(currentToken);
+        currentToken = "";
+      }
+
+      continue;
+    }
+
+    currentToken += character;
+  }
+
+  if (currentToken.length > 0) {
+    tokens.push(currentToken);
+  }
+
+  const candidateKeywords =
+    tokens[0]?.toLowerCase() === WATCH_COMMAND_PREFIX ? tokens.slice(1) : tokens;
+
+  const keywords: string[] = [];
+  const seenKeywords = new Set<string>();
+
+  for (const candidate of candidateKeywords) {
+    const keywordResult = watchKeywordSchema.safeParse(candidate);
+    if (!keywordResult.success) {
+      continue;
+    }
+
+    const keyword = keywordResult.data;
+    if (keyword === WATCH_COMMAND_PREFIX || seenKeywords.has(keyword)) {
+      continue;
+    }
+
+    seenKeywords.add(keyword);
+    keywords.push(keyword);
+    if (keywords.length >= MAX_WATCH_KEYWORDS) {
+      break;
+    }
+  }
+
+  return keywords;
+});
 
 type ActionStatus = "approved" | "dismissed";
 
@@ -51,32 +110,6 @@ function areKeywordsEqual(left: string[], right: string[]): boolean {
   }
 
   return true;
-}
-
-function parseWatchKeywordCommand(command: string): string[] {
-  const normalized = command.trim();
-  if (!normalized) {
-    return [];
-  }
-
-  const candidates = normalized.includes(",")
-    ? normalized.split(",")
-    : normalized.split(/\s+/);
-  const keywords = new Set<string>();
-
-  for (const entry of candidates) {
-    const keyword = entry.trim().toLowerCase();
-    if (keyword.length < MIN_WATCH_KEYWORD_LENGTH) {
-      continue;
-    }
-
-    keywords.add(keyword);
-    if (keywords.size >= MAX_WATCH_KEYWORDS) {
-      break;
-    }
-  }
-
-  return Array.from(keywords);
 }
 
 export function useWorkspace(): UseWorkspaceResult {
@@ -142,7 +175,7 @@ export function useWorkspace(): UseWorkspaceResult {
     async (command: string) => {
       setNotice(null);
       setMutationError(null);
-      const keywords = parseWatchKeywordCommand(command);
+      const keywords = watchKeywordCommandSchema.parse(command);
 
       const keywordsChanged = !areKeywordsEqual(activeWatchKeywords, keywords);
       setActiveWatchKeywords(keywords);
@@ -163,18 +196,28 @@ export function useWorkspace(): UseWorkspaceResult {
     setMutationError(null);
     setActiveWatchKeywords([]);
     queryClient.removeQueries({ queryKey: ["workspace.sync", userId] });
-    await authClient.signIn.social({
-      provider: GOOGLE_AUTH_PROVIDER,
-      callbackURL: "/",
-    });
+    try {
+      await authClient.signIn.social({
+        provider: GOOGLE_AUTH_PROVIDER,
+        callbackURL: "/",
+      });
+    } catch {
+      setMutationError("Unable to connect Google right now.");
+    }
   }, [queryClient, userId]);
 
   const disconnectGoogle = React.useCallback(async () => {
-    await authClient.signOut();
+    setNotice(null);
     setMutationError(null);
-    setActiveWatchKeywords([]);
-    queryClient.removeQueries({ queryKey: ["workspace.sync", userId] });
-    router.refresh();
+
+    try {
+      await authClient.signOut();
+      setActiveWatchKeywords([]);
+      queryClient.removeQueries({ queryKey: ["workspace.sync", userId] });
+      router.refresh();
+    } catch {
+      setMutationError("Unable to disconnect Google right now.");
+    }
   }, [queryClient, router, userId]);
 
   const markAction = React.useCallback(

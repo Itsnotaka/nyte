@@ -76,6 +76,11 @@ export function QueueLandingView() {
       }),
   });
 
+  const connectionError =
+    error === null
+      ? null
+      : "Unable to connect Google right now. Please try again.";
+
   return (
     <main
       className={`${instrumentSerif.variable} relative min-h-dvh overflow-hidden bg-background text-foreground`}
@@ -141,10 +146,10 @@ export function QueueLandingView() {
                 })}
               </div>
 
-              {error ? (
+              {connectionError ? (
                 <Alert variant="destructive">
                   <AlertTitle>Connection failed</AlertTitle>
-                  <AlertDescription>{error.message}</AlertDescription>
+                  <AlertDescription>{connectionError}</AlertDescription>
                 </Alert>
               ) : null}
             </CardContent>

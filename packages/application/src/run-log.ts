@@ -3,9 +3,37 @@ import { randomUUID } from "node:crypto";
 import { db } from "@nyte/db/client";
 import { workflowEvents, workflowRuns } from "@nyte/db/schema";
 import { asc, desc, eq } from "drizzle-orm";
+import { z } from "zod";
 
-import { parseRecordPayload } from "./shared/payload";
-import { toIsoString } from "./shared/time";
+const runTimestampSchema = z
+  .date()
+  .refine((value) => !Number.isNaN(value.getTime()), {
+    message: "Invalid date value.",
+  })
+  .transform((value) => value.toISOString());
+
+const workflowEventPayloadRecordSchema = z.record(z.string(), z.unknown());
+
+const workflowEventPayloadSchema = z
+  .string()
+  .transform((payloadJson): unknown => {
+    try {
+      return JSON.parse(payloadJson);
+    } catch {
+      return {
+        parseError: true,
+        rawPayload: payloadJson,
+      };
+    }
+  })
+  .transform((payload): Record<string, unknown> => {
+    const result = workflowEventPayloadRecordSchema.safeParse(payload);
+    if (result.success) {
+      return result.data;
+    }
+
+    return { value: payload };
+  });
 
 type WorkItemRunEvent = {
   kind: string;
@@ -87,11 +115,11 @@ export async function listWorkItemRunTimeline(
       runId: run.id,
       phase: run.phase,
       status: run.status,
-      at: toIsoString(run.createdAt),
+      at: runTimestampSchema.parse(run.createdAt),
       events: events.map((event) => ({
         kind: event.kind,
-        payload: parseRecordPayload(event.payloadJson),
-        at: toIsoString(event.createdAt),
+        payload: workflowEventPayloadSchema.parse(event.payloadJson),
+        at: runTimestampSchema.parse(event.createdAt),
       })),
     });
   }

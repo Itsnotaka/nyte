@@ -24,9 +24,9 @@ type ApprovalQueueControlsProps = {
   isSyncing: boolean;
   isSessionPending: boolean;
   activeWatchKeywords: string[];
-  onSubmit: (command: string) => void;
-  onConnect: () => void;
-  onDisconnect: () => void;
+  onSubmit: (command: string) => Promise<void>;
+  onConnect: () => Promise<void>;
+  onDisconnect: () => Promise<void>;
 };
 
 export function ApprovalQueueControls({
@@ -42,7 +42,7 @@ export function ApprovalQueueControls({
     defaultValues: { command: "" },
     onSubmit: async ({ value }) => {
       if (!connected) return;
-      onSubmit(value.command);
+      await onSubmit(value.command);
     },
   });
 
@@ -118,7 +118,7 @@ export function ApprovalQueueControls({
             <Button
               type="button"
               variant="outline"
-              onClick={onDisconnect}
+              onClick={() => void onDisconnect()}
               disabled={isSessionPending}
             >
               Disconnect
@@ -126,7 +126,7 @@ export function ApprovalQueueControls({
           ) : (
             <Button
               type="button"
-              onClick={onConnect}
+              onClick={() => void onConnect()}
               disabled={isSessionPending}
             >
               Connect Google
@@ -136,8 +136,8 @@ export function ApprovalQueueControls({
 
         {activeWatchKeywords.length > 0 ? (
           <div className="flex flex-wrap items-center gap-1.5">
-            {activeWatchKeywords.map((keyword, index) => (
-              <Badge key={`${keyword}:${index}`} variant="outline">
+            {activeWatchKeywords.map((keyword) => (
+              <Badge key={keyword} variant="outline">
                 {keyword}
               </Badge>
             ))}

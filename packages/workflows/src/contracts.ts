@@ -15,7 +15,7 @@ type TaskOutput<TTask extends (...args: never[]) => unknown> = Awaited<
 
 export type QueueSyncRequest = Omit<
   TaskInput<typeof ingestSignalsTask>,
-  "accessToken" | "now"
+  "accessToken" | "now" | "userId"
 >;
 export type QueueSyncResponse = Pick<
   TaskOutput<typeof ingestSignalsTask>,

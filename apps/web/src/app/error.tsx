@@ -6,10 +6,8 @@ type ErrorPageProps = {
 };
 
 export default function ErrorPage({ error, reset }: ErrorPageProps) {
-  const message =
-    error.message.trim().length > 0
-      ? error.message
-      : "Unable to load Nyte right now.";
+  void error;
+  const message = "Unable to load Nyte right now.";
 
   return (
     <main className="flex min-h-dvh flex-col items-start justify-center bg-[#050505] px-8 py-16">

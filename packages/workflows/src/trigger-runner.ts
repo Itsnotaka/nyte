@@ -34,9 +34,7 @@ import {
   triggerIngestSignalsTask,
 } from "./trigger-tasks";
 import {
-  workflowError,
-  workflowInfo,
-  WORKFLOW_TASK_EVENTS,
+  createWorkflowTaskLogger,
   type WorkflowTaskLogContext,
 } from "./workflow-log";
 
@@ -80,27 +78,13 @@ function runTaskProgram<TOutput>({
   logContext?: WorkflowTaskLogContext;
 }) {
   const startedAt = Date.now();
-  const logTaskSuccess = () =>
-    workflowInfo({
-      scope: "workflow.task",
-      event: WORKFLOW_TASK_EVENTS.success,
-      taskId,
-      stage,
-      durationMs: Date.now() - startedAt,
-      ...logContext,
-    });
+  const taskLogger = createWorkflowTaskLogger({
+    taskId,
+    stage,
+    ...logContext,
+  });
 
   return Effect.gen(function* () {
-    yield* Effect.sync(() =>
-      workflowInfo({
-        scope: "workflow.task",
-        event: WORKFLOW_TASK_EVENTS.start,
-        taskId,
-        stage,
-        ...logContext,
-      })
-    );
-
     if (stage === "local") {
       const output = yield* Effect.tryPromise({
         try: () => localRun(),
@@ -113,7 +97,7 @@ function runTaskProgram<TOutput>({
           }),
       });
 
-      yield* Effect.sync(logTaskSuccess);
+      yield* Effect.sync(() => taskLogger.success(Date.now() - startedAt));
 
       return output;
     }
@@ -140,23 +124,17 @@ function runTaskProgram<TOutput>({
       );
     }
 
-    yield* Effect.sync(logTaskSuccess);
-
+    yield* Effect.sync(() => taskLogger.success(Date.now() - startedAt));
     return result.output;
   }).pipe(
     Effect.tapError((error) =>
-      Effect.sync(() =>
-        workflowError({
-          scope: "workflow.task",
-          event: WORKFLOW_TASK_EVENTS.failure,
-          taskId,
-          stage,
+      Effect.sync(() => {
+        taskLogger.failure({
           durationMs: Date.now() - startedAt,
           errorTag: error._tag,
           message: error.message,
-          ...logContext,
-        })
-      )
+        });
+      })
     )
   );
 }
