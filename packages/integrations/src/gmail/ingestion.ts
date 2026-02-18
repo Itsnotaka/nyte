@@ -47,7 +47,7 @@ export type GmailThreadSnapshot = {
   receivedAt: string;
 };
 
-export type PollingInput = {
+export type GmailIngestionInput = {
   accessToken: string;
   cursor?: string;
   now?: Date;
@@ -55,7 +55,7 @@ export type PollingInput = {
   maxResults?: number;
 };
 
-export type PollingResult = {
+export type GmailIngestionResult = {
   nextCursor: string;
   signals: IntakeSignal[];
 };
@@ -622,13 +622,13 @@ async function fetchMessageSnapshot(
   };
 }
 
-export async function pollGmailIngestion({
+export async function ingestGmailSignals({
   accessToken,
   cursor,
   now = new Date(),
   watchKeywords = [],
   maxResults = 20,
-}: PollingInput): Promise<PollingResult> {
+}: GmailIngestionInput): Promise<GmailIngestionResult> {
   const cursorState = parseCursor(cursor, now);
 
   let messageIds: string[] = [];

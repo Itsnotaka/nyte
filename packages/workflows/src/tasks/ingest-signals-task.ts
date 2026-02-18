@@ -1,9 +1,9 @@
 import { getDashboardData } from "@nyte/application/dashboard/data";
 import { persistSignals } from "@nyte/application/queue/persist-signals";
-import { pollGoogleCalendarIngestion } from "@nyte/integrations/calendar/polling";
-import { pollGmailIngestion } from "@nyte/integrations/gmail/polling";
+import { ingestGoogleCalendarSignals } from "@nyte/integrations/calendar/ingestion";
+import { ingestGmailSignals } from "@nyte/integrations/gmail/ingestion";
 
-type GmailPollingInput = Parameters<typeof pollGmailIngestion>[0];
+type GmailIngestionInput = Parameters<typeof ingestGmailSignals>[0];
 type DashboardApprovalQueue = Awaited<
   ReturnType<typeof getDashboardData>
 >["approvalQueue"];
@@ -15,10 +15,10 @@ type QueueCursorEnvelope = {
 };
 
 export type IngestSignalsTaskInput = {
-  accessToken: GmailPollingInput["accessToken"];
-  cursor?: GmailPollingInput["cursor"];
-  watchKeywords?: GmailPollingInput["watchKeywords"];
-  now?: GmailPollingInput["now"];
+  accessToken: GmailIngestionInput["accessToken"];
+  cursor?: GmailIngestionInput["cursor"];
+  watchKeywords?: GmailIngestionInput["watchKeywords"];
+  now?: GmailIngestionInput["now"];
 };
 
 export type IngestSignalsTaskResult = {
@@ -128,13 +128,13 @@ export async function ingestSignalsTask({
   const { gmailCursor, calendarCursor } = parseQueueCursor(cursor);
 
   const [gmailResult, calendarResult] = await Promise.allSettled([
-    pollGmailIngestion({
+    ingestGmailSignals({
       accessToken,
       cursor: gmailCursor,
       now,
       watchKeywords,
     }),
-    pollGoogleCalendarIngestion({
+    ingestGoogleCalendarSignals({
       accessToken,
       cursor: calendarCursor,
       now,

@@ -4,9 +4,8 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts",
-    "./calendar/polling": "./src/calendar/polling.ts",
-    "./gmail/polling": "./src/gmail/polling.ts"
+    "./calendar/ingestion": "./src/calendar/ingestion.ts",
+    "./gmail/ingestion": "./src/gmail/ingestion.ts"
   },
   "scripts": {
     "typecheck": "tsgo --noEmit",

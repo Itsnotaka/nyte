@@ -47,7 +47,7 @@ type GoogleCalendarEventsPayload = {
   nextSyncToken: string | null;
 };
 
-export type CalendarPollingInput = {
+export type GoogleCalendarIngestionInput = {
   accessToken: string;
   cursor?: string;
   now?: Date;
@@ -55,7 +55,7 @@ export type CalendarPollingInput = {
   maxResults?: number;
 };
 
-export type CalendarPollingResult = {
+export type GoogleCalendarIngestionResult = {
   nextCursor: string;
   signals: IntakeSignal[];
 };
@@ -517,13 +517,13 @@ async function listEventsWithCursor({
   return { items, nextSyncToken };
 }
 
-export async function pollGoogleCalendarIngestion({
+export async function ingestGoogleCalendarSignals({
   accessToken,
   cursor,
   now = new Date(),
   watchKeywords = [],
   maxResults = 20,
-}: CalendarPollingInput): Promise<CalendarPollingResult> {
+}: GoogleCalendarIngestionInput): Promise<GoogleCalendarIngestionResult> {
   const cursorState = parseCursor(cursor, now);
 
   let events: CalendarEvent[] = [];
