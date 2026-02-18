@@ -16,7 +16,6 @@
     "@nyte/extension-runtime": "workspace:*",
     "@nyte/integrations": "workspace:*",
     "@trigger.dev/sdk": "^4.3.3",
-    "effect": "^3.19.18",
     "evlog": "^1.9.0"
   },
   "devDependencies": {

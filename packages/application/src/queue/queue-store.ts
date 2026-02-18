@@ -1,9 +1,5 @@
 import { db } from "@nyte/db/client";
-import {
-  gateEvaluations,
-  proposedActions,
-  workItems,
-} from "@nyte/db/schema";
+import { gateEvaluations, proposedActions, workItems } from "@nyte/db/schema";
 import {
   createProposedActionId,
   createToolCallPayload,

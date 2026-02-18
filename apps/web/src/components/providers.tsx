@@ -1,5 +1,7 @@
 "use client";
 
+import { Toaster } from "@nyte/ui/components/sonner";
+import { TooltipProvider } from "@nyte/ui/components/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import { ThemeProvider as NextThemesProvider } from "next-themes";
@@ -41,7 +43,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
           disableTransitionOnChange
           enableColorScheme
         >
-          {children}
+          <TooltipProvider>
+            {children}
+            <Toaster />
+          </TooltipProvider>
         </NextThemesProvider>
       </TRPCProvider>
     </QueryClientProvider>

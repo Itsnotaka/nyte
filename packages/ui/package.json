@@ -23,7 +23,7 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.2.0",
-    "@central-icons-react/round-filled-radius-2-stroke-1.5": "^1.1.135",
+    "@central-icons-react/round-filled-radius-2-stroke-1.5": "^1.1.137",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
@@ -44,7 +44,7 @@
     "@types/node": "^25.2.3",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
-    "tailwindcss": "^4.1.18",
+    "tailwindcss": "^4.2.0",
     "typescript": "^5.9.3"
   }
 }

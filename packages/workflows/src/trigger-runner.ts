@@ -1,5 +1,4 @@
 import { tasks } from "@trigger.dev/sdk/v3";
-import { Effect } from "effect";
 
 import type {
   ApproveActionResponse,
@@ -47,7 +46,12 @@ function resolveTaskStage(): WorkflowTaskStage {
   return isTriggerEnabled() ? "trigger" : "local";
 }
 
-function toErrorMessage(value: unknown) {
+function toErrorMessage(value: unknown): string {
+  if (typeof value === "string") {
+    const message = value.trim();
+    return message.length > 0 ? message : "Trigger.dev task failed.";
+  }
+
   if (value instanceof Error && value.message.trim().length > 0) {
     return value.message;
   }
@@ -64,7 +68,53 @@ function toErrorMessage(value: unknown) {
     }
   }
 
+  try {
+    const serialized = JSON.stringify(value);
+    if (typeof serialized === "string" && serialized.trim().length > 0) {
+      return serialized;
+    }
+  } catch {}
+
   return "Trigger.dev task failed.";
+}
+
+function toErrorName(value: unknown): string {
+  if (value instanceof Error && value.name.trim().length > 0) {
+    return value.name;
+  }
+
+  if (
+    typeof value === "object" &&
+    value !== null &&
+    "name" in value &&
+    typeof (value as { name: unknown }).name === "string"
+  ) {
+    const name = (value as { name: string }).name.trim();
+    if (name.length > 0) {
+      return name;
+    }
+  }
+
+  return "UnknownError";
+}
+
+function toErrorStack(value: unknown): string | undefined {
+  if (value instanceof Error && typeof value.stack === "string") {
+    const stack = value.stack.trim();
+    return stack.length > 0 ? stack : undefined;
+  }
+
+  if (
+    typeof value === "object" &&
+    value !== null &&
+    "stack" in value &&
+    typeof (value as { stack: unknown }).stack === "string"
+  ) {
+    const stack = (value as { stack: string }).stack.trim();
+    return stack.length > 0 ? stack : undefined;
+  }
+
+  return undefined;
 }
 
 type TriggerTaskRunResult<TOutput> =
@@ -77,79 +127,25 @@ type TriggerTaskRunResult<TOutput> =
       error: unknown;
     };
 
-function runTaskProgram<TOutput>({
+function toWorkflowTaskError({
   taskId,
   stage,
-  localRun,
-  triggerRun,
-  logContext,
+  error,
 }: {
   taskId: WorkflowTaskId;
   stage: WorkflowTaskStage;
-  localRun: () => Promise<TOutput>;
-  triggerRun: () => Promise<TriggerTaskRunResult<TOutput>>;
-  logContext?: WorkflowTaskLogContext;
-}) {
-  const startedAt = Date.now();
-  const taskLogger = createWorkflowTaskLogger({
+  error: unknown;
+}): WorkflowTaskError {
+  if (isWorkflowTaskError(error)) {
+    return error;
+  }
+
+  return createWorkflowTaskExecutionError({
     taskId,
     stage,
-    ...logContext,
+    message: toErrorMessage(error),
+    cause: error,
   });
-
-  return Effect.gen(function* () {
-    if (stage === "local") {
-      const output = yield* Effect.tryPromise({
-        try: () => localRun(),
-        catch: (cause) =>
-          createWorkflowTaskExecutionError({
-            taskId,
-            stage,
-            message: toErrorMessage(cause),
-            cause,
-          }),
-      });
-
-      yield* Effect.sync(() => taskLogger.success(Date.now() - startedAt));
-
-      return output;
-    }
-
-    const result = yield* Effect.tryPromise({
-      try: () => triggerRun(),
-      catch: (cause) =>
-        createWorkflowTaskExecutionError({
-          taskId,
-          stage,
-          message: toErrorMessage(cause),
-          cause,
-        }),
-    });
-
-    if (!result.ok) {
-      return yield* Effect.fail(
-        createWorkflowTaskResultError({
-          taskId,
-          stage,
-          message: toErrorMessage(result.error),
-          cause: result.error,
-        })
-      );
-    }
-
-    yield* Effect.sync(() => taskLogger.success(Date.now() - startedAt));
-    return result.output;
-  }).pipe(
-    Effect.tapError((error) =>
-      Effect.sync(() => {
-        taskLogger.failure({
-          durationMs: Date.now() - startedAt,
-          errorTag: error._tag,
-          message: error.message,
-        });
-      })
-    )
-  );
 }
 
 async function runTask<TOutput>({
@@ -164,29 +160,71 @@ async function runTask<TOutput>({
   logContext?: WorkflowTaskLogContext;
 }) {
   const stage = resolveTaskStage();
-  return Effect.runPromise(
-    runTaskProgram({
-      taskId,
-      stage,
-      localRun,
-      triggerRun,
-      logContext,
-    })
-  ).catch((error: unknown) => {
-    if (isWorkflowTaskError(error)) {
-      throw error;
+  const startedAt = Date.now();
+  const taskLogger = createWorkflowTaskLogger({
+    taskId,
+    stage,
+    ...logContext,
+  });
+
+  try {
+    if (stage === "local") {
+      try {
+        const output = await localRun();
+        taskLogger.success(Date.now() - startedAt);
+        return output;
+      } catch (error) {
+        throw createWorkflowTaskExecutionError({
+          taskId,
+          stage,
+          message: toErrorMessage(error),
+          cause: error,
+        });
+      }
     }
 
-    const workflowTaskError: WorkflowTaskError = createWorkflowTaskExecutionError(
-      {
+    let result: TriggerTaskRunResult<TOutput>;
+
+    try {
+      result = await triggerRun();
+    } catch (error) {
+      throw createWorkflowTaskExecutionError({
         taskId,
         stage,
         message: toErrorMessage(error),
         cause: error,
-      }
-    );
+      });
+    }
+
+    if (!result.ok) {
+      throw createWorkflowTaskResultError({
+        taskId,
+        stage,
+        message: toErrorMessage(result.error),
+        cause: result.error,
+      });
+    }
+
+    taskLogger.success(Date.now() - startedAt);
+    return result.output;
+  } catch (error) {
+    const workflowTaskError = toWorkflowTaskError({
+      taskId,
+      stage,
+      error,
+    });
+
+    taskLogger.failure({
+      durationMs: Date.now() - startedAt,
+      message: workflowTaskError.message,
+      errorTag: toErrorName(workflowTaskError),
+      errorStack: toErrorStack(workflowTaskError),
+      causeMessage: toErrorMessage(workflowTaskError.workflowCause),
+      causeStack: toErrorStack(workflowTaskError.workflowCause),
+    });
+
     throw workflowTaskError;
-  });
+  }
 }
 
 type TriggerableIngestSignalsInput = Omit<IngestSignalsTaskInput, "now">;

@@ -1,4 +1,11 @@
-import { boolean, index, integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  index,
+  integer,
+  pgTable,
+  text,
+  timestamp,
+} from "drizzle-orm/pg-core";
 
 const createdAtColumn = () =>
   timestamp("created_at", {
@@ -55,8 +62,11 @@ export const accounts = pgTable(
   },
   (table) => [
     index("accounts_user_id_idx").on(table.userId),
-    index("accounts_provider_account_idx").on(table.providerId, table.accountId),
-  ],
+    index("accounts_provider_account_idx").on(
+      table.providerId,
+      table.accountId
+    ),
+  ]
 );
 
 export const sessions = pgTable(
@@ -73,7 +83,7 @@ export const sessions = pgTable(
     createdAt: createdAtColumn(),
     updatedAt: updatedAtColumn(),
   },
-  (table) => [index("sessions_user_id_idx").on(table.userId)],
+  (table) => [index("sessions_user_id_idx").on(table.userId)]
 );
 
 export const verifications = pgTable(
@@ -86,7 +96,7 @@ export const verifications = pgTable(
     createdAt: createdAtColumn(),
     updatedAt: updatedAtColumn(),
   },
-  (table) => [index("verifications_identifier_idx").on(table.identifier)],
+  (table) => [index("verifications_identifier_idx").on(table.identifier)]
 );
 
 export const connectedAccounts = pgTable("connected_accounts", {
@@ -187,9 +197,13 @@ export const auditLogs = pgTable(
     createdAt: createdAtColumn(),
   },
   (table) => [
-    index("audit_logs_target_lookup_idx").on(table.targetType, table.targetId, table.createdAt),
+    index("audit_logs_target_lookup_idx").on(
+      table.targetType,
+      table.targetId,
+      table.createdAt
+    ),
     index("audit_logs_created_at_idx").on(table.createdAt),
-  ],
+  ]
 );
 
 export const workflowRuns = pgTable("workflow_runs", {

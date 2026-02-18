@@ -35,7 +35,9 @@ const watchKeywordSchema = z
   .min(WATCH_KEYWORD_MIN_LENGTH)
   .max(WATCH_KEYWORD_MAX_LENGTH);
 
-const watchKeywordsSchema = z.array(watchKeywordSchema).max(WATCH_KEYWORD_LIMIT);
+const watchKeywordsSchema = z
+  .array(watchKeywordSchema)
+  .max(WATCH_KEYWORD_LIMIT);
 
 const toolCallPayloadSchema = z.union([
   z.object({

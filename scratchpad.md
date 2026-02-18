@@ -229,8 +229,8 @@ Nyte is a personal decision/work queue app:
 1. User connects Google once (OAuth with Gmail + Calendar scopes).
 2. Background ingestion pulls Gmail + Calendar changes incrementally
    (`historyId`/`syncToken`) and converts them to normalized work items.
-3. Application layer scores urgency/impact and prepares proposed actions
-   (draft reply, schedule event, refund queue, etc.).
+3. Application layer scores urgency/impact and prepares proposed actions (draft
+   reply, schedule event, refund queue, etc.).
 4. UI shows a prioritized queue; user can edit, approve, or dismiss.
 5. Workflows execute approved actions through extension runtime and persist
    logs/state.
@@ -284,7 +284,8 @@ Target UX: one focused surface like Linear, but centered on daily tasks.
 
 ## Proposed flow mapping to current architecture
 
-- **Integrations/Workflows stay mostly as-is** (already incremental + resilient).
+- **Integrations/Workflows stay mostly as-is** (already incremental +
+  resilient).
 - **Domain/Application stay as task engine** (intent, scoring, gating).
 - **Biggest rewrite is web UI composition**: move from workspace/cards to
   input + list model.

@@ -1,5 +1,6 @@
-import type { WorkItem } from "./triage";
 import { Effect } from "effect";
+
+import type { WorkItem } from "./triage";
 
 export type GmailCreateDraftToolCall = {
   kind: "gmail.createDraft";

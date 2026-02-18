@@ -1,20 +1,9 @@
-import { neon, neonConfig } from "@neondatabase/serverless";
-import { drizzle } from "drizzle-orm/neon-http";
-
-import * as schema from "./schema";
+import { Pool, neonConfig } from "@neondatabase/serverless";
+import { drizzle } from "drizzle-orm/neon-serverless";
 
 // Required for PlanetScale Postgres connections
-neonConfig.fetchEndpoint = (host) => `https://${host}/sql`;
+neonConfig.pipelineConnect = false;
+neonConfig.wsProxy = (host, port) => `${host}/v2?address=${host}:${port}`;
 
-function resolveDatabaseUrl(): string {
-  const url = process.env.DATABASE_URL;
-  if (!url || url.trim().length === 0) {
-    throw new Error("DATABASE_URL is required to initialize @nyte/db client.");
-  }
-
-  return url;
-}
-
-const sql = neon(resolveDatabaseUrl());
-
-export const db = drizzle(sql, { schema });
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+export const db = drizzle({ client: pool });

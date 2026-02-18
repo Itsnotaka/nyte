@@ -33,6 +33,9 @@ export type WorkflowLogEvent = {
   durationMs: number;
   message?: string;
   errorTag?: string;
+  errorStack?: string;
+  causeMessage?: string;
+  causeStack?: string;
   itemId?: string;
   rating?: FeedbackTaskInput["rating"];
   hasCursor?: boolean;
@@ -48,6 +51,9 @@ export type WorkflowTaskLogContext = Omit<
   | "durationMs"
   | "message"
   | "errorTag"
+  | "errorStack"
+  | "causeMessage"
+  | "causeStack"
 >;
 
 type WorkflowTaskLoggerInput = {
@@ -61,6 +67,9 @@ type WorkflowTaskLogger = {
     durationMs: number;
     message: string;
     errorTag: string;
+    errorStack?: string;
+    causeMessage?: string;
+    causeStack?: string;
   }) => void;
 };
 
@@ -93,18 +102,31 @@ export function createWorkflowTaskLogger(
       });
     },
 
-    failure({ durationMs, message, errorTag }) {
+    failure({
+      durationMs,
+      message,
+      errorTag,
+      errorStack,
+      causeMessage,
+      causeStack,
+    }) {
       logger.error(message, {
         event: WORKFLOW_TASK_EVENTS.failure,
         durationMs,
         message,
         errorTag,
+        errorStack,
+        causeMessage,
+        causeStack,
       });
       logger.emit({
         event: WORKFLOW_TASK_EVENTS.failure,
         durationMs,
         message,
         errorTag,
+        errorStack,
+        causeMessage,
+        causeStack,
         _forceKeep: true,
       });
     },

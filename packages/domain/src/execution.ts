@@ -1,5 +1,6 @@
-import type { ToolCallPayload } from "./actions";
 import { Effect } from "effect";
+
+import type { ToolCallPayload } from "./actions";
 
 export type ActionDestination =
   | "gmail_drafts"

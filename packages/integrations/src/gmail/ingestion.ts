@@ -651,7 +651,11 @@ export function ingestGmailSignalsProgram({
     if (cursorState.historyId) {
       const historyAttempt = yield* Effect.either(
         Effect.tryPromise(() =>
-          listMessagesFromHistory(accessToken, cursorState.historyId!, maxResults)
+          listMessagesFromHistory(
+            accessToken,
+            cursorState.historyId!,
+            maxResults
+          )
         )
       );
 
@@ -673,7 +677,9 @@ export function ingestGmailSignalsProgram({
     }
 
     if (!historyId) {
-      historyId = yield* Effect.tryPromise(() => fetchLatestHistoryId(accessToken));
+      historyId = yield* Effect.tryPromise(() =>
+        fetchLatestHistoryId(accessToken)
+      );
     }
 
     const uniqueMessageIds = Array.from(new Set(messageIds));
@@ -691,15 +697,13 @@ export function ingestGmailSignalsProgram({
       } satisfies GmailIngestionResult;
     }
 
-    const snapshots = (
-      yield* Effect.tryPromise(() =>
-        Promise.all(
-          boundedMessageIds.map((messageId) =>
-            fetchMessageSnapshot(accessToken, messageId, now)
-          )
+    const snapshots = (yield* Effect.tryPromise(() =>
+      Promise.all(
+        boundedMessageIds.map((messageId) =>
+          fetchMessageSnapshot(accessToken, messageId, now)
         )
       )
-    ).filter((snapshot): snapshot is GmailThreadSnapshot => snapshot !== null);
+    )).filter((snapshot): snapshot is GmailThreadSnapshot => snapshot !== null);
 
     snapshots.sort(
       (left, right) =>

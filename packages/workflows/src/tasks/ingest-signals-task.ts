@@ -2,9 +2,6 @@ import { getDashboardData } from "@nyte/application/dashboard/data";
 import { persistSignals } from "@nyte/application/queue/persist-signals";
 import { ingestGoogleCalendarSignals } from "@nyte/integrations/calendar/ingestion";
 import { ingestGmailSignals } from "@nyte/integrations/gmail/ingestion";
-import { Effect } from "effect";
-
-import { runWorkflowEffect } from "../effect-runtime";
 
 type GmailIngestionInput = Parameters<typeof ingestGmailSignals>[0];
 type DashboardApprovalQueue = Awaited<
@@ -135,77 +132,58 @@ function getErrorMessage(error: unknown): string {
   return "Unknown ingestion error";
 }
 
-export function ingestSignalsTaskProgram({
+export async function ingestSignalsTask({
   userId,
   accessToken,
   cursor,
   watchKeywords = [],
   now = new Date(),
-}: IngestSignalsTaskInput) {
-  return Effect.gen(function* () {
-    const { gmailCursor, calendarCursor } = parseQueueCursor(cursor);
+}: IngestSignalsTaskInput): Promise<IngestSignalsTaskResult> {
+  const { gmailCursor, calendarCursor } = parseQueueCursor(cursor);
 
-    const [gmailResult, calendarResult] = yield* Effect.tryPromise(() =>
-      Promise.allSettled([
-        ingestGmailSignals({
-          accessToken,
-          cursor: gmailCursor,
-          now,
-          watchKeywords,
-        }),
-        ingestGoogleCalendarSignals({
-          accessToken,
-          cursor: calendarCursor,
-          now,
-          watchKeywords,
-        }),
-      ])
+  const [gmailResult, calendarResult] = await Promise.allSettled([
+    ingestGmailSignals({
+      accessToken,
+      cursor: gmailCursor,
+      now,
+      watchKeywords,
+    }),
+    ingestGoogleCalendarSignals({
+      accessToken,
+      cursor: calendarCursor,
+      now,
+      watchKeywords,
+    }),
+  ]);
+
+  if (gmailResult.status === "rejected" && calendarResult.status === "rejected") {
+    throw new Error(
+      `Signal ingestion failed for Gmail and Calendar. Gmail: ${getErrorMessage(gmailResult.reason)}. Calendar: ${getErrorMessage(calendarResult.reason)}.`
     );
+  }
 
-    if (
-      gmailResult.status === "rejected" &&
-      calendarResult.status === "rejected"
-    ) {
-      return yield* Effect.fail(
-        new Error(
-          `Signal ingestion failed for Gmail and Calendar. Gmail: ${getErrorMessage(gmailResult.reason)}. Calendar: ${getErrorMessage(calendarResult.reason)}.`
-        )
-      );
-    }
+  const signals = [
+    ...(gmailResult.status === "fulfilled" ? gmailResult.value.signals : []),
+    ...(calendarResult.status === "fulfilled" ? calendarResult.value.signals : []),
+  ];
 
-    const signals = [
-      ...(gmailResult.status === "fulfilled"
-        ? gmailResult.value.signals
-        : []),
-      ...(calendarResult.status === "fulfilled"
-        ? calendarResult.value.signals
-        : []),
-    ];
-
-    const nextCursor = serializeQueueCursor({
-      gmailCursor:
-        gmailResult.status === "fulfilled"
-          ? gmailResult.value.nextCursor
-          : gmailCursor,
-      calendarCursor:
-        calendarResult.status === "fulfilled"
-          ? calendarResult.value.nextCursor
-          : calendarCursor,
-    });
-
-    yield* Effect.tryPromise(() => persistSignals(signals, userId, now));
-    const dashboard = yield* Effect.tryPromise(() => getDashboardData());
-
-    return {
-      cursor: nextCursor,
-      queuedCount: signals.length,
-      approvalQueue: dashboard.approvalQueue,
-    } satisfies IngestSignalsTaskResult;
+  const nextCursor = serializeQueueCursor({
+    gmailCursor:
+      gmailResult.status === "fulfilled"
+        ? gmailResult.value.nextCursor
+        : gmailCursor,
+    calendarCursor:
+      calendarResult.status === "fulfilled"
+        ? calendarResult.value.nextCursor
+        : calendarCursor,
   });
-}
 
-export async function ingestSignalsTask(
-  input: IngestSignalsTaskInput
-): Promise<IngestSignalsTaskResult> {
-  return runWorkflowEffect(ingestSignalsTaskProgram(input));
+  await persistSignals(signals, userId, now);
+  const dashboard = await getDashboardData();
+
+  return {
+    cursor: nextCursor,
+    queuedCount: signals.length,
+    approvalQueue: dashboard.approvalQueue,
+  } satisfies IngestSignalsTaskResult;
 }

@@ -1,8 +1,6 @@
 import { approveWorkItem } from "@nyte/application/actions/approve";
-import { Effect } from "effect";
 
 import { dispatchApprovedActionToExtension } from "../extension-dispatch";
-import { runWorkflowEffect } from "../effect-runtime";
 
 type ApproveWorkItemParameters = Parameters<typeof approveWorkItem>;
 
@@ -14,31 +12,26 @@ export type ApproveActionTaskInput = {
   actorUserId?: string | null;
 };
 
-export function approveActionTaskProgram({
+export async function approveActionTask({
   itemId,
   idempotencyKey,
   payloadOverride,
   actorUserId = null,
   now = new Date(),
 }: ApproveActionTaskInput) {
-  return Effect.gen(function* () {
-    const approvedItem = yield* Effect.tryPromise(() =>
-      approveWorkItem(itemId, now, idempotencyKey, payloadOverride)
-    );
-    const extensionResult = yield* Effect.tryPromise(() =>
-      dispatchApprovedActionToExtension({
-        approvedItem,
-        userId: actorUserId,
-      })
-    );
-
-    return {
-      ...approvedItem,
-      extensionResult,
-    };
+  const approvedItem = await approveWorkItem(
+    itemId,
+    now,
+    idempotencyKey,
+    payloadOverride
+  );
+  const extensionResult = await dispatchApprovedActionToExtension({
+    approvedItem,
+    userId: actorUserId,
   });
-}
 
-export async function approveActionTask(input: ApproveActionTaskInput) {
-  return runWorkflowEffect(approveActionTaskProgram(input));
+  return {
+    ...approvedItem,
+    extensionResult,
+  };
 }

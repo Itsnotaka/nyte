@@ -1,21 +1,18 @@
 "use client";
 
 import { Combobox as ComboboxPrimitive } from "@base-ui/react";
-import {
-  IconCheckmark1,
-  IconChevronDownMedium,
-  IconX,
-} from "@central-icons-react/round-filled-radius-2-stroke-1.5";
+import { ChevronDownIcon, XIcon, CheckIcon } from "lucide-react";
 import * as React from "react";
 
-import { cn } from "../../lib/utils";
-import { Button } from "./button";
+import { Button } from "~/components/ui/button";
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupButton,
   InputGroupInput,
-} from "./input-group";
+} from "~/components/ui/input-group";
+
+import { cn } from "../../lib/utils";
 
 const Combobox = ComboboxPrimitive.Root;
 
@@ -35,7 +32,7 @@ function ComboboxTrigger({
       {...props}
     >
       {children}
-      <IconChevronDownMedium className="text-muted-foreground size-4 pointer-events-none" />
+      <ChevronDownIcon className="text-muted-foreground size-4 pointer-events-none" />
     </ComboboxPrimitive.Trigger>
   );
 }
@@ -48,7 +45,7 @@ function ComboboxClear({ className, ...props }: ComboboxPrimitive.Clear.Props) {
       className={cn(className)}
       {...props}
     >
-      <IconX className="pointer-events-none" />
+      <XIcon className="pointer-events-none" />
     </ComboboxPrimitive.Clear>
   );
 }
@@ -158,7 +155,7 @@ function ComboboxItem({
           <span className="pointer-events-none absolute right-2 flex size-4 items-center justify-center" />
         }
       >
-        <IconCheckmark1 className="pointer-events-none" />
+        <CheckIcon className="pointer-events-none" />
       </ComboboxPrimitive.ItemIndicator>
     </ComboboxPrimitive.Item>
   );
@@ -260,7 +257,7 @@ function ComboboxChip({
           className="-ml-1 opacity-50 hover:opacity-100"
           data-slot="combobox-chip-remove"
         >
-          <IconX className="pointer-events-none" />
+          <XIcon className="pointer-events-none" />
         </ComboboxPrimitive.ChipRemove>
       )}
     </ComboboxPrimitive.Chip>
