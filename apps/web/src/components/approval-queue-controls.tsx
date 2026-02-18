@@ -68,9 +68,8 @@ export function ApprovalQueueControls({
           }}
           className="flex flex-col gap-2"
         >
-          <form.Field
-            name="command"
-            children={(field) => (
+          <form.Field name="command">
+            {(field) => (
               <Input
                 id={field.name}
                 name={field.name}
@@ -82,7 +81,7 @@ export function ApprovalQueueControls({
                 onChange={(event) => field.handleChange(event.target.value)}
               />
             )}
-          />
+          </form.Field>
 
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="inline-flex items-center gap-1 text-xs/5 text-muted-foreground">

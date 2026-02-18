@@ -12,8 +12,10 @@ import * as React from "react";
 import { authClient } from "~/lib/auth-client";
 import { GOOGLE_AUTH_PROVIDER } from "~/lib/auth-provider";
 import { QUEUE_MESSAGES, formatSyncFilteredNotice } from "~/lib/queue/messages";
-import { parseWatchKeywordCommand } from "~/lib/queue/watch-keywords";
 import { useTRPC, useTRPCClient } from "~/lib/trpc";
+
+const MIN_WATCH_KEYWORD_LENGTH = 3;
+const MAX_WATCH_KEYWORDS = 8;
 
 type ActionStatus = "approved" | "dismissed";
 
@@ -49,6 +51,32 @@ function areKeywordsEqual(left: string[], right: string[]): boolean {
   }
 
   return true;
+}
+
+function parseWatchKeywordCommand(command: string): string[] {
+  const normalized = command.trim();
+  if (!normalized) {
+    return [];
+  }
+
+  const candidates = normalized.includes(",")
+    ? normalized.split(",")
+    : normalized.split(/\s+/);
+  const keywords = new Set<string>();
+
+  for (const entry of candidates) {
+    const keyword = entry.trim().toLowerCase();
+    if (keyword.length < MIN_WATCH_KEYWORD_LENGTH) {
+      continue;
+    }
+
+    keywords.add(keyword);
+    if (keywords.size >= MAX_WATCH_KEYWORDS) {
+      break;
+    }
+  }
+
+  return Array.from(keywords);
 }
 
 export function useWorkspace(): UseWorkspaceResult {

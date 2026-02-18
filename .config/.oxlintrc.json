@@ -1,11 +1,32 @@
 {
   "$schema": "../node_modules/oxlint/configuration_schema.json",
+  "plugins": [
+    "unicorn",
+    "typescript",
+    "oxc",
+    "import",
+    "react",
+    "nextjs",
+    "promise",
+    "react-perf",
+    "node"
+  ],
+  "settings": {
+    "next": {
+      "rootDir": ["apps/web"]
+    }
+  },
+  "rules": {
+    "no-var": "error",
+    "prefer-const": "error"
+  },
   "ignorePatterns": [
     "stylelint.config.mjs",
     "node_modules/**",
     ".vercel/**",
     ".next/**",
-    "out/**"
+    "out/**",
+    ".pi/**"
   ],
   "env": {
     "builtin": true

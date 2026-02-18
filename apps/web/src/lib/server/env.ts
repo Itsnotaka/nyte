@@ -24,5 +24,3 @@ export const env = createEnv({
   },
   emptyStringAsUndefined: true,
 });
-
-export type ServerEnvironment = typeof env;

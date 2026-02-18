@@ -2,7 +2,7 @@ import { db } from "@nyte/db/client";
 import { users } from "@nyte/db/schema";
 
 export const DEFAULT_USER_ID = "local-user";
-export const DEFAULT_USER_EMAIL = "local-user@nyte.dev";
+const DEFAULT_USER_EMAIL = "local-user@nyte.dev";
 
 export async function ensureDefaultUser(now: Date) {
   await db

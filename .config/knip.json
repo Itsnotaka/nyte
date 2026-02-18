@@ -1,6 +1,7 @@
 {
   "$schema": "https://unpkg.com/knip@5/schema.json",
-  "ignore": ["src/components/ui/**", "stylelint.config.mjs", "**/*.css"],
+  "treatConfigHintsAsErrors": true,
+  "ignore": ["stylelint.config.mjs", "**/*.css", ".pi/**"],
   "ignoreFiles": ["**/env.d.ts"],
   "ignoreExportsUsedInFile": {
     "interface": true,
@@ -8,11 +9,41 @@
   },
   "ignoreDependencies": ["tailwindcss", "postcss"],
   "ignoreUnresolved": ["next"],
+  "rules": {
+    "files": "error",
+    "dependencies": "error",
+    "devDependencies": "error",
+    "optionalPeerDependencies": "error",
+    "unlisted": "error",
+    "binaries": "error",
+    "unresolved": "error",
+    "exports": "error",
+    "nsExports": "off",
+    "types": "error",
+    "nsTypes": "off",
+    "enumMembers": "error",
+    "classMembers": "off",
+    "duplicates": "error",
+    "catalog": "error"
+  },
   "workspaces": {
-    "apps/web": {},
-    "packages/ui": {
-      "ignoreDependencies": ["next-themes"]
+    ".": {
+      "entry": [
+        "package.json",
+        "turbo.json",
+        "tsconfig.json",
+        ".config/.oxlintrc.json",
+        ".config/knip.json"
+      ],
+      "project": [
+        "*.{js,mjs,cjs,ts,mts,cts,json}",
+        ".config/**/*.{json,js,mjs,cjs,ts,mts,cts}"
+      ]
     },
+    "apps/web": {
+      "entry": ["trigger.config.ts", "trigger/workflows.ts"]
+    },
+    "packages/ui": {},
     "tooling/tailwind": {
       "ignoreDependencies": [
         "@tailwindcss/postcss",
