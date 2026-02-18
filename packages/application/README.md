@@ -36,7 +36,7 @@ Grouped-only API:
 ## Dependencies
 
 - workspace: @nyte/db, @nyte/domain
-- external: neverthrow
+- external: drizzle-orm, neverthrow
 
 ## Used by
 

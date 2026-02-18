@@ -1,10 +1,10 @@
 "use client";
 
 import {
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  ChevronDownIcon,
-} from "lucide-react";
+  IconChevronDownMedium,
+  IconChevronLeft,
+  IconChevronRight,
+} from "@central-icons-react/round-filled-radius-2-stroke-1.5";
 import * as React from "react";
 import {
   DayPicker,
@@ -151,13 +151,13 @@ function Calendar({
         Chevron: ({ className, orientation, ...props }) => {
           if (orientation === "left") {
             return (
-              <ChevronLeftIcon className={cn("size-4", className)} {...props} />
+              <IconChevronLeft className={cn("size-4", className)} {...props} />
             );
           }
 
           if (orientation === "right") {
             return (
-              <ChevronRightIcon
+              <IconChevronRight
                 className={cn("size-4", className)}
                 {...props}
               />
@@ -165,7 +165,10 @@ function Calendar({
           }
 
           return (
-            <ChevronDownIcon className={cn("size-4", className)} {...props} />
+            <IconChevronDownMedium
+              className={cn("size-4", className)}
+              {...props}
+            />
           );
         },
         DayButton: ({ ...props }) => (

@@ -1,15 +1,18 @@
 "use client";
 
 import type { ToolCallPayload, WorkItemWithAction } from "@nyte/domain/actions";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 
 import { authClient } from "~/lib/auth-client";
 import { GOOGLE_AUTH_PROVIDER } from "~/lib/auth-provider";
 import { QUEUE_MESSAGES, formatSyncFilteredNotice } from "~/lib/queue/messages";
-import { resolveSessionUserId } from "~/lib/shared/session-user-id";
-import { parseWatchKeywordCommand } from "~/lib/shared/watch-keywords";
+import { parseWatchKeywordCommand } from "~/lib/queue/watch-keywords";
 import { useTRPC, useTRPCClient } from "~/lib/trpc";
 
 type ActionStatus = "approved" | "dismissed";
@@ -27,8 +30,26 @@ export type UseWorkspaceResult = {
   runSync: (command: string) => Promise<void>;
   connectGoogle: () => Promise<void>;
   disconnectGoogle: () => Promise<void>;
-  markAction: (item: WorkItemWithAction, status: ActionStatus, payloadOverride?: ToolCallPayload) => Promise<void>;
+  markAction: (
+    item: WorkItemWithAction,
+    status: ActionStatus,
+    payloadOverride?: ToolCallPayload
+  ) => Promise<void>;
 };
+
+function areKeywordsEqual(left: string[], right: string[]): boolean {
+  if (left.length !== right.length) {
+    return false;
+  }
+
+  for (const [index, keyword] of left.entries()) {
+    if (keyword !== right[index]) {
+      return false;
+    }
+  }
+
+  return true;
+}
 
 export function useWorkspace(): UseWorkspaceResult {
   const router = useRouter();
@@ -36,33 +57,39 @@ export function useWorkspace(): UseWorkspaceResult {
   const client = useTRPCClient();
   const queryClient = useQueryClient();
 
-  const watchKeywordsRef = React.useRef<string[]>([]);
-  const [activeWatchKeywords, setActiveWatchKeywords] = React.useState<string[]>([]);
+  const [activeWatchKeywords, setActiveWatchKeywords] = React.useState<
+    string[]
+  >([]);
   const [notice, setNotice] = React.useState<string | null>(null);
   const [mutationError, setMutationError] = React.useState<string | null>(null);
 
-  const { data: session, isPending: isSessionPending } = authClient.useSession();
-  const userId = React.useMemo(() => resolveSessionUserId(session), [session]);
+  const { data: session, isPending: isSessionPending } =
+    authClient.useSession();
+  const userId = session?.user?.id ?? null;
   const connected = Boolean(session);
 
   const {
-    data: syncData,
+    data: syncPages,
     error: syncQueryError,
     isFetching: isSyncing,
     dataUpdatedAt,
-  } = useQuery({
-    queryKey: ["workspace.sync", userId],
+    fetchNextPage,
+  } = useInfiniteQuery({
+    queryKey: ["workspace.sync", userId, activeWatchKeywords],
     enabled: connected,
     retry: false,
     refetchOnWindowFocus: false,
-    queryFn: async () => {
-      const cached = queryClient.getQueryData<{ cursor?: string }>(["workspace.sync", userId]);
-      return client.queue.sync.query({
-        cursor: cached?.cursor,
-        watchKeywords: watchKeywordsRef.current,
-      });
-    },
+    initialPageParam: undefined as string | undefined,
+    queryFn: ({ pageParam }) =>
+      client.queue.sync.query({
+        cursor: pageParam,
+        watchKeywords: activeWatchKeywords,
+      }),
+    getNextPageParam: (lastPage) => lastPage.cursor,
+    maxPages: 1,
   });
+
+  const syncData = syncPages?.pages.at(-1);
 
   const items = connected ? (syncData?.approvalQueue ?? []) : [];
 
@@ -79,67 +106,82 @@ export function useWorkspace(): UseWorkspaceResult {
   const approveMutation = useMutation(trpc.actions.approve.mutationOptions());
   const dismissMutation = useMutation(trpc.actions.dismiss.mutationOptions());
 
-  const refetchSync = React.useCallback(async () => {
-    await queryClient.invalidateQueries({ queryKey: ["workspace.sync", userId] });
-    await queryClient.refetchQueries({ queryKey: ["workspace.sync", userId] });
-  }, [queryClient, userId]);
+  const fetchLatestSyncPage = React.useCallback(async () => {
+    await fetchNextPage();
+  }, [fetchNextPage]);
 
-  const runSync = React.useCallback(async (command: string) => {
-    setNotice(null);
-    setMutationError(null);
-    const keywords = parseWatchKeywordCommand(command);
-    watchKeywordsRef.current = keywords;
-    setActiveWatchKeywords(keywords);
-    await refetchSync();
-    if (keywords.length > 0) {
-      setNotice(formatSyncFilteredNotice(keywords));
-    }
-  }, [refetchSync]);
+  const runSync = React.useCallback(
+    async (command: string) => {
+      setNotice(null);
+      setMutationError(null);
+      const keywords = parseWatchKeywordCommand(command);
+
+      const keywordsChanged = !areKeywordsEqual(activeWatchKeywords, keywords);
+      setActiveWatchKeywords(keywords);
+
+      if (!keywordsChanged) {
+        await fetchLatestSyncPage();
+      }
+
+      if (keywords.length > 0) {
+        setNotice(formatSyncFilteredNotice(keywords));
+      }
+    },
+    [activeWatchKeywords, fetchLatestSyncPage]
+  );
 
   const connectGoogle = React.useCallback(async () => {
     setNotice(null);
     setMutationError(null);
-    watchKeywordsRef.current = [];
     setActiveWatchKeywords([]);
     queryClient.removeQueries({ queryKey: ["workspace.sync", userId] });
-    await authClient.signIn.social({ provider: GOOGLE_AUTH_PROVIDER, callbackURL: "/" });
+    await authClient.signIn.social({
+      provider: GOOGLE_AUTH_PROVIDER,
+      callbackURL: "/",
+    });
   }, [queryClient, userId]);
 
   const disconnectGoogle = React.useCallback(async () => {
     await authClient.signOut();
     setMutationError(null);
-    watchKeywordsRef.current = [];
     setActiveWatchKeywords([]);
     queryClient.removeQueries({ queryKey: ["workspace.sync", userId] });
     router.refresh();
   }, [queryClient, router, userId]);
 
-  const markAction = React.useCallback(async (
-    item: WorkItemWithAction,
-    status: ActionStatus,
-    payloadOverride?: ToolCallPayload
-  ) => {
-    setNotice(null);
-    setMutationError(null);
-    try {
-      if (status === "approved") {
-        await approveMutation.mutateAsync({ itemId: item.id, payloadOverride });
-      } else {
-        await dismissMutation.mutateAsync({ itemId: item.id });
+  const markAction = React.useCallback(
+    async (
+      item: WorkItemWithAction,
+      status: ActionStatus,
+      payloadOverride?: ToolCallPayload
+    ) => {
+      setNotice(null);
+      setMutationError(null);
+      try {
+        if (status === "approved") {
+          await approveMutation.mutateAsync({
+            itemId: item.id,
+            payloadOverride,
+          });
+        } else {
+          await dismissMutation.mutateAsync({ itemId: item.id });
+        }
+        await fetchLatestSyncPage();
+        setNotice(
+          status === "approved"
+            ? QUEUE_MESSAGES.actionApprovedNotice
+            : QUEUE_MESSAGES.actionDismissedNotice
+        );
+      } catch (err) {
+        const message =
+          err instanceof Error && err.message.trim()
+            ? err.message
+            : QUEUE_MESSAGES.actionUpdateUnavailable;
+        setMutationError(message);
       }
-      await refetchSync();
-      setNotice(
-        status === "approved"
-          ? QUEUE_MESSAGES.actionApprovedNotice
-          : QUEUE_MESSAGES.actionDismissedNotice
-      );
-    } catch (err) {
-      const message = err instanceof Error && err.message.trim()
-        ? err.message
-        : QUEUE_MESSAGES.actionUpdateUnavailable;
-      setMutationError(message);
-    }
-  }, [approveMutation, dismissMutation, refetchSync]);
+    },
+    [approveMutation, dismissMutation, fetchLatestSyncPage]
+  );
 
   return {
     connected,

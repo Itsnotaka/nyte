@@ -12,10 +12,12 @@
     "clean": "rm -rf .turbo .cache node_modules dist"
   },
   "dependencies": {
+    "@central-icons-react/round-filled-radius-2-stroke-1.5": "^1.1.135",
     "@nyte/application": "workspace:^",
     "@nyte/db": "workspace:^",
     "@nyte/domain": "workspace:^",
     "@nyte/integrations": "workspace:^",
+    "@nyte/ui": "workspace:^",
     "@nyte/workflows": "workspace:^",
     "@t3-oss/env-nextjs": "^0.13.10",
     "@tanstack/react-form": "^1.28.3",

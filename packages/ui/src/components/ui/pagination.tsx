@@ -1,8 +1,8 @@
 import {
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  MoreHorizontalIcon,
-} from "lucide-react";
+  IconChevronLeft,
+  IconChevronRight,
+  IconDotGrid1x3Horizontal,
+} from "@central-icons-react/round-filled-radius-2-stroke-1.5";
 import * as React from "react";
 
 import { cn } from "../../lib/utils";
@@ -78,7 +78,7 @@ function PaginationPrevious({
       className={cn("pl-1.5!", className)}
       {...props}
     >
-      <ChevronLeftIcon data-icon="inline-start" />
+      <IconChevronLeft data-icon="inline-start" />
       <span className="hidden sm:block">{text}</span>
     </PaginationLink>
   );
@@ -97,7 +97,7 @@ function PaginationNext({
       {...props}
     >
       <span className="hidden sm:block">{text}</span>
-      <ChevronRightIcon data-icon="inline-end" />
+      <IconChevronRight data-icon="inline-end" />
     </PaginationLink>
   );
 }
@@ -116,7 +116,7 @@ function PaginationEllipsis({
       )}
       {...props}
     >
-      <MoreHorizontalIcon />
+      <IconDotGrid1x3Horizontal />
       <span className="sr-only">More pages</span>
     </span>
   );

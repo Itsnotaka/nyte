@@ -1,4 +1,4 @@
-import { approveWorkItem } from "@nyte/application/actions";
+import { approveWorkItem } from "@nyte/application/actions/approve";
 
 import { dispatchApprovedActionToExtension } from "../extension-dispatch";
 

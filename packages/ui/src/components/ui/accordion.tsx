@@ -1,7 +1,7 @@
 "use client";
 
 import { Accordion as AccordionPrimitive } from "@base-ui/react/accordion";
-import { ChevronDownIcon, ChevronUpIcon } from "lucide-react";
+import { IconChevronDownMedium } from "@central-icons-react/round-filled-radius-2-stroke-1.5";
 
 import { cn } from "../../lib/utils";
 
@@ -41,13 +41,13 @@ function AccordionTrigger({
         {...props}
       >
         {children}
-        <ChevronDownIcon
+        <IconChevronDownMedium
           data-slot="accordion-trigger-icon"
           className="pointer-events-none shrink-0 group-aria-expanded/accordion-trigger:hidden"
         />
-        <ChevronUpIcon
+        <IconChevronDownMedium
           data-slot="accordion-trigger-icon"
-          className="pointer-events-none hidden shrink-0 group-aria-expanded/accordion-trigger:inline"
+          className="pointer-events-none hidden shrink-0 rotate-180 group-aria-expanded/accordion-trigger:inline"
         />
       </AccordionPrimitive.Trigger>
     </AccordionPrimitive.Header>

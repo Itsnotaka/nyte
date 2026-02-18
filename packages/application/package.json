@@ -4,11 +4,14 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./actions": "./src/actions/index.ts",
-    "./audit": "./src/audit/index.ts",
-    "./dashboard": "./src/dashboard/index.ts",
-    "./queue": "./src/queue/index.ts",
-    "./workflow": "./src/workflow/index.ts"
+    "./actions/approve": "./src/actions/approve-action.ts",
+    "./actions/dismiss": "./src/actions/dismiss-action.ts",
+    "./actions/feedback": "./src/actions/feedback.ts",
+    "./audit/log": "./src/audit/audit-log.ts",
+    "./dashboard/data": "./src/dashboard/dashboard.ts",
+    "./dashboard/metrics": "./src/dashboard/metrics.ts",
+    "./queue/persist-signals": "./src/queue/queue-store.ts",
+    "./run-log": "./src/run-log.ts"
   },
   "scripts": {
     "typecheck": "tsgo --noEmit",

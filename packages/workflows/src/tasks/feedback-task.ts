@@ -1,4 +1,4 @@
-import { recordFeedback } from "@nyte/application/actions";
+import { recordFeedback } from "@nyte/application/actions/feedback";
 
 type RecordFeedbackParameters = Parameters<typeof recordFeedback>;
 

@@ -3,7 +3,7 @@ import { feedbackEntries, workItems } from "@nyte/db/schema";
 import { eq } from "drizzle-orm";
 
 import { recordAuditLog } from "../audit/audit-log";
-import { recordWorkflowRun } from "../workflow/workflow-log";
+import { recordWorkItemRun } from "../run-log";
 
 export type FeedbackRating = "positive" | "negative";
 export type FeedbackErrorCode = "not_found" | "invalid_state";
@@ -64,7 +64,7 @@ export async function recordFeedback(
         },
       });
 
-    await recordWorkflowRun({
+    await recordWorkItemRun({
       workItemId: itemId,
       phase: "feedback",
       status: "completed",

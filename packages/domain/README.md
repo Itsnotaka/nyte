@@ -7,7 +7,7 @@ modeling.
 
 ## Responsibilities
 
-- Needs You gate evaluation and queue creation
+- approval-gate evaluation and approval queue creation
 - work-item/action payload typing (including shared proposed-action ID helper)
 - deterministic execution snapshot model
 - mock intake fixtures for local/dev flows

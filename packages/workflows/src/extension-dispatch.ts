@@ -1,4 +1,4 @@
-import { approveWorkItem } from "@nyte/application/actions";
+import { approveWorkItem } from "@nyte/application/actions/approve";
 import { createProposedActionId } from "@nyte/domain/actions";
 import {
   executeExtension,
@@ -6,7 +6,10 @@ import {
   EXTENSION_AUTH_PROVIDERS,
   EXTENSION_AUTH_SCOPES,
   EXTENSION_NAMES,
+  type CalendarCreateEventRequest,
+  type ExtensionExecutionContext,
   type ExtensionResult,
+  type GmailSaveDraftRequest,
 } from "@nyte/extension-runtime";
 
 type ApprovedWorkItem = Awaited<ReturnType<typeof approveWorkItem>>;
@@ -20,7 +23,7 @@ export async function dispatchApprovedActionToExtension({
   approvedItem,
   userId = null,
 }: ExtensionDispatchInput): Promise<ExtensionResult | null> {
-  const extensionContext = {
+  const extensionContext: ExtensionExecutionContext = {
     auth: {
       provider: EXTENSION_AUTH_PROVIDERS.google,
       userId,
@@ -35,19 +38,23 @@ export async function dispatchApprovedActionToExtension({
   };
 
   if (approvedItem.payload.kind === "gmail.createDraft") {
-    return executeExtension({
+    const request: GmailSaveDraftRequest = {
       ...extensionContext,
       name: EXTENSION_NAMES.gmailSaveDraft,
       input: approvedItem.payload,
-    });
+    };
+
+    return executeExtension(request);
   }
 
   if (approvedItem.payload.kind === "google-calendar.createEvent") {
-    return executeExtension({
+    const request: CalendarCreateEventRequest = {
       ...extensionContext,
       name: EXTENSION_NAMES.calendarCreateEvent,
       input: approvedItem.payload,
-    });
+    };
+
+    return executeExtension(request);
   }
 
   return null;

@@ -22,7 +22,6 @@ Shared UI primitives and hooks used by Nyte apps.
 
 ## Used by
 
-- apps/web
 - future app surfaces requiring shared design system primitives
 
 ## Local commands

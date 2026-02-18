@@ -1,4 +1,4 @@
-import { dismissWorkItem } from "@nyte/application/actions";
+import { dismissWorkItem } from "@nyte/application/actions/dismiss";
 
 type DismissWorkItemParameters = Parameters<typeof dismissWorkItem>;
 

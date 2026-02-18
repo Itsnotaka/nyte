@@ -1,68 +1,63 @@
 # Nyte
 
 Nyte is a decision queue for high-impact Gmail and Google Calendar actions. It
-ingests signals, triages what needs human approval, and executes approved
-actions with a complete audit trail.
+ingests signals, scores approval gates, and executes approved actions with an
+audit trail.
 
 ## What runs where
 
-- `apps/web`: product UI and API gateway routes.
-- `packages/workflows`: task orchestration for ingest/approve/dismiss/feedback.
-- `packages/pi-runtime`: extension contracts and registry for Gmail/Calendar
-  execution tools.
-- `packages/db`: Drizzle Postgres schema, client, and migrations.
-- `packages/application`: domain use-cases and persistence orchestration.
-- `packages/integrations`: Gmail/Calendar ingestion adapters.
+- `apps/web`: Next.js UI plus the tRPC gateway (`/api/trpc`).
+- `packages/workflows`: orchestration for ingest/approve/dismiss/feedback.
+- `packages/pi-runtime` (`@nyte/extension-runtime`): extension contracts and
+  execution runtime for provider actions.
+- `packages/application`: use-cases and persistence orchestration.
 - `packages/domain`: pure triage/action/execution models.
+- `packages/integrations`: Gmail/Calendar polling adapters.
+- `packages/db`: Drizzle Postgres schema, client, and migrations.
 
 ## Data flow
 
-1. Ingest: queue sync route polls Gmail + Calendar integrations.
-2. Triage: domain gates score and filter decision-worthy items.
-3. Decision queue: web UI renders pending items with proposed actions.
-4. Approval: approve/dismiss routes call workflow tasks.
-5. Execution: approved actions dispatch through PI extension contracts.
-6. Audit: workflow and audit tables capture every state transition.
+1. `queue.sync` polls Gmail + Calendar integrations.
+2. Domain triage evaluates approval gates and builds an approval queue.
+3. Workspace UI renders pending items and proposed actions.
+4. `actions.approve|dismiss|feedback` run workflow tasks.
+5. Approved actions dispatch through extension runtime handlers.
+6. Workflow and audit tables capture state transitions.
 
 ## Local setup
 
-1. Install dependencies:
-   - `pnpm install`
-2. Configure env in `apps/web/.env` (or `apps/web/.env.local`):
+1. Install dependencies: `pnpm install`
+2. Configure env in `apps/web/.env` or `apps/web/.env.local`
    - `DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/nyte`
    - `BETTER_AUTH_SECRET=...`
-   - Google OAuth variables (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`).
-   - Trigger variables (`TRIGGER_SECRET_KEY`, `TRIGGER_PROJECT_REF`) when using
-     Trigger.dev runtime.
-3. Apply database schema:
-   - `pnpm db:push`
-4. Typecheck:
-   - `pnpm typecheck`
-5. Trigger task dev runtime (optional):
-   - `pnpm --filter web trigger:dev`
+   - `GOOGLE_CLIENT_ID=...`
+   - `GOOGLE_CLIENT_SECRET=...`
+   - Optional Trigger.dev vars: `TRIGGER_SECRET_KEY`, `TRIGGER_PROJECT_REF`
+3. Apply schema: `pnpm db:push`
+4. Validate: `pnpm typecheck && pnpm lint`
+5. Optional Trigger.dev runtime: `pnpm --filter web trigger:dev`
 
 ## Extend the system
 
-### Add a PI extension
+### Add an extension handler
 
 1. Add request/result contracts in `packages/pi-runtime/src/contracts.ts`.
-2. Implement extension handler in `packages/pi-runtime/src/extensions/*`.
-3. Register in `packages/pi-runtime/src/registry.ts`.
-4. Dispatch from `packages/workflows/src/pi-dispatch.ts`.
+2. Implement handler in `packages/pi-runtime/src/extensions/*`.
+3. Register handler in `packages/pi-runtime/src/registry.ts`.
+4. Dispatch it from `packages/workflows/src/extension-dispatch.ts`.
 
 ### Add a workflow task
 
-1. Create task in `packages/workflows/src/tasks`.
-2. Derive exported request/response types in
-   `packages/workflows/src/contracts.ts`.
-3. Expose from `packages/workflows/src/index.ts`.
-4. Wire in `apps/web/src/app/api/*` gateway route.
+1. Add task logic in `packages/workflows/src/tasks`.
+2. Derive API types in `packages/workflows/src/contracts.ts`.
+3. Expose runner/trigger entrypoints in `packages/workflows/src`.
+4. Wire usage in `apps/web/src/lib/server/router.ts`.
 
-### Add a decision gate
+### Add an approval gate
 
 1. Update gate logic in `packages/domain/src/triage.ts`.
-2. Persist/consume gate evaluations through `packages/application/src/queue`.
-3. Render impact in web queue UI if needed.
+2. Persist/consume evaluations in `packages/application/src/queue`.
+3. Surface gate impact in workspace UI when needed.
 
 ## Documentation
 

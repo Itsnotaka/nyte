@@ -5,7 +5,6 @@ import type {
   CalendarUpdateEventResult,
 } from "../contracts";
 import { EXTENSION_NAMES } from "../contracts";
-import { deterministicHash } from "../hash";
 
 export async function calendarCreateEvent(
   request: CalendarCreateEventRequest
@@ -15,7 +14,7 @@ export async function calendarCreateEvent(
     status: "executed",
     idempotencyKey: request.idempotencyKey,
     output: {
-      providerEventId: `event_${deterministicHash(request.idempotencyKey)}`,
+      providerEventId: `event_${request.idempotencyKey}`,
       startsAt: request.input.startsAt,
       endsAt: request.input.endsAt,
     },

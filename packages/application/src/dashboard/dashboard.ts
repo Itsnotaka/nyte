@@ -41,12 +41,44 @@ export type DraftEntry = {
   providerDraftId: string;
 };
 
+const SOURCES = ["Gmail", "Google Calendar"] as const;
+const GATES = ["decision", "time", "relationship", "impact", "watch"] as const;
+const FEEDBACK_RATINGS = ["positive", "negative"] as const;
+
+type FeedbackRating = (typeof FEEDBACK_RATINGS)[number];
+
 type ActionPresentation = {
   type: WorkItem["type"];
   actionLabel: string;
   secondaryLabel: string;
   cta: WorkItem["cta"];
 };
+
+function isSource(value: string): value is WorkItem["source"] {
+  return value === SOURCES[0] || value === SOURCES[1];
+}
+
+function isGate(value: string): value is WorkItem["gates"][number] {
+  return (
+    value === GATES[0] ||
+    value === GATES[1] ||
+    value === GATES[2] ||
+    value === GATES[3] ||
+    value === GATES[4]
+  );
+}
+
+function toFeedbackRating(value: unknown): FeedbackRating | null {
+  if (value === FEEDBACK_RATINGS[0]) {
+    return value;
+  }
+
+  if (value === FEEDBACK_RATINGS[1]) {
+    return value;
+  }
+
+  return null;
+}
 
 function presentationForAction(
   kind: ToolCallPayload["kind"]
@@ -103,6 +135,10 @@ async function loadApprovalQueue(): Promise<WorkItemWithAction[]> {
     }
     const presentation = presentationForAction(payload.kind);
 
+    if (!isSource(row.source)) {
+      continue;
+    }
+
     const gateRows = await db
       .select({
         gate: gateEvaluations.gate,
@@ -115,10 +151,14 @@ async function loadApprovalQueue(): Promise<WorkItemWithAction[]> {
         )
       );
 
+    const gates = gateRows
+      .map((gate) => gate.gate)
+      .filter((gate): gate is WorkItem["gates"][number] => isGate(gate));
+
     queue.push({
       id: row.id,
       type: presentation.type,
-      source: row.source as WorkItem["source"],
+      source: row.source,
       actor: row.actor,
       summary: row.summary,
       context: row.context,
@@ -126,7 +166,7 @@ async function loadApprovalQueue(): Promise<WorkItemWithAction[]> {
       actionLabel: presentation.actionLabel,
       secondaryLabel: presentation.secondaryLabel,
       cta: presentation.cta,
-      gates: gateRows.map((gate) => gate.gate as WorkItem["gates"][number]),
+      gates,
       priorityScore: row.priorityScore,
       proposedAction: payload,
     });
@@ -172,12 +212,39 @@ async function loadDrafts(): Promise<DraftEntry[]> {
     .filter((entry): entry is DraftEntry => entry !== null);
 }
 
+async function resolveProcessedDetail(
+  payload: ToolCallPayload,
+  actionId: string
+): Promise<string> {
+  if (payload.kind === "billing.queueRefund") {
+    return "refund_queue • queued";
+  }
+
+  if (payload.kind === "gmail.createDraft") {
+    const draftRows = await db
+      .select()
+      .from(gmailDrafts)
+      .where(eq(gmailDrafts.actionId, actionId))
+      .limit(1);
+
+    return `gmail_drafts • ${draftRows.at(0)?.providerDraftId ?? "pending"}`;
+  }
+
+  const eventRows = await db
+    .select()
+    .from(calendarEvents)
+    .where(eq(calendarEvents.actionId, actionId))
+    .limit(1);
+
+  return `google_calendar • ${eventRows.at(0)?.providerEventId ?? "pending"}`;
+}
+
 async function loadProcessed(): Promise<ProcessedEntry[]> {
   const feedbackRows = await db.select().from(feedbackEntries);
   const feedbackByItem = new Map(
     feedbackRows.map((entry) => [
       entry.workItemId,
-      (entry.rating as "positive" | "negative" | null) ?? null,
+      toFeedbackRating(entry.rating),
     ])
   );
 
@@ -229,25 +296,7 @@ async function loadProcessed(): Promise<ProcessedEntry[]> {
       continue;
     }
 
-    let detail = "Action executed.";
-
-    if (payload.kind === "gmail.createDraft") {
-      const draftRows = await db
-        .select()
-        .from(gmailDrafts)
-        .where(eq(gmailDrafts.actionId, action.id))
-        .limit(1);
-      detail = `gmail_drafts • ${draftRows.at(0)?.providerDraftId ?? "pending"}`;
-    } else if (payload.kind === "google-calendar.createEvent") {
-      const eventRows = await db
-        .select()
-        .from(calendarEvents)
-        .where(eq(calendarEvents.actionId, action.id))
-        .limit(1);
-      detail = `google_calendar • ${eventRows.at(0)?.providerEventId ?? "pending"}`;
-    } else if (payload.kind === "billing.queueRefund") {
-      detail = "refund_queue • queued";
-    }
+    const detail = await resolveProcessedDetail(payload, action.id);
 
     processed.push({
       id: `${row.id}:${action.id}`,

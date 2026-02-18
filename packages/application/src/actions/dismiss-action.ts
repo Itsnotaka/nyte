@@ -3,7 +3,7 @@ import { proposedActions, workItems } from "@nyte/db/schema";
 import { eq } from "drizzle-orm";
 
 import { recordAuditLog } from "../audit/audit-log";
-import { recordWorkflowRun } from "../workflow/workflow-log";
+import { recordWorkItemRun } from "../run-log";
 
 export type DismissErrorCode = "not_found" | "invalid_state";
 
@@ -70,7 +70,7 @@ export async function dismissWorkItem(itemId: string, now = new Date()) {
       })
       .where(eq(proposedActions.workItemId, itemId));
 
-    await recordWorkflowRun({
+    await recordWorkItemRun({
       workItemId: itemId,
       phase: "dismiss",
       status: "completed",

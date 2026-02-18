@@ -8,20 +8,20 @@ Task orchestration boundary for Nyte decision queue operations.
 
 - ingest signals and persist queue state
 - approve/dismiss/feedback task entrypoints
-- dispatch approved actions to PI extension runtime
+- dispatch approved actions to extension runtime
 - expose shared route contracts derived from task signatures
 - emit structured orchestration logs with evlog
 - model orchestration failures with typed Effect error channels
 
 ## Public exports
 
-- task functions under `src/tasks/*`
 - contracts from `src/contracts.ts`
-- PI dispatch helper from `src/pi-dispatch.ts`
+- task runners from `src/trigger-runner.ts`
+- Trigger.dev task definitions from `src/trigger-tasks.ts`
 
 ## Dependencies
 
-- workspace: @nyte/application, @nyte/integrations, @nyte/pi-runtime
+- workspace: @nyte/application, @nyte/integrations, @nyte/extension-runtime
 
 ## Used by
 

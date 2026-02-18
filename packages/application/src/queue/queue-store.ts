@@ -13,8 +13,8 @@ import {
 import { eq } from "drizzle-orm";
 
 import { recordAuditLog } from "../audit/audit-log";
+import { recordWorkItemRun } from "../run-log";
 import { DEFAULT_USER_ID, ensureDefaultUser } from "../shared/default-user";
-import { recordWorkflowRun } from "../workflow/workflow-log";
 
 async function upsertWorkItem(
   signal: IntakeSignal,
@@ -84,7 +84,7 @@ async function upsertWorkItem(
       updatedAt: now,
     });
 
-    await recordWorkflowRun({
+    await recordWorkItemRun({
       workItemId: workItem.id,
       phase: "ingest",
       status: "completed",

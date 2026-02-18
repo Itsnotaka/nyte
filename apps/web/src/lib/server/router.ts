@@ -1,9 +1,7 @@
 import "server-only";
-
-import { ApprovalError } from "@nyte/application/actions";
-import { DismissError } from "@nyte/application/actions";
-import { FeedbackError } from "@nyte/application/actions";
-import { isToolCallPayload } from "@nyte/domain/actions";
+import { ApprovalError } from "@nyte/application/actions/approve";
+import { DismissError } from "@nyte/application/actions/dismiss";
+import { FeedbackError } from "@nyte/application/actions/feedback";
 import {
   runApproveActionTask,
   runDismissActionTask,
@@ -54,6 +52,19 @@ function domainErrorToTRPC(
   return new TRPCError({ code, message: error.message });
 }
 
+function resolveAccessToken(value: unknown): string | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const token = (value as { accessToken?: unknown }).accessToken;
+  if (typeof token !== "string") {
+    return null;
+  }
+
+  return token.trim().length > 0 ? token : null;
+}
+
 export const appRouter = router({
   queue: router({
     sync: authedProcedure
@@ -64,19 +75,12 @@ export const appRouter = router({
         })
       )
       .query(async ({ input, ctx }) => {
-        const accessTokenResult = await auth.api.getAccessToken({
-          headers: ctx.request.headers,
-          body: { providerId: GOOGLE_AUTH_PROVIDER },
-        });
-
-        const accessToken =
-          accessTokenResult &&
-          typeof accessTokenResult === "object" &&
-          "accessToken" in accessTokenResult &&
-          typeof accessTokenResult.accessToken === "string" &&
-          accessTokenResult.accessToken.trim()
-            ? accessTokenResult.accessToken
-            : null;
+        const accessToken = resolveAccessToken(
+          await auth.api.getAccessToken({
+            headers: ctx.request.headers,
+            body: { providerId: GOOGLE_AUTH_PROVIDER },
+          })
+        );
 
         if (!accessToken) {
           throw new TRPCError({
@@ -100,10 +104,7 @@ export const appRouter = router({
         z.object({
           itemId: z.string().min(1),
           idempotencyKey: z.string().optional(),
-          payloadOverride: toolCallPayloadSchema.optional().refine(
-            (val) => val === undefined || isToolCallPayload(val),
-            { message: "Invalid payload override." }
-          ),
+          payloadOverride: toolCallPayloadSchema.optional(),
         })
       )
       .mutation(async ({ input, ctx }) => {

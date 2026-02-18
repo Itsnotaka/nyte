@@ -1,12 +1,7 @@
 import type {
-  CalendarCreateEventRequest,
-  CalendarCreateEventResult,
-  CalendarUpdateEventRequest,
-  CalendarUpdateEventResult,
-  GmailReadThreadContextRequest,
-  GmailReadThreadContextResult,
-  GmailSaveDraftRequest,
-  GmailSaveDraftResult,
+  ExtensionName,
+  ExtensionRequestByName,
+  ExtensionResultByName,
 } from "./contracts";
 import { EXTENSION_NAMES } from "./contracts";
 import {
@@ -16,18 +11,9 @@ import {
 import { gmailReadThreadContext, gmailSaveDraft } from "./extensions/gmail";
 
 type ExtensionRegistry = {
-  [EXTENSION_NAMES.gmailReadThreadContext]: (
-    request: GmailReadThreadContextRequest
-  ) => Promise<GmailReadThreadContextResult>;
-  [EXTENSION_NAMES.gmailSaveDraft]: (
-    request: GmailSaveDraftRequest
-  ) => Promise<GmailSaveDraftResult>;
-  [EXTENSION_NAMES.calendarCreateEvent]: (
-    request: CalendarCreateEventRequest
-  ) => Promise<CalendarCreateEventResult>;
-  [EXTENSION_NAMES.calendarUpdateEvent]: (
-    request: CalendarUpdateEventRequest
-  ) => Promise<CalendarUpdateEventResult>;
+  [Name in ExtensionName]: (
+    request: ExtensionRequestByName[Name]
+  ) => Promise<ExtensionResultByName[Name]>;
 };
 
 export const extensionRegistry: ExtensionRegistry = {

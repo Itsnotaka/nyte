@@ -4,31 +4,31 @@ import { db } from "@nyte/db/client";
 import { workflowEvents, workflowRuns } from "@nyte/db/schema";
 import { asc, desc, eq } from "drizzle-orm";
 
-import { parseRecordPayload } from "../shared/payload";
-import { toIsoString } from "../shared/time";
+import { parseRecordPayload } from "./shared/payload";
+import { toIsoString } from "./shared/time";
 
-type WorkflowLogEvent = {
+type WorkItemRunEvent = {
   kind: string;
   payload: Record<string, unknown>;
 };
 
-type RecordRunInput = {
+type RecordWorkItemRunInput = {
   workItemId: string;
   phase: "ingest" | "approve" | "dismiss" | "feedback";
   status: "completed";
-  events: WorkflowLogEvent[];
+  events: WorkItemRunEvent[];
   now?: Date;
   executor?: Pick<typeof db, "insert">;
 };
 
-export async function recordWorkflowRun({
+export async function recordWorkItemRun({
   workItemId,
   phase,
   status,
   events,
   now = new Date(),
   executor = db,
-}: RecordRunInput) {
+}: RecordWorkItemRunInput) {
   const runId = `${workItemId}:${phase}:${now.getTime()}:${randomUUID()}`;
   await executor.insert(workflowRuns).values({
     id: runId,
@@ -54,7 +54,7 @@ export async function recordWorkflowRun({
   return runId;
 }
 
-export type WorkflowTimelineEntry = {
+export type WorkItemRunTimelineEntry = {
   runId: string;
   phase: string;
   status: string;
@@ -66,16 +66,16 @@ export type WorkflowTimelineEntry = {
   }>;
 };
 
-export async function getWorkflowTimeline(
+export async function listWorkItemRunTimeline(
   workItemId: string
-): Promise<WorkflowTimelineEntry[]> {
+): Promise<WorkItemRunTimelineEntry[]> {
   const runs = await db
     .select()
     .from(workflowRuns)
     .where(eq(workflowRuns.workItemId, workItemId))
     .orderBy(desc(workflowRuns.createdAt));
 
-  const timeline: WorkflowTimelineEntry[] = [];
+  const timeline: WorkItemRunTimelineEntry[] = [];
   for (const run of runs) {
     const events = await db
       .select()

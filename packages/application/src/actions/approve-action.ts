@@ -10,9 +10,9 @@ import { executeProposedAction } from "@nyte/domain/execution";
 import { eq } from "drizzle-orm";
 
 import { recordAuditLog } from "../audit/audit-log";
+import { recordWorkItemRun } from "../run-log";
 import { parseToolCallPayload } from "../shared/payload";
 import { toIsoString } from "../shared/time";
-import { recordWorkflowRun } from "../workflow/workflow-log";
 
 export type ApprovalErrorCode =
   | "not_found"
@@ -237,7 +237,7 @@ export async function approveWorkItem(
       })
       .where(eq(workItems.id, itemId));
 
-    await recordWorkflowRun({
+    await recordWorkItemRun({
       workItemId: itemId,
       phase: "approve",
       status: "completed",

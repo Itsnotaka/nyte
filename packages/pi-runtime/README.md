@@ -1,20 +1,19 @@
-# @nyte/pi-runtime
+# @nyte/extension-runtime
 
 ## Purpose
 
-PI extension contracts and registry for provider execution.
+Extension contracts and execution runtime for provider actions.
 
 ## Responsibilities
 
 - define extension request/result contracts
-- define canonical extension-name constants (`PI_EXTENSION_NAMES`)
-- define canonical audit source constants (`PI_AUDIT_SOURCES`)
-- define canonical auth provider constants (`PI_AUTH_PROVIDERS`)
-- define canonical auth scopes constants (`PI_AUTH_SCOPES`)
-- expose runtime guard helper (`isPiExtensionResult`) for downstream contract
+- define canonical extension-name constants (`EXTENSION_NAMES`)
+- define canonical audit source constants (`EXTENSION_AUDIT_SOURCES`)
+- define canonical auth provider constants (`EXTENSION_AUTH_PROVIDERS`)
+- define canonical auth scopes constants (`EXTENSION_AUTH_SCOPES`)
+- expose runtime guard helper (`isExtensionResult`) for downstream contract
   validation
-- expose runtime guard helper (`isPiExtensionName`) for extension-name
-  validation
+- expose runtime guard helper (`isExtensionName`) for extension-name validation
 - expose extension handlers for Gmail and Calendar
 - provide registry and overload-based typed execution function (no unsafe
   request cast)
@@ -22,7 +21,6 @@ PI extension contracts and registry for provider execution.
 ## Public exports
 
 - contracts from `src/contracts.ts`
-- registry from `src/registry.ts`
 - executor from `src/execute-extension.ts`
 
 ## Dependencies
@@ -35,4 +33,4 @@ PI extension contracts and registry for provider execution.
 
 ## Local commands
 
-- `pnpm --filter @nyte/pi-runtime typecheck`
+- `pnpm --filter @nyte/extension-runtime typecheck`

@@ -1,9 +1,12 @@
 "use client";
 
+import {
+  IconChevronLeft,
+  IconChevronRight,
+} from "@central-icons-react/round-filled-radius-2-stroke-1.5";
 import useEmblaCarousel, {
   type UseEmblaCarouselType,
 } from "embla-carousel-react";
-import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import * as React from "react";
 
 import { cn } from "../../lib/utils";
@@ -195,7 +198,7 @@ function CarouselPrevious({
       onClick={scrollPrev}
       {...props}
     >
-      <ChevronLeftIcon />
+      <IconChevronLeft />
       <span className="sr-only">Previous slide</span>
     </Button>
   );
@@ -225,7 +228,7 @@ function CarouselNext({
       onClick={scrollNext}
       {...props}
     >
-      <ChevronRightIcon />
+      <IconChevronRight />
       <span className="sr-only">Next slide</span>
     </Button>
   );

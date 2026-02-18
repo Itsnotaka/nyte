@@ -2,7 +2,7 @@
 
 import { Menu as MenuPrimitive } from "@base-ui/react/menu";
 import { Menubar as MenubarPrimitive } from "@base-ui/react/menubar";
-import { CheckIcon } from "lucide-react";
+import { IconCheckmark1 } from "@central-icons-react/round-filled-radius-2-stroke-1.5";
 import * as React from "react";
 
 import { cn } from "../../lib/utils";
@@ -131,7 +131,7 @@ function MenubarCheckboxItem({
     >
       <span className="left-1.5 size-4 [&_svg:not([class*='size-'])]:size-4 pointer-events-none absolute flex items-center justify-center">
         <MenuPrimitive.CheckboxItemIndicator>
-          <CheckIcon />
+          <IconCheckmark1 />
         </MenuPrimitive.CheckboxItemIndicator>
       </span>
       {children}
@@ -165,7 +165,7 @@ function MenubarRadioItem({
     >
       <span className="left-1.5 size-4 [&_svg:not([class*='size-'])]:size-4 pointer-events-none absolute flex items-center justify-center">
         <MenuPrimitive.RadioItemIndicator>
-          <CheckIcon />
+          <IconCheckmark1 />
         </MenuPrimitive.RadioItemIndicator>
       </span>
       {children}

@@ -35,6 +35,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@central-icons-react/round-filled-radius-2-stroke-1.5':
+        specifier: ^1.1.135
+        version: 1.1.135(react@19.2.4)
       '@nyte/application':
         specifier: workspace:^
         version: link:../../packages/application
@@ -47,6 +50,9 @@ importers:
       '@nyte/integrations':
         specifier: workspace:^
         version: link:../../packages/integrations
+      '@nyte/ui':
+        specifier: workspace:^
+        version: link:../../packages/ui
       '@nyte/workflows':
         specifier: workspace:^
         version: link:../../packages/workflows
@@ -213,6 +219,9 @@ importers:
       '@base-ui/react':
         specifier: ^1.2.0
         version: 1.2.0(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      '@central-icons-react/round-filled-radius-2-stroke-1.5':
+        specifier: ^1.1.135
+        version: 1.1.135(react@19.2.4)
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -387,6 +396,11 @@ packages:
 
   '@bugsnag/cuid@3.2.1':
     resolution: {integrity: sha512-zpvN8xQ5rdRWakMd/BcVkdn2F8HKlDSbM3l7duueK590WmI1T0ObTLc1V/1e55r14WNjPd5AJTYX4yPEAFVi+Q==}
+
+  '@central-icons-react/round-filled-radius-2-stroke-1.5@1.1.135':
+    resolution: {integrity: sha512-Ag7fw3FiKXhzfIsExEatp7W1bn3O/hmq1Uy2i8K/JRDNU0Oje23Hdt4vF/QTQ3QRa67UKrh1PSbtHvnJLeSgnQ==}
+    peerDependencies:
+      react: '>=14.0.0 <= 19'
 
   '@date-fns/tz@1.4.1':
     resolution: {integrity: sha512-P5LUNhtbj6YfI3iJjw5EL9eUAG6OitD0W3fWQcpQjDRc/QIsL0tRNuO1PcDvPccWL1fSTXXdE1ds+l95DV/OFA==}
@@ -3808,6 +3822,10 @@ snapshots:
   '@better-fetch/fetch@1.1.21': {}
 
   '@bugsnag/cuid@3.2.1': {}
+
+  '@central-icons-react/round-filled-radius-2-stroke-1.5@1.1.135(react@19.2.4)':
+    dependencies:
+      react: 19.2.4
 
   '@date-fns/tz@1.4.1': {}
 

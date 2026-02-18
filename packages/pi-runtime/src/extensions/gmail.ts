@@ -5,7 +5,6 @@ import type {
   GmailSaveDraftResult,
 } from "../contracts";
 import { EXTENSION_NAMES } from "../contracts";
-import { deterministicHash } from "../hash";
 
 export async function gmailReadThreadContext(
   request: GmailReadThreadContextRequest
@@ -30,7 +29,7 @@ export async function gmailSaveDraft(
     status: "executed",
     idempotencyKey: request.idempotencyKey,
     output: {
-      providerDraftId: `draft_${deterministicHash(request.idempotencyKey)}`,
+      providerDraftId: `draft_${request.idempotencyKey}`,
       subject: request.input.subject,
     },
     executedAt: new Date().toISOString(),

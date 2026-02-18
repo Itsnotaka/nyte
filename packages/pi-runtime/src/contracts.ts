@@ -34,43 +34,42 @@ export const EXTENSION_AUTH_SCOPES = {
   ],
 } as const;
 
-type ExtensionAuthScope = {
+export type ExtensionAuth = {
   provider: ExtensionAuthProvider;
   userId: string | null;
   scopes: string[];
 };
 
-type ExtensionAuditPayload = {
+export type ExtensionAudit = {
   workItemId: string;
   actionId: string;
-  source:
-    (typeof EXTENSION_AUDIT_SOURCES)[keyof typeof EXTENSION_AUDIT_SOURCES];
+  source: (typeof EXTENSION_AUDIT_SOURCES)[keyof typeof EXTENSION_AUDIT_SOURCES];
 };
 
-type BaseExtensionRequest = {
-  auth: ExtensionAuthScope;
+export type ExtensionExecutionContext = {
+  auth: ExtensionAuth;
   idempotencyKey: string;
-  audit: ExtensionAuditPayload;
+  audit: ExtensionAudit;
 };
 
-export type GmailReadThreadContextRequest = BaseExtensionRequest & {
+export type GmailReadThreadContextRequest = ExtensionExecutionContext & {
   name: typeof EXTENSION_NAMES.gmailReadThreadContext;
   input: {
     threadId: string;
   };
 };
 
-export type GmailSaveDraftRequest = BaseExtensionRequest & {
+export type GmailSaveDraftRequest = ExtensionExecutionContext & {
   name: typeof EXTENSION_NAMES.gmailSaveDraft;
   input: GmailCreateDraftToolCall;
 };
 
-export type CalendarCreateEventRequest = BaseExtensionRequest & {
+export type CalendarCreateEventRequest = ExtensionExecutionContext & {
   name: typeof EXTENSION_NAMES.calendarCreateEvent;
   input: GoogleCalendarCreateEventToolCall;
 };
 
-export type CalendarUpdateEventRequest = BaseExtensionRequest & {
+export type CalendarUpdateEventRequest = ExtensionExecutionContext & {
   name: typeof EXTENSION_NAMES.calendarUpdateEvent;
   input: {
     eventId: string;
@@ -81,11 +80,14 @@ export type CalendarUpdateEventRequest = BaseExtensionRequest & {
   };
 };
 
-export type ExtensionRequest =
-  | GmailReadThreadContextRequest
-  | GmailSaveDraftRequest
-  | CalendarCreateEventRequest
-  | CalendarUpdateEventRequest;
+export type ExtensionRequestByName = {
+  [EXTENSION_NAMES.gmailReadThreadContext]: GmailReadThreadContextRequest;
+  [EXTENSION_NAMES.gmailSaveDraft]: GmailSaveDraftRequest;
+  [EXTENSION_NAMES.calendarCreateEvent]: CalendarCreateEventRequest;
+  [EXTENSION_NAMES.calendarUpdateEvent]: CalendarUpdateEventRequest;
+};
+
+export type ExtensionRequest = ExtensionRequestByName[ExtensionName];
 
 type BaseExtensionResult<TName extends ExtensionName, TOutput> = {
   name: TName;
@@ -128,11 +130,14 @@ export type CalendarUpdateEventResult = BaseExtensionResult<
   }
 >;
 
-export type ExtensionResult =
-  | GmailReadThreadContextResult
-  | GmailSaveDraftResult
-  | CalendarCreateEventResult
-  | CalendarUpdateEventResult;
+export type ExtensionResultByName = {
+  [EXTENSION_NAMES.gmailReadThreadContext]: GmailReadThreadContextResult;
+  [EXTENSION_NAMES.gmailSaveDraft]: GmailSaveDraftResult;
+  [EXTENSION_NAMES.calendarCreateEvent]: CalendarCreateEventResult;
+  [EXTENSION_NAMES.calendarUpdateEvent]: CalendarUpdateEventResult;
+};
+
+export type ExtensionResult = ExtensionResultByName[ExtensionName];
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -148,14 +153,11 @@ function isNonEmptyString(value: unknown): value is string {
 
 export function isExtensionName(value: unknown): value is ExtensionName {
   return (
-    typeof value === "string" &&
-    EXTENSION_NAME_SET.has(value as ExtensionName)
+    typeof value === "string" && EXTENSION_NAME_SET.has(value as ExtensionName)
   );
 }
 
-export function isExtensionResult(
-  value: unknown
-): value is ExtensionResult {
+export function isExtensionResult(value: unknown): value is ExtensionResult {
   const payload = asRecord(value);
   if (!payload) {
     return false;
