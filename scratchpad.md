@@ -1,79 +1,85 @@
 # Scratchpad — Nyte Refactor
 
 ## Goal
-- Flatten `features/home/` → components live in `src/components/`
-- Replace 4 raw API routes with a single tRPC handler
-- Delete all manual fetch boilerplate (sync-client, actions-client, request-validation, workflow-route-error, needs-you-route-config)
-- Rename components to plain names (no "needs-you-*", "nyte-workspace-*" prefixes)
-- Redesign UI with distinctive aesthetic
+- Move web API + data flow to tRPC + TanStack Query
+- Flatten UI composition and delete one-line wrappers/re-exports
+- Rename ambiguous/internal jargon (`needs-you`, `PI`) to explicit terms
+- Keep contracts and runtime boundaries clear across domain/application/workflows
 
-## File Inventory
+## Rename Map
 
-### apps/web/src
+| Old | New |
+|-----|-----|
+| `evaluateNeedsYou` | `evaluateApprovalGates` |
+| `createNeedsYouQueue` | `createApprovalQueue` |
+| `needsYou` (payload field) | `approvalQueue` |
+| `loadNeedsYouQueue` | `loadApprovalQueue` |
+| `DashboardNeedsYou` | `DashboardApprovalQueue` |
+| `lib/needs-you/*` | `lib/queue/*` |
+| `NEEDS_YOU_MESSAGES` | `QUEUE_MESSAGES` |
+| `@nyte/pi-runtime` | `@nyte/extension-runtime` |
+| `PI_*` constants | `EXTENSION_*` constants |
+| `PiExtension*` types | `Extension*` types |
+| `executePiExtension` | `executeExtension` |
+| `piExtensionRegistry` | `extensionRegistry` |
+| `pi-dispatch.ts` | `extension-dispatch.ts` |
+| `dispatchApprovedActionToPi` | `dispatchApprovedActionToExtension` |
+| `piExtension` (approve task result) | `extensionResult` |
 
-| File | Status | Notes |
-|------|--------|-------|
-| `app/page.tsx` | KEEP/EDIT | update imports |
-| `app/layout.tsx` | KEEP | unchanged |
-| `app/loading.tsx` | EDIT | remove HomePageFallback import |
-| `app/error.tsx` | KEEP | |
-| `app/api/auth/[...all]/route.ts` | KEEP | unchanged |
-| `app/api/queue/sync/route.ts` | DELETE | replaced by tRPC |
-| `app/api/actions/approve/route.ts` | DELETE | replaced by tRPC |
-| `app/api/actions/dismiss/route.ts` | DELETE | replaced by tRPC |
-| `app/api/actions/feedback/route.ts` | DELETE | replaced by tRPC |
-| `app/api/trpc/[trpc]/route.ts` | NEW | single tRPC handler |
-| `components/providers.tsx` | EDIT | add TRPCProvider |
-| `components/landing.tsx` | NEW | from home-landing.tsx + redesign |
-| `components/workspace.tsx` | NEW | merge nyte-workspace-client + view + redesign |
-| `components/composer.tsx` | NEW | from workflow-composer.tsx + redesign |
-| `components/action-card.tsx` | NEW | merge needs-you-card + needs-you-action-content + redesign |
-| `components/action-list.tsx` | NEW | from needs-you-list.tsx |
-| `components/needs-you-action-content.tsx` | DELETE | merged into action-card |
-| `components/needs-you-card.tsx` | DELETE | renamed action-card |
-| `components/needs-you-list.tsx` | DELETE | renamed action-list |
-| `components/workflow-composer.tsx` | DELETE | renamed composer |
-| `components/nyte-workspace-client.tsx` | DELETE | one-line re-export, useless |
-| `features/home/home-landing.tsx` | DELETE | moved to components/landing |
-| `features/home/home-page-server.tsx` | DELETE | moved to page.tsx |
-| `features/home/home-page-fallback.tsx` | DELETED | already gone |
-| `features/home/nyte-workspace-client.tsx` | DELETE | renamed workspace |
-| `features/home/nyte-workspace-view.tsx` | DELETE | merged into workspace |
-| `features/home/use-nyte-workspace.ts` | DELETE | moved to hooks/use-workspace |
-| `features/home/index.ts` | DELETE | barrel was only used here |
-| `hooks/use-workspace.ts` | NEW | rewritten with tRPC |
-| `lib/auth.ts` | KEEP | |
-| `lib/auth-client.ts` | KEEP | |
-| `lib/auth-provider.ts` | KEEP | |
-| `lib/trpc.ts` | NEW | createTRPCContext → useTRPC, TRPCProvider |
-| `lib/needs-you/actions-client.ts` | DELETE | replaced by tRPC mutations |
-| `lib/needs-you/sync-client.ts` | DELETE | replaced by tRPC query |
-| `lib/needs-you/sync-query.ts` | DELETE | URL params no longer needed |
-| `lib/needs-you/routes.ts` | DELETE | tRPC router is the route |
-| `lib/needs-you/messages.ts` | KEEP | |
-| `lib/needs-you/presenters.ts` | KEEP | |
-| `lib/shared/value-guards.ts` | KEEP | used by session-user-id |
-| `lib/shared/session-user-id.ts` | KEEP | |
-| `lib/shared/watch-keywords.ts` | KEEP | |
-| `lib/server/env.ts` | KEEP | |
-| `lib/server/needs-you-route-config.ts` | DELETE | replaced by tRPC config per-procedure |
-| `lib/server/workflow-route-error.ts` | DELETE | replaced by TRPCError |
-| `lib/server/request-validation.ts` | DELETE | replaced by Zod in router |
-| `lib/server/request-log.ts` | KEEP | used in tRPC middleware |
-| `lib/server/request-session.ts` | KEEP | used in tRPC context |
-| `lib/server/request-events.ts` | KEEP | event name constants |
-| `lib/server/trpc.ts` | NEW | initTRPC, procedures, middleware |
-| `lib/server/context.ts` | NEW | createContext |
-| `lib/server/router.ts` | NEW | AppRouter |
+## Files Changed (current refactor wave)
 
-### packages (read-only, no changes)
+### apps/web
 
-| Package | Notes |
-|---------|-------|
-| `packages/domain` | types + guards, unchanged |
-| `packages/workflows` | task runners, unchanged |
-| `packages/application` | business logic, unchanged |
-| `packages/db` | drizzle client + schema, unchanged |
-| `packages/integrations` | gmail/calendar polling, unchanged |
-| `packages/pi-runtime` | pi extension execution, unchanged |
-| `packages/ui` | shadcn components, unchanged |
+| File | Change |
+|------|--------|
+| `apps/web/src/components/action-card.tsx` | import path renamed to `~/lib/queue/presenters` |
+| `apps/web/src/components/workspace.tsx` | `NEEDS_YOU_MESSAGES` → `QUEUE_MESSAGES`, new queue path |
+| `apps/web/src/hooks/use-workspace.ts` | `needsYou` → `approvalQueue`; message imports/constants renamed |
+| `apps/web/src/lib/needs-you/messages.ts` | deleted |
+| `apps/web/src/lib/needs-you/presenters.ts` | deleted |
+| `apps/web/src/lib/queue/messages.ts` | new |
+| `apps/web/src/lib/queue/presenters.ts` | new |
+
+### packages/domain
+
+| File | Change |
+|------|--------|
+| `packages/domain/src/triage.ts` | approval-gate and approval-queue naming refactor |
+
+### packages/application
+
+| File | Change |
+|------|--------|
+| `packages/application/src/queue/queue-store.ts` | `evaluateApprovalGates` usage |
+| `packages/application/src/dashboard/dashboard.ts` | `needsYou`/`loadNeedsYouQueue` renamed to `approvalQueue`/`loadApprovalQueue` |
+
+### packages/workflows
+
+| File | Change |
+|------|--------|
+| `packages/workflows/src/tasks/ingest-signals-task.ts` | `needsYou` result field renamed to `approvalQueue` |
+| `packages/workflows/src/contracts.ts` | queue response key updated; extension result type guard renamed |
+| `packages/workflows/src/tasks/approve-action-task.ts` | extension dispatch function + result field renamed |
+| `packages/workflows/src/trigger-runner.ts` | explicit return types to avoid inferred private type leakage |
+| `packages/workflows/src/pi-dispatch.ts` | deleted (renamed) |
+| `packages/workflows/src/extension-dispatch.ts` | new dispatch module name + extension runtime names |
+| `packages/workflows/src/index.ts` | public API surface tightened |
+| `packages/workflows/package.json` | dependency `@nyte/extension-runtime` |
+
+### packages/pi-runtime (package renamed, path kept)
+
+| File | Change |
+|------|--------|
+| `packages/pi-runtime/package.json` | package name changed to `@nyte/extension-runtime` |
+| `packages/pi-runtime/src/contracts.ts` | `PI_*` and `Pi*` symbols renamed to explicit extension terminology |
+| `packages/pi-runtime/src/execute-extension.ts` | `executeExtension` + new symbol names |
+| `packages/pi-runtime/src/registry.ts` | `extensionRegistry` naming |
+| `packages/pi-runtime/src/extensions/gmail.ts` | `EXTENSION_NAMES` usage |
+| `packages/pi-runtime/src/extensions/calendar.ts` | `EXTENSION_NAMES` usage |
+| `packages/pi-runtime/src/index.ts` | dropped `registry` from public exports |
+
+### Workspace metadata
+
+| File | Change |
+|------|--------|
+| `pnpm-lock.yaml` | workspace dependency graph updated after package rename |

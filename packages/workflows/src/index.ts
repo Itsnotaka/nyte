@@ -1,11 +1,13 @@
 export * from "./contracts";
-export * from "./pi-dispatch";
-export * from "./task-ids";
-export * from "./trigger-errors";
-export * from "./trigger-runner";
-export * from "./trigger-tasks";
-export * from "./workflow-log";
-export * from "./tasks/approve-action-task";
-export * from "./tasks/dismiss-action-task";
-export * from "./tasks/feedback-task";
-export * from "./tasks/ingest-signals-task";
+export {
+  runApproveActionTask,
+  runDismissActionTask,
+  runFeedbackTask,
+  runIngestSignalsTask,
+} from "./trigger-runner";
+export {
+  triggerApproveActionTask,
+  triggerDismissActionTask,
+  triggerFeedbackTask,
+  triggerIngestSignalsTask,
+} from "./trigger-tasks";

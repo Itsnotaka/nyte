@@ -286,12 +286,12 @@ importers:
       '@nyte/domain':
         specifier: workspace:*
         version: link:../domain
+      '@nyte/extension-runtime':
+        specifier: workspace:*
+        version: link:../pi-runtime
       '@nyte/integrations':
         specifier: workspace:*
         version: link:../integrations
-      '@nyte/pi-runtime':
-        specifier: workspace:*
-        version: link:../pi-runtime
       '@trigger.dev/sdk':
         specifier: ^4.3.3
         version: 4.3.3(typescript@5.9.3)(zod@4.3.6)

@@ -92,32 +92,3 @@ export function actionContentViewModel(
     preview: truncate(item.proposedAction.body),
   };
 }
-
-export function commandPrefix(command: string) {
-  const trimmed = command.trim();
-  if (!trimmed) {
-    return {
-      app: "Gmail",
-      body: "",
-    };
-  }
-
-  if (/^google\s+calendar\b/i.test(trimmed)) {
-    return {
-      app: "Google Calendar",
-      body: trimmed.replace(/^google\s+calendar\s*/i, ""),
-    };
-  }
-
-  if (/^gmail\b/i.test(trimmed)) {
-    return {
-      app: "Gmail",
-      body: trimmed.replace(/^gmail\s*/i, ""),
-    };
-  }
-
-  return {
-    app: "Gmail",
-    body: trimmed,
-  };
-}

@@ -4,14 +4,14 @@ import type {
   GmailSaveDraftRequest,
   GmailSaveDraftResult,
 } from "../contracts";
-import { PI_EXTENSION_NAMES } from "../contracts";
+import { EXTENSION_NAMES } from "../contracts";
 import { deterministicHash } from "../hash";
 
 export async function gmailReadThreadContext(
   request: GmailReadThreadContextRequest
 ): Promise<GmailReadThreadContextResult> {
   return {
-    name: PI_EXTENSION_NAMES.gmailReadThreadContext,
+    name: EXTENSION_NAMES.gmailReadThreadContext,
     status: "executed",
     idempotencyKey: request.idempotencyKey,
     output: {
@@ -26,7 +26,7 @@ export async function gmailSaveDraft(
   request: GmailSaveDraftRequest
 ): Promise<GmailSaveDraftResult> {
   return {
-    name: PI_EXTENSION_NAMES.gmailSaveDraft,
+    name: EXTENSION_NAMES.gmailSaveDraft,
     status: "executed",
     idempotencyKey: request.idempotencyKey,
     output: {

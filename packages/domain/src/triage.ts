@@ -87,7 +87,7 @@ function evaluateTimeGate(
   };
 }
 
-export function evaluateNeedsYou(
+export function evaluateApprovalGates(
   signal: IntakeSignal,
   now = new Date()
 ): GateEvaluation[] {
@@ -174,7 +174,7 @@ export function toWorkItem(
   signal: IntakeSignal,
   now = new Date()
 ): WorkItem | null {
-  const evaluations = evaluateNeedsYou(signal, now);
+  const evaluations = evaluateApprovalGates(signal, now);
   const matched = evaluations.filter((evaluation) => evaluation.matched);
   if (matched.length === 0) {
     return null;
@@ -203,7 +203,7 @@ export function toWorkItem(
   };
 }
 
-export function createNeedsYouQueue(
+export function createApprovalQueue(
   signals: IntakeSignal[],
   now = new Date()
 ): WorkItem[] {

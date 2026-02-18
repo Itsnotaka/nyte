@@ -4,9 +4,9 @@ import { pollGoogleCalendarIngestion } from "@nyte/integrations/calendar/polling
 import { pollGmailIngestion } from "@nyte/integrations/gmail/polling";
 
 type GmailPollingInput = Parameters<typeof pollGmailIngestion>[0];
-type DashboardNeedsYou = Awaited<
+type DashboardApprovalQueue = Awaited<
   ReturnType<typeof getDashboardData>
->["needsYou"];
+>["approvalQueue"];
 
 export type IngestSignalsTaskInput = {
   accessToken: GmailPollingInput["accessToken"];
@@ -18,7 +18,7 @@ export type IngestSignalsTaskInput = {
 export type IngestSignalsTaskResult = {
   cursor: string;
   queuedCount: number;
-  needsYou: DashboardNeedsYou;
+  approvalQueue: DashboardApprovalQueue;
 };
 
 export async function ingestSignalsTask({
@@ -49,6 +49,6 @@ export async function ingestSignalsTask({
   return {
     cursor: now.toISOString(),
     queuedCount: signals.length,
-    needsYou: dashboard.needsYou,
+    approvalQueue: dashboard.approvalQueue,
   };
 }

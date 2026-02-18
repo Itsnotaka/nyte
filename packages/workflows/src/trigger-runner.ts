@@ -1,6 +1,12 @@
 import { tasks } from "@trigger.dev/sdk/v3";
 import { Effect } from "effect";
 
+import type {
+  ApproveActionResponse,
+  DismissActionResponse,
+  FeedbackActionResponse,
+  QueueSyncResponse,
+} from "./contracts";
 import { WORKFLOW_TASK_IDS, type WorkflowTaskId } from "./task-ids";
 import {
   approveActionTask,
@@ -202,7 +208,7 @@ type TriggerableFeedbackInput = Omit<FeedbackTaskInput, "now">;
 
 export async function runIngestSignalsTask(
   input: TriggerableIngestSignalsInput
-) {
+): Promise<QueueSyncResponse> {
   return runTask({
     taskId: WORKFLOW_TASK_IDS.ingestSignals,
     localRun: () => ingestSignalsTask(input),
@@ -220,7 +226,7 @@ export async function runIngestSignalsTask(
 
 export async function runApproveActionTask(
   input: TriggerableApproveActionInput
-) {
+): Promise<ApproveActionResponse> {
   return runTask({
     taskId: WORKFLOW_TASK_IDS.approveAction,
     localRun: () => approveActionTask(input),
@@ -237,7 +243,7 @@ export async function runApproveActionTask(
 
 export async function runDismissActionTask(
   input: TriggerableDismissActionInput
-) {
+): Promise<DismissActionResponse> {
   return runTask({
     taskId: WORKFLOW_TASK_IDS.dismissAction,
     localRun: () => dismissActionTask(input),
@@ -252,7 +258,9 @@ export async function runDismissActionTask(
   });
 }
 
-export async function runFeedbackTask(input: TriggerableFeedbackInput) {
+export async function runFeedbackTask(
+  input: TriggerableFeedbackInput
+): Promise<FeedbackActionResponse> {
   return runTask({
     taskId: WORKFLOW_TASK_IDS.feedback,
     localRun: () => feedbackTask(input),

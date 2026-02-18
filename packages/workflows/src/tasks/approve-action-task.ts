@@ -1,6 +1,6 @@
 import { approveWorkItem } from "@nyte/application/actions";
 
-import { dispatchApprovedActionToPi } from "../pi-dispatch";
+import { dispatchApprovedActionToExtension } from "../extension-dispatch";
 
 type ApproveWorkItemParameters = Parameters<typeof approveWorkItem>;
 
@@ -25,13 +25,13 @@ export async function approveActionTask({
     idempotencyKey,
     payloadOverride
   );
-  const piExtension = await dispatchApprovedActionToPi({
+  const extensionResult = await dispatchApprovedActionToExtension({
     approvedItem,
     userId: actorUserId,
   });
 
   return {
     ...approvedItem,
-    piExtension,
+    extensionResult,
   };
 }

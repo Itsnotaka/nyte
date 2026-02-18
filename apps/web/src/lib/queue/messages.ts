@@ -1,4 +1,4 @@
-export const NEEDS_YOU_MESSAGES = {
+export const QUEUE_MESSAGES = {
   actionAuthRequired: "Authentication required.",
   queueAuthRequired: "Connect Google to load Gmail and Calendar signals.",
   queueTokenUnavailable:
@@ -15,11 +15,9 @@ export const NEEDS_YOU_MESSAGES = {
   actionApprovedNotice: "Action approved.",
   actionDismissedNotice: "Action dismissed.",
   actionUpdateUnavailable: "Unable to update action status.",
-  noActionCards: "No action cards right now.",
+  noActionCards: "No items awaiting approval right now.",
 } as const;
 
-export function formatSyncFilteredNotice(
-  watchKeywords: readonly string[]
-): string {
+export function formatSyncFilteredNotice(watchKeywords: readonly string[]): string {
   return `Sync filtered by ${watchKeywords.join(", ")}.`;
 }

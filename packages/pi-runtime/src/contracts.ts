@@ -3,74 +3,75 @@ import type {
   GoogleCalendarCreateEventToolCall,
 } from "@nyte/domain/actions";
 
-export const PI_EXTENSION_NAMES = {
+export const EXTENSION_NAMES = {
   gmailReadThreadContext: "gmail.readThreadContext",
   gmailSaveDraft: "gmail.saveDraft",
   calendarCreateEvent: "calendar.createEvent",
   calendarUpdateEvent: "calendar.updateEvent",
 } as const;
 
-export type PiExtensionName =
-  (typeof PI_EXTENSION_NAMES)[keyof typeof PI_EXTENSION_NAMES];
-const PI_EXTENSION_NAME_SET = new Set<PiExtensionName>(
-  Object.values(PI_EXTENSION_NAMES)
+export type ExtensionName =
+  (typeof EXTENSION_NAMES)[keyof typeof EXTENSION_NAMES];
+const EXTENSION_NAME_SET = new Set<ExtensionName>(
+  Object.values(EXTENSION_NAMES)
 );
 
-export const PI_AUDIT_SOURCES = {
+export const EXTENSION_AUDIT_SOURCES = {
   decisionQueue: "decision-queue",
 } as const;
 
-export const PI_AUTH_PROVIDERS = {
+export const EXTENSION_AUTH_PROVIDERS = {
   google: "google",
 } as const;
 
-export type PiAuthProvider =
-  (typeof PI_AUTH_PROVIDERS)[keyof typeof PI_AUTH_PROVIDERS];
+export type ExtensionAuthProvider =
+  (typeof EXTENSION_AUTH_PROVIDERS)[keyof typeof EXTENSION_AUTH_PROVIDERS];
 
-export const PI_AUTH_SCOPES = {
+export const EXTENSION_AUTH_SCOPES = {
   googleWorkspace: [
     "https://www.googleapis.com/auth/gmail.compose",
     "https://www.googleapis.com/auth/calendar.events",
   ],
 } as const;
 
-type PiAuthScope = {
-  provider: PiAuthProvider;
+type ExtensionAuthScope = {
+  provider: ExtensionAuthProvider;
   userId: string | null;
   scopes: string[];
 };
 
-type PiAuditPayload = {
+type ExtensionAuditPayload = {
   workItemId: string;
   actionId: string;
-  source: (typeof PI_AUDIT_SOURCES)[keyof typeof PI_AUDIT_SOURCES];
+  source:
+    (typeof EXTENSION_AUDIT_SOURCES)[keyof typeof EXTENSION_AUDIT_SOURCES];
 };
 
 type BaseExtensionRequest = {
-  auth: PiAuthScope;
+  auth: ExtensionAuthScope;
   idempotencyKey: string;
-  audit: PiAuditPayload;
+  audit: ExtensionAuditPayload;
 };
 
 export type GmailReadThreadContextRequest = BaseExtensionRequest & {
-  name: typeof PI_EXTENSION_NAMES.gmailReadThreadContext;
+  name: typeof EXTENSION_NAMES.gmailReadThreadContext;
   input: {
     threadId: string;
   };
 };
 
 export type GmailSaveDraftRequest = BaseExtensionRequest & {
-  name: typeof PI_EXTENSION_NAMES.gmailSaveDraft;
+  name: typeof EXTENSION_NAMES.gmailSaveDraft;
   input: GmailCreateDraftToolCall;
 };
 
 export type CalendarCreateEventRequest = BaseExtensionRequest & {
-  name: typeof PI_EXTENSION_NAMES.calendarCreateEvent;
+  name: typeof EXTENSION_NAMES.calendarCreateEvent;
   input: GoogleCalendarCreateEventToolCall;
 };
 
 export type CalendarUpdateEventRequest = BaseExtensionRequest & {
-  name: typeof PI_EXTENSION_NAMES.calendarUpdateEvent;
+  name: typeof EXTENSION_NAMES.calendarUpdateEvent;
   input: {
     eventId: string;
     title?: string;
@@ -80,13 +81,13 @@ export type CalendarUpdateEventRequest = BaseExtensionRequest & {
   };
 };
 
-export type PiExtensionRequest =
+export type ExtensionRequest =
   | GmailReadThreadContextRequest
   | GmailSaveDraftRequest
   | CalendarCreateEventRequest
   | CalendarUpdateEventRequest;
 
-type BaseExtensionResult<TName extends PiExtensionName, TOutput> = {
+type BaseExtensionResult<TName extends ExtensionName, TOutput> = {
   name: TName;
   status: "executed";
   idempotencyKey: string;
@@ -95,7 +96,7 @@ type BaseExtensionResult<TName extends PiExtensionName, TOutput> = {
 };
 
 export type GmailReadThreadContextResult = BaseExtensionResult<
-  typeof PI_EXTENSION_NAMES.gmailReadThreadContext,
+  typeof EXTENSION_NAMES.gmailReadThreadContext,
   {
     threadId: string;
     contextPreview: string;
@@ -103,7 +104,7 @@ export type GmailReadThreadContextResult = BaseExtensionResult<
 >;
 
 export type GmailSaveDraftResult = BaseExtensionResult<
-  typeof PI_EXTENSION_NAMES.gmailSaveDraft,
+  typeof EXTENSION_NAMES.gmailSaveDraft,
   {
     providerDraftId: string;
     subject: string;
@@ -111,7 +112,7 @@ export type GmailSaveDraftResult = BaseExtensionResult<
 >;
 
 export type CalendarCreateEventResult = BaseExtensionResult<
-  typeof PI_EXTENSION_NAMES.calendarCreateEvent,
+  typeof EXTENSION_NAMES.calendarCreateEvent,
   {
     providerEventId: string;
     startsAt: string;
@@ -120,14 +121,14 @@ export type CalendarCreateEventResult = BaseExtensionResult<
 >;
 
 export type CalendarUpdateEventResult = BaseExtensionResult<
-  typeof PI_EXTENSION_NAMES.calendarUpdateEvent,
+  typeof EXTENSION_NAMES.calendarUpdateEvent,
   {
     providerEventId: string;
     updated: true;
   }
 >;
 
-export type PiExtensionResult =
+export type ExtensionResult =
   | GmailReadThreadContextResult
   | GmailSaveDraftResult
   | CalendarCreateEventResult
@@ -145,23 +146,23 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
 }
 
-export function isPiExtensionName(value: unknown): value is PiExtensionName {
+export function isExtensionName(value: unknown): value is ExtensionName {
   return (
     typeof value === "string" &&
-    PI_EXTENSION_NAME_SET.has(value as PiExtensionName)
+    EXTENSION_NAME_SET.has(value as ExtensionName)
   );
 }
 
-export function isPiExtensionResult(
+export function isExtensionResult(
   value: unknown
-): value is PiExtensionResult {
+): value is ExtensionResult {
   const payload = asRecord(value);
   if (!payload) {
     return false;
   }
 
   return (
-    isPiExtensionName(payload.name) &&
+    isExtensionName(payload.name) &&
     payload.status === "executed" &&
     isNonEmptyString(payload.idempotencyKey) &&
     isNonEmptyString(payload.executedAt) &&

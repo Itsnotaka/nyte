@@ -1,5 +1,5 @@
 import {
-  PI_EXTENSION_NAMES,
+  EXTENSION_NAMES,
   type CalendarCreateEventRequest,
   type CalendarCreateEventResult,
   type CalendarUpdateEventRequest,
@@ -8,39 +8,39 @@ import {
   type GmailReadThreadContextResult,
   type GmailSaveDraftRequest,
   type GmailSaveDraftResult,
-  type PiExtensionRequest,
-  type PiExtensionResult,
+  type ExtensionRequest,
+  type ExtensionResult,
 } from "./contracts";
-import { piExtensionRegistry } from "./registry";
+import { extensionRegistry } from "./registry";
 
-export async function executePiExtension(
+export async function executeExtension(
   request: GmailReadThreadContextRequest
 ): Promise<GmailReadThreadContextResult>;
-export async function executePiExtension(
+export async function executeExtension(
   request: GmailSaveDraftRequest
 ): Promise<GmailSaveDraftResult>;
-export async function executePiExtension(
+export async function executeExtension(
   request: CalendarCreateEventRequest
 ): Promise<CalendarCreateEventResult>;
-export async function executePiExtension(
+export async function executeExtension(
   request: CalendarUpdateEventRequest
 ): Promise<CalendarUpdateEventResult>;
-export async function executePiExtension(
-  request: PiExtensionRequest
-): Promise<PiExtensionResult> {
+export async function executeExtension(
+  request: ExtensionRequest
+): Promise<ExtensionResult> {
   switch (request.name) {
-    case PI_EXTENSION_NAMES.gmailReadThreadContext:
-      return piExtensionRegistry[PI_EXTENSION_NAMES.gmailReadThreadContext](
+    case EXTENSION_NAMES.gmailReadThreadContext:
+      return extensionRegistry[EXTENSION_NAMES.gmailReadThreadContext](
         request
       );
-    case PI_EXTENSION_NAMES.gmailSaveDraft:
-      return piExtensionRegistry[PI_EXTENSION_NAMES.gmailSaveDraft](request);
-    case PI_EXTENSION_NAMES.calendarCreateEvent:
-      return piExtensionRegistry[PI_EXTENSION_NAMES.calendarCreateEvent](
+    case EXTENSION_NAMES.gmailSaveDraft:
+      return extensionRegistry[EXTENSION_NAMES.gmailSaveDraft](request);
+    case EXTENSION_NAMES.calendarCreateEvent:
+      return extensionRegistry[EXTENSION_NAMES.calendarCreateEvent](
         request
       );
-    case PI_EXTENSION_NAMES.calendarUpdateEvent:
-      return piExtensionRegistry[PI_EXTENSION_NAMES.calendarUpdateEvent](
+    case EXTENSION_NAMES.calendarUpdateEvent:
+      return extensionRegistry[EXTENSION_NAMES.calendarUpdateEvent](
         request
       );
   }

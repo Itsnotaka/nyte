@@ -1,6 +1,6 @@
 import { type ExecutionResult } from "@nyte/domain";
 import { isToolCallPayload, type ToolCallPayload } from "@nyte/domain/actions";
-import { isPiExtensionResult } from "@nyte/pi-runtime";
+import { isExtensionResult } from "@nyte/extension-runtime";
 
 import type { approveActionTask } from "./tasks/approve-action-task";
 import type { dismissActionTask } from "./tasks/dismiss-action-task";
@@ -19,7 +19,7 @@ export type QueueSyncRequest = Omit<
 >;
 export type QueueSyncResponse = Pick<
   TaskOutput<typeof ingestSignalsTask>,
-  "cursor" | "needsYou"
+  "cursor" | "approvalQueue"
 >;
 
 export type ApproveActionRequest = Omit<
@@ -115,7 +115,7 @@ export function isQueueSyncResponse(
   }
 
   return (
-    Array.isArray(payload.needsYou) &&
+    Array.isArray(payload.approvalQueue) &&
     typeof payload.cursor === "string" &&
     payload.cursor.trim().length > 0
   );
@@ -144,7 +144,8 @@ export function isApproveActionResponse(
       payload.execution.destination
     ) &&
     typeof payload.idempotent === "boolean" &&
-    (payload.piExtension === null || isPiExtensionResult(payload.piExtension))
+    (payload.extensionResult === null ||
+      isExtensionResult(payload.extensionResult))
   );
 }
 

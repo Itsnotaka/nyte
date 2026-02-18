@@ -7,7 +7,7 @@ import * as React from "react";
 
 import { authClient } from "~/lib/auth-client";
 import { GOOGLE_AUTH_PROVIDER } from "~/lib/auth-provider";
-import { NEEDS_YOU_MESSAGES, formatSyncFilteredNotice } from "~/lib/needs-you/messages";
+import { QUEUE_MESSAGES, formatSyncFilteredNotice } from "~/lib/queue/messages";
 import { resolveSessionUserId } from "~/lib/shared/session-user-id";
 import { parseWatchKeywordCommand } from "~/lib/shared/watch-keywords";
 import { useTRPC, useTRPCClient } from "~/lib/trpc";
@@ -64,14 +64,14 @@ export function useWorkspace(): UseWorkspaceResult {
     },
   });
 
-  const items = connected ? (syncData?.needsYou ?? []) : [];
+  const items = connected ? (syncData?.approvalQueue ?? []) : [];
 
   const error = React.useMemo(() => {
     if (mutationError) return mutationError;
     if (!syncQueryError) return null;
     return syncQueryError instanceof Error && syncQueryError.message.trim()
       ? syncQueryError.message
-      : NEEDS_YOU_MESSAGES.syncUnavailable;
+      : QUEUE_MESSAGES.syncUnavailable;
   }, [mutationError, syncQueryError]);
 
   const lastSyncedAt = syncData ? new Date(dataUpdatedAt).toISOString() : null;
@@ -128,11 +128,15 @@ export function useWorkspace(): UseWorkspaceResult {
         await dismissMutation.mutateAsync({ itemId: item.id });
       }
       await refetchSync();
-      setNotice(status === "approved" ? NEEDS_YOU_MESSAGES.actionApprovedNotice : NEEDS_YOU_MESSAGES.actionDismissedNotice);
+      setNotice(
+        status === "approved"
+          ? QUEUE_MESSAGES.actionApprovedNotice
+          : QUEUE_MESSAGES.actionDismissedNotice
+      );
     } catch (err) {
       const message = err instanceof Error && err.message.trim()
         ? err.message
-        : NEEDS_YOU_MESSAGES.actionUpdateUnavailable;
+        : QUEUE_MESSAGES.actionUpdateUnavailable;
       setMutationError(message);
     }
   }, [approveMutation, dismissMutation, refetchSync]);

@@ -26,7 +26,7 @@ export type ProcessedEntry = {
 };
 
 export type DashboardData = {
-  needsYou: WorkItemWithAction[];
+  approvalQueue: WorkItemWithAction[];
   drafts: DraftEntry[];
   processed: ProcessedEntry[];
 };
@@ -77,7 +77,7 @@ function presentationForAction(
   };
 }
 
-async function loadNeedsYouQueue(): Promise<WorkItemWithAction[]> {
+async function loadApprovalQueue(): Promise<WorkItemWithAction[]> {
   const pendingRows = await db
     .select()
     .from(workItems)
@@ -207,7 +207,7 @@ async function loadProcessed(): Promise<ProcessedEntry[]> {
         actor: row.actor,
         action: "Dismissed",
         status: "dismissed",
-        detail: "Dismissed from Needs You queue.",
+        detail: "Dismissed from approval queue.",
         at: toIsoString(row.updatedAt),
         feedback: feedbackByItem.get(row.id) ?? null,
       });
@@ -265,14 +265,14 @@ async function loadProcessed(): Promise<ProcessedEntry[]> {
 }
 
 export async function getDashboardData(): Promise<DashboardData> {
-  const [needsYou, drafts, processed] = await Promise.all([
-    loadNeedsYouQueue(),
+  const [approvalQueue, drafts, processed] = await Promise.all([
+    loadApprovalQueue(),
     loadDrafts(),
     loadProcessed(),
   ]);
 
   return {
-    needsYou,
+    approvalQueue,
     drafts,
     processed,
   };

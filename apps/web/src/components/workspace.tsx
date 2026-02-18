@@ -2,7 +2,7 @@
 
 import { ActionList } from "~/components/action-list";
 import { Composer } from "~/components/composer";
-import { NEEDS_YOU_MESSAGES } from "~/lib/needs-you/messages";
+import { QUEUE_MESSAGES } from "~/lib/queue/messages";
 import { useWorkspace } from "~/hooks/use-workspace";
 
 export function Workspace() {
@@ -75,13 +75,13 @@ export function Workspace() {
 
         {!connected ? (
           <div className="mt-6 border border-[#1a1a1a] px-4 py-8 text-center font-mono text-xs text-[#333]">
-            {NEEDS_YOU_MESSAGES.queueAuthRequired}
+            {QUEUE_MESSAGES.queueAuthRequired}
           </div>
         ) : null}
 
         {connected && items.length === 0 && !isSyncing ? (
           <div className="mt-6 border border-[#1a1a1a] px-4 py-8 text-center font-mono text-xs text-[#333]">
-            {NEEDS_YOU_MESSAGES.noActionCards}
+            {QUEUE_MESSAGES.noActionCards}
           </div>
         ) : null}
 

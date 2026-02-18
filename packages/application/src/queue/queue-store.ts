@@ -5,7 +5,7 @@ import {
   createToolCallPayload,
 } from "@nyte/domain/actions";
 import {
-  evaluateNeedsYou,
+  evaluateApprovalGates,
   toWorkItem,
   type IntakeSignal,
   type WorkItem,
@@ -55,7 +55,7 @@ async function upsertWorkItem(
         },
       });
 
-    const evaluations = evaluateNeedsYou(signal, now);
+    const evaluations = evaluateApprovalGates(signal, now);
     await tx
       .delete(gateEvaluations)
       .where(eq(gateEvaluations.workItemId, workItem.id));

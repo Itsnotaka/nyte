@@ -14,7 +14,7 @@
     "@nyte/application": "workspace:*",
     "@nyte/domain": "workspace:*",
     "@nyte/integrations": "workspace:*",
-    "@nyte/pi-runtime": "workspace:*",
+    "@nyte/extension-runtime": "workspace:*",
     "@trigger.dev/sdk": "^4.3.3",
     "effect": "^3.19.18",
     "evlog": "^1.9.0"

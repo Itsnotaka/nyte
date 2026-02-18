@@ -1,5 +1,5 @@
 {
-  "name": "@nyte/pi-runtime",
+  "name": "@nyte/extension-runtime",
   "version": "0.0.0",
   "private": true,
   "type": "module",

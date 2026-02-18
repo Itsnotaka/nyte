@@ -4,7 +4,11 @@ import type { WorkItemWithAction } from "@nyte/domain/actions";
 import { useForm } from "@tanstack/react-form";
 import { CalendarDaysIcon, MailIcon, WalletCardsIcon, XIcon } from "lucide-react";
 
-import { actionContentViewModel, primaryActionLabel, secondaryActionLabel } from "~/lib/needs-you/presenters";
+import {
+  actionContentViewModel,
+  primaryActionLabel,
+  secondaryActionLabel,
+} from "~/lib/queue/presenters";
 
 type ActionCardProps = {
   item: WorkItemWithAction;

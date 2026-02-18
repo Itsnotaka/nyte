@@ -4,14 +4,14 @@ import type {
   CalendarUpdateEventRequest,
   CalendarUpdateEventResult,
 } from "../contracts";
-import { PI_EXTENSION_NAMES } from "../contracts";
+import { EXTENSION_NAMES } from "../contracts";
 import { deterministicHash } from "../hash";
 
 export async function calendarCreateEvent(
   request: CalendarCreateEventRequest
 ): Promise<CalendarCreateEventResult> {
   return {
-    name: PI_EXTENSION_NAMES.calendarCreateEvent,
+    name: EXTENSION_NAMES.calendarCreateEvent,
     status: "executed",
     idempotencyKey: request.idempotencyKey,
     output: {
@@ -27,7 +27,7 @@ export async function calendarUpdateEvent(
   request: CalendarUpdateEventRequest
 ): Promise<CalendarUpdateEventResult> {
   return {
-    name: PI_EXTENSION_NAMES.calendarUpdateEvent,
+    name: EXTENSION_NAMES.calendarUpdateEvent,
     status: "executed",
     idempotencyKey: request.idempotencyKey,
     output: {
