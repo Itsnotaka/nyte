@@ -2,6 +2,9 @@ import { getDashboardData } from "@nyte/application/dashboard/data";
 import { persistSignals } from "@nyte/application/queue/persist-signals";
 import { ingestGoogleCalendarSignals } from "@nyte/integrations/calendar/ingestion";
 import { ingestGmailSignals } from "@nyte/integrations/gmail/ingestion";
+import { Effect } from "effect";
+
+import { runWorkflowEffect } from "../effect-runtime";
 
 type GmailIngestionInput = Parameters<typeof ingestGmailSignals>[0];
 type DashboardApprovalQueue = Awaited<
@@ -117,66 +120,92 @@ function getErrorMessage(error: unknown): string {
     return error.message;
   }
 
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "message" in error &&
+    typeof (error as { message: unknown }).message === "string"
+  ) {
+    const message = (error as { message: string }).message.trim();
+    if (message.length > 0) {
+      return message;
+    }
+  }
+
   return "Unknown ingestion error";
 }
 
-export async function ingestSignalsTask({
+export function ingestSignalsTaskProgram({
   userId,
   accessToken,
   cursor,
   watchKeywords = [],
   now = new Date(),
-}: IngestSignalsTaskInput): Promise<IngestSignalsTaskResult> {
-  const { gmailCursor, calendarCursor } = parseQueueCursor(cursor);
+}: IngestSignalsTaskInput) {
+  return Effect.gen(function* () {
+    const { gmailCursor, calendarCursor } = parseQueueCursor(cursor);
 
-  const [gmailResult, calendarResult] = await Promise.allSettled([
-    ingestGmailSignals({
-      accessToken,
-      cursor: gmailCursor,
-      now,
-      watchKeywords,
-    }),
-    ingestGoogleCalendarSignals({
-      accessToken,
-      cursor: calendarCursor,
-      now,
-      watchKeywords,
-    }),
-  ]);
-
-  if (
-    gmailResult.status === "rejected" &&
-    calendarResult.status === "rejected"
-  ) {
-    throw new Error(
-      `Signal ingestion failed for Gmail and Calendar. Gmail: ${getErrorMessage(gmailResult.reason)}. Calendar: ${getErrorMessage(calendarResult.reason)}.`
+    const [gmailResult, calendarResult] = yield* Effect.tryPromise(() =>
+      Promise.allSettled([
+        ingestGmailSignals({
+          accessToken,
+          cursor: gmailCursor,
+          now,
+          watchKeywords,
+        }),
+        ingestGoogleCalendarSignals({
+          accessToken,
+          cursor: calendarCursor,
+          now,
+          watchKeywords,
+        }),
+      ])
     );
-  }
 
-  const signals = [
-    ...(gmailResult.status === "fulfilled" ? gmailResult.value.signals : []),
-    ...(calendarResult.status === "fulfilled"
-      ? calendarResult.value.signals
-      : []),
-  ];
+    if (
+      gmailResult.status === "rejected" &&
+      calendarResult.status === "rejected"
+    ) {
+      return yield* Effect.fail(
+        new Error(
+          `Signal ingestion failed for Gmail and Calendar. Gmail: ${getErrorMessage(gmailResult.reason)}. Calendar: ${getErrorMessage(calendarResult.reason)}.`
+        )
+      );
+    }
 
-  const nextCursor = serializeQueueCursor({
-    gmailCursor:
-      gmailResult.status === "fulfilled"
-        ? gmailResult.value.nextCursor
-        : gmailCursor,
-    calendarCursor:
-      calendarResult.status === "fulfilled"
-        ? calendarResult.value.nextCursor
-        : calendarCursor,
+    const signals = [
+      ...(gmailResult.status === "fulfilled"
+        ? gmailResult.value.signals
+        : []),
+      ...(calendarResult.status === "fulfilled"
+        ? calendarResult.value.signals
+        : []),
+    ];
+
+    const nextCursor = serializeQueueCursor({
+      gmailCursor:
+        gmailResult.status === "fulfilled"
+          ? gmailResult.value.nextCursor
+          : gmailCursor,
+      calendarCursor:
+        calendarResult.status === "fulfilled"
+          ? calendarResult.value.nextCursor
+          : calendarCursor,
+    });
+
+    yield* Effect.tryPromise(() => persistSignals(signals, userId, now));
+    const dashboard = yield* Effect.tryPromise(() => getDashboardData());
+
+    return {
+      cursor: nextCursor,
+      queuedCount: signals.length,
+      approvalQueue: dashboard.approvalQueue,
+    } satisfies IngestSignalsTaskResult;
   });
+}
 
-  await persistSignals(signals, userId, now);
-  const dashboard = await getDashboardData();
-
-  return {
-    cursor: nextCursor,
-    queuedCount: signals.length,
-    approvalQueue: dashboard.approvalQueue,
-  };
+export async function ingestSignalsTask(
+  input: IngestSignalsTaskInput
+): Promise<IngestSignalsTaskResult> {
+  return runWorkflowEffect(ingestSignalsTaskProgram(input));
 }

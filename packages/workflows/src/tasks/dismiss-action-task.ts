@@ -1,4 +1,7 @@
 import { dismissWorkItem } from "@nyte/application/actions/dismiss";
+import { Effect } from "effect";
+
+import { runWorkflowEffect } from "../effect-runtime";
 
 type DismissWorkItemParameters = Parameters<typeof dismissWorkItem>;
 
@@ -7,9 +10,13 @@ export type DismissActionTaskInput = {
   now?: DismissWorkItemParameters[1];
 };
 
-export async function dismissActionTask({
+export function dismissActionTaskProgram({
   itemId,
   now = new Date(),
 }: DismissActionTaskInput) {
-  return dismissWorkItem(itemId, now);
+  return Effect.tryPromise(() => dismissWorkItem(itemId, now));
+}
+
+export async function dismissActionTask(input: DismissActionTaskInput) {
+  return runWorkflowEffect(dismissActionTaskProgram(input));
 }

@@ -1,4 +1,7 @@
 import type { IntakeSignal } from "@nyte/domain/triage";
+import { Data, Effect } from "effect";
+
+import { runIntegrationsEffect } from "../effect-runtime";
 
 const GOOGLE_CALENDAR_API =
   "https://www.googleapis.com/calendar/v3/calendars/primary/events";
@@ -60,18 +63,26 @@ export type GoogleCalendarIngestionResult = {
   signals: IntakeSignal[];
 };
 
-class GoogleApiError extends Error {
-  readonly status: number;
-  readonly detail: string;
+type GoogleApiError = Data.TaggedEnum<{
+  CalendarGoogleApiError: {
+    status: number;
+    detail: string;
+    message: string;
+  };
+}>;
 
-  constructor(status: number, detail: string) {
-    super(
-      `Google Calendar API request failed with status ${status}: ${detail}`
-    );
-    this.name = "GoogleApiError";
-    this.status = status;
-    this.detail = detail;
-  }
+const CalendarIngestionErrors = Data.taggedEnum<GoogleApiError>();
+
+function googleApiError(status: number, detail: string): GoogleApiError {
+  return CalendarIngestionErrors.CalendarGoogleApiError({
+    status,
+    detail,
+    message: `Google Calendar API request failed with status ${status}: ${detail}`,
+  });
+}
+
+function isGoogleApiError(error: unknown): error is GoogleApiError {
+  return CalendarIngestionErrors.$is("CalendarGoogleApiError")(error);
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -442,14 +453,14 @@ async function fetchGoogleJson(
 
   if (!response.ok) {
     const detail = await response.text();
-    throw new GoogleApiError(response.status, detail.slice(0, 240));
+    throw googleApiError(response.status, detail.slice(0, 240));
   }
 
   return response.json();
 }
 
 function isExpiredSyncTokenError(error: unknown): boolean {
-  if (!(error instanceof GoogleApiError)) {
+  if (!isGoogleApiError(error)) {
     return false;
   }
 
@@ -517,61 +528,77 @@ async function listEventsWithCursor({
   return { items, nextSyncToken };
 }
 
-export async function ingestGoogleCalendarSignals({
+export function ingestGoogleCalendarSignalsProgram({
   accessToken,
   cursor,
   now = new Date(),
   watchKeywords = [],
   maxResults = 20,
-}: GoogleCalendarIngestionInput): Promise<GoogleCalendarIngestionResult> {
-  const cursorState = parseCursor(cursor, now);
+}: GoogleCalendarIngestionInput) {
+  return Effect.gen(function* () {
+    const cursorState = parseCursor(cursor, now);
 
-  let events: CalendarEvent[] = [];
-  let nextSyncToken: string | null = null;
+    let events: CalendarEvent[] = [];
+    let nextSyncToken: string | null = null;
 
-  if (cursorState.syncToken) {
-    try {
-      const incremental = await listEventsWithCursor({
-        accessToken,
-        maxResults,
-        since: cursorState.since,
-        syncToken: cursorState.syncToken,
-      });
-      events = incremental.items;
-      nextSyncToken = incremental.nextSyncToken ?? cursorState.syncToken;
-    } catch (error) {
-      if (!isExpiredSyncTokenError(error)) {
-        throw error;
+    if (cursorState.syncToken) {
+      const incrementalAttempt = yield* Effect.either(
+        Effect.tryPromise(() =>
+          listEventsWithCursor({
+            accessToken,
+            maxResults,
+            since: cursorState.since,
+            syncToken: cursorState.syncToken,
+          })
+        )
+      );
+
+      if (incrementalAttempt._tag === "Right") {
+        events = incrementalAttempt.right.items;
+        nextSyncToken =
+          incrementalAttempt.right.nextSyncToken ?? cursorState.syncToken;
+      } else if (isExpiredSyncTokenError(incrementalAttempt.left)) {
+        const baseline = yield* Effect.tryPromise(() =>
+          listEventsWithCursor({
+            accessToken,
+            maxResults,
+            since: cursorState.since,
+            syncToken: null,
+          })
+        );
+        events = baseline.items;
+        nextSyncToken = baseline.nextSyncToken;
+      } else {
+        return yield* Effect.fail(incrementalAttempt.left);
       }
-
-      const baseline = await listEventsWithCursor({
-        accessToken,
-        maxResults,
-        since: cursorState.since,
-        syncToken: null,
-      });
+    } else {
+      const baseline = yield* Effect.tryPromise(() =>
+        listEventsWithCursor({
+          accessToken,
+          maxResults,
+          since: cursorState.since,
+          syncToken: null,
+        })
+      );
       events = baseline.items;
       nextSyncToken = baseline.nextSyncToken;
     }
-  } else {
-    const baseline = await listEventsWithCursor({
-      accessToken,
-      maxResults,
-      since: cursorState.since,
-      syncToken: null,
-    });
-    events = baseline.items;
-    nextSyncToken = baseline.nextSyncToken;
-  }
 
-  const signals = events
-    .map((event) => toSignal(event, watchKeywords))
-    .filter((signal): signal is IntakeSignal => signal !== null);
+    const signals = events
+      .map((event) => toSignal(event, watchKeywords))
+      .filter((signal): signal is IntakeSignal => signal !== null);
 
-  return {
-    nextCursor: nextSyncToken
-      ? toSyncCursor(nextSyncToken)
-      : toTimeCursor(now.toISOString()),
-    signals,
-  };
+    return {
+      nextCursor: nextSyncToken
+        ? toSyncCursor(nextSyncToken)
+        : toTimeCursor(now.toISOString()),
+      signals,
+    } satisfies GoogleCalendarIngestionResult;
+  });
+}
+
+export async function ingestGoogleCalendarSignals(
+  input: GoogleCalendarIngestionInput
+): Promise<GoogleCalendarIngestionResult> {
+  return runIntegrationsEffect(ingestGoogleCalendarSignalsProgram(input));
 }

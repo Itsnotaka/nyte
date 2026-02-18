@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { db } from "@nyte/db/client";
 import { workflowEvents, workflowRuns } from "@nyte/db/schema";
 import { asc, desc, eq } from "drizzle-orm";
+import { Effect } from "effect";
 import { z } from "zod";
 
 const runTimestampSchema = z
@@ -82,6 +83,9 @@ export async function recordWorkItemRun({
   return runId;
 }
 
+export const recordWorkItemRunProgram = (input: RecordWorkItemRunInput) =>
+  Effect.tryPromise(() => recordWorkItemRun(input));
+
 export type WorkItemRunTimelineEntry = {
   runId: string;
   phase: string;
@@ -126,3 +130,6 @@ export async function listWorkItemRunTimeline(
 
   return timeline;
 }
+
+export const listWorkItemRunTimelineProgram = (workItemId: string) =>
+  Effect.tryPromise(() => listWorkItemRunTimeline(workItemId));

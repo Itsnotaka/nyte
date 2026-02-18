@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { db } from "@nyte/db/client";
 import { auditLogs } from "@nyte/db/schema";
 import { and, count, desc, eq } from "drizzle-orm";
+import { Effect } from "effect";
 
 type AuditExecutor = Pick<typeof db, "insert">;
 
@@ -61,6 +62,9 @@ export async function recordAuditLog({
   });
 }
 
+export const recordAuditLogProgram = (input: AuditLogInput) =>
+  Effect.tryPromise(() => recordAuditLog(input));
+
 export type AuditLogEntry = {
   id: string;
   userId: string | null;
@@ -85,11 +89,17 @@ export async function listAuditLogs(
   return rows.map(toAuditLogEntry);
 }
 
+export const listAuditLogsProgram = (limit = 100, offset = 0) =>
+  Effect.tryPromise(() => listAuditLogs(limit, offset));
+
 export async function countAuditLogs() {
   const rows = await db.select({ total: count() }).from(auditLogs);
   const total = rows[0]?.total ?? 0;
   return Number(total);
 }
+
+export const countAuditLogsProgram = () =>
+  Effect.tryPromise(() => countAuditLogs());
 
 export async function listAuditLogsByTarget(
   targetType: string,
@@ -113,6 +123,16 @@ export async function listAuditLogsByTarget(
   return rows.map(toAuditLogEntry);
 }
 
+export const listAuditLogsByTargetProgram = (
+  targetType: string,
+  targetId: string,
+  limit = 100,
+  offset = 0
+) =>
+  Effect.tryPromise(() =>
+    listAuditLogsByTarget(targetType, targetId, limit, offset)
+  );
+
 export async function countAuditLogsByTarget(
   targetType: string,
   targetId: string
@@ -129,6 +149,11 @@ export async function countAuditLogsByTarget(
   const total = rows[0]?.total ?? 0;
   return Number(total);
 }
+
+export const countAuditLogsByTargetProgram = (
+  targetType: string,
+  targetId: string
+) => Effect.tryPromise(() => countAuditLogsByTarget(targetType, targetId));
 
 function toAuditLogEntry(row: typeof auditLogs.$inferSelect): AuditLogEntry {
   return {

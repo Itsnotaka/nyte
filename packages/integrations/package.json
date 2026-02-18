@@ -12,7 +12,8 @@
     "clean": "rm -rf .turbo .cache node_modules dist"
   },
   "dependencies": {
-    "@nyte/domain": "workspace:*"
+    "@nyte/domain": "workspace:*",
+    "effect": "^3.19.18"
   },
   "devDependencies": {
     "@nyte/tsconfig": "workspace:*",

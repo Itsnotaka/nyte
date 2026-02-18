@@ -15,6 +15,7 @@ import {
   type WorkItem,
 } from "@nyte/domain/triage";
 import { eq } from "drizzle-orm";
+import { Effect } from "effect";
 
 import { recordAuditLog } from "../audit/audit-log";
 import { recordWorkItemRun } from "../run-log";
@@ -151,3 +152,9 @@ export async function persistSignals(
 
   return queue.sort((left, right) => right.priorityScore - left.priorityScore);
 }
+
+export const persistSignalsProgram = (
+  signals: IntakeSignal[],
+  userId: string,
+  now = new Date()
+) => Effect.tryPromise(() => persistSignals(signals, userId, now));

@@ -21,7 +21,7 @@
     "@nyte/db": "workspace:*",
     "@nyte/domain": "workspace:*",
     "drizzle-orm": "^0.45.1",
-    "neverthrow": "^8.2.0",
+    "effect": "^3.19.18",
     "zod": "^4.3.6"
   },
   "devDependencies": {

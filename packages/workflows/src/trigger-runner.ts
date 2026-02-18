@@ -22,8 +22,9 @@ import {
   type IngestSignalsTaskInput,
 } from "./tasks/ingest-signals-task";
 import {
-  WorkflowTaskExecutionError,
-  WorkflowTaskResultError,
+  createWorkflowTaskExecutionError,
+  createWorkflowTaskResultError,
+  isWorkflowTaskError,
   type WorkflowTaskError,
   type WorkflowTaskStage,
 } from "./trigger-errors";
@@ -49,6 +50,18 @@ function resolveTaskStage(): WorkflowTaskStage {
 function toErrorMessage(value: unknown) {
   if (value instanceof Error && value.message.trim().length > 0) {
     return value.message;
+  }
+
+  if (
+    typeof value === "object" &&
+    value !== null &&
+    "message" in value &&
+    typeof (value as { message: unknown }).message === "string"
+  ) {
+    const message = (value as { message: string }).message.trim();
+    if (message.length > 0) {
+      return message;
+    }
   }
 
   return "Trigger.dev task failed.";
@@ -89,7 +102,7 @@ function runTaskProgram<TOutput>({
       const output = yield* Effect.tryPromise({
         try: () => localRun(),
         catch: (cause) =>
-          new WorkflowTaskExecutionError({
+          createWorkflowTaskExecutionError({
             taskId,
             stage,
             message: toErrorMessage(cause),
@@ -105,7 +118,7 @@ function runTaskProgram<TOutput>({
     const result = yield* Effect.tryPromise({
       try: () => triggerRun(),
       catch: (cause) =>
-        new WorkflowTaskExecutionError({
+        createWorkflowTaskExecutionError({
           taskId,
           stage,
           message: toErrorMessage(cause),
@@ -115,7 +128,7 @@ function runTaskProgram<TOutput>({
 
     if (!result.ok) {
       return yield* Effect.fail(
-        new WorkflowTaskResultError({
+        createWorkflowTaskResultError({
           taskId,
           stage,
           message: toErrorMessage(result.error),
@@ -160,14 +173,11 @@ async function runTask<TOutput>({
       logContext,
     })
   ).catch((error: unknown) => {
-    if (
-      error instanceof WorkflowTaskExecutionError ||
-      error instanceof WorkflowTaskResultError
-    ) {
+    if (isWorkflowTaskError(error)) {
       throw error;
     }
 
-    const workflowTaskError: WorkflowTaskError = new WorkflowTaskExecutionError(
+    const workflowTaskError: WorkflowTaskError = createWorkflowTaskExecutionError(
       {
         taskId,
         stage,

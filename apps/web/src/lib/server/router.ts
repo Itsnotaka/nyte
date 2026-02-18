@@ -1,7 +1,16 @@
 import "server-only";
-import { ApprovalError } from "@nyte/application/actions/approve";
-import { DismissError } from "@nyte/application/actions/dismiss";
-import { FeedbackError } from "@nyte/application/actions/feedback";
+import {
+  isApprovalError,
+  type ApprovalError,
+} from "@nyte/application/actions/approve";
+import {
+  isDismissError,
+  type DismissError,
+} from "@nyte/application/actions/dismiss";
+import {
+  isFeedbackError,
+  type FeedbackError,
+} from "@nyte/application/actions/feedback";
 import {
   runApproveActionTask,
   runDismissActionTask,
@@ -129,7 +138,7 @@ export const appRouter = router({
             actorUserId: ctx.userId,
           });
         } catch (error) {
-          if (error instanceof ApprovalError) throw domainErrorToTRPC(error);
+          if (isApprovalError(error)) throw domainErrorToTRPC(error);
           throw error;
         }
       }),
@@ -140,7 +149,7 @@ export const appRouter = router({
         try {
           return await runDismissActionTask({ itemId: input.itemId });
         } catch (error) {
-          if (error instanceof DismissError) throw domainErrorToTRPC(error);
+          if (isDismissError(error)) throw domainErrorToTRPC(error);
           throw error;
         }
       }),
@@ -161,7 +170,7 @@ export const appRouter = router({
             note: input.note,
           });
         } catch (error) {
-          if (error instanceof FeedbackError) throw domainErrorToTRPC(error);
+          if (isFeedbackError(error)) throw domainErrorToTRPC(error);
           throw error;
         }
       }),

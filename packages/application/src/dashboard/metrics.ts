@@ -1,6 +1,7 @@
 import { db } from "@nyte/db/client";
 import { feedbackEntries, gateEvaluations, workItems } from "@nyte/db/schema";
 import { and, eq } from "drizzle-orm";
+import { Effect } from "effect";
 
 const GATES = ["decision", "time", "relationship", "impact", "watch"] as const;
 type GateKey = (typeof GATES)[number];
@@ -116,3 +117,6 @@ export async function getMetricsSnapshot(
     gateHitCounts,
   };
 }
+
+export const getMetricsSnapshotProgram = (now = new Date()) =>
+  Effect.tryPromise(() => getMetricsSnapshot(now));

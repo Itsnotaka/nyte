@@ -1,4 +1,5 @@
 import type { WorkItem } from "./triage";
+import { Effect } from "effect";
 
 export type GmailCreateDraftToolCall = {
   kind: "gmail.createDraft";
@@ -36,6 +37,9 @@ export type WorkItemWithAction = WorkItem & {
 export function createProposedActionId(workItemId: string): string {
   return `${workItemId}:action`;
 }
+
+export const createProposedActionIdProgram = (workItemId: string) =>
+  Effect.sync(() => createProposedActionId(workItemId));
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -126,9 +130,15 @@ export function createToolCallPayload(workItem: WorkItem): ToolCallPayload {
   };
 }
 
+export const createToolCallPayloadProgram = (workItem: WorkItem) =>
+  Effect.sync(() => createToolCallPayload(workItem));
+
 export function withToolCalls(workItems: WorkItem[]): WorkItemWithAction[] {
   return workItems.map((workItem) => ({
     ...workItem,
     proposedAction: createToolCallPayload(workItem),
   }));
 }
+
+export const withToolCallsProgram = (workItems: WorkItem[]) =>
+  Effect.sync(() => withToolCalls(workItems));

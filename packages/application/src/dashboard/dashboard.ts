@@ -14,6 +14,7 @@ import {
 } from "@nyte/domain/actions";
 import type { WorkItem } from "@nyte/domain/triage";
 import { and, desc, eq, inArray } from "drizzle-orm";
+import { Effect } from "effect";
 
 function toIsoString(value: Date): string {
   const timestamp = value.getTime();
@@ -345,3 +346,6 @@ export async function getDashboardData(): Promise<DashboardData> {
     processed,
   };
 }
+
+export const getDashboardDataProgram = () =>
+  Effect.tryPromise(() => getDashboardData());

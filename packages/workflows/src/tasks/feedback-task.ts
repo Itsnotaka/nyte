@@ -1,4 +1,7 @@
 import { recordFeedback } from "@nyte/application/actions/feedback";
+import { Effect } from "effect";
+
+import { runWorkflowEffect } from "../effect-runtime";
 
 type RecordFeedbackParameters = Parameters<typeof recordFeedback>;
 
@@ -9,11 +12,15 @@ export type FeedbackTaskInput = {
   now?: RecordFeedbackParameters[3];
 };
 
-export async function feedbackTask({
+export function feedbackTaskProgram({
   itemId,
   rating,
   note,
   now = new Date(),
 }: FeedbackTaskInput) {
-  return recordFeedback(itemId, rating, note, now);
+  return Effect.tryPromise(() => recordFeedback(itemId, rating, note, now));
+}
+
+export async function feedbackTask(input: FeedbackTaskInput) {
+  return runWorkflowEffect(feedbackTaskProgram(input));
 }

@@ -1,4 +1,5 @@
 import type { ToolCallPayload } from "./actions";
+import { Effect } from "effect";
 
 export type ActionDestination =
   | "gmail_drafts"
@@ -86,3 +87,9 @@ export function executeProposedAction(
     executedAt: now.toISOString(),
   };
 }
+
+export const executeProposedActionProgram = (
+  payload: ToolCallPayload,
+  now = new Date(),
+  options: ExecutionOptions = {}
+) => Effect.sync(() => executeProposedAction(payload, now, options));

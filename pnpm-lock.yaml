@@ -138,9 +138,9 @@ importers:
       drizzle-orm:
         specifier: ^0.45.1
         version: 0.45.1(@neondatabase/serverless@1.0.2)(@opentelemetry/api@1.9.0)(@types/pg@8.16.0)(kysely@0.28.11)(pg@8.18.0)
-      neverthrow:
-        specifier: ^8.2.0
-        version: 8.2.0
+      effect:
+        specifier: ^3.19.18
+        version: 3.19.18
       zod:
         specifier: ^4.3.6
         version: 4.3.6
@@ -177,6 +177,10 @@ importers:
         version: 0.45.1(@neondatabase/serverless@1.0.2)(@opentelemetry/api@1.9.0)(@types/pg@8.16.0)(kysely@0.28.11)(pg@8.18.0)
 
   packages/domain:
+    dependencies:
+      effect:
+        specifier: ^3.19.18
+        version: 3.19.18
     devDependencies:
       '@nyte/tsconfig':
         specifier: workspace:*
@@ -190,6 +194,9 @@ importers:
       '@nyte/domain':
         specifier: workspace:*
         version: link:../domain
+      effect:
+        specifier: ^3.19.18
+        version: 3.19.18
     devDependencies:
       '@nyte/tsconfig':
         specifier: workspace:*
@@ -3060,10 +3067,6 @@ packages:
     resolution: {integrity: sha512-+EUsqGPLsM+j/zdChZjsnX51g4XrHFOIXwfnCVPGlQk/k5giakcKsuxCObBRu6DSm9opw/O6slWbJdghQM4bBg==}
     engines: {node: '>= 0.6'}
 
-  neverthrow@8.2.0:
-    resolution: {integrity: sha512-kOCT/1MCPAxY5iUV3wytNFUMUolzuwd/VF/1KCx7kf6CutrOsTie+84zTGTpgQycjvfLdBBdvBvFLqFD2c0wkQ==}
-    engines: {node: '>=18'}
-
   next-themes@0.4.6:
     resolution: {integrity: sha512-pZvgD5L0IEvX5/9GWyHMf3m8BKiVQwsCMHfoFosXtXBMnaS0ZnIJ9ST4b4NqLVKDEm8QBxoNNGNaBv2JNF6XNA==}
     peerDependencies:
@@ -5765,10 +5768,6 @@ snapshots:
   nanostores@1.1.0: {}
 
   negotiator@0.6.3: {}
-
-  neverthrow@8.2.0:
-    optionalDependencies:
-      '@rollup/rollup-linux-x64-gnu': 4.57.1
 
   next-themes@0.4.6(react-dom@19.2.4(react@19.2.4))(react@19.2.4):
     dependencies:

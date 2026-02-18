@@ -1,4 +1,7 @@
 import type { IntakeSignal } from "@nyte/domain/triage";
+import { Data, Effect } from "effect";
+
+import { runIntegrationsEffect } from "../effect-runtime";
 
 const GOOGLE_GMAIL_API = "https://gmail.googleapis.com/gmail/v1/users/me";
 const DEFAULT_LOOKBACK_DAYS = 7;
@@ -60,16 +63,26 @@ export type GmailIngestionResult = {
   signals: IntakeSignal[];
 };
 
-class GoogleApiError extends Error {
-  readonly status: number;
-  readonly detail: string;
+type GoogleApiError = Data.TaggedEnum<{
+  GmailGoogleApiError: {
+    status: number;
+    detail: string;
+    message: string;
+  };
+}>;
 
-  constructor(status: number, detail: string) {
-    super(`Gmail API request failed with status ${status}: ${detail}`);
-    this.name = "GoogleApiError";
-    this.status = status;
-    this.detail = detail;
-  }
+const GmailIngestionErrors = Data.taggedEnum<GoogleApiError>();
+
+function googleApiError(status: number, detail: string): GoogleApiError {
+  return GmailIngestionErrors.GmailGoogleApiError({
+    status,
+    detail,
+    message: `Gmail API request failed with status ${status}: ${detail}`,
+  });
+}
+
+function isGoogleApiError(error: unknown): error is GoogleApiError {
+  return GmailIngestionErrors.$is("GmailGoogleApiError")(error);
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -380,14 +393,14 @@ async function fetchGoogleJson(
 
   if (!response.ok) {
     const detail = await response.text();
-    throw new GoogleApiError(response.status, detail.slice(0, 240));
+    throw googleApiError(response.status, detail.slice(0, 240));
   }
 
   return response.json();
 }
 
 function isExpiredHistoryCursorError(error: unknown): boolean {
-  if (!(error instanceof GoogleApiError)) {
+  if (!isGoogleApiError(error)) {
     return false;
   }
 
@@ -622,85 +635,91 @@ async function fetchMessageSnapshot(
   };
 }
 
-export async function ingestGmailSignals({
+export function ingestGmailSignalsProgram({
   accessToken,
   cursor,
   now = new Date(),
   watchKeywords = [],
   maxResults = 20,
-}: GmailIngestionInput): Promise<GmailIngestionResult> {
-  const cursorState = parseCursor(cursor, now);
+}: GmailIngestionInput) {
+  return Effect.gen(function* () {
+    const cursorState = parseCursor(cursor, now);
 
-  let messageIds: string[] = [];
-  let historyId = cursorState.historyId;
+    let messageIds: string[] = [];
+    let historyId = cursorState.historyId;
 
-  if (cursorState.historyId) {
-    try {
-      const history = await listMessagesFromHistory(
-        accessToken,
-        cursorState.historyId,
-        maxResults
+    if (cursorState.historyId) {
+      const historyAttempt = yield* Effect.either(
+        Effect.tryPromise(() =>
+          listMessagesFromHistory(accessToken, cursorState.historyId!, maxResults)
+        )
       );
-      messageIds = history.messageIds;
-      historyId = history.historyId ?? cursorState.historyId;
-    } catch (error) {
-      if (!isExpiredHistoryCursorError(error)) {
-        throw error;
+
+      if (historyAttempt._tag === "Right") {
+        messageIds = historyAttempt.right.messageIds;
+        historyId = historyAttempt.right.historyId ?? cursorState.historyId;
+      } else if (isExpiredHistoryCursorError(historyAttempt.left)) {
+        messageIds = yield* Effect.tryPromise(() =>
+          listMessagesSince(accessToken, cursorState.since, maxResults)
+        );
+        historyId = null;
+      } else {
+        return yield* Effect.fail(historyAttempt.left);
       }
-
-      messageIds = await listMessagesSince(
-        accessToken,
-        cursorState.since,
-        maxResults
+    } else {
+      messageIds = yield* Effect.tryPromise(() =>
+        listMessagesSince(accessToken, cursorState.since, maxResults)
       );
-      historyId = null;
     }
-  } else {
-    messageIds = await listMessagesSince(
-      accessToken,
-      cursorState.since,
-      maxResults
+
+    if (!historyId) {
+      historyId = yield* Effect.tryPromise(() => fetchLatestHistoryId(accessToken));
+    }
+
+    const uniqueMessageIds = Array.from(new Set(messageIds));
+    const boundedMessageIds = uniqueMessageIds.slice(
+      0,
+      Math.max(1, Math.min(maxResults * 5, 250))
     );
-  }
 
-  if (!historyId) {
-    historyId = await fetchLatestHistoryId(accessToken);
-  }
+    if (boundedMessageIds.length === 0) {
+      return {
+        nextCursor: historyId
+          ? toHistoryCursor(historyId)
+          : toTimeCursor(now.toISOString()),
+        signals: [],
+      } satisfies GmailIngestionResult;
+    }
 
-  const uniqueMessageIds = Array.from(new Set(messageIds));
-  const boundedMessageIds = uniqueMessageIds.slice(
-    0,
-    Math.max(1, Math.min(maxResults * 5, 250))
-  );
+    const snapshots = (
+      yield* Effect.tryPromise(() =>
+        Promise.all(
+          boundedMessageIds.map((messageId) =>
+            fetchMessageSnapshot(accessToken, messageId, now)
+          )
+        )
+      )
+    ).filter((snapshot): snapshot is GmailThreadSnapshot => snapshot !== null);
 
-  if (boundedMessageIds.length === 0) {
+    snapshots.sort(
+      (left, right) =>
+        new Date(right.receivedAt).getTime() -
+        new Date(left.receivedAt).getTime()
+    );
+
     return {
       nextCursor: historyId
         ? toHistoryCursor(historyId)
         : toTimeCursor(now.toISOString()),
-      signals: [],
-    };
-  }
+      signals: snapshots.map((snapshot) =>
+        toSignal(snapshot, watchKeywords, now)
+      ),
+    } satisfies GmailIngestionResult;
+  });
+}
 
-  const snapshots = (
-    await Promise.all(
-      boundedMessageIds.map((messageId) =>
-        fetchMessageSnapshot(accessToken, messageId, now)
-      )
-    )
-  ).filter((snapshot): snapshot is GmailThreadSnapshot => snapshot !== null);
-
-  snapshots.sort(
-    (left, right) =>
-      new Date(right.receivedAt).getTime() - new Date(left.receivedAt).getTime()
-  );
-
-  return {
-    nextCursor: historyId
-      ? toHistoryCursor(historyId)
-      : toTimeCursor(now.toISOString()),
-    signals: snapshots.map((snapshot) =>
-      toSignal(snapshot, watchKeywords, now)
-    ),
-  };
+export async function ingestGmailSignals(
+  input: GmailIngestionInput
+): Promise<GmailIngestionResult> {
+  return runIntegrationsEffect(ingestGmailSignalsProgram(input));
 }

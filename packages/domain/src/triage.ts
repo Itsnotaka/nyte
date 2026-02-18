@@ -1,3 +1,5 @@
+import { Effect, Option } from "effect";
+
 export type Gate = "decision" | "time" | "relationship" | "impact" | "watch";
 export type WorkType = "draft" | "calendar" | "refund";
 export type WorkSource = "Gmail" | "Google Calendar";
@@ -134,6 +136,11 @@ export function evaluateApprovalGates(
   return [decision, time, relationship, impact, watch];
 }
 
+export const evaluateApprovalGatesProgram = (
+  signal: IntakeSignal,
+  now = new Date()
+) => Effect.sync(() => evaluateApprovalGates(signal, now));
+
 function resolveType(intent: IntakeIntent): WorkType {
   if (intent === "schedule_event") {
     return "calendar";
@@ -203,6 +210,16 @@ export function toWorkItem(
   };
 }
 
+export function toWorkItemOption(
+  signal: IntakeSignal,
+  now = new Date()
+): Option.Option<WorkItem> {
+  return Option.fromNullable(toWorkItem(signal, now));
+}
+
+export const toWorkItemProgram = (signal: IntakeSignal, now = new Date()) =>
+  Effect.sync(() => toWorkItemOption(signal, now));
+
 export function createApprovalQueue(
   signals: IntakeSignal[],
   now = new Date()
@@ -212,3 +229,8 @@ export function createApprovalQueue(
     .filter((item): item is WorkItem => item !== null)
     .sort((a, b) => b.priorityScore - a.priorityScore);
 }
+
+export const createApprovalQueueProgram = (
+  signals: IntakeSignal[],
+  now = new Date()
+) => Effect.sync(() => createApprovalQueue(signals, now));
