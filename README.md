@@ -76,10 +76,8 @@ it is a single conversation.
    - `BETTER_AUTH_SECRET=...`
    - `GOOGLE_CLIENT_ID=...`
    - `GOOGLE_CLIENT_SECRET=...`
-   - Optional Trigger.dev vars: `TRIGGER_SECRET_KEY`, `TRIGGER_PROJECT_REF`
 3. Apply schema: `pnpm db:push`
 4. Validate: `pnpm typecheck && pnpm lint`
-5. Optional Trigger.dev runtime: `pnpm --filter web trigger:dev`
 
 ## Extend the system
 
@@ -94,7 +92,7 @@ it is a single conversation.
 
 1. Add task logic in `packages/workflows/src/tasks`.
 2. Derive API types in `packages/workflows/src/contracts.ts`.
-3. Expose runner/trigger entrypoints in `packages/workflows/src`.
+3. Expose runner entrypoints in `packages/workflows/src`.
 4. Wire usage in `apps/web/src/lib/server/router.ts`.
 
 ### Add a signal gate

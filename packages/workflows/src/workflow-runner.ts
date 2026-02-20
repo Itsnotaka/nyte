@@ -1,5 +1,3 @@
-import { tasks } from "@trigger.dev/sdk/v3";
-
 import type {
   ApproveActionResponse,
   DismissActionResponse,
@@ -22,34 +20,18 @@ import {
 } from "./tasks/ingest-signals-task";
 import {
   createWorkflowTaskExecutionError,
-  createWorkflowTaskResultError,
   isWorkflowTaskError,
   type WorkflowTaskError,
-  type WorkflowTaskStage,
-} from "./trigger-errors";
-import {
-  triggerApproveActionTask,
-  triggerDismissActionTask,
-  triggerFeedbackTask,
-  triggerIngestSignalsTask,
-} from "./trigger-tasks";
+} from "./workflow-errors";
 import {
   createWorkflowTaskLogger,
   type WorkflowTaskLogContext,
 } from "./workflow-log";
 
-function isTriggerEnabled() {
-  return Boolean(process.env.TRIGGER_SECRET_KEY?.trim());
-}
-
-function resolveTaskStage(): WorkflowTaskStage {
-  return isTriggerEnabled() ? "trigger" : "local";
-}
-
 function toErrorMessage(value: unknown): string {
   if (typeof value === "string") {
     const message = value.trim();
-    return message.length > 0 ? message : "Trigger.dev task failed.";
+    return message.length > 0 ? message : "Workflow task failed.";
   }
 
   if (value instanceof Error && value.message.trim().length > 0) {
@@ -75,7 +57,7 @@ function toErrorMessage(value: unknown): string {
     }
   } catch {}
 
-  return "Trigger.dev task failed.";
+  return "Workflow task failed.";
 }
 
 function toErrorName(value: unknown): string {
@@ -117,23 +99,11 @@ function toErrorStack(value: unknown): string | undefined {
   return undefined;
 }
 
-type TriggerTaskRunResult<TOutput> =
-  | {
-      ok: true;
-      output: TOutput;
-    }
-  | {
-      ok: false;
-      error: unknown;
-    };
-
 function toWorkflowTaskError({
   taskId,
-  stage,
   error,
 }: {
   taskId: WorkflowTaskId;
-  stage: WorkflowTaskStage;
   error: unknown;
 }): WorkflowTaskError {
   if (isWorkflowTaskError(error)) {
@@ -142,7 +112,6 @@ function toWorkflowTaskError({
 
   return createWorkflowTaskExecutionError({
     taskId,
-    stage,
     message: toErrorMessage(error),
     cause: error,
   });
@@ -151,66 +120,33 @@ function toWorkflowTaskError({
 async function runTask<TOutput>({
   taskId,
   localRun,
-  triggerRun,
   logContext,
 }: {
   taskId: WorkflowTaskId;
   localRun: () => Promise<TOutput>;
-  triggerRun: () => Promise<TriggerTaskRunResult<TOutput>>;
   logContext?: WorkflowTaskLogContext;
 }) {
-  const stage = resolveTaskStage();
   const startedAt = Date.now();
   const taskLogger = createWorkflowTaskLogger({
     taskId,
-    stage,
     ...logContext,
   });
 
   try {
-    if (stage === "local") {
-      try {
-        const output = await localRun();
-        taskLogger.success(Date.now() - startedAt);
-        return output;
-      } catch (error) {
-        throw createWorkflowTaskExecutionError({
-          taskId,
-          stage,
-          message: toErrorMessage(error),
-          cause: error,
-        });
-      }
-    }
-
-    let result: TriggerTaskRunResult<TOutput>;
-
     try {
-      result = await triggerRun();
+      const output = await localRun();
+      taskLogger.success(Date.now() - startedAt);
+      return output;
     } catch (error) {
       throw createWorkflowTaskExecutionError({
         taskId,
-        stage,
         message: toErrorMessage(error),
         cause: error,
       });
     }
-
-    if (!result.ok) {
-      throw createWorkflowTaskResultError({
-        taskId,
-        stage,
-        message: toErrorMessage(result.error),
-        cause: result.error,
-      });
-    }
-
-    taskLogger.success(Date.now() - startedAt);
-    return result.output;
   } catch (error) {
     const workflowTaskError = toWorkflowTaskError({
       taskId,
-      stage,
       error,
     });
 
@@ -227,22 +163,17 @@ async function runTask<TOutput>({
   }
 }
 
-type TriggerableIngestSignalsInput = Omit<IngestSignalsTaskInput, "now">;
-type TriggerableApproveActionInput = Omit<ApproveActionTaskInput, "now">;
-type TriggerableDismissActionInput = Omit<DismissActionTaskInput, "now">;
-type TriggerableFeedbackInput = Omit<FeedbackTaskInput, "now">;
+type WorkflowIngestSignalsInput = Omit<IngestSignalsTaskInput, "now">;
+type WorkflowApproveActionInput = Omit<ApproveActionTaskInput, "now">;
+type WorkflowDismissActionInput = Omit<DismissActionTaskInput, "now">;
+type WorkflowFeedbackInput = Omit<FeedbackTaskInput, "now">;
 
 export async function runIngestSignalsTask(
-  input: TriggerableIngestSignalsInput
+  input: WorkflowIngestSignalsInput
 ): Promise<QueueSyncResponse> {
   return runTask({
     taskId: WORKFLOW_TASK_IDS.ingestSignals,
     localRun: () => ingestSignalsTask(input),
-    triggerRun: () =>
-      tasks.triggerAndWait<typeof triggerIngestSignalsTask>(
-        WORKFLOW_TASK_IDS.ingestSignals,
-        input
-      ),
     logContext: {
       hasCursor: Boolean(input.cursor),
       watchKeywordCount: input.watchKeywords?.length ?? 0,
@@ -251,16 +182,11 @@ export async function runIngestSignalsTask(
 }
 
 export async function runApproveActionTask(
-  input: TriggerableApproveActionInput
+  input: WorkflowApproveActionInput
 ): Promise<ApproveActionResponse> {
   return runTask({
     taskId: WORKFLOW_TASK_IDS.approveAction,
     localRun: () => approveActionTask(input),
-    triggerRun: () =>
-      tasks.triggerAndWait<typeof triggerApproveActionTask>(
-        WORKFLOW_TASK_IDS.approveAction,
-        input
-      ),
     logContext: {
       itemId: input.itemId,
     },
@@ -268,16 +194,11 @@ export async function runApproveActionTask(
 }
 
 export async function runDismissActionTask(
-  input: TriggerableDismissActionInput
+  input: WorkflowDismissActionInput
 ): Promise<DismissActionResponse> {
   return runTask({
     taskId: WORKFLOW_TASK_IDS.dismissAction,
     localRun: () => dismissActionTask(input),
-    triggerRun: () =>
-      tasks.triggerAndWait<typeof triggerDismissActionTask>(
-        WORKFLOW_TASK_IDS.dismissAction,
-        input
-      ),
     logContext: {
       itemId: input.itemId,
     },
@@ -285,16 +206,11 @@ export async function runDismissActionTask(
 }
 
 export async function runFeedbackTask(
-  input: TriggerableFeedbackInput
+  input: WorkflowFeedbackInput
 ): Promise<FeedbackActionResponse> {
   return runTask({
     taskId: WORKFLOW_TASK_IDS.feedback,
     localRun: () => feedbackTask(input),
-    triggerRun: () =>
-      tasks.triggerAndWait<typeof triggerFeedbackTask>(
-        WORKFLOW_TASK_IDS.feedback,
-        input
-      ),
     logContext: {
       itemId: input.itemId,
       rating: input.rating,

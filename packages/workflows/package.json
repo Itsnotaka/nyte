@@ -15,8 +15,7 @@
     "@nyte/domain": "workspace:*",
     "@nyte/extension-runtime": "workspace:*",
     "@nyte/integrations": "workspace:*",
-    "@trigger.dev/sdk": "^4.3.3",
-    "evlog": "^1.9.0"
+    "evlog": "^1.10.0"
   },
   "devDependencies": {
     "@nyte/tsconfig": "workspace:*",

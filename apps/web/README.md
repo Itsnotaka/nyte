@@ -11,7 +11,6 @@ Primary Nyte product surface: auth-first workspace UI plus a tRPC gateway.
 - fetch and mutate queue state via TanStack Query + tRPC client hooks
 - expose server-side procedures through `app/api/trpc/[trpc]/route.ts`
 - map application/workflow errors to stable API-level `TRPCError` responses
-- export Trigger.dev workflow entrypoints from `trigger/workflows.ts`
 
 ## tRPC procedures
 
@@ -32,4 +31,3 @@ Primary Nyte product surface: auth-first workspace UI plus a tRPC gateway.
 
 - `pnpm --filter web dev`
 - `pnpm --filter web typecheck`
-- `pnpm --filter web trigger:dev`

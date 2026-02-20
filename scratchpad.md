@@ -62,7 +62,7 @@
 | `packages/workflows/src/tasks/ingest-signals-task.ts` | `needsYou` result field renamed to `approvalQueue`              |
 | `packages/workflows/src/contracts.ts`                 | queue response key updated; extension result type guard renamed |
 | `packages/workflows/src/tasks/approve-action-task.ts` | extension dispatch function + result field renamed              |
-| `packages/workflows/src/trigger-runner.ts`            | explicit return types to avoid inferred private type leakage    |
+| `packages/workflows/src/workflow-runner.ts`           | explicit return types to avoid inferred private type leakage    |
 | `packages/workflows/src/pi-dispatch.ts`               | deleted (renamed)                                               |
 | `packages/workflows/src/extension-dispatch.ts`        | new dispatch module name + extension runtime names              |
 | `packages/workflows/src/index.ts`                     | public API surface tightened                                    |

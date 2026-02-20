@@ -2,7 +2,6 @@ import { createRequestLogger, initLogger, type RequestLogger } from "evlog";
 
 import type { WorkflowTaskId } from "./task-ids";
 import type { FeedbackTaskInput } from "./tasks/feedback-task";
-import type { WorkflowTaskStage } from "./trigger-errors";
 
 export const WORKFLOW_TASK_EVENTS = {
   success: "task.success",
@@ -29,7 +28,6 @@ export type WorkflowLogEvent = {
   scope: "workflow.task";
   event: (typeof WORKFLOW_TASK_EVENTS)[keyof typeof WORKFLOW_TASK_EVENTS];
   taskId: WorkflowTaskId;
-  stage: WorkflowTaskStage;
   durationMs: number;
   message?: string;
   errorTag?: string;
@@ -47,7 +45,6 @@ export type WorkflowTaskLogContext = Omit<
   | "scope"
   | "event"
   | "taskId"
-  | "stage"
   | "durationMs"
   | "message"
   | "errorTag"
@@ -58,7 +55,6 @@ export type WorkflowTaskLogContext = Omit<
 
 type WorkflowTaskLoggerInput = {
   taskId: WorkflowTaskId;
-  stage: WorkflowTaskStage;
 } & WorkflowTaskLogContext;
 
 type WorkflowTaskLogger = {

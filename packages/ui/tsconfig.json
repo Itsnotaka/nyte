@@ -2,7 +2,11 @@
   "extends": "@nyte/tsconfig/base",
   "compilerOptions": {
     "jsx": "preserve",
-    "strictNullChecks": true
+    "strictNullChecks": true,
+    "paths": {
+      "*": ["./*"],
+      "~/*": ["./src/*"]
+    }
   },
   "include": ["src"],
   "exclude": ["node_modules", ".cache", "dist"]

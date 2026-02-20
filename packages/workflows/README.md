@@ -16,8 +16,7 @@ Task orchestration boundary for Nyte decision queue operations.
 ## Public exports
 
 - contracts from `src/contracts.ts`
-- task runners from `src/trigger-runner.ts`
-- Trigger.dev task definitions from `src/trigger-tasks.ts`
+- task runners from `src/workflow-runner.ts`
 
 ## Dependencies
 

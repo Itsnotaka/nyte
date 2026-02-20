@@ -40,9 +40,7 @@
         ".config/**/*.{json,js,mjs,cjs,ts,mts,cts}"
       ]
     },
-    "apps/web": {
-      "entry": ["trigger.config.ts", "trigger/workflows.ts"]
-    },
+    "apps/web": {},
     "packages/ui": {},
     "tooling/tailwind": {
       "ignoreDependencies": [
