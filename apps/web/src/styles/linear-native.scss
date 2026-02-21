@@ -1,0 +1,180 @@
+@font-face {
+  font-family: "Inter Variable";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("https://static.linear.app/fonts/InterVariable.woff2?v=4.1")
+    format("woff2");
+}
+
+@font-face {
+  font-family: "Inter Variable";
+  font-style: italic;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("https://static.linear.app/fonts/InterVariable-Italic.woff2?v=4.1")
+    format("woff2");
+}
+
+@font-face {
+  font-family: "Berkeley Mono";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("https://static.linear.app/fonts/Berkeley-Mono-Variable.woff2?v=3.2")
+    format("woff2");
+}
+
+:root {
+  --font-monospace:
+    "Berkeley Mono", "SFMono Regular", Consolas, "Liberation Mono", Menlo,
+    Courier, monospace;
+  --font-regular:
+    "Inter Variable", "SF Pro Display", -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans",
+    "Helvetica Neue", sans-serif;
+  --font-display: var(--font-regular);
+  --text-regular-size: 0.9375rem;
+  --text-small-size: 0.875rem;
+  --text-mini-size: 0.8125rem;
+  --text-micro-size: 0.75rem;
+  --text-regular-line-height: 1.6;
+  --text-small-line-height: calc(21 / 14);
+  --text-mini-line-height: 1.5;
+  --text-micro-line-height: 1.4;
+  --font-size-micro: 0.6875rem;
+  --font-size-mini: 0.75rem;
+  --font-size-small: 0.8125rem;
+  --font-size-regular: 0.9375rem;
+  --font-size-large: 1.125rem;
+  --font-size-title3: 1.25rem;
+  --font-size-title2: 1.5rem;
+  --font-weight-normal: 400;
+  --font-weight-medium: 510;
+  --font-weight-semibold: 590;
+  --radius-rounded: 9999px;
+  --control-border-radius: 4px;
+  --header-height: 40px;
+  --control-height: 26px;
+  --contentViewHeader-side-gap: 8px;
+  --speed-quickTransition: 0.1s;
+  --speed-regularTransition: 0.25s;
+  --ease-out-cubic: cubic-bezier(0.215, 0.61, 0.355, 1);
+  --sidebar-width: 244px;
+  --split-left-min-width: 350px;
+  --shell-gutter: 8px;
+  --shell-inset-radius: 8px;
+  --sidebar-rail-offset: -5px;
+  --sidebar-rail-top: 14px;
+  --sidebar-rail-bottom: 14px;
+  --sidebar-rail-width: 10px;
+}
+
+html,
+body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+}
+
+body {
+  font-family: var(--font-regular);
+  font-size: var(--text-mini-size);
+  line-height: var(--text-mini-line-height);
+  font-weight: var(--font-weight-normal);
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+[data-theme="light"] {
+  --color-shell-bg: #f8f8f8;
+  --color-sidebar-bg: #f9f8f9;
+  --color-main-bg: #f8f8f8;
+  --color-inset-bg: #ffffff;
+  --color-border-strong: #e9e8ea;
+  --color-border-subtle: #efedf0;
+  --color-text-primary: #1a1d24;
+  --color-text-secondary: #4f596c;
+  --color-text-muted: #69748a;
+  --color-text-faint: #8d97ab;
+  --color-item-hover: #f1f2f4;
+  --color-item-active: #e9edf8;
+  --color-icon-muted: #8a94a9;
+  --color-icon-active: #5e6ad2;
+  --color-control-bg: #f8f8f8;
+  --color-control-bg-hover: #f1f2f4;
+  --color-tab-bg: #f7f7f8;
+  --color-tab-bg-active: #eceff7;
+  --color-key-bg: #f3f4f7;
+  --color-key-border: #dbdfe8;
+  --color-key-text: #4f596c;
+  --color-rail: #dfe3eb;
+  --color-focus: #5e6ad2;
+  --color-control-primary: #5e6ad2;
+  --color-control-primary-hover: #4f5dc7;
+  --color-control-primary-label: #ffffff;
+  --color-bg-sub: var(--color-control-bg);
+  --color-bg-sub-hover: var(--color-control-bg-hover);
+  --color-bg-base: var(--color-inset-bg);
+  --color-bg-base-hover: var(--color-item-hover);
+  --color-bg-shade: #f2f2f4;
+  --color-bg-shade-hover: #ececef;
+  --color-bg-selected: var(--color-item-active);
+  --color-bg-selected-hover: #e3e8f7;
+  --color-bg-border: var(--color-border-strong);
+  --color-bg-border-hover: #dfe2e8;
+  --color-bg-border-faint: var(--color-border-subtle);
+  --color-label-title: var(--color-text-primary);
+  --color-label-base: var(--color-text-secondary);
+  --color-label-muted: var(--color-text-muted);
+  --color-label-faint: var(--color-text-faint);
+  --color-sidebar-link-bg: var(--color-item-hover);
+  --color-sidebar-link-active: var(--color-item-active);
+}
+
+[data-theme="dark"] {
+  --color-shell-bg: #090909;
+  --color-sidebar-bg: #090909;
+  --color-main-bg: #090909;
+  --color-inset-bg: #101012;
+  --color-border-strong: #23252a;
+  --color-border-subtle: #1b1d22;
+  --color-text-primary: #f3f4f8;
+  --color-text-secondary: #dbe0ea;
+  --color-text-muted: #a4abbc;
+  --color-text-faint: #7f8798;
+  --color-item-hover: #101012;
+  --color-item-active: #171923;
+  --color-icon-muted: #8d95ab;
+  --color-icon-active: #dde2f2;
+  --color-control-bg: #101012;
+  --color-control-bg-hover: #17181c;
+  --color-tab-bg: #101012;
+  --color-tab-bg-active: #171923;
+  --color-key-bg: #12141a;
+  --color-key-border: #2a2f3a;
+  --color-key-text: #dbe0ea;
+  --color-rail: #23252a;
+  --color-focus: #7a86f2;
+  --color-control-primary: #5e6ad2;
+  --color-control-primary-hover: #6975de;
+  --color-control-primary-label: #ffffff;
+  --color-bg-sub: #101012;
+  --color-bg-sub-hover: #17181c;
+  --color-bg-base: #090909;
+  --color-bg-base-hover: #101012;
+  --color-bg-shade: #141519;
+  --color-bg-shade-hover: #1a1b21;
+  --color-bg-selected: #171923;
+  --color-bg-selected-hover: #1c1f2a;
+  --color-bg-border: #23252a;
+  --color-bg-border-hover: #31343b;
+  --color-bg-border-faint: #1b1d22;
+  --color-label-title: #f3f4f8;
+  --color-label-base: #dbe0ea;
+  --color-label-muted: #a4abbc;
+  --color-label-faint: #7f8798;
+  --color-sidebar-link-bg: #15161c;
+  --color-sidebar-link-active: #1c1f2a;
+}
