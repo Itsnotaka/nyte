@@ -220,8 +220,8 @@ Observed in `https://linear.app/_next/static/css/da9566a426022001.css`:
 - `--font-size-regular: 0.9375rem` (15px)
 - `--font-size-small: 0.8125rem` (13px)
 
-Practical default body text in app views is usually around **14–15px tier**
-depending on component (`small` vs `regular`).
+Practical default body text in app views is usually around **12–13px tier**,
+with larger 14px styles used more sparingly for emphasis.
 
 ## 9) Nyte Sidebar Hover/Collapse Replication Notes
 

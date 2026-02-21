@@ -59,12 +59,6 @@
   box-shadow: none;
 }
 
-.sidebarLayerOpen {
-}
-
-.sidebarLayerClosed {
-}
-
 .sidebar {
   display: flex;
   height: 100%;
@@ -82,57 +76,10 @@
   display: flex;
   height: 40px;
   align-items: center;
-  gap: 6px;
+  justify-content: flex-end;
 }
 
 .workspaceButton {
-  display: flex;
-  min-width: 0;
-  flex: 1;
-  align-items: center;
-  gap: 8px;
-  border: 0;
-  border-radius: 5px;
-  background: transparent;
-  padding: 0 6px;
-  color: var(--color-text-primary);
-  font-size: var(--text-mini-size);
-  line-height: 20px;
-  font-weight: var(--font-weight-medium);
-  text-align: left;
-}
-
-.workspaceButton:hover {
-  background: var(--color-sidebar-link-bg);
-}
-
-.workspaceLogo {
-  display: inline-flex;
-  height: 18px;
-  width: 18px;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-  background: #a4ad2f;
-  color: #f7f8fc;
-  font-size: 8px;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-}
-
-.workspaceLabel {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.workspaceChevron {
-  color: var(--color-text-faint);
-  font-size: 10px;
-}
-
-.iconActionButton {
   display: inline-flex;
   height: 26px;
   width: 26px;
@@ -141,18 +88,18 @@
   border: 0;
   border-radius: 5px;
   background: transparent;
-  color: var(--color-icon-muted);
+  padding: 0;
+  color: var(--color-text-faint);
 }
 
-.iconActionButton:hover {
+.workspaceButton:hover {
   background: var(--color-sidebar-link-bg);
   color: var(--color-text-secondary);
 }
 
-.iconActionButton svg {
+.dropdownIndicatorIcon {
   height: 16px;
   width: 16px;
-  fill: currentColor;
 }
 
 .sidebarScrollArea {
@@ -160,142 +107,6 @@
   flex: 1;
   overflow: auto;
   padding: 8px 10px 12px;
-}
-
-.sidebarSection {
-  margin-top: 8px;
-}
-
-.sidebarSectionTitle {
-  margin: 0 0 4px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--color-text-faint);
-  font-size: var(--text-micro-size);
-  line-height: 16px;
-  font-weight: var(--font-weight-medium);
-}
-
-.sidebarSectionCaret {
-  font-size: 10px;
-}
-
-.teamRow {
-  display: flex;
-  height: 28px;
-  align-items: center;
-  gap: 8px;
-  padding: 0 8px;
-  color: var(--color-text-primary);
-  font-size: var(--text-mini-size);
-  line-height: 20px;
-  font-weight: var(--font-weight-medium);
-}
-
-.teamAvatar {
-  color: #1bb064;
-  font-size: 9px;
-}
-
-.teamLabel {
-  min-width: 0;
-  flex: 1;
-}
-
-.teamCaret {
-  color: var(--color-text-faint);
-  font-size: 10px;
-}
-
-.sidebarList {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.sidebarItem {
-  display: flex;
-  height: 28px;
-  width: 100%;
-  min-width: 0;
-  align-items: center;
-  gap: 8px;
-  border: 0;
-  border-radius: 5px;
-  background: transparent;
-  padding: 0 8px;
-  color: var(--color-text-secondary);
-  font-size: var(--text-mini-size);
-  line-height: 20px;
-  font-weight: var(--font-weight-normal);
-  text-align: left;
-}
-
-.sidebarItem:hover {
-  background: var(--color-sidebar-link-bg);
-}
-
-.sidebarItem[data-active="true"] {
-  background: var(--color-sidebar-link-active);
-  color: var(--color-text-primary);
-}
-
-.sidebarItem[data-nested="true"] {
-  padding-left: 16px;
-}
-
-.sidebarItemLabel {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.sidebarIcon {
-  display: inline-flex;
-  height: 16px;
-  width: 16px;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-icon-muted);
-}
-
-.sidebarItem[data-active="true"] .sidebarIcon {
-  color: var(--color-icon-active);
-}
-
-.sidebarIcon svg {
-  height: 16px;
-  width: 16px;
-  fill: currentColor;
-}
-
-.sidebarFooter {
-  padding: 10px;
-}
-
-.helpButton {
-  display: inline-flex;
-  height: 24px;
-  width: 24px;
-  align-items: center;
-  justify-content: center;
-  border: 0;
-  border-radius: 999px;
-  background: transparent;
-  color: var(--color-icon-muted);
-}
-
-.helpButton:hover {
-  background: var(--color-sidebar-link-bg);
-  color: var(--color-text-secondary);
-}
-
-.helpButton svg {
-  height: 16px;
-  width: 16px;
-  fill: currentColor;
 }
 
 .sidebarRail {
@@ -312,8 +123,7 @@
   left: 0;
   top: calc(var(--sidebar-float-top, 0px) + var(--sidebar-rail-top) - 20px);
   bottom: calc(
-    var(--sidebar-float-bottom, 0px) +
-      var(--sidebar-rail-bottom, var(--sidebar-rail-top)) - 5px
+    var(--sidebar-float-bottom, 0px) + var(--sidebar-rail-bottom, var(--sidebar-rail-top)) - 5px
   );
   width: 20px;
   border: 0;
@@ -383,6 +193,11 @@
   flex: 1;
   background: var(--color-main-bg);
   padding: var(--shell-gutter) var(--shell-gutter) var(--shell-gutter) 0;
+  transition: padding-left var(--speed-regularTransition) var(--ease-out-cubic);
+}
+
+.shellTrack[data-sidebar-collapsed="true"] .mainArea {
+  padding-left: var(--shell-gutter);
 }
 
 .mainInset {
@@ -401,39 +216,34 @@
   min-height: 0;
 }
 
-.sidebar[data-icon-mode="true"] .workspaceLabel,
-.sidebar[data-icon-mode="true"] .workspaceChevron,
-.sidebar[data-icon-mode="true"] .sidebarSectionTitle,
-.sidebar[data-icon-mode="true"] .teamRow,
-.sidebar[data-icon-mode="true"] .sidebarItemLabel {
-  display: none;
-}
-
-.sidebar[data-icon-mode="true"] .workspaceButton {
-  flex: 0 0 30px;
+.mainSidebarToggle {
+  position: absolute;
+  top: 8px;
+  left: 12px;
+  z-index: 2;
+  display: inline-flex;
+  height: 26px;
+  width: 26px;
+  align-items: center;
   justify-content: center;
-  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--color-text-muted);
 }
 
-.sidebar[data-icon-mode="true"] .sidebarScrollArea {
-  padding-left: 8px;
-  padding-right: 8px;
+.mainSidebarToggle:hover {
+  background: var(--color-control-bg-hover);
+  color: var(--color-text-primary);
 }
 
-.sidebar[data-icon-mode="true"] .sidebarSection {
-  margin-top: 10px;
+.mainSidebarToggle svg {
+  height: 16px;
+  width: 16px;
 }
 
-.sidebar[data-icon-mode="true"] .sidebarItem,
-.sidebar[data-icon-mode="true"] .sidebarItem[data-nested="true"] {
-  justify-content: center;
-  padding: 0;
-}
-
+.mainSidebarToggle:focus-visible,
 .workspaceButton:focus-visible,
-.iconActionButton:focus-visible,
-.sidebarItem:focus-visible,
-.helpButton:focus-visible,
 .sidebarRailHandle:focus-visible,
 .collapsedHoverEdge:focus-visible {
   outline: 2px solid var(--color-focus);

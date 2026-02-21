@@ -34,8 +34,8 @@
     "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans",
     "Helvetica Neue", sans-serif;
   --font-display: var(--font-regular);
-  --text-regular-size: 0.9375rem;
-  --text-small-size: 0.875rem;
+  --text-regular-size: 0.875rem;
+  --text-small-size: 0.8125rem;
   --text-mini-size: 0.8125rem;
   --text-micro-size: 0.75rem;
   --text-regular-line-height: 1.6;
@@ -45,7 +45,7 @@
   --font-size-micro: 0.6875rem;
   --font-size-mini: 0.75rem;
   --font-size-small: 0.8125rem;
-  --font-size-regular: 0.9375rem;
+  --font-size-regular: 0.875rem;
   --font-size-large: 1.125rem;
   --font-size-title3: 1.25rem;
   --font-size-title2: 1.5rem;
@@ -79,12 +79,21 @@ body {
 
 body {
   font-family: var(--font-regular);
-  font-size: var(--text-mini-size);
-  line-height: var(--text-mini-line-height);
+  font-size: var(--text-small-size);
+  line-height: var(--text-small-line-height);
   font-weight: var(--font-weight-normal);
   -moz-osx-font-smoothing: grayscale;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+button,
+input,
+optgroup,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
 }
 
 [data-theme="light"] {
