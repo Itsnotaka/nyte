@@ -1,10 +1,15 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { AppShellClient } from "./app-shell-client";
 import { auth } from "~/lib/auth";
 
-export default async function Layout({ children }: { children: React.ReactNode }) {
+import { AppShellClient } from "./app-shell-client";
+
+export default async function Layout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const session = await auth.api.getSession({
     headers: await headers(),
   });
@@ -15,5 +20,7 @@ export default async function Layout({ children }: { children: React.ReactNode }
 
   const interfaceTheme: "light" | "dark" = "light";
 
-  return <AppShellClient interfaceTheme={interfaceTheme}>{children}</AppShellClient>;
+  return (
+    <AppShellClient interfaceTheme={interfaceTheme}>{children}</AppShellClient>
+  );
 }

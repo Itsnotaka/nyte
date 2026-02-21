@@ -68,6 +68,10 @@
   --sidebar-rail-top: 14px;
   --sidebar-rail-bottom: 14px;
   --sidebar-rail-width: 10px;
+  --shell-inset-seam-size: 1px;
+  --shell-inset-seam-opacity: 1;
+  --shell-inset-seam-top: rgba(255, 255, 255, 0.08);
+  --shell-inset-seam-bottom: rgba(255, 255, 255, 0.04);
 }
 
 html,
@@ -140,6 +144,9 @@ textarea {
   --color-label-faint: var(--color-text-faint);
   --color-sidebar-link-bg: var(--color-item-hover);
   --color-sidebar-link-active: var(--color-item-active);
+  --shell-inset-seam-opacity: 0.85;
+  --shell-inset-seam-top: rgba(255, 255, 255, 0.65);
+  --shell-inset-seam-bottom: rgba(255, 255, 255, 0.35);
 }
 
 [data-theme="dark"] {
@@ -186,4 +193,7 @@ textarea {
   --color-label-faint: #7f8798;
   --color-sidebar-link-bg: #15161c;
   --color-sidebar-link-active: #1c1f2a;
+  --shell-inset-seam-opacity: 1;
+  --shell-inset-seam-top: rgba(255, 255, 255, 0.08);
+  --shell-inset-seam-bottom: rgba(255, 255, 255, 0.04);
 }

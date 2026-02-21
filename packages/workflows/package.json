@@ -15,10 +15,10 @@
     "@nyte/domain": "workspace:*",
     "@nyte/extension-runtime": "workspace:*",
     "@nyte/integrations": "workspace:*",
-    "evlog": "^1.10.0"
+    "evlog": "^1.11.0"
   },
   "devDependencies": {
     "@nyte/tsconfig": "workspace:*",
-    "typescript": "^5.9.3"
+    "typescript": "6.0.0-beta"
   }
 }

@@ -20,15 +20,15 @@
   "devDependencies": {
     "@nyte/tsconfig": "workspace:*",
     "@typescript/native-preview": "7.0.0-dev.20260215.1",
-    "knip": "^5.84.1",
-    "oxfmt": "^0.33.0",
-    "oxlint": "^1.48.0",
-    "oxlint-tsgolint": "^0.14.1",
+    "knip": "^5.85.0",
+    "oxfmt": "^0.34.0",
+    "oxlint": "^1.49.0",
+    "oxlint-tsgolint": "^0.14.2",
     "turbo": "^2.8.10",
-    "typescript": "^5.9.3"
+    "typescript": "6.0.0-beta"
   },
   "engines": {
     "node": ">=20"
   },
-  "packageManager": "pnpm@10.30.0"
+  "packageManager": "pnpm@10.30.1"
 }
