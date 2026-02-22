@@ -332,38 +332,6 @@ function SidebarProvider({
       const viewportChanged =
         store.isSmallViewport !== isSmallViewport ||
         store.variant !== nextVariant;
-      if (viewportChanged || store.isResizing) {
-        // #region agent log
-        fetch(
-          "http://127.0.0.1:7425/ingest/05007669-5789-447d-b19b-0dfcda27c9e8",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "X-Debug-Session-Id": "5e2b51",
-            },
-            body: JSON.stringify({
-              sessionId: "5e2b51",
-              runId: "pre-fix-rail",
-              hypothesisId: "H5",
-              location:
-                "packages/ui/src/components/ui/sidebar.tsx:syncViewportVariant",
-              message: "Viewport sync evaluated",
-              data: {
-                viewportChanged,
-                isSmallViewport,
-                nextVariant,
-                currentVariant: store.variant,
-                desktopVariant: store.desktopVariant,
-                isResizing: store.isResizing,
-                isOpen: store.isOpen,
-              },
-              timestamp: Date.now(),
-            }),
-          }
-        ).catch(() => {});
-        // #endregion
-      }
       if (!viewportChanged) {
         return;
       }
@@ -388,41 +356,15 @@ function SidebarProvider({
   }, [emit, scheduleLayout]);
 
   const commitResize = React.useCallback(
-    (finalWidth: number, finalVariant: DesktopSidebarVariant) => {
+    (
+      finalWidth: number,
+      finalVariant: DesktopSidebarVariant,
+      preserveOpenOnCollapsed = false
+    ) => {
       const store = storeRef.current;
       if (!store) {
         return;
       }
-      // #region agent log
-      fetch(
-        "http://127.0.0.1:7425/ingest/05007669-5789-447d-b19b-0dfcda27c9e8",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-Debug-Session-Id": "5e2b51",
-          },
-          body: JSON.stringify({
-            sessionId: "5e2b51",
-            runId: "pre-fix-rail",
-            hypothesisId: "H3",
-            location:
-              "packages/ui/src/components/ui/sidebar.tsx:commitResize:entry",
-            message: "Commit resize entry",
-            data: {
-              finalWidth,
-              finalVariant,
-              variantBefore: store.variant,
-              desktopVariantBefore: store.desktopVariant,
-              isOpenBefore: store.isOpen,
-              isSmallViewport: store.isSmallViewport,
-              staticWidthBefore: store.staticWidth,
-            },
-            timestamp: Date.now(),
-          }),
-        }
-      ).catch(() => {});
-      // #endregion
 
       store.isResizing = false;
       store.resizingMode = null;
@@ -431,37 +373,10 @@ function SidebarProvider({
       if (finalVariant === "collapsed") {
         store.desktopVariant = "collapsed";
         store.variant = store.isSmallViewport ? "mobile" : "collapsed";
+        store.isOpen = preserveOpenOnCollapsed;
         const collapsedWidth = resolveLayerWidth(store);
         store.liveWidth = collapsedWidth;
         scheduleLayout(COLLAPSED_SPACER_WIDTH, collapsedWidth);
-        // #region agent log
-        fetch(
-          "http://127.0.0.1:7425/ingest/05007669-5789-447d-b19b-0dfcda27c9e8",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "X-Debug-Session-Id": "5e2b51",
-            },
-            body: JSON.stringify({
-              sessionId: "5e2b51",
-              runId: "pre-fix-rail",
-              hypothesisId: "H3",
-              location:
-                "packages/ui/src/components/ui/sidebar.tsx:commitResize:collapsed",
-              message: "Commit resize collapsed branch",
-              data: {
-                variantAfter: store.variant,
-                desktopVariantAfter: store.desktopVariant,
-                isOpenAfter: store.isOpen,
-                collapsedWidth,
-                staticWidthAfter: store.staticWidth,
-              },
-              timestamp: Date.now(),
-            }),
-          }
-        ).catch(() => {});
-        // #endregion
         emit();
         return;
       }
@@ -476,35 +391,6 @@ function SidebarProvider({
       } else {
         scheduleLayout(COLLAPSED_SPACER_WIDTH, resolveLayerWidth(store));
       }
-      // #region agent log
-      fetch(
-        "http://127.0.0.1:7425/ingest/05007669-5789-447d-b19b-0dfcda27c9e8",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-Debug-Session-Id": "5e2b51",
-          },
-          body: JSON.stringify({
-            sessionId: "5e2b51",
-            runId: "pre-fix-rail",
-            hypothesisId: "H4",
-            location:
-              "packages/ui/src/components/ui/sidebar.tsx:commitResize:static",
-            message: "Commit resize static branch",
-            data: {
-              clampedWidth,
-              variantAfter: store.variant,
-              desktopVariantAfter: store.desktopVariant,
-              isOpenAfter: store.isOpen,
-              isSmallViewport: store.isSmallViewport,
-              staticWidthAfter: store.staticWidth,
-            },
-            timestamp: Date.now(),
-          }),
-        }
-      ).catch(() => {});
-      // #endregion
       emit();
     },
     [emit, scheduleLayout]
@@ -577,35 +463,7 @@ function SidebarProvider({
     }
 
     if (store.variant === "mobile") {
-      const previousIsOpen = store.isOpen;
       store.isOpen = !store.isOpen;
-      // #region agent log
-      fetch(
-        "http://127.0.0.1:7425/ingest/05007669-5789-447d-b19b-0dfcda27c9e8",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-Debug-Session-Id": "5e2b51",
-          },
-          body: JSON.stringify({
-            sessionId: "5e2b51",
-            runId: "pre-fix-rail",
-            hypothesisId: "H8",
-            location: "packages/ui/src/components/ui/sidebar.tsx:toggle:mobile",
-            message: "Mobile toggle invoked",
-            data: {
-              previousIsOpen,
-              nextIsOpen: store.isOpen,
-              variant: store.variant,
-              desktopVariant: store.desktopVariant,
-              isSmallViewport: store.isSmallViewport,
-            },
-            timestamp: Date.now(),
-          }),
-        }
-      ).catch(() => {});
-      // #endregion
       scheduleLayout(COLLAPSED_SPACER_WIDTH, resolveLayerWidth(store));
       emit();
       return;
@@ -674,35 +532,6 @@ function SidebarProvider({
         return;
       }
       if (store.variant === "mobile" && !store.isOpen) {
-        // #region agent log
-        fetch(
-          "http://127.0.0.1:7425/ingest/05007669-5789-447d-b19b-0dfcda27c9e8",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "X-Debug-Session-Id": "5e2b51",
-            },
-            body: JSON.stringify({
-              sessionId: "5e2b51",
-              runId: "pre-fix-rail",
-              hypothesisId: "H7",
-              location:
-                "packages/ui/src/components/ui/sidebar.tsx:startResize:guard",
-              message: "Resize blocked in closed mobile variant",
-              data: {
-                pointerId,
-                clientX,
-                variant: store.variant,
-                desktopVariant: store.desktopVariant,
-                isOpen: store.isOpen,
-                isSmallViewport: store.isSmallViewport,
-              },
-              timestamp: Date.now(),
-            }),
-          }
-        ).catch(() => {});
-        // #endregion
         return;
       }
 
@@ -724,38 +553,6 @@ function SidebarProvider({
       if (store.variant === "mobile" && !store.isOpen) {
         store.isOpen = true;
       }
-      // #region agent log
-      fetch(
-        "http://127.0.0.1:7425/ingest/05007669-5789-447d-b19b-0dfcda27c9e8",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-Debug-Session-Id": "5e2b51",
-          },
-          body: JSON.stringify({
-            sessionId: "5e2b51",
-            runId: "pre-fix-rail",
-            hypothesisId: "H1",
-            location: "packages/ui/src/components/ui/sidebar.tsx:startResize",
-            message: "Resize started",
-            data: {
-              pointerId,
-              clientX,
-              variant: store.variant,
-              desktopVariant: store.desktopVariant,
-              startVariant,
-              startWidth,
-              staticWidth: store.staticWidth,
-              resolvedLayerWidth: resolveLayerWidth(store),
-              isOpen: store.isOpen,
-              isSmallViewport: store.isSmallViewport,
-            },
-            timestamp: Date.now(),
-          }),
-        }
-      ).catch(() => {});
-      // #endregion
 
       if (store.variant === "mobile" || startVariant === "collapsed") {
         store.isOpen = true;
@@ -790,46 +587,12 @@ function SidebarProvider({
 
       let shouldEmit = false;
       if (store.variant === "mobile") {
-        const previousMobileWidth = store.mobileWidth;
         store.mobileWidth = nextWidth;
         store.desktopVariant = "collapsed";
         store.resizingMode = "collapsed";
         if (!store.isOpen) {
           store.isOpen = true;
           shouldEmit = true;
-        }
-        if (previousMobileWidth !== nextWidth) {
-          // #region agent log
-          fetch(
-            "http://127.0.0.1:7425/ingest/05007669-5789-447d-b19b-0dfcda27c9e8",
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "X-Debug-Session-Id": "5e2b51",
-              },
-              body: JSON.stringify({
-                sessionId: "5e2b51",
-                runId: "post-fix-rail",
-                hypothesisId: "H9",
-                location:
-                  "packages/ui/src/components/ui/sidebar.tsx:moveResize",
-                message: "Mobile width updated during rail drag",
-                data: {
-                  pointerId,
-                  deltaX,
-                  rawWidth,
-                  nextWidth,
-                  previousMobileWidth,
-                  isOpen: store.isOpen,
-                  variant: store.variant,
-                  desktopVariant: store.desktopVariant,
-                },
-                timestamp: Date.now(),
-              }),
-            }
-          ).catch(() => {});
-          // #endregion
         }
         scheduleLayout(COLLAPSED_SPACER_WIDTH, nextWidth);
         if (shouldEmit) {
@@ -838,7 +601,6 @@ function SidebarProvider({
         return;
       }
 
-      const previousDragVariant = dragState.dragVariant;
       const computedNextVariant = resolveDragVariant(
         rawWidth,
         dragState.dragVariant,
@@ -848,46 +610,6 @@ function SidebarProvider({
         dragState.startVariant === "collapsed"
           ? "collapsed"
           : computedNextVariant;
-      if (
-        computedNextVariant !== previousDragVariant ||
-        nextVariant !== previousDragVariant
-      ) {
-        // #region agent log
-        fetch(
-          "http://127.0.0.1:7425/ingest/05007669-5789-447d-b19b-0dfcda27c9e8",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "X-Debug-Session-Id": "5e2b51",
-            },
-            body: JSON.stringify({
-              sessionId: "5e2b51",
-              runId: "pre-fix-rail",
-              hypothesisId: "H2",
-              location: "packages/ui/src/components/ui/sidebar.tsx:moveResize",
-              message: "Drag variant transition",
-              data: {
-                pointerId,
-                deltaX,
-                rawWidth,
-                nextWidth,
-                startVariant: dragState.startVariant,
-                previousDragVariant,
-                computedNextVariant,
-                nextVariant,
-                forcedCollapsedLock: dragState.startVariant === "collapsed",
-                renderedVariantBefore: store.variant,
-                desktopVariantBefore: store.desktopVariant,
-                isOpenBefore: store.isOpen,
-                isSmallViewport: store.isSmallViewport,
-              },
-              timestamp: Date.now(),
-            }),
-          }
-        ).catch(() => {});
-        // #endregion
-      }
 
       if (nextVariant !== dragState.dragVariant) {
         dragState.dragVariant = nextVariant;
@@ -939,38 +661,6 @@ function SidebarProvider({
 
       const dragState = store.drag;
       store.drag = null;
-      // #region agent log
-      fetch(
-        "http://127.0.0.1:7425/ingest/05007669-5789-447d-b19b-0dfcda27c9e8",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-Debug-Session-Id": "5e2b51",
-          },
-          body: JSON.stringify({
-            sessionId: "5e2b51",
-            runId: "pre-fix-rail",
-            hypothesisId: "H3",
-            location: "packages/ui/src/components/ui/sidebar.tsx:finishResize",
-            message: "Resize finished",
-            data: {
-              pointerId,
-              hasMoved: dragState.hasMoved,
-              startVariant: dragState.startVariant,
-              dragVariant: dragState.dragVariant,
-              rawWidth: dragState.rawWidth,
-              liveWidth: store.liveWidth,
-              variantBeforeCommit: store.variant,
-              desktopVariantBeforeCommit: store.desktopVariant,
-              isOpenBeforeCommit: store.isOpen,
-              isSmallViewport: store.isSmallViewport,
-            },
-            timestamp: Date.now(),
-          }),
-        }
-      ).catch(() => {});
-      // #endregion
 
       if (store.variant === "mobile") {
         store.isResizing = false;
@@ -983,36 +673,6 @@ function SidebarProvider({
         );
         store.isOpen = true;
         scheduleLayout(COLLAPSED_SPACER_WIDTH, store.mobileWidth);
-        // #region agent log
-        fetch(
-          "http://127.0.0.1:7425/ingest/05007669-5789-447d-b19b-0dfcda27c9e8",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "X-Debug-Session-Id": "5e2b51",
-            },
-            body: JSON.stringify({
-              sessionId: "5e2b51",
-              runId: "post-fix-rail",
-              hypothesisId: "H10",
-              location:
-                "packages/ui/src/components/ui/sidebar.tsx:finishResize",
-              message: "Mobile resize committed without closing",
-              data: {
-                pointerId,
-                hasMoved: dragState.hasMoved,
-                mobileWidth: store.mobileWidth,
-                liveWidth: store.liveWidth,
-                variant: store.variant,
-                desktopVariant: store.desktopVariant,
-                isOpen: store.isOpen,
-              },
-              timestamp: Date.now(),
-            }),
-          }
-        ).catch(() => {});
-        // #endregion
         emit();
         return;
       }
@@ -1040,7 +700,11 @@ function SidebarProvider({
         currentStore.suppressDoubleClick = false;
       });
 
-      commitResize(store.liveWidth, dragState.dragVariant);
+      commitResize(
+        store.liveWidth,
+        dragState.dragVariant,
+        dragState.startVariant === "collapsed"
+      );
     },
     [commitResize, emit, scheduleLayout]
   );
@@ -1128,6 +792,7 @@ function SidebarProvider({
     "--sidebar-focus-color": "var(--color-focus)",
     "--sidebar-hover-overlay-bg": "rgba(0, 0, 0, 0.6)",
     "--sidebar-hover-overlay-opacity": "1",
+    "--sidebar-hover-proximity": "14px",
     ...style,
   } as React.CSSProperties;
 
@@ -1199,6 +864,28 @@ function Sidebar({
 
   const isFloatingVisible =
     snapshot.isCollapsedVisible || snapshot.isMobileVisible;
+  const hoverProximity = "var(--sidebar-hover-proximity, 0px)";
+  const layerHitAreaStyle = {
+    width: snapshot.isCollapsedGeometry
+      ? `calc(var(--sidebar-layer-width) + (${hoverProximity} * 2))`
+      : "var(--sidebar-layer-width)",
+    left:
+      snapshot.variant === "static"
+        ? 0
+        : snapshot.isCollapsedGeometry
+          ? snapshot.isCollapsedVisible
+            ? `calc(var(--sidebar-float-left) - ${hoverProximity})`
+            : `calc(${snapshot.hiddenLeft}px - ${hoverProximity})`
+          : snapshot.isMobileVisible
+            ? 0
+            : snapshot.hiddenLeft,
+    top: snapshot.isCollapsedGeometry
+      ? `calc(var(--sidebar-float-top) - ${hoverProximity})`
+      : 0,
+    bottom: snapshot.isCollapsedGeometry
+      ? `calc(var(--sidebar-float-bottom) - ${hoverProximity})`
+      : 0,
+  } as React.CSSProperties;
   const layerStyle = {
     width: "var(--sidebar-layer-width)",
     maxWidth: snapshot.isMobileGeometry
@@ -1208,14 +895,12 @@ function Sidebar({
       snapshot.variant === "static"
         ? 0
         : snapshot.isCollapsedGeometry
-          ? snapshot.isCollapsedVisible
-            ? "var(--sidebar-float-left)"
-            : snapshot.hiddenLeft
+          ? hoverProximity
           : snapshot.isMobileVisible
             ? 0
             : snapshot.hiddenLeft,
-    top: snapshot.isCollapsedGeometry ? "var(--sidebar-float-top)" : 0,
-    bottom: snapshot.isCollapsedGeometry ? "var(--sidebar-float-bottom)" : 0,
+    top: snapshot.isCollapsedGeometry ? hoverProximity : 0,
+    bottom: snapshot.isCollapsedGeometry ? hoverProximity : 0,
     borderColor:
       (snapshot.isCollapsedGeometry || snapshot.isMobileGeometry) &&
       isFloatingVisible
@@ -1264,36 +949,7 @@ function Sidebar({
           aria-label="Close sidebar"
           className="absolute inset-0 z-[19] border-0 bg-transparent p-0"
           style={hoverOverlayStyle}
-          onClick={() => {
-            // #region agent log
-            fetch(
-              "http://127.0.0.1:7425/ingest/05007669-5789-447d-b19b-0dfcda27c9e8",
-              {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  "X-Debug-Session-Id": "5e2b51",
-                },
-                body: JSON.stringify({
-                  sessionId: "5e2b51",
-                  runId: "post-fix-rail",
-                  hypothesisId: "H13",
-                  location:
-                    "packages/ui/src/components/ui/sidebar.tsx:mobileOverlay:onClick",
-                  message: "Mobile overlay clicked",
-                  data: {
-                    state: snapshot.state,
-                    variant: snapshot.variant,
-                    isOpen: snapshot.isOpen,
-                    isSmallViewport: snapshot.isSmallViewport,
-                  },
-                  timestamp: Date.now(),
-                }),
-              }
-            ).catch(() => {});
-            // #endregion
-            toggle();
-          }}
+          onClick={toggle}
         />
       ) : (
         <div
@@ -1304,26 +960,34 @@ function Sidebar({
         />
       )}
       <div
-        data-sidebar-layer
-        data-sidebar-variant={snapshot.variant}
-        data-sidebar-width={snapshot.layerWidth}
-        data-sidebar-open={snapshot.isOpen ? "true" : "false"}
-        data-collapsed-geometry={
-          snapshot.isCollapsedGeometry ? "true" : "false"
-        }
-        data-collapsed-visible={snapshot.isCollapsedVisible ? "true" : "false"}
-        className="absolute inset-y-0 left-0 z-20 overflow-hidden border border-transparent"
-        style={layerStyle}
+        data-sidebar-layer-hit-area
+        className="absolute inset-y-0 left-0 z-20"
+        style={layerHitAreaStyle}
         onMouseEnter={onSidebarMouseEnter}
         onMouseLeave={onSidebarMouseLeave}
       >
-        <aside
-          data-sidebar
-          className={cn("flex h-full min-w-0 flex-col", className)}
-          {...props}
+        <div
+          data-sidebar-layer
+          data-sidebar-variant={snapshot.variant}
+          data-sidebar-width={snapshot.layerWidth}
+          data-sidebar-open={snapshot.isOpen ? "true" : "false"}
+          data-collapsed-geometry={
+            snapshot.isCollapsedGeometry ? "true" : "false"
+          }
+          data-collapsed-visible={
+            snapshot.isCollapsedVisible ? "true" : "false"
+          }
+          className="absolute inset-y-0 left-0 overflow-hidden border border-transparent"
+          style={layerStyle}
         >
-          {children}
-        </aside>
+          <aside
+            data-sidebar
+            className={cn("flex h-full min-w-0 flex-col", className)}
+            {...props}
+          >
+            {children}
+          </aside>
+        </div>
       </div>
 
       {snapshot.variant === "collapsed" ? (
@@ -1359,41 +1023,9 @@ function SidebarRail({
 }: React.ComponentProps<"button">) {
   const { snapshot, startResize, moveResize, finishResize, onRailDoubleClick } =
     useSidebarInternal();
-  const hasLoggedMobileRailHiddenRef = React.useRef(false);
-
-  if (snapshot.variant !== "mobile") {
-    hasLoggedMobileRailHiddenRef.current = false;
-  }
 
   if (snapshot.variant === "mobile" && !snapshot.isOpen) {
     return null;
-  }
-  if (snapshot.variant === "mobile" && !hasLoggedMobileRailHiddenRef.current) {
-    hasLoggedMobileRailHiddenRef.current = true;
-    // #region agent log
-    fetch("http://127.0.0.1:7425/ingest/05007669-5789-447d-b19b-0dfcda27c9e8", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Debug-Session-Id": "5e2b51",
-      },
-      body: JSON.stringify({
-        sessionId: "5e2b51",
-        runId: "post-fix-rail",
-        hypothesisId: "H6",
-        location: "packages/ui/src/components/ui/sidebar.tsx:SidebarRail",
-        message: "Rail rendered while mobile sidebar open",
-        data: {
-          state: snapshot.state,
-          variant: snapshot.variant,
-          isOpen: snapshot.isOpen,
-          isSmallViewport: snapshot.isSmallViewport,
-          width: snapshot.width,
-        },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
   }
 
   const railStyle = {
@@ -1413,133 +1045,15 @@ function SidebarRail({
       )}
       style={railStyle}
       onPointerDown={(event) => {
-        // #region agent log
-        fetch(
-          "http://127.0.0.1:7425/ingest/05007669-5789-447d-b19b-0dfcda27c9e8",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "X-Debug-Session-Id": "5e2b51",
-            },
-            body: JSON.stringify({
-              sessionId: "5e2b51",
-              runId: "post-fix-rail",
-              hypothesisId: "H11",
-              location:
-                "packages/ui/src/components/ui/sidebar.tsx:SidebarRail:onPointerDown",
-              message: "Rail pointer down received",
-              data: {
-                pointerId: event.pointerId,
-                pointerType: event.pointerType,
-                clientX: event.clientX,
-                state: snapshot.state,
-                variant: snapshot.variant,
-                isOpen: snapshot.isOpen,
-                isSmallViewport: snapshot.isSmallViewport,
-              },
-              timestamp: Date.now(),
-            }),
-          }
-        ).catch(() => {});
-        // #endregion
         onPointerDown?.(event);
         if (event.defaultPrevented) {
-          // #region agent log
-          fetch(
-            "http://127.0.0.1:7425/ingest/05007669-5789-447d-b19b-0dfcda27c9e8",
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "X-Debug-Session-Id": "5e2b51",
-              },
-              body: JSON.stringify({
-                sessionId: "5e2b51",
-                runId: "post-fix-rail",
-                hypothesisId: "H11",
-                location:
-                  "packages/ui/src/components/ui/sidebar.tsx:SidebarRail:onPointerDown",
-                message: "Rail pointer down prevented",
-                data: {
-                  pointerId: event.pointerId,
-                  pointerType: event.pointerType,
-                  state: snapshot.state,
-                  variant: snapshot.variant,
-                },
-                timestamp: Date.now(),
-              }),
-            }
-          ).catch(() => {});
-          // #endregion
           return;
         }
 
         event.preventDefault();
         try {
           event.currentTarget.setPointerCapture(event.pointerId);
-          // #region agent log
-          fetch(
-            "http://127.0.0.1:7425/ingest/05007669-5789-447d-b19b-0dfcda27c9e8",
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "X-Debug-Session-Id": "5e2b51",
-              },
-              body: JSON.stringify({
-                sessionId: "5e2b51",
-                runId: "post-fix-rail",
-                hypothesisId: "H12",
-                location:
-                  "packages/ui/src/components/ui/sidebar.tsx:SidebarRail:onPointerDown",
-                message: "Pointer capture succeeded",
-                data: {
-                  pointerId: event.pointerId,
-                  pointerType: event.pointerType,
-                  hasCapture: event.currentTarget.hasPointerCapture(
-                    event.pointerId
-                  ),
-                  state: snapshot.state,
-                  variant: snapshot.variant,
-                },
-                timestamp: Date.now(),
-              }),
-            }
-          ).catch(() => {});
-          // #endregion
-        } catch (error) {
-          // #region agent log
-          fetch(
-            "http://127.0.0.1:7425/ingest/05007669-5789-447d-b19b-0dfcda27c9e8",
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "X-Debug-Session-Id": "5e2b51",
-              },
-              body: JSON.stringify({
-                sessionId: "5e2b51",
-                runId: "post-fix-rail",
-                hypothesisId: "H12",
-                location:
-                  "packages/ui/src/components/ui/sidebar.tsx:SidebarRail:onPointerDown",
-                message: "Pointer capture failed",
-                data: {
-                  pointerId: event.pointerId,
-                  pointerType: event.pointerType,
-                  error:
-                    error instanceof Error
-                      ? error.message
-                      : "Unknown pointer capture error",
-                  state: snapshot.state,
-                  variant: snapshot.variant,
-                },
-                timestamp: Date.now(),
-              }),
-            }
-          ).catch(() => {});
-          // #endregion
+        } catch {
           return;
         }
         startResize(event.pointerId, event.clientX);
