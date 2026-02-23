@@ -1,14 +1,11 @@
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { LoginView } from "~/components/login-view";
-import { auth } from "~/lib/auth";
+import { isAuthenticated } from "~/lib/auth-server";
 
 export default async function LoginPage() {
-  const requestHeaders = await headers();
-  const session = await auth.api.getSession({ headers: requestHeaders });
-
-  if (session) {
+  const authenticated = await isAuthenticated();
+  if (authenticated) {
     redirect("/");
   }
 

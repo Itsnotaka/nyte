@@ -2,32 +2,26 @@
 
 ## Purpose
 
-Primary Nyte product surface: auth-first workspace UI plus a tRPC gateway.
+Primary Nyte product surface: auth-first workspace UI backed by Convex.
 
 ## Responsibilities
 
 - render landing/workspace flows and approval queue interactions
 - manage Google auth connect/disconnect and session-aware UI state
-- fetch and mutate queue state via TanStack Query + tRPC client hooks
-- expose server-side procedures through `app/api/trpc/[trpc]/route.ts`
-- map application/workflow errors to stable API-level `TRPCError` responses
-
-## tRPC procedures
-
-- `queue.sync`
-- `actions.approve`
-- `actions.dismiss`
-- `actions.feedback`
+- fetch and mutate queue state via Convex queries and mutations
+- proxy Better Auth handlers through `app/api/auth/[...all]/route.ts`
+- keep realtime queue state server-driven (no client sync invalidation)
 
 ## Key files
 
-- `src/lib/server/router.ts`
-- `src/lib/server/trpc.ts`
-- `src/lib/server/context.ts`
-- `src/hooks/use-workspace.ts`
-- `src/components/workspace.tsx`
+- `convex/queue.ts`
+- `convex/actions.ts`
+- `convex/agent.ts`
+- `src/lib/auth-server.ts`
+- `src/components/providers.tsx`
 
 ## Local commands
 
 - `pnpm --filter web dev`
 - `pnpm --filter web typecheck`
+- `pnpm dlx convex dev`

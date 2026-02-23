@@ -1,16 +1,9 @@
 "use client";
 
-import type { WorkItemWithAction } from "@nyte/domain/actions";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "convex/react";
 import { createContext, use, useCallback, useMemo, useState } from "react";
 
-import { useTRPC } from "~/lib/trpc";
-
-type QueueFeedResponse = {
-  approvalQueue: WorkItemWithAction[];
-  lastSyncedAt: string | null;
-  isStale: boolean;
-};
+import { api } from "~/lib/convex";
 
 type FeedContextValue = {
   approve: (itemId: string) => Promise<void>;
@@ -18,11 +11,6 @@ type FeedContextValue = {
   pendingIds: Set<string>;
   actionError: string | null;
   clearActionError: () => void;
-};
-
-type MutationContext = {
-  previous: QueueFeedResponse | undefined;
-  itemId: string;
 };
 
 const FeedContext = createContext<FeedContextValue | null>(null);
@@ -50,27 +38,12 @@ function toErrorMessage(error: unknown, fallback: string): string {
   return fallback;
 }
 
-function removeQueueItem(
-  data: QueueFeedResponse | undefined,
-  itemId: string
-): QueueFeedResponse | undefined {
-  if (!data) {
-    return data;
-  }
-
-  return {
-    ...data,
-    approvalQueue: data.approvalQueue.filter((item) => item.id !== itemId),
-  };
-}
-
 export function FeedProvider({ children }: { children: React.ReactNode }) {
-  const trpc = useTRPC();
-  const queryClient = useQueryClient();
   const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
   const [actionError, setActionError] = useState<string | null>(null);
 
-  const queueFeedQueryKey = trpc.queue.feed.queryKey(undefined);
+  const approveMutation = useMutation(api.actions.approve);
+  const dismissMutation = useMutation(api.actions.dismiss);
 
   const updatePendingState = useCallback(
     (itemId: string, isPending: boolean) => {
@@ -87,82 +60,34 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
     []
   );
 
-  const approveMutation = useMutation(
-    trpc.actions.approve.mutationOptions({
-      onMutate: async ({ itemId }) => {
-        updatePendingState(itemId, true);
-        await queryClient.cancelQueries({ queryKey: queueFeedQueryKey });
-
-        const previous =
-          queryClient.getQueryData<QueueFeedResponse>(queueFeedQueryKey);
-        queryClient.setQueryData<QueueFeedResponse | undefined>(
-          queueFeedQueryKey,
-          (old) => removeQueueItem(old, itemId)
-        );
-
-        return { previous, itemId } satisfies MutationContext;
-      },
-      onError: (error, _variables, context) => {
-        setActionError(toErrorMessage(error, "Unable to approve this item."));
-        if (context?.previous) {
-          queryClient.setQueryData(queueFeedQueryKey, context.previous);
-        }
-      },
-      onSettled: (_data, _error, variables, context) => {
-        const itemId = context?.itemId ?? variables.itemId;
-        updatePendingState(itemId, false);
-        void queryClient.invalidateQueries({ queryKey: queueFeedQueryKey });
-      },
-    })
-  );
-
-  const dismissMutation = useMutation(
-    trpc.actions.dismiss.mutationOptions({
-      onMutate: async ({ itemId }) => {
-        updatePendingState(itemId, true);
-        await queryClient.cancelQueries({ queryKey: queueFeedQueryKey });
-
-        const previous =
-          queryClient.getQueryData<QueueFeedResponse>(queueFeedQueryKey);
-        queryClient.setQueryData<QueueFeedResponse | undefined>(
-          queueFeedQueryKey,
-          (old) => removeQueueItem(old, itemId)
-        );
-
-        return { previous, itemId } satisfies MutationContext;
-      },
-      onError: (error, _variables, context) => {
-        setActionError(toErrorMessage(error, "Unable to dismiss this item."));
-        if (context?.previous) {
-          queryClient.setQueryData(queueFeedQueryKey, context.previous);
-        }
-      },
-      onSettled: (_data, _error, variables, context) => {
-        const itemId = context?.itemId ?? variables.itemId;
-        updatePendingState(itemId, false);
-        void queryClient.invalidateQueries({ queryKey: queueFeedQueryKey });
-      },
-    })
-  );
-
   const approve = useCallback(
     async (itemId: string) => {
       setActionError(null);
+      updatePendingState(itemId, true);
       try {
-        await approveMutation.mutateAsync({ itemId });
-      } catch {}
+        await approveMutation({ itemId });
+      } catch (error) {
+        setActionError(toErrorMessage(error, "Unable to approve this item."));
+      } finally {
+        updatePendingState(itemId, false);
+      }
     },
-    [approveMutation]
+    [approveMutation, updatePendingState]
   );
 
   const dismiss = useCallback(
     async (itemId: string) => {
       setActionError(null);
+      updatePendingState(itemId, true);
       try {
-        await dismissMutation.mutateAsync({ itemId });
-      } catch {}
+        await dismissMutation({ itemId });
+      } catch (error) {
+        setActionError(toErrorMessage(error, "Unable to dismiss this item."));
+      } finally {
+        updatePendingState(itemId, false);
+      }
     },
-    [dismissMutation]
+    [dismissMutation, updatePendingState]
   );
 
   const clearActionError = useCallback(() => {

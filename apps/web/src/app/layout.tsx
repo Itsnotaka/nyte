@@ -1,8 +1,9 @@
 import { Inter } from "next/font/google";
 import localFont from "next/font/local";
 
-import "~/styles/globals.css";
+import "../styles/globals.css";
 import { Providers } from "~/components/providers";
+import { getToken } from "~/lib/auth-server";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -35,17 +36,19 @@ const berkeleyMono = localFont({
   variable: "--font-berkeley-mono",
 });
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const token = await getToken();
+
   return (
     <html lang="en" suppressHydrationWarning className="h-full">
       <body
         className={`${inter.variable} ${berkeleyMono.variable} h-full font-sans`}
       >
-        <Providers>{children}</Providers>
+        <Providers initialToken={token}>{children}</Providers>
       </body>
     </html>
   );

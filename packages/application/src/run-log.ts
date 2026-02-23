@@ -163,7 +163,12 @@ export async function pruneWorkflowEvents({
       id: workflowRuns.id,
     })
     .from(workflowRuns)
-    .where(or(lt(workflowRuns.updatedAt, olderThan), lt(workflowRuns.createdAt, olderThan)));
+    .where(
+      or(
+        lt(workflowRuns.updatedAt, olderThan),
+        lt(workflowRuns.createdAt, olderThan)
+      )
+    );
   const runIds = oldRunRows.map((row) => row.id);
 
   if (runIds.length === 0) {
@@ -181,12 +186,8 @@ export async function pruneWorkflowEvents({
     .from(workflowEvents)
     .where(inArray(workflowEvents.runId, runIds));
 
-  await db
-    .delete(workflowEvents)
-    .where(inArray(workflowEvents.runId, runIds));
-  await db
-    .delete(workflowRuns)
-    .where(inArray(workflowRuns.id, runIds));
+  await db.delete(workflowEvents).where(inArray(workflowEvents.runId, runIds));
+  await db.delete(workflowRuns).where(inArray(workflowRuns.id, runIds));
 
   return {
     deletedEvents: oldEventRows.length,

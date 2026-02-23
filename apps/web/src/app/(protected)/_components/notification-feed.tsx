@@ -2,90 +2,23 @@
 
 import { Button } from "@nyte/ui/components/button";
 import { ScrollArea } from "@nyte/ui/components/scroll-area";
-import { Spinner } from "@nyte/ui/components/spinner";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "convex/react";
 
-import { useTRPC } from "~/lib/trpc";
+import { api } from "~/lib/convex";
 
 import { useFeedContext } from "./feed-provider";
 import { FeedSkeleton } from "./feed-skeleton";
 import { WorkItemCard } from "./work-item-card";
 
-function toErrorMessage(error: unknown): string {
-  if (error instanceof Error) {
-    const message = error.message.trim();
-    if (message.length > 0) {
-      return message;
-    }
-  }
-
-  return "Unable to load your queue right now.";
-}
-
 export function NotificationFeed() {
-  const trpc = useTRPC();
-  const queryClient = useQueryClient();
   const { actionError, clearActionError } = useFeedContext();
+  const feed = useQuery(api.queue.feed, {});
 
-  const feedQuery = useQuery(
-    trpc.queue.feed.queryOptions(undefined, {
-      retry: false,
-    })
-  );
-  const feedQueryKey = trpc.queue.feed.queryKey(undefined);
-  const syncMutation = useMutation({
-    mutationFn: async (force: boolean) => {
-      await queryClient.fetchQuery(trpc.queue.sync.queryOptions({ force }));
-      await queryClient.invalidateQueries({
-        queryKey: feedQueryKey,
-      });
-    },
-  });
-  const staleMarker = feedQuery.data?.lastSyncedAt ?? "never";
-  useQuery({
-    queryKey: ["queue.sync.auto", staleMarker],
-    enabled: (feedQuery.data?.isStale ?? false) && !syncMutation.isPending,
-    retry: false,
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-    staleTime: Number.POSITIVE_INFINITY,
-    gcTime: 0,
-    queryFn: async () => {
-      await queryClient.fetchQuery(
-        trpc.queue.sync.queryOptions({ force: false })
-      );
-      await queryClient.invalidateQueries({ queryKey: feedQueryKey });
-      return true;
-    },
-  });
-
-  if (feedQuery.isPending) {
+  if (feed === undefined) {
     return <FeedSkeleton />;
   }
 
-  if (feedQuery.isError) {
-    return (
-      <section className="rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-main-bg)] p-4">
-        <p className="text-sm text-[var(--color-text-secondary)]">
-          {toErrorMessage(feedQuery.error)}
-        </p>
-        <div className="mt-3 flex justify-end">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              void syncMutation.mutateAsync(true);
-            }}
-          >
-            Retry
-          </Button>
-        </div>
-      </section>
-    );
-  }
-
-  const approvalQueue = feedQuery.data.approvalQueue;
+  const approvalQueue = feed.approvalQueue;
 
   return (
     <section className="flex min-h-0 flex-1 flex-col gap-3">
@@ -105,23 +38,6 @@ export function NotificationFeed() {
           {approvalQueue.length} pending{" "}
           {approvalQueue.length === 1 ? "item" : "items"}
         </p>
-        <Button
-          variant="ghost"
-          size="sm"
-          disabled={feedQuery.isFetching || syncMutation.isPending}
-          onClick={() => {
-            void syncMutation.mutateAsync(true);
-          }}
-        >
-          {feedQuery.isFetching || syncMutation.isPending ? (
-            <span className="inline-flex items-center gap-1.5">
-              <Spinner className="size-3.5" />
-              Syncing
-            </span>
-          ) : (
-            "Refresh"
-          )}
-        </Button>
       </div>
 
       {approvalQueue.length === 0 ? (

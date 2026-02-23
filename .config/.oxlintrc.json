@@ -26,7 +26,8 @@
     ".vercel/**",
     ".next/**",
     "out/**",
-    ".pi/**"
+    ".pi/**",
+    "_generated/**"
   ],
   "env": {
     "builtin": true

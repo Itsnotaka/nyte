@@ -151,7 +151,10 @@ async function loadApprovalQueue({
           gte(workItems.importanceScore, 70)
         )
       )
-    : and(eq(workItems.userId, userId), eq(workItems.status, "awaiting_approval"));
+    : and(
+        eq(workItems.userId, userId),
+        eq(workItems.status, "awaiting_approval")
+      );
 
   const pendingRows = await db
     .select()
@@ -316,10 +319,7 @@ async function loadProcessed(userId: string): Promise<ProcessedEntry[]> {
     .from(proposedActions)
     .where(inArray(proposedActions.workItemId, workItemIds));
 
-  const actionByItemId = new Map<
-    string,
-    { id: string; payloadJson: string }
-  >();
+  const actionByItemId = new Map<string, { id: string; payloadJson: string }>();
   for (const action of actionRows) {
     if (!actionByItemId.has(action.workItemId)) {
       actionByItemId.set(action.workItemId, {
@@ -329,7 +329,9 @@ async function loadProcessed(userId: string): Promise<ProcessedEntry[]> {
     }
   }
 
-  const actionIds = Array.from(actionByItemId.values()).map((action) => action.id);
+  const actionIds = Array.from(actionByItemId.values()).map(
+    (action) => action.id
+  );
   const [draftRows, eventRows] =
     actionIds.length > 0
       ? await Promise.all([

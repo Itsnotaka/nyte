@@ -609,8 +609,15 @@ function toSignal(
   now: Date
 ): IntakeSignal {
   const intent = inferIntent(snapshot.subject, snapshot.snippet);
-  const relationshipScore = inferRelationshipScore(snapshot.subject, snapshot.from);
-  const impactScore = inferImpactScore(snapshot.subject, snapshot.snippet, intent);
+  const relationshipScore = inferRelationshipScore(
+    snapshot.subject,
+    snapshot.from
+  );
+  const impactScore = inferImpactScore(
+    snapshot.subject,
+    snapshot.snippet,
+    intent
+  );
   const haystack = `${snapshot.subject} ${snapshot.snippet}`.toLowerCase();
   const watchMatched = watchKeywords.some((keyword) =>
     haystack.includes(keyword.toLowerCase())

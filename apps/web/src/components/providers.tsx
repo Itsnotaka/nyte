@@ -1,54 +1,46 @@
 "use client";
 
+import { ConvexBetterAuthProvider } from "@convex-dev/better-auth/react";
 import { Toaster } from "@nyte/ui/components/sonner";
 import { TooltipProvider } from "@nyte/ui/components/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { createTRPCClient, httpBatchLink } from "@trpc/client";
+import { ConvexReactClient } from "convex/react";
 import { ThemeProvider as NextThemesProvider } from "next-themes";
-import * as React from "react";
+import type { ReactNode } from "react";
 
-import type { AppRouter } from "~/lib/server/router";
-import { TRPCProvider } from "~/lib/trpc";
+import { authClient } from "~/lib/auth-client";
 
-function makeQueryClient() {
-  return new QueryClient({
-    defaultOptions: {
-      queries: { staleTime: 30 * 1000 },
-    },
-  });
+const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
+if (!convexUrl) {
+  throw new Error("NEXT_PUBLIC_CONVEX_URL is required.");
 }
+const convex = new ConvexReactClient(convexUrl);
 
-let browserQueryClient: QueryClient | undefined;
-
-function getQueryClient() {
-  if (typeof window === "undefined") return makeQueryClient();
-  browserQueryClient ??= makeQueryClient();
-  return browserQueryClient;
-}
-
-export function Providers({ children }: { children: React.ReactNode }) {
-  const queryClient = getQueryClient();
-  const [trpcClient] = React.useState(() =>
-    createTRPCClient<AppRouter>({
-      links: [httpBatchLink({ url: "/api/trpc" })],
-    })
-  );
+export function Providers({
+  children,
+  initialToken,
+}: {
+  children: ReactNode;
+  initialToken?: string | null;
+}) {
+  const authProviderProps = initialToken ? { initialToken } : {};
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <TRPCProvider trpcClient={trpcClient} queryClient={queryClient}>
-        <NextThemesProvider
-          attribute="class"
-          defaultTheme="dark"
-          disableTransitionOnChange
-          enableColorScheme
-        >
-          <TooltipProvider>
-            {children}
-            <Toaster />
-          </TooltipProvider>
-        </NextThemesProvider>
-      </TRPCProvider>
-    </QueryClientProvider>
+    <ConvexBetterAuthProvider
+      client={convex}
+      authClient={authClient}
+      {...authProviderProps}
+    >
+      <NextThemesProvider
+        attribute="class"
+        defaultTheme="dark"
+        disableTransitionOnChange
+        enableColorScheme
+      >
+        <TooltipProvider>
+          {children}
+          <Toaster />
+        </TooltipProvider>
+      </NextThemesProvider>
+    </ConvexBetterAuthProvider>
   );
 }

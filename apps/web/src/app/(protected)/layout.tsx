@@ -1,7 +1,6 @@
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { auth } from "~/lib/auth";
+import { isAuthenticated } from "~/lib/auth-server";
 
 import { AppShell } from "./app-shell";
 
@@ -10,11 +9,8 @@ export default async function Layout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-
-  if (!session) {
+  const authenticated = await isAuthenticated();
+  if (!authenticated) {
     redirect("/login");
   }
 

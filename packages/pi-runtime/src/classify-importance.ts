@@ -53,7 +53,10 @@ function asRecord(value: unknown): Record<string, unknown> | null {
 
 function parseGatewayResponse(
   payload: unknown
-): Pick<ImportanceClassificationResult, "score" | "tier" | "reason" | "confidence"> | null {
+): Pick<
+  ImportanceClassificationResult,
+  "score" | "tier" | "reason" | "confidence"
+> | null {
   const parsed = asRecord(payload);
   if (!parsed) {
     return null;

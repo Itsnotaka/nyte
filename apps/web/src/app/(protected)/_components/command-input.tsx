@@ -4,10 +4,10 @@ import { Button } from "@nyte/ui/components/button";
 import { Input } from "@nyte/ui/components/input";
 import { Kbd } from "@nyte/ui/components/kbd";
 import { Spinner } from "@nyte/ui/components/spinner";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "convex/react";
 import { useState } from "react";
 
-import { useTRPC } from "~/lib/trpc";
+import { api } from "~/lib/convex";
 
 function toErrorMessage(error: unknown): string {
   if (error instanceof Error) {
@@ -21,27 +21,13 @@ function toErrorMessage(error: unknown): string {
 }
 
 export function CommandInput() {
-  const trpc = useTRPC();
-  const queryClient = useQueryClient();
   const [message, setMessage] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [isPending, setIsPending] = useState(false);
 
-  const queueFeedQueryKey = trpc.queue.feed.queryKey(undefined);
+  const runAgent = useMutation(api.agent.run);
 
-  const agentRun = useMutation(
-    trpc.agent.run.mutationOptions({
-      onSuccess: () => {
-        setMessage("");
-        setError(null);
-        void queryClient.invalidateQueries({ queryKey: queueFeedQueryKey });
-      },
-      onError: (mutationError) => {
-        setError(toErrorMessage(mutationError));
-      },
-    })
-  );
-
-  const canSubmit = message.trim().length > 0 && !agentRun.isPending;
+  const canSubmit = message.trim().length > 0 && !isPending;
 
   return (
     <section className="rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-main-bg)] p-3">
@@ -54,7 +40,17 @@ export function CommandInput() {
           }
 
           setError(null);
-          agentRun.mutate({ message: message.trim() });
+          setIsPending(true);
+          void runAgent({ message: message.trim() })
+            .then(() => {
+              setMessage("");
+            })
+            .catch((mutationError) => {
+              setError(toErrorMessage(mutationError));
+            })
+            .finally(() => {
+              setIsPending(false);
+            });
         }}
       >
         <label htmlFor="agent-command" className="sr-only">
@@ -71,7 +67,7 @@ export function CommandInput() {
             autoComplete="off"
           />
           <Button type="submit" disabled={!canSubmit}>
-            {agentRun.isPending ? (
+            {isPending ? (
               <span className="inline-flex items-center gap-1.5">
                 <Spinner className="size-3.5" />
                 Running

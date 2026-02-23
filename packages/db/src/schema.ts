@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   boolean,
   check,
@@ -8,7 +9,6 @@ import {
   timestamp,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
-import { sql } from "drizzle-orm";
 
 const createdAtColumn = () =>
   timestamp("created_at", {
@@ -102,19 +102,21 @@ export const verifications = pgTable(
   (table) => [index("verifications_identifier_idx").on(table.identifier)]
 );
 
-export const connectedAccounts = pgTable("connected_accounts", {
-  id: text("id").primaryKey(),
-  userId: text("user_id")
-    .notNull()
-    .references(() => users.id),
-  provider: text("provider").notNull(),
-  providerAccountId: text("provider_account_id").notNull(),
-  scopes: text("scopes").notNull(),
-  accessToken: text("access_token").notNull(),
-  refreshToken: text("refresh_token"),
-  connectedAt: timestampColumn("connected_at"),
-  updatedAt: updatedAtColumn(),
-},
+export const connectedAccounts = pgTable(
+  "connected_accounts",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id),
+    provider: text("provider").notNull(),
+    providerAccountId: text("provider_account_id").notNull(),
+    scopes: text("scopes").notNull(),
+    accessToken: text("access_token").notNull(),
+    refreshToken: text("refresh_token"),
+    connectedAt: timestampColumn("connected_at"),
+    updatedAt: updatedAtColumn(),
+  },
   (table) => [index("connected_accounts_user_id_idx").on(table.userId)]
 );
 
