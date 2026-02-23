@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 
 import { auth } from "~/lib/auth";
 
-import { AppShellClient } from "./app-shell-client";
+import { AppShell } from "./app-shell";
 
 export default async function Layout({
   children,
@@ -18,9 +18,5 @@ export default async function Layout({
     redirect("/login");
   }
 
-  const interfaceTheme: "light" | "dark" = "light";
-
-  return (
-    <AppShellClient interfaceTheme={interfaceTheme}>{children}</AppShellClient>
-  );
+  return <AppShell>{children}</AppShell>;
 }

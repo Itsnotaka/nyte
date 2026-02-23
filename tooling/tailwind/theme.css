@@ -3,24 +3,6 @@
 @import "shadcn/tailwind.css";
 
 @font-face {
-  font-family: "Inter Variable";
-  font-style: normal;
-  font-weight: 100 900;
-  font-display: swap;
-  src: url("https://static.linear.app/fonts/InterVariable.woff2?v=4.1")
-    format("woff2");
-}
-
-@font-face {
-  font-family: "Inter Variable";
-  font-style: italic;
-  font-weight: 100 900;
-  font-display: swap;
-  src: url("https://static.linear.app/fonts/InterVariable-Italic.woff2?v=4.1")
-    format("woff2");
-}
-
-@font-face {
   font-family: "Berkeley Mono";
   font-style: normal;
   font-weight: 100 900;
@@ -34,10 +16,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans:
-    "Inter Variable", "SF Pro Display", -apple-system, BlinkMacSystemFont,
-    "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans",
-    "Helvetica Neue", sans-serif;
+  --font-sans: var(--font-inter), system-ui, sans-serif;
   --font-mono:
     "Berkeley Mono", "SFMono Regular", Consolas, "Liberation Mono", Menlo,
     Courier, monospace;
@@ -123,6 +102,23 @@
   --sidebar-accent-foreground: oklch(0.216 0.006 56.043);
   --sidebar-border: oklch(0.923 0.003 48.717);
   --sidebar-ring: oklch(0.709 0.01 56.259);
+
+  --color-shell-bg: #f8f8f8;
+  --color-sidebar-bg: #f9f8f9;
+  --color-main-bg: #f8f8f8;
+  --color-inset-bg: #ffffff;
+  --color-border-strong: #e9e8ea;
+  --color-border-subtle: #efedf0;
+  --color-text-primary: #1a1d24;
+  --color-text-secondary: #4f596c;
+  --color-text-muted: #69748a;
+  --color-text-faint: #8d97ab;
+  --color-sidebar-link-bg: #f1f2f4;
+  --color-control-bg-hover: #f1f2f4;
+  --color-sidebar-hover-overlay-bg: rgba(0, 0, 0, 0.275);
+  --color-icon-active: #5e6ad2;
+  --color-rail: #dfe3eb;
+  --color-focus: #5e6ad2;
 }
 
 .dark {
@@ -158,27 +154,7 @@
   --sidebar-accent-foreground: oklch(0.985 0.001 106.423);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.553 0.013 58.071);
-}
 
-[data-theme="light"] {
-  --color-shell-bg: #f8f8f8;
-  --color-sidebar-bg: #f9f8f9;
-  --color-main-bg: #f8f8f8;
-  --color-inset-bg: #ffffff;
-  --color-border-strong: #e9e8ea;
-  --color-border-subtle: #efedf0;
-  --color-text-primary: #1a1d24;
-  --color-text-secondary: #4f596c;
-  --color-text-muted: #69748a;
-  --color-text-faint: #8d97ab;
-  --color-sidebar-link-bg: #f1f2f4;
-  --color-control-bg-hover: #f1f2f4;
-  --color-icon-active: #5e6ad2;
-  --color-rail: #dfe3eb;
-  --color-focus: #5e6ad2;
-}
-
-[data-theme="dark"] {
   --color-shell-bg: #090909;
   --color-sidebar-bg: #090909;
   --color-main-bg: #090909;
@@ -191,6 +167,7 @@
   --color-text-faint: #7f8798;
   --color-sidebar-link-bg: #15161c;
   --color-control-bg-hover: #17181c;
+  --color-sidebar-hover-overlay-bg: rgba(0, 0, 0, 0.6);
   --color-icon-active: #dde2f2;
   --color-rail: #23252a;
   --color-focus: #7a86f2;
