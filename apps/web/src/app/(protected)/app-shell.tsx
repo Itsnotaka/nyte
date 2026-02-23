@@ -23,7 +23,7 @@ function WorkspaceSelector() {
       <button
         type="button"
         aria-label="Toggle sidebar dropdown"
-        className="inline-flex size-6.5 items-center justify-center rounded-[5px] border-0 bg-transparent p-0 text-faint hover:bg-sidebar-link hover:text-secondary focus-visible:outline-2 focus-visible:outline-focus focus-visible:outline-offset-1"
+        className="inline-flex size-6.5 items-center justify-center rounded-[5px] border-0 bg-transparent p-0 text-[var(--color-text-faint)] hover:bg-[var(--color-sidebar-link-bg)] hover:text-[var(--color-text-secondary)] focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] focus-visible:outline-offset-1"
       >
         <IconChevronDownMedium className="size-4" aria-hidden="true" />
       </button>
@@ -37,8 +37,8 @@ export function AppShell({
   children,
 }: AppShellProps) {
   return (
-    <SidebarProvider className="h-dvh w-full bg-shell text-secondary">
-      <Sidebar className="bg-sidebar">
+    <SidebarProvider className="h-dvh w-full bg-[var(--color-shell-bg)] text-[var(--color-text-secondary)]">
+      <Sidebar className="bg-[var(--color-sidebar-bg)]">
         <SidebarHeader className="px-2.5">
           {sidebarHeader ?? <WorkspaceSelector />}
         </SidebarHeader>
@@ -50,7 +50,7 @@ export function AppShell({
         <SidebarRail />
       </Sidebar>
 
-      <SidebarInset className="bg-main">
+      <SidebarInset className="bg-[var(--color-main-bg)]">
         <SidebarTrigger />
         {children}
       </SidebarInset>
