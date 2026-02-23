@@ -1,6 +1,8 @@
 import { v } from "convex/values";
+import { log } from "evlog";
 import { nanoid } from "nanoid";
 
+import "./evlog";
 import { query, type MutationCtx } from "./_generated/server";
 import { requireAuthUserId } from "./lib/auth";
 
@@ -57,6 +59,14 @@ export async function recordWorkItemRun(
     now = Date.now(),
   }: RecordWorkItemRunInput
 ): Promise<string> {
+  log.info({
+    event: "runlog.record",
+    workItemId,
+    phase,
+    status,
+    eventCount: events.length,
+  });
+
   const runId = createRunId(workItemId, phase, now);
   const runDocId = await ctx.db.insert("workflowRuns", {
     workItemId,

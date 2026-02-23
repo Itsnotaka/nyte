@@ -14,7 +14,9 @@ import type {
   OptionalRestArgs,
 } from "convex/server";
 import { v } from "convex/values";
+import { log } from "evlog";
 
+import "./evlog";
 import { components, internal } from "./_generated/api";
 import {
   internalAction,
@@ -517,6 +519,13 @@ export const persistBatch = internalMutation({
     }),
   },
   handler: async (ctx, args): Promise<PersistBatchResult> => {
+    log.info({
+      event: "ingestion.persistBatch.start",
+      userId: args.userId,
+      itemCount: args.items.length,
+      markSynced: args.state.markSynced,
+    });
+
     const existingState = await ctx.db
       .query("ingestionState")
       .withIndex("by_user_id", (q) => q.eq("userId", args.userId))
@@ -640,11 +649,21 @@ export const persistBatch = internalMutation({
       });
     }
 
-    return {
+    const result = {
       insertedCount,
       updatedCount,
       queuedCount: args.items.length,
     };
+
+    log.info({
+      event: "ingestion.persistBatch.complete",
+      userId: args.userId,
+      insertedCount: result.insertedCount,
+      updatedCount: result.updatedCount,
+      queuedCount: result.queuedCount,
+    });
+
+    return result;
   },
 });
 
@@ -655,6 +674,13 @@ export const runForUser = internalAction({
     reason: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<RunForUserResult> => {
+    log.info({
+      event: "ingestion.runForUser.start",
+      userId: args.userId,
+      force: args.force ?? false,
+      reason: args.reason ?? "manual",
+    });
+
     const nowMs = Date.now();
     const nowDate = new Date(nowMs);
     const force = args.force ?? false;
@@ -674,7 +700,7 @@ export const runForUser = internalAction({
         staleAfterMs: STALE_AFTER_MS,
       })
     ) {
-      return {
+      const result = {
         userId: args.userId,
         reason: args.reason ?? "manual",
         skipped: true,
@@ -683,6 +709,11 @@ export const runForUser = internalAction({
         updatedCount: 0,
         error: null,
       };
+      log.info({
+        event: "ingestion.runForUser.skipped",
+        ...result,
+      });
+      return result;
     }
 
     const accessToken = await loadGoogleAccessToken({
@@ -704,7 +735,7 @@ export const runForUser = internalAction({
         },
       });
 
-      return {
+      const result = {
         userId: args.userId,
         reason: args.reason ?? "manual",
         skipped: false,
@@ -713,6 +744,11 @@ export const runForUser = internalAction({
         updatedCount: 0,
         error: message,
       };
+      log.info({
+        event: "ingestion.runForUser.missingAccessToken",
+        ...result,
+      });
+      return result;
     }
 
     const [gmailResult, calendarResult] = await Promise.allSettled([
@@ -749,7 +785,7 @@ export const runForUser = internalAction({
         },
       });
 
-      return {
+      const result = {
         userId: args.userId,
         reason: args.reason ?? "manual",
         skipped: false,
@@ -758,6 +794,11 @@ export const runForUser = internalAction({
         updatedCount: 0,
         error: message,
       };
+      log.info({
+        event: "ingestion.runForUser.providersRejected",
+        ...result,
+      });
+      return result;
     }
 
     const signals = [
@@ -832,7 +873,7 @@ export const runForUser = internalAction({
       },
     });
 
-    return {
+    const result = {
       userId: args.userId,
       reason: args.reason ?? "manual",
       skipped: false,
@@ -841,12 +882,23 @@ export const runForUser = internalAction({
       updatedCount: persisted.updatedCount,
       error: partialError ?? null,
     };
+    log.info({
+      event: "ingestion.runForUser.complete",
+      ...result,
+      signalCount: signals.length,
+    });
+    return result;
   },
 });
 
 export const enqueueCronIngestion = internalAction({
   args: {},
   handler: async (ctx): Promise<{ scheduledCount: number }> => {
+    log.info({
+      event: "ingestion.enqueueCronIngestion.start",
+      maxUsersPerRun: MAX_CRON_USERS_PER_RUN,
+    });
+
     const userIds = await listGoogleAccountUserIds({
       runQuery: ctx.runQuery,
     });
@@ -858,9 +910,14 @@ export const enqueueCronIngestion = internalAction({
       });
     }
 
-    return {
+    const result = {
       scheduledCount: userIds.length,
     };
+    log.info({
+      event: "ingestion.enqueueCronIngestion.complete",
+      scheduledCount: result.scheduledCount,
+    });
+    return result;
   },
 });
 
@@ -870,12 +927,21 @@ export const syncMine = mutation({
   },
   handler: async (ctx, args) => {
     const userId: string = await requireAuthUserId(ctx);
+    log.info({
+      event: "ingestion.syncMine.start",
+      userId,
+      force: args.force ?? false,
+    });
     await ctx.scheduler.runAfter(0, internal.ingestion.runForUser, {
       userId,
       force: args.force ?? false,
       reason: "manual",
     });
 
+    log.info({
+      event: "ingestion.syncMine.queued",
+      userId,
+    });
     return { queued: true };
   },
 });

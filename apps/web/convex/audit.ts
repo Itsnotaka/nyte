@@ -1,5 +1,7 @@
 import { v } from "convex/values";
+import { log } from "evlog";
 
+import "./evlog";
 import { query, type MutationCtx } from "./_generated/server";
 import { requireAuthUserId } from "./lib/auth";
 
@@ -42,6 +44,14 @@ export async function recordAuditLog(
     now = Date.now(),
   }: AuditLogInput
 ): Promise<void> {
+  log.info({
+    event: "audit.record",
+    userId: userId ?? null,
+    action,
+    targetType,
+    targetId,
+  });
+
   await ctx.db.insert("auditLogs", {
     userId,
     action,

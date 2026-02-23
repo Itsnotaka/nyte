@@ -4,6 +4,7 @@ import { Button } from "@nyte/ui/components/button";
 import { ScrollArea } from "@nyte/ui/components/scroll-area";
 import { useQuery } from "convex/react";
 
+import { authClient } from "~/lib/auth-client";
 import { api } from "~/lib/convex";
 
 import { useFeedContext } from "./feed-provider";
@@ -12,9 +13,12 @@ import { WorkItemCard } from "./work-item-card";
 
 export function NotificationFeed() {
   const { actionError, clearActionError } = useFeedContext();
-  const feed = useQuery(api.queue.feed, {});
+  const { data: session, isPending: isSessionPending } =
+    authClient.useSession();
+  const connected = (session?.user?.id?.trim().length ?? 0) > 0;
+  const feed = useQuery(api.queue.feed, connected ? {} : "skip");
 
-  if (feed === undefined) {
+  if (isSessionPending || !connected || feed === undefined) {
     return <FeedSkeleton />;
   }
 

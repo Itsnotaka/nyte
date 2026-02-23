@@ -8,8 +8,10 @@ import {
   type ExtensionRequest,
 } from "@nyte/extension-runtime";
 import { ConvexError, v } from "convex/values";
+import { createRequestLogger } from "evlog";
 import { nanoid } from "nanoid";
 
+import "./evlog";
 import { mutation, type MutationCtx } from "./_generated/server";
 import { recordAuditLog } from "./audit";
 import { requireAuthUserId } from "./lib/auth";
@@ -209,133 +211,176 @@ export const approve = mutation({
     payloadOverride: v.optional(toolCallPayloadValidator),
   },
   handler: async (ctx, args) => {
-    const userId = await requireAuthUserId(ctx);
-    const item = await loadItemById(ctx, userId, args.itemId);
-    if (item.status === "dismissed") {
-      throw new ConvexError("Dismissed item cannot be approved.");
-    }
-
-    if (item.status === "completed" && item.actionStatus === "executed") {
-      await recordAuditLog(ctx, {
-        userId,
-        action: "action.approve.idempotent",
-        targetType: "work_item",
-        targetId: item.workItemId,
-        payload: {
-          idempotencyKey: item.idempotencyKey ?? null,
-        },
-      });
-      return {
-        ok: true,
-        idempotent: true,
-      };
-    }
-
-    const payload = args.payloadOverride ?? item.proposedAction;
-    const now = Date.now();
-    const idempotencyKey = item.idempotencyKey ?? `approve_${nanoid(12)}`;
+    const log = createRequestLogger({
+      method: "mutation",
+      path: "actions/approve",
+    });
+    log.set({ requestItemId: args.itemId });
 
     try {
-      const execution = await executePayload({
-        payload,
+      const userId = await requireAuthUserId(ctx);
+      const item = await loadItemById(ctx, userId, args.itemId);
+      log.set({
         userId,
-        itemId: item.workItemId,
-        now,
+        workItemId: item.workItemId,
+        queueStatus: item.status,
+        actionStatus: item.actionStatus ?? null,
+      });
+
+      if (item.status === "dismissed") {
+        const error = new ConvexError("Dismissed item cannot be approved.");
+        log.error(error, { step: "precondition.dismissed" });
+        throw error;
+      }
+
+      if (item.status === "completed" && item.actionStatus === "executed") {
+        await recordAuditLog(ctx, {
+          userId,
+          action: "action.approve.idempotent",
+          targetType: "work_item",
+          targetId: item.workItemId,
+          payload: {
+            idempotencyKey: item.idempotencyKey ?? null,
+          },
+        });
+        log.set({ idempotent: true, queueState: "already_executed" });
+        return {
+          ok: true,
+          idempotent: true,
+        };
+      }
+
+      const payload = args.payloadOverride ?? item.proposedAction;
+      const now = Date.now();
+      const idempotencyKey = item.idempotencyKey ?? `approve_${nanoid(12)}`;
+      log.set({
+        idempotent: false,
+        actionKind: payload.kind,
         idempotencyKey,
       });
 
-      await ctx.db.patch(item._id, {
-        status: "completed",
-        proposedAction: payload,
-        actionStatus: "executed",
-        actionDestination: execution.destination,
-        providerReference: execution.providerReference,
-        idempotencyKey: execution.idempotencyKey,
-        executedAt: execution.executedAt,
-        actionError: undefined,
-        updatedAt: now,
-      });
+      try {
+        const execution = await executePayload({
+          payload,
+          userId,
+          itemId: item.workItemId,
+          now,
+          idempotencyKey,
+        });
 
-      await recordWorkItemRun(ctx, {
-        workItemId: item.workItemId,
-        phase: "approve",
-        status: "completed",
-        now,
-        events: [
-          {
-            kind: "action.approved",
-            payload: {
-              kind: payload.kind,
-            },
-          },
-          {
-            kind: "action.executed",
-            payload: {
-              destination: execution.destination,
-              providerReference: execution.providerReference,
-              idempotencyKey: execution.idempotencyKey,
-            },
-          },
-        ],
-      });
-
-      await recordAuditLog(ctx, {
-        userId,
-        action: "action.approve",
-        targetType: "work_item",
-        targetId: item.workItemId,
-        payload: {
-          destination: execution.destination,
+        await ctx.db.patch(item._id, {
+          status: "completed",
+          proposedAction: payload,
+          actionStatus: "executed",
+          actionDestination: execution.destination,
           providerReference: execution.providerReference,
           idempotencyKey: execution.idempotencyKey,
-        },
-        now,
-      });
+          executedAt: execution.executedAt,
+          actionError: undefined,
+          updatedAt: now,
+        });
 
-      return {
-        ok: true,
-        idempotent: false,
-        execution,
-      };
-    } catch (error) {
-      const message =
-        error instanceof Error && error.message.trim().length > 0
-          ? error.message
-          : "Unable to execute approval action.";
-
-      await ctx.db.patch(item._id, {
-        actionStatus: "failed",
-        actionError: message,
-        updatedAt: now,
-      });
-
-      await recordWorkItemRun(ctx, {
-        workItemId: item.workItemId,
-        phase: "approve",
-        status: "failed",
-        now,
-        events: [
-          {
-            kind: "action.execution_failed",
-            payload: {
-              message,
+        await recordWorkItemRun(ctx, {
+          workItemId: item.workItemId,
+          phase: "approve",
+          status: "completed",
+          now,
+          events: [
+            {
+              kind: "action.approved",
+              payload: {
+                kind: payload.kind,
+              },
             },
+            {
+              kind: "action.executed",
+              payload: {
+                destination: execution.destination,
+                providerReference: execution.providerReference,
+                idempotencyKey: execution.idempotencyKey,
+              },
+            },
+          ],
+        });
+
+        await recordAuditLog(ctx, {
+          userId,
+          action: "action.approve",
+          targetType: "work_item",
+          targetId: item.workItemId,
+          payload: {
+            destination: execution.destination,
+            providerReference: execution.providerReference,
+            idempotencyKey: execution.idempotencyKey,
           },
-        ],
-      });
+          now,
+        });
+        log.set({
+          executionDestination: execution.destination,
+          providerReference: execution.providerReference,
+          queueState: "executed",
+        });
 
-      await recordAuditLog(ctx, {
-        userId,
-        action: "action.approve.failed",
-        targetType: "work_item",
-        targetId: item.workItemId,
-        payload: {
-          message,
-        },
-        now,
-      });
+        return {
+          ok: true,
+          idempotent: false,
+          execution,
+        };
+      } catch (error) {
+        const message =
+          error instanceof Error && error.message.trim().length > 0
+            ? error.message
+            : "Unable to execute approval action.";
 
-      throw new ConvexError(message);
+        await ctx.db.patch(item._id, {
+          actionStatus: "failed",
+          actionError: message,
+          updatedAt: now,
+        });
+
+        await recordWorkItemRun(ctx, {
+          workItemId: item.workItemId,
+          phase: "approve",
+          status: "failed",
+          now,
+          events: [
+            {
+              kind: "action.execution_failed",
+              payload: {
+                message,
+              },
+            },
+          ],
+        });
+
+        await recordAuditLog(ctx, {
+          userId,
+          action: "action.approve.failed",
+          targetType: "work_item",
+          targetId: item.workItemId,
+          payload: {
+            message,
+          },
+          now,
+        });
+        log.error(new Error(message), {
+          step: "execution",
+          actionKind: payload.kind,
+        });
+
+        throw new ConvexError(message);
+      }
+    } catch (error) {
+      if (error instanceof Error) {
+        log.error(error, { step: "actions.approve" });
+      } else {
+        log.error(new Error("Unknown error in actions.approve"), {
+          step: "actions.approve",
+        });
+      }
+      throw error;
+    } finally {
+      log.emit();
     }
   },
 });
@@ -345,56 +390,84 @@ export const dismiss = mutation({
     itemId: v.string(),
   },
   handler: async (ctx, args) => {
-    const userId = await requireAuthUserId(ctx);
-    const item = await loadItemById(ctx, userId, args.itemId);
-    if (item.status === "completed") {
-      throw new ConvexError("Completed item cannot be dismissed.");
-    }
+    const log = createRequestLogger({
+      method: "mutation",
+      path: "actions/dismiss",
+    });
+    log.set({ requestItemId: args.itemId });
 
-    const now = Date.now();
-    if (item.status === "dismissed") {
+    try {
+      const userId = await requireAuthUserId(ctx);
+      const item = await loadItemById(ctx, userId, args.itemId);
+      log.set({
+        userId,
+        workItemId: item.workItemId,
+        queueStatus: item.status,
+      });
+      if (item.status === "completed") {
+        const error = new ConvexError("Completed item cannot be dismissed.");
+        log.error(error, { step: "precondition.completed" });
+        throw error;
+      }
+
+      const now = Date.now();
+      if (item.status === "dismissed") {
+        await recordAuditLog(ctx, {
+          userId,
+          action: "action.dismiss.idempotent",
+          targetType: "work_item",
+          targetId: item.workItemId,
+          payload: {},
+          now,
+        });
+        log.set({ idempotent: true, queueState: "already_dismissed" });
+        return { ok: true, idempotent: true };
+      }
+
+      await ctx.db.patch(item._id, {
+        status: "dismissed",
+        actionStatus: "dismissed",
+        updatedAt: now,
+      });
+
+      await recordWorkItemRun(ctx, {
+        workItemId: item.workItemId,
+        phase: "dismiss",
+        status: "completed",
+        now,
+        events: [
+          {
+            kind: "action.dismissed",
+            payload: {
+              reason: "user dismissed from queue",
+            },
+          },
+        ],
+      });
+
       await recordAuditLog(ctx, {
         userId,
-        action: "action.dismiss.idempotent",
+        action: "action.dismiss",
         targetType: "work_item",
         targetId: item.workItemId,
         payload: {},
         now,
       });
-      return { ok: true, idempotent: true };
+      log.set({ idempotent: false, queueState: "dismissed" });
+
+      return { ok: true, idempotent: false };
+    } catch (error) {
+      if (error instanceof Error) {
+        log.error(error, { step: "actions.dismiss" });
+      } else {
+        log.error(new Error("Unknown error in actions.dismiss"), {
+          step: "actions.dismiss",
+        });
+      }
+      throw error;
+    } finally {
+      log.emit();
     }
-
-    await ctx.db.patch(item._id, {
-      status: "dismissed",
-      actionStatus: "dismissed",
-      updatedAt: now,
-    });
-
-    await recordWorkItemRun(ctx, {
-      workItemId: item.workItemId,
-      phase: "dismiss",
-      status: "completed",
-      now,
-      events: [
-        {
-          kind: "action.dismissed",
-          payload: {
-            reason: "user dismissed from queue",
-          },
-        },
-      ],
-    });
-
-    await recordAuditLog(ctx, {
-      userId,
-      action: "action.dismiss",
-      targetType: "work_item",
-      targetId: item.workItemId,
-      payload: {},
-      now,
-    });
-
-    return { ok: true, idempotent: false };
   },
 });
 
@@ -405,62 +478,97 @@ export const feedback = mutation({
     note: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const userId = await requireAuthUserId(ctx);
-    const item = await loadItemById(ctx, userId, args.itemId);
-    if (item.status !== "completed" && item.status !== "dismissed") {
-      throw new ConvexError("Feedback is only available for processed items.");
-    }
+    const log = createRequestLogger({
+      method: "mutation",
+      path: "actions/feedback",
+    });
+    log.set({
+      requestItemId: args.itemId,
+      rating: args.rating,
+      hasNote: Boolean(args.note?.trim()),
+    });
 
-    const existing = await ctx.db
-      .query("feedbackEntries")
-      .withIndex("by_work_item_id", (q) => q.eq("workItemId", args.itemId))
-      .unique();
-
-    const now = Date.now();
-    if (existing) {
-      await ctx.db.patch(existing._id, {
-        rating: args.rating,
-        note: args.note,
-        updatedAt: now,
-      });
-    } else {
-      await ctx.db.insert("feedbackEntries", {
-        workItemId: args.itemId,
+    try {
+      const userId = await requireAuthUserId(ctx);
+      const item = await loadItemById(ctx, userId, args.itemId);
+      log.set({
         userId,
-        rating: args.rating,
-        note: args.note,
-        createdAt: now,
-        updatedAt: now,
+        workItemId: item.workItemId,
+        queueStatus: item.status,
       });
-    }
+      if (item.status !== "completed" && item.status !== "dismissed") {
+        const error = new ConvexError(
+          "Feedback is only available for processed items."
+        );
+        log.error(error, { step: "precondition.status" });
+        throw error;
+      }
 
-    await recordWorkItemRun(ctx, {
-      workItemId: item.workItemId,
-      phase: "feedback",
-      status: "completed",
-      now,
-      events: [
-        {
-          kind: "feedback.recorded",
-          payload: {
-            rating: args.rating,
-            hasNote: Boolean(args.note?.trim()),
+      const existing = await ctx.db
+        .query("feedbackEntries")
+        .withIndex("by_work_item_id", (q) => q.eq("workItemId", args.itemId))
+        .unique();
+
+      const now = Date.now();
+      if (existing) {
+        await ctx.db.patch(existing._id, {
+          rating: args.rating,
+          note: args.note,
+          updatedAt: now,
+        });
+        log.set({ mode: "update" });
+      } else {
+        await ctx.db.insert("feedbackEntries", {
+          workItemId: args.itemId,
+          userId,
+          rating: args.rating,
+          note: args.note,
+          createdAt: now,
+          updatedAt: now,
+        });
+        log.set({ mode: "insert" });
+      }
+
+      await recordWorkItemRun(ctx, {
+        workItemId: item.workItemId,
+        phase: "feedback",
+        status: "completed",
+        now,
+        events: [
+          {
+            kind: "feedback.recorded",
+            payload: {
+              rating: args.rating,
+              hasNote: Boolean(args.note?.trim()),
+            },
           },
+        ],
+      });
+
+      await recordAuditLog(ctx, {
+        userId,
+        action: "feedback.recorded",
+        targetType: "work_item",
+        targetId: item.workItemId,
+        payload: {
+          rating: args.rating,
         },
-      ],
-    });
+        now,
+      });
+      log.set({ feedbackState: "recorded" });
 
-    await recordAuditLog(ctx, {
-      userId,
-      action: "feedback.recorded",
-      targetType: "work_item",
-      targetId: item.workItemId,
-      payload: {
-        rating: args.rating,
-      },
-      now,
-    });
-
-    return { ok: true };
+      return { ok: true };
+    } catch (error) {
+      if (error instanceof Error) {
+        log.error(error, { step: "actions.feedback" });
+      } else {
+        log.error(new Error("Unknown error in actions.feedback"), {
+          step: "actions.feedback",
+        });
+      }
+      throw error;
+    } finally {
+      log.emit();
+    }
   },
 });
