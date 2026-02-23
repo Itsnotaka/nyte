@@ -5,7 +5,8 @@ This guide reverse-engineers iMessage support from:
 - `openagen/zeroclaw` (Rust channel implementation)
 - `openclaw/openclaw` (TypeScript plugin + gateway implementation)
 
-and gives you a full TypeScript implementation blueprint (with complete code blocks) to replicate the behavior, including a distributed mode.
+and gives you a full TypeScript implementation blueprint (with complete code
+blocks) to replicate the behavior, including a distributed mode.
 
 ---
 
@@ -22,7 +23,8 @@ Key files:
 
 Behavior:
 
-1. **Send**: uses `osascript` + AppleScript (`tell application "Messages" ... send ...`) to send messages.
+1. **Send**: uses `osascript` + AppleScript
+   (`tell application "Messages" ... send ...`) to send messages.
 2. **Receive**: polls `~/Library/Messages/chat.db` every ~3s with SQLite query:
    - `message.ROWID > last_rowid`
    - `is_from_me = 0`
@@ -54,7 +56,8 @@ Key files:
 Behavior:
 
 1. **Primary transport**: spawns `imsg rpc` and speaks JSON-RPC on stdio.
-2. **Receive**: subscribes with `watch.subscribe`, consumes `message` notifications.
+2. **Receive**: subscribes with `watch.subscribe`, consumes `message`
+   notifications.
 3. **Send**: `send` RPC with rich targeting:
    - `chat_id:*`, `chat_guid:*`, `chat_identifier:*`, handle/email/phone.
 4. **Policies**:
@@ -252,7 +255,9 @@ function isLikelyPath(value: string): boolean {
   return /^[A-Za-z]:[\\/]/.test(value);
 }
 
-export function isSafeExecutableValue(value: string | null | undefined): boolean {
+export function isSafeExecutableValue(
+  value: string | null | undefined
+): boolean {
   if (!value) return false;
   const trimmed = value.trim();
   if (!trimmed) return false;
@@ -268,7 +273,7 @@ export function isSafeExecutableValue(value: string | null | undefined): boolean
 export function escapeAppleScript(s: string): string {
   return s
     .replace(/\\/g, "\\\\")
-    .replace(/"/g, "\\\"")
+    .replace(/"/g, '\\"')
     .replace(/\n/g, "\\n")
     .replace(/\r/g, "\\r");
 }
@@ -298,7 +303,8 @@ function stripUnsafeReplyTagChars(value: string): string {
   let next = "";
   for (const ch of value) {
     const code = ch.charCodeAt(0);
-    if ((code >= 0 && code <= 31) || code === 127 || ch === "[" || ch === "]") continue;
+    if ((code >= 0 && code <= 31) || code === 127 || ch === "[" || ch === "]")
+      continue;
     next += ch;
   }
   return next;
@@ -312,7 +318,10 @@ export function sanitizeReplyToId(rawReplyToId?: string): string | undefined {
   return sanitized.slice(0, 256);
 }
 
-export function prependReplyTagIfNeeded(message: string, replyToId?: string): string {
+export function prependReplyTagIfNeeded(
+  message: string,
+  replyToId?: string
+): string {
   const resolvedReplyToId = sanitizeReplyToId(replyToId);
   if (!resolvedReplyToId) return message;
 
@@ -335,7 +344,11 @@ import type { IMessageService, IMessageTarget } from "./types.js";
 
 const CHAT_ID_PREFIXES = ["chat_id:", "chatid:", "chat:"];
 const CHAT_GUID_PREFIXES = ["chat_guid:", "chatguid:", "guid:"];
-const CHAT_IDENTIFIER_PREFIXES = ["chat_identifier:", "chatidentifier:", "chatident:"];
+const CHAT_IDENTIFIER_PREFIXES = [
+  "chat_identifier:",
+  "chatidentifier:",
+  "chatident:",
+];
 
 function normalizeE164(raw: string): string | null {
   const trimmed = raw.trim();
@@ -351,15 +364,20 @@ export function normalizeIMessageHandle(raw: string): string {
   if (!trimmed) return "";
 
   const lowered = trimmed.toLowerCase();
-  if (lowered.startsWith("imessage:")) return normalizeIMessageHandle(trimmed.slice(9));
-  if (lowered.startsWith("sms:")) return normalizeIMessageHandle(trimmed.slice(4));
-  if (lowered.startsWith("auto:")) return normalizeIMessageHandle(trimmed.slice(5));
+  if (lowered.startsWith("imessage:"))
+    return normalizeIMessageHandle(trimmed.slice(9));
+  if (lowered.startsWith("sms:"))
+    return normalizeIMessageHandle(trimmed.slice(4));
+  if (lowered.startsWith("auto:"))
+    return normalizeIMessageHandle(trimmed.slice(5));
 
   for (const prefix of CHAT_ID_PREFIXES) {
-    if (lowered.startsWith(prefix)) return `chat_id:${trimmed.slice(prefix.length).trim()}`;
+    if (lowered.startsWith(prefix))
+      return `chat_id:${trimmed.slice(prefix.length).trim()}`;
   }
   for (const prefix of CHAT_GUID_PREFIXES) {
-    if (lowered.startsWith(prefix)) return `chat_guid:${trimmed.slice(prefix.length).trim()}`;
+    if (lowered.startsWith(prefix))
+      return `chat_guid:${trimmed.slice(prefix.length).trim()}`;
   }
   for (const prefix of CHAT_IDENTIFIER_PREFIXES) {
     if (lowered.startsWith(prefix)) {
@@ -371,11 +389,15 @@ export function normalizeIMessageHandle(raw: string): string {
   return normalizeE164(trimmed) ?? trimmed.replace(/\s+/g, "");
 }
 
-function parseChatTarget(lower: string, trimmed: string): IMessageTarget | null {
+function parseChatTarget(
+  lower: string,
+  trimmed: string
+): IMessageTarget | null {
   for (const prefix of CHAT_ID_PREFIXES) {
     if (lower.startsWith(prefix)) {
       const n = Number(trimmed.slice(prefix.length).trim());
-      if (!Number.isFinite(n)) throw new Error(`Invalid chat_id target: ${trimmed}`);
+      if (!Number.isFinite(n))
+        throw new Error(`Invalid chat_id target: ${trimmed}`);
       return { kind: "chat_id", chatId: n };
     }
   }
@@ -404,7 +426,7 @@ export function parseIMessageTarget(raw: string): IMessageTarget {
   const servicePrefixes: Array<{ prefix: string; service: IMessageService }> = [
     { prefix: "imessage:", service: "imessage" },
     { prefix: "sms:", service: "sms" },
-    { prefix: "auto:", service: "auto" }
+    { prefix: "auto:", service: "auto" },
   ];
 
   for (const sp of servicePrefixes) {
@@ -455,7 +477,8 @@ export function isAllowedIMessageSender(params: {
     }
     if (lower.startsWith("chat_identifier:")) {
       const id = v.slice("chat_identifier:".length).trim();
-      if (id && params.chatIdentifier && id === params.chatIdentifier) return true;
+      if (id && params.chatIdentifier && id === params.chatIdentifier)
+        return true;
       continue;
     }
 
@@ -478,15 +501,30 @@ export const IMessageConfigSchema = z
   .object({
     enabled: z.boolean().optional().default(true),
     mode: z.enum(["imsg", "chatdb", "auto"]).optional().default("auto"),
-    cliPath: z.string().refine(isSafeExecutableValue, "expected safe executable name or path").optional(),
+    cliPath: z
+      .string()
+      .refine(isSafeExecutableValue, "expected safe executable name or path")
+      .optional(),
     dbPath: z.string().optional(),
     remoteHost: z.string().optional(),
     service: z.enum(["imessage", "sms", "auto"]).optional().default("auto"),
     region: z.string().optional().default("US"),
-    dmPolicy: z.enum(["pairing", "allowlist", "open", "disabled"]).optional().default("pairing"),
-    groupPolicy: z.enum(["allowlist", "open", "disabled"]).optional().default("allowlist"),
-    allowFrom: z.array(z.union([z.string(), z.number()])).optional().default([]),
-    groupAllowFrom: z.array(z.union([z.string(), z.number()])).optional().default([]),
+    dmPolicy: z
+      .enum(["pairing", "allowlist", "open", "disabled"])
+      .optional()
+      .default("pairing"),
+    groupPolicy: z
+      .enum(["allowlist", "open", "disabled"])
+      .optional()
+      .default("allowlist"),
+    allowFrom: z
+      .array(z.union([z.string(), z.number()]))
+      .optional()
+      .default([]),
+    groupAllowFrom: z
+      .array(z.union([z.string(), z.number()]))
+      .optional()
+      .default([]),
     includeAttachments: z.boolean().optional().default(false),
     mediaMaxMb: z.number().int().positive().optional().default(16),
     textChunkLimit: z.number().int().positive().optional().default(4000),
@@ -494,15 +532,27 @@ export const IMessageConfigSchema = z
     pollIntervalMs: z.number().int().positive().optional().default(3000),
     requireMention: z.boolean().optional().default(true),
     mentionPatterns: z.array(z.string()).optional().default([]),
-    groups: z.record(z.string(), z.object({ requireMention: z.boolean().optional() })).optional().default({}),
-    pairing: z.object({ enabled: z.boolean().optional().default(true), ttlSeconds: z.number().int().positive().optional().default(3600) }).optional().default({ enabled: true, ttlSeconds: 3600 })
+    groups: z
+      .record(z.string(), z.object({ requireMention: z.boolean().optional() }))
+      .optional()
+      .default({}),
+    pairing: z
+      .object({
+        enabled: z.boolean().optional().default(true),
+        ttlSeconds: z.number().int().positive().optional().default(3600),
+      })
+      .optional()
+      .default({ enabled: true, ttlSeconds: 3600 }),
   })
   .superRefine((value, ctx) => {
-    if (value.dmPolicy === "open" && !value.allowFrom.some((v) => String(v).trim() === "*")) {
+    if (
+      value.dmPolicy === "open" &&
+      !value.allowFrom.some((v) => String(v).trim() === "*")
+    ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["allowFrom"],
-        message: 'dmPolicy="open" requires allowFrom to include "*"'
+        message: 'dmPolicy="open" requires allowFrom to include "*"',
       });
     }
   });
@@ -512,7 +562,7 @@ export type IMessageConfig = z.infer<typeof IMessageConfigSchema>;
 export function defaultConfig(): IMessageConfig {
   return IMessageConfigSchema.parse({
     cliPath: "imsg",
-    dbPath: join(homedir(), "Library/Messages/chat.db")
+    dbPath: join(homedir(), "Library/Messages/chat.db"),
   });
 }
 ```
@@ -557,7 +607,9 @@ export class IMessageRpcClient {
     const args = ["rpc"];
     if (this.opts.dbPath?.trim()) args.push("--db", this.opts.dbPath.trim());
 
-    const child = spawn(this.opts.cliPath, args, { stdio: ["pipe", "pipe", "pipe"] });
+    const child = spawn(this.opts.cliPath, args, {
+      stdio: ["pipe", "pipe", "pipe"],
+    });
     this.child = child;
     this.reader = createInterface({ input: child.stdout });
 
@@ -575,7 +627,9 @@ export class IMessageRpcClient {
     });
 
     child.on("close", (code, signal) => {
-      const reason = signal ? `signal ${signal}` : `code ${String(code ?? "null")}`;
+      const reason = signal
+        ? `signal ${signal}`
+        : `code ${String(code ?? "null")}`;
       this.failAll(new Error(`imsg rpc closed (${reason})`));
       this.closedResolve();
     });
@@ -595,7 +649,7 @@ export class IMessageRpcClient {
           if (!child.killed) child.kill("SIGTERM");
           resolve();
         }, 500);
-      })
+      }),
     ]);
   }
 
@@ -603,19 +657,24 @@ export class IMessageRpcClient {
     await this.closed;
   }
 
-  async request<T = unknown>(method: string, params: Record<string, unknown> = {}, timeoutMs = 10_000): Promise<T> {
+  async request<T = unknown>(
+    method: string,
+    params: Record<string, unknown> = {},
+    timeoutMs = 10_000
+  ): Promise<T> {
     if (!this.child) throw new Error("imsg rpc not running");
     const id = this.id++;
     const payload = { jsonrpc: "2.0", id, method, params };
 
     const response = new Promise<T>((resolve, reject) => {
       const key = String(id);
-      const timer = timeoutMs > 0
-        ? setTimeout(() => {
-            this.pending.delete(key);
-            reject(new Error(`imsg rpc timeout (${method})`));
-          }, timeoutMs)
-        : undefined;
+      const timer =
+        timeoutMs > 0
+          ? setTimeout(() => {
+              this.pending.delete(key);
+              reject(new Error(`imsg rpc timeout (${method})`));
+            }, timeoutMs)
+          : undefined;
       this.pending.set(key, { resolve: (v) => resolve(v as T), reject, timer });
     });
 
@@ -651,7 +710,10 @@ export class IMessageRpcClient {
     }
 
     if (typeof parsed?.method === "string") {
-      this.opts.onNotification?.({ method: parsed.method, params: parsed.params });
+      this.opts.onNotification?.({
+        method: parsed.method,
+        params: parsed.params,
+      });
     }
   }
 
@@ -682,13 +744,19 @@ export function openChatDb(dbPath: string): Database.Database {
 }
 
 export function getMaxInboundRowId(db: Database.Database): number {
-  const row = db.prepare("SELECT MAX(ROWID) AS max_rowid FROM message WHERE is_from_me = 0").get() as {
+  const row = db
+    .prepare("SELECT MAX(ROWID) AS max_rowid FROM message WHERE is_from_me = 0")
+    .get() as {
     max_rowid?: number | null;
   };
   return row.max_rowid ?? 0;
 }
 
-export function fetchNewInboundRows(db: Database.Database, sinceRowId: number, limit = 20): ChatDbRow[] {
+export function fetchNewInboundRows(
+  db: Database.Database,
+  sinceRowId: number,
+  limit = 20
+): ChatDbRow[] {
   const stmt = db.prepare(
     `SELECT m.ROWID AS rowid, h.id AS sender, m.text AS text
      FROM message m
@@ -708,7 +776,7 @@ export function rowToInboundPayload(row: ChatDbRow): IMessageInboundPayload {
     sender: row.sender,
     text: row.text,
     is_from_me: false,
-    is_group: false
+    is_group: false,
   };
 }
 ```
@@ -717,14 +785,20 @@ export function rowToInboundPayload(row: ChatDbRow): IMessageInboundPayload {
 
 ```ts
 import { spawn } from "node:child_process";
-import { escapeAppleScript, isValidIMessageTarget, prependReplyTagIfNeeded } from "./security.js";
+import {
+  escapeAppleScript,
+  isValidIMessageTarget,
+  prependReplyTagIfNeeded,
+} from "./security.js";
 import { IMessageRpcClient } from "./imsg-rpc-client.js";
 import { parseIMessageTarget } from "./targets.js";
 import type { IMessageService } from "./types.js";
 
 function runAppleScript(script: string): Promise<void> {
   return new Promise((resolve, reject) => {
-    const child = spawn("osascript", ["-e", script], { stdio: ["ignore", "pipe", "pipe"] });
+    const child = spawn("osascript", ["-e", script], {
+      stdio: ["ignore", "pipe", "pipe"],
+    });
     let stderr = "";
     child.stderr.on("data", (chunk) => {
       stderr += String(chunk);
@@ -732,12 +806,18 @@ function runAppleScript(script: string): Promise<void> {
     child.on("error", reject);
     child.on("exit", (code) => {
       if (code === 0) resolve();
-      else reject(new Error(`osascript failed (${String(code)}): ${stderr.trim()}`));
+      else
+        reject(
+          new Error(`osascript failed (${String(code)}): ${stderr.trim()}`)
+        );
     });
   });
 }
 
-export async function sendViaAppleScript(target: string, message: string): Promise<void> {
+export async function sendViaAppleScript(
+  target: string,
+  message: string
+): Promise<void> {
   if (!isValidIMessageTarget(target)) {
     throw new Error("Invalid iMessage target for AppleScript fallback");
   }
@@ -778,7 +858,8 @@ export async function sendMessageIMessage(params: {
   client?: IMessageRpcClient;
 }): Promise<{ messageId: string }> {
   const target = parseIMessageTarget(params.to);
-  const service = params.service ?? (target.kind === "handle" ? target.service : "auto");
+  const service =
+    params.service ?? (target.kind === "handle" ? target.service : "auto");
   const region = params.region ?? "US";
 
   let message = prependReplyTagIfNeeded(params.text ?? "", params.replyToId);
@@ -791,13 +872,16 @@ export async function sendMessageIMessage(params: {
 
   if (target.kind === "chat_id") payload.chat_id = target.chatId;
   else if (target.kind === "chat_guid") payload.chat_guid = target.chatGuid;
-  else if (target.kind === "chat_identifier") payload.chat_identifier = target.chatIdentifier;
+  else if (target.kind === "chat_identifier")
+    payload.chat_identifier = target.chatIdentifier;
   else payload.to = target.to;
 
-  const client = params.client ?? new IMessageRpcClient({
-    cliPath: params.cliPath ?? "imsg",
-    dbPath: params.dbPath
-  });
+  const client =
+    params.client ??
+    new IMessageRpcClient({
+      cliPath: params.cliPath ?? "imsg",
+      dbPath: params.dbPath,
+    });
   const shouldStop = !params.client;
 
   try {
@@ -823,12 +907,22 @@ export async function sendMessageIMessage(params: {
 ## 3.11 `src/inbound-policy.ts`
 
 ```ts
-import type { IMessageConfig, IMessageInboundPayload, InboundDecision } from "./types.js";
-import { formatIMessageChatTarget, isAllowedIMessageSender, normalizeIMessageHandle } from "./targets.js";
+import type {
+  IMessageConfig,
+  IMessageInboundPayload,
+  InboundDecision,
+} from "./types.js";
+import {
+  formatIMessageChatTarget,
+  isAllowedIMessageSender,
+  normalizeIMessageHandle,
+} from "./targets.js";
 
 export type PairingStore = {
   hasApproved: (senderId: string) => Promise<boolean>;
-  createRequest: (senderId: string) => Promise<{ code: string; created: boolean }>;
+  createRequest: (
+    senderId: string
+  ) => Promise<{ code: string; created: boolean }>;
 };
 
 export class InMemoryPairingStore implements PairingStore {
@@ -844,7 +938,9 @@ export class InMemoryPairingStore implements PairingStore {
     return this.approved.has(senderId);
   }
 
-  async createRequest(senderId: string): Promise<{ code: string; created: boolean }> {
+  async createRequest(
+    senderId: string
+  ): Promise<{ code: string; created: boolean }> {
     const existing = this.pending.get(senderId);
     if (existing) return { code: existing, created: false };
     const code = Math.random().toString(36).slice(2, 10).toUpperCase();
@@ -881,12 +977,14 @@ export async function resolveInboundDecision(params: {
   const senderNormalized = normalizeIMessageHandle(sender);
   const chatId = message.chat_id ?? undefined;
   const configuredGroups = config.groups ?? {};
-  const treatAsGroupByConfig = chatId != null && (configuredGroups[String(chatId)] || configuredGroups["*"]);
+  const treatAsGroupByConfig =
+    chatId != null &&
+    (configuredGroups[String(chatId)] || configuredGroups["*"]);
   const isGroup = Boolean(message.is_group) || Boolean(treatAsGroupByConfig);
 
   const allowFrom = [
     ...(config.allowFrom ?? []),
-    ...((params.storeAllowFrom ?? []).map((v) => String(v)))
+    ...(params.storeAllowFrom ?? []).map((v) => String(v)),
   ];
   const groupAllowFrom = config.groupAllowFrom ?? [];
   const dmPolicy = config.dmPolicy ?? "pairing";
@@ -899,15 +997,20 @@ export async function resolveInboundDecision(params: {
       sender,
       chatId,
       chatGuid: message.chat_guid,
-      chatIdentifier: message.chat_identifier
+      chatIdentifier: message.chat_identifier,
     });
 
   if (!isGroup) {
     if (dmPolicy === "disabled") return { kind: "drop", reason: "dm disabled" };
 
     if (!allowedByDm) {
-      if (dmPolicy === "pairing" && config.pairing?.enabled !== false && params.pairingStore) {
-        const approved = await params.pairingStore.hasApproved(senderNormalized);
+      if (
+        dmPolicy === "pairing" &&
+        config.pairing?.enabled !== false &&
+        params.pairingStore
+      ) {
+        const approved =
+          await params.pairingStore.hasApproved(senderNormalized);
         if (!approved) {
           await params.pairingStore.createRequest(senderNormalized);
           return { kind: "pairing", senderId: senderNormalized };
@@ -918,22 +1021,30 @@ export async function resolveInboundDecision(params: {
   }
 
   if (isGroup) {
-    if (groupPolicy === "disabled") return { kind: "drop", reason: "group disabled" };
+    if (groupPolicy === "disabled")
+      return { kind: "drop", reason: "group disabled" };
     if (groupPolicy === "allowlist") {
       const allowed = isAllowedIMessageSender({
         allowFrom: groupAllowFrom,
         sender,
         chatId,
         chatGuid: message.chat_guid,
-        chatIdentifier: message.chat_identifier
+        chatIdentifier: message.chat_identifier,
       });
       if (!allowed) return { kind: "drop", reason: "group allowlist blocked" };
     }
 
-    const groupCfg = (chatId != null ? configuredGroups[String(chatId)] : undefined) ?? configuredGroups["*"];
-    const requireMention = groupCfg?.requireMention ?? config.requireMention ?? true;
+    const groupCfg =
+      (chatId != null ? configuredGroups[String(chatId)] : undefined) ??
+      configuredGroups["*"];
+    const requireMention =
+      groupCfg?.requireMention ?? config.requireMention ?? true;
     const patterns = config.mentionPatterns ?? [];
-    if (requireMention && patterns.length > 0 && !matchesMention(body, patterns)) {
+    if (
+      requireMention &&
+      patterns.length > 0 &&
+      !matchesMention(body, patterns)
+    ) {
       return { kind: "drop", reason: "mention required" };
     }
   }
@@ -951,8 +1062,8 @@ export async function resolveInboundDecision(params: {
     replyTo: {
       id: message.reply_to_id != null ? String(message.reply_to_id) : undefined,
       body: message.reply_to_text ?? undefined,
-      sender: message.reply_to_sender ?? undefined
-    }
+      sender: message.reply_to_sender ?? undefined,
+    },
   };
 }
 ```
@@ -962,14 +1073,23 @@ export async function resolveInboundDecision(params: {
 ```ts
 import { existsSync } from "node:fs";
 import { EventEmitter } from "node:events";
-import { fetchNewInboundRows, getMaxInboundRowId, openChatDb, rowToInboundPayload } from "./chatdb.js";
+import {
+  fetchNewInboundRows,
+  getMaxInboundRowId,
+  openChatDb,
+  rowToInboundPayload,
+} from "./chatdb.js";
 import { IMessageRpcClient } from "./imsg-rpc-client.js";
 import { resolveInboundDecision, type PairingStore } from "./inbound-policy.js";
 import { sendMessageIMessage } from "./send.js";
 import type { IMessageConfig, IMessageInboundPayload } from "./types.js";
 
 export type MonitorEvents = {
-  dispatch: (payload: { to: string; text: string; raw: IMessageInboundPayload }) => void;
+  dispatch: (payload: {
+    to: string;
+    text: string;
+    raw: IMessageInboundPayload;
+  }) => void;
   pairing: (payload: { senderId: string; raw: IMessageInboundPayload }) => void;
   error: (err: Error) => void;
 };
@@ -1032,12 +1152,12 @@ export class IMessageMonitor extends EventEmitter {
           void this.handleRawInbound(msg.params);
         }
       },
-      onError: (m) => this.emit("error", new Error(m))
+      onError: (m) => this.emit("error", new Error(m)),
     });
 
     await this.rpcClient.start();
     await this.rpcClient.request("watch.subscribe", {
-      attachments: this.config.includeAttachments ?? false
+      attachments: this.config.includeAttachments ?? false,
     });
 
     void this.rpcClient.waitForClose().catch((err) => {
@@ -1081,7 +1201,7 @@ export class IMessageMonitor extends EventEmitter {
       config: this.config,
       message,
       pairingStore: this.pairingStore,
-      storeAllowFrom: []
+      storeAllowFrom: [],
     });
 
     if (decision.kind === "drop") return;
@@ -1094,7 +1214,7 @@ export class IMessageMonitor extends EventEmitter {
           dbPath: this.config.dbPath,
           to: message.sender,
           text: `Pairing required. Approve this sender in your control plane. Sender: ${decision.senderId}`,
-          fallbackToAppleScript: true
+          fallbackToAppleScript: true,
         }).catch(() => undefined);
       }
       return;
@@ -1103,7 +1223,7 @@ export class IMessageMonitor extends EventEmitter {
     this.emit("dispatch", {
       to: decision.to,
       text: decision.body,
-      raw: message
+      raw: message,
     });
   }
 }
@@ -1119,7 +1239,14 @@ import { sendMessageIMessage } from "../send.js";
 import type { IMessageConfig } from "../types.js";
 
 type BridgeMessage =
-  | { type: "send"; requestId: string; to: string; text: string; replyToId?: string; mediaPath?: string }
+  | {
+      type: "send";
+      requestId: string;
+      to: string;
+      text: string;
+      replyToId?: string;
+      mediaPath?: string;
+    }
   | { type: "ping"; requestId: string };
 
 export class MacIMessageBridge {
@@ -1138,7 +1265,10 @@ export class MacIMessageBridge {
     const wss = new WebSocketServer({ noServer: true });
 
     server.on("upgrade", (req, socket, head) => {
-      const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`);
+      const url = new URL(
+        req.url ?? "/",
+        `http://${req.headers.host ?? "localhost"}`
+      );
       const token = url.searchParams.get("token");
       if (token !== this.opts.token) {
         socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n");
@@ -1155,7 +1285,11 @@ export class MacIMessageBridge {
       this.broadcast({ type: "pairing", channel: "imessage", senderId, raw });
     });
     this.monitor.on("error", (err) => {
-      this.broadcast({ type: "error", channel: "imessage", error: err.message });
+      this.broadcast({
+        type: "error",
+        channel: "imessage",
+        error: err.message,
+      });
     });
 
     await this.monitor.start();
@@ -1197,11 +1331,23 @@ export class MacIMessageBridge {
           text: msg.text,
           replyToId: msg.replyToId,
           mediaPath: msg.mediaPath,
-          fallbackToAppleScript: true
+          fallbackToAppleScript: true,
         });
-        ws.send(JSON.stringify({ type: "send.ack", requestId: msg.requestId, messageId: out.messageId }));
+        ws.send(
+          JSON.stringify({
+            type: "send.ack",
+            requestId: msg.requestId,
+            messageId: out.messageId,
+          })
+        );
       } catch (err) {
-        ws.send(JSON.stringify({ type: "send.nack", requestId: msg.requestId, error: String(err) }));
+        ws.send(
+          JSON.stringify({
+            type: "send.nack",
+            requestId: msg.requestId,
+            error: String(err),
+          })
+        );
       }
     }
   }
@@ -1262,7 +1408,9 @@ export class IBridgeGatewayClient {
     }
 
     const requestId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    this.ws.send(JSON.stringify({ type: "send", requestId, to, text, replyToId }));
+    this.ws.send(
+      JSON.stringify({ type: "send", requestId, to, text, replyToId })
+    );
   }
 
   private async handleMessage(raw: string): Promise<void> {
@@ -1313,7 +1461,7 @@ async function main() {
   const bridge = new MacIMessageBridge(config, {
     host: "127.0.0.1",
     port: 8787,
-    token: process.env.IMESSAGE_BRIDGE_TOKEN ?? "change-me"
+    token: process.env.IMESSAGE_BRIDGE_TOKEN ?? "change-me",
   });
 
   await bridge.start();
@@ -1332,7 +1480,8 @@ main().catch((err) => {
 
 1. Must run Messages.app with an authenticated Apple ID.
 2. Grant **Full Disk Access** to the process context reading `chat.db`.
-3. Grant **Automation** permission for controlling Messages via AppleScript (fallback path).
+3. Grant **Automation** permission for controlling Messages via AppleScript
+   (fallback path).
 4. If using SSH wrapper `cliPath`, ensure key-based auth and least privilege.
 5. Never allow unsafe `cliPath` values (`;`, `|`, quotes, control chars).
 
@@ -1343,17 +1492,21 @@ main().catch((err) => {
 ## 5.1 Recommended topology
 
 1. **Mac node** (close to Messages): runs `MacIMessageBridge` + `imsg`.
-2. **Gateway/AI node** (Linux/macOS/VM): runs your model orchestration and connects to bridge.
-3. **Secure channel**: WireGuard/Tailscale/private network + token auth + mTLS/reverse proxy if public.
+2. **Gateway/AI node** (Linux/macOS/VM): runs your model orchestration and
+   connects to bridge.
+3. **Secure channel**: WireGuard/Tailscale/private network + token auth +
+   mTLS/reverse proxy if public.
 
 ## 5.2 Attachment handling (remote)
 
 If inbound payload references file paths on a remote Mac:
 
 - either transfer via SCP (as OpenClaw does with `remoteHost`),
-- or make the bridge upload/stream attachment bytes directly so gateway never path-mounts remote files.
+- or make the bridge upload/stream attachment bytes directly so gateway never
+  path-mounts remote files.
 
-For production, prefer explicit binary upload/stream in bridge protocol over shelling out to SCP from gateway.
+For production, prefer explicit binary upload/stream in bridge protocol over
+shelling out to SCP from gateway.
 
 ## 5.3 Reliability checklist
 
@@ -1367,15 +1520,15 @@ For production, prefer explicit binary upload/stream in bridge protocol over she
 
 ## 6) Feature parity map
 
-| Capability | ZeroClaw | OpenClaw | This TS guide |
-|---|---|---|---|
-| `chat.db` polling | Yes | Optional via `imsg` internals | Yes |
-| `imsg rpc` JSON-RPC | No | Yes | Yes |
-| AppleScript send fallback | Yes | Not primary | Yes |
-| DM policy + pairing | Basic allowlist | Full policy engine | Yes |
-| Group policy + mentions | Minimal | Full | Yes |
-| Remote/distributed operation | Not explicit | Yes (`cliPath` wrapper + `remoteHost`) | Yes (bridge + gateway) |
-| Target types (`chat_id/chat_guid/chat_identifier`) | No | Yes | Yes |
+| Capability                                         | ZeroClaw        | OpenClaw                               | This TS guide          |
+| -------------------------------------------------- | --------------- | -------------------------------------- | ---------------------- |
+| `chat.db` polling                                  | Yes             | Optional via `imsg` internals          | Yes                    |
+| `imsg rpc` JSON-RPC                                | No              | Yes                                    | Yes                    |
+| AppleScript send fallback                          | Yes             | Not primary                            | Yes                    |
+| DM policy + pairing                                | Basic allowlist | Full policy engine                     | Yes                    |
+| Group policy + mentions                            | Minimal         | Full                                   | Yes                    |
+| Remote/distributed operation                       | Not explicit    | Yes (`cliPath` wrapper + `remoteHost`) | Yes (bridge + gateway) |
+| Target types (`chat_id/chat_guid/chat_identifier`) | No              | Yes                                    | Yes                    |
 
 ---
 
@@ -1386,6 +1539,9 @@ For production, prefer explicit binary upload/stream in bridge protocol over she
 3. Add pairing persistence + approvals API.
 4. Add distributed bridge protocol and reconnect logic.
 5. Add attachment transfer hardening.
-6. Add tests mirroring OpenClaw behaviors (`targets`, `send`, `gating`, malformed payload handling).
+6. Add tests mirroring OpenClaw behaviors (`targets`, `send`, `gating`,
+   malformed payload handling).
 
-If you follow the file layout and code above, you’ll replicate the core iMessage channel behavior found in both projects, with a production-ready path for running your AI agent in distributed mode.
+If you follow the file layout and code above, you’ll replicate the core iMessage
+channel behavior found in both projects, with a production-ready path for
+running your AI agent in distributed mode.

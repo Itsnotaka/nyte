@@ -16,7 +16,10 @@ type AppShellClientProps = {
   interfaceTheme: "light" | "dark";
 };
 
-export const AppShellClient = ({ children, interfaceTheme }: AppShellClientProps) => {
+export const AppShellClient = ({
+  children,
+  interfaceTheme,
+}: AppShellClientProps) => {
   const shellStyle =
     interfaceTheme === "light"
       ? {

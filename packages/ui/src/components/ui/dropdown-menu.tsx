@@ -1,10 +1,10 @@
 "use client";
 
+import { Menu as MenuPrimitive } from "@base-ui/react/menu";
 import {
   IconCheckmark2Small,
   IconChevronRightSmall,
 } from "@central-icons-react/round-filled-radius-2-stroke-1.5";
-import { Menu as MenuPrimitive } from "@base-ui/react/menu";
 import * as React from "react";
 
 import { cn } from "../../lib/utils";

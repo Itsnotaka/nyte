@@ -156,7 +156,10 @@ export async function ingestSignalsTask({
     }),
   ]);
 
-  if (gmailResult.status === "rejected" && calendarResult.status === "rejected") {
+  if (
+    gmailResult.status === "rejected" &&
+    calendarResult.status === "rejected"
+  ) {
     throw new Error(
       `Signal ingestion failed for Gmail and Calendar. Gmail: ${getErrorMessage(gmailResult.reason)}. Calendar: ${getErrorMessage(calendarResult.reason)}.`
     );
@@ -164,7 +167,9 @@ export async function ingestSignalsTask({
 
   const signals = [
     ...(gmailResult.status === "fulfilled" ? gmailResult.value.signals : []),
-    ...(calendarResult.status === "fulfilled" ? calendarResult.value.signals : []),
+    ...(calendarResult.status === "fulfilled"
+      ? calendarResult.value.signals
+      : []),
   ];
 
   const nextCursor = serializeQueueCursor({

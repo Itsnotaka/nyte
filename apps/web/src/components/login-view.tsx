@@ -2,8 +2,8 @@
 
 import * as React from "react";
 
-import { GOOGLE_AUTH_PROVIDER } from "~/lib/auth-provider";
 import { authClient } from "~/lib/auth-client";
+import { GOOGLE_AUTH_PROVIDER } from "~/lib/auth-provider";
 
 export function LoginView() {
   const [isLoading, setIsLoading] = React.useState(false);

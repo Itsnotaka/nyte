@@ -1,11 +1,11 @@
 "use client";
 
+import { Select as SelectPrimitive } from "@base-ui/react/select";
 import {
   IconCheckmark2Small,
   IconChevronDownSmall,
   IconChevronTriangleUpSmall,
 } from "@central-icons-react/round-filled-radius-2-stroke-1.5";
-import { Select as SelectPrimitive } from "@base-ui/react/select";
 import * as React from "react";
 
 import { cn } from "../../lib/utils";
