@@ -16,10 +16,7 @@ type AppShellClientProps = {
   interfaceTheme: "light" | "dark";
 };
 
-export const AppShellClient = ({
-  children,
-  interfaceTheme,
-}: AppShellClientProps) => {
+export const AppShellClient = ({ children, interfaceTheme }: AppShellClientProps) => {
   const shellStyle =
     interfaceTheme === "light"
       ? {
@@ -33,9 +30,6 @@ export const AppShellClient = ({
 
   return (
     <SidebarProvider
-      defaultWidth={244}
-      minWidth={220}
-      maxWidth={330}
       data-theme={interfaceTheme}
       className="h-dvh w-full bg-[var(--color-shell-bg)] text-[var(--color-text-secondary)]"
       style={shellStyle as React.CSSProperties}

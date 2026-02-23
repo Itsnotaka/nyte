@@ -1,824 +1,153 @@
 "use client";
 
-import { IconSidebarLeftArrow } from "@central-icons-react/round-filled-radius-2-stroke-1.5";
+import { IconSidebar } from "@central-icons-react/round-filled-radius-2-stroke-1.5";
+import { useReducedMotion } from "motion/react";
 import * as React from "react";
 
+import { useMobile } from "../../hooks/use-mobile";
 import { cn } from "../../lib/utils";
+import { Drawer, DrawerContent } from "./drawer";
 
-const DEFAULT_STATIC_SIDEBAR_WIDTH = 244;
-const MOBILE_SIDEBAR_WIDTH = 330;
-const COLLAPSED_SPACER_WIDTH = 0;
-const DEFAULT_SIDEBAR_MIN_WIDTH = 220;
-const DEFAULT_SIDEBAR_MAX_WIDTH = 330;
-const SIDEBAR_COLLAPSE_SNAP_X = 64;
-const SIDEBAR_EXPAND_SNAP_X = 284;
-const DRAG_MOVE_THRESHOLD = 2;
+const SIDEBAR_DESKTOP_WIDTH = 244;
+const SIDEBAR_MOBILE_WIDTH = 330;
 const SIDEBAR_MOBILE_BREAKPOINT = 1024;
 
-type DesktopSidebarVariant = "static" | "collapsed";
-type SidebarVariant = DesktopSidebarVariant | "mobile";
-type SidebarState =
-  | "open"
-  | "collapsed"
-  | "collapsed-hover"
-  | "mobile"
-  | "mobile-open";
-
-type DragState = {
-  pointerId: number;
-  startX: number;
-  startWidth: number;
-  startVariant: DesktopSidebarVariant;
-  dragVariant: DesktopSidebarVariant;
-  hasMoved: boolean;
-  rawWidth: number;
-};
-
-type SidebarStore = {
-  variant: SidebarVariant;
-  desktopVariant: DesktopSidebarVariant;
-  staticWidth: number;
-  mobileWidth: number;
-  minWidth: number;
-  maxWidth: number;
-  isOpen: boolean;
-  isSmallViewport: boolean;
-  isResizing: boolean;
-  resizingMode: DesktopSidebarVariant | null;
-  drag: DragState | null;
-  liveWidth: number;
-  suppressDoubleClick: boolean;
-  rafId: number | null;
-  pendingLayout: {
-    spacerWidth: number;
-    layerWidth: number;
-  } | null;
-};
-
-type SidebarSnapshot = {
-  variant: SidebarVariant;
-  state: SidebarState;
-  isOpen: boolean;
-  isSmallViewport: boolean;
-  isResizing: boolean;
-  width: number;
-  staticWidth: number;
-  spacerWidth: number;
-  layerWidth: number;
-  hiddenLeft: number;
-  isCollapsedGeometry: boolean;
-  isCollapsedVisible: boolean;
-  isMobileGeometry: boolean;
-  isMobileVisible: boolean;
-};
+type SidebarState = "expanded" | "collapsed";
+type SidebarVariant = "static" | "collapsed" | "mobile";
 
 type SidebarContextValue = {
-  variant: SidebarVariant;
   state: SidebarState;
-  isOpen: boolean;
-  isResizing: boolean;
-  width: number;
-  staticWidth: number;
-  toggle: () => void;
+  open: boolean;
+  setOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  openMobile: boolean;
+  setOpenMobile: React.Dispatch<React.SetStateAction<boolean>>;
+  isMobile: boolean;
   toggleSidebar: () => void;
-  expand: () => void;
-  collapse: () => void;
-};
-
-type SidebarInternalContextValue = {
-  snapshot: SidebarSnapshot;
-  scheduleLayout: (spacerWidth: number, layerWidth: number) => void;
-  startResize: (pointerId: number, clientX: number) => void;
-  moveResize: (pointerId: number, clientX: number) => void;
-  finishResize: (pointerId: number) => void;
-  onRailDoubleClick: () => void;
-  onSidebarMouseEnter: () => void;
-  onSidebarMouseLeave: () => void;
-  onCollapsedEdgeEnter: () => void;
-  toggle: () => void;
+  variant: SidebarVariant;
 };
 
 const SidebarContext = React.createContext<SidebarContextValue | null>(null);
-const SidebarInternalContext =
-  React.createContext<SidebarInternalContextValue | null>(null);
 
-const clamp = (value: number, min: number, max: number) => {
-  return Math.min(max, Math.max(min, value));
-};
-
-const shallowEqualSnapshot = (a: SidebarSnapshot, b: SidebarSnapshot) => {
-  return (
-    a.variant === b.variant &&
-    a.state === b.state &&
-    a.isOpen === b.isOpen &&
-    a.isResizing === b.isResizing &&
-    a.width === b.width &&
-    a.staticWidth === b.staticWidth &&
-    a.spacerWidth === b.spacerWidth &&
-    a.layerWidth === b.layerWidth &&
-    a.hiddenLeft === b.hiddenLeft &&
-    a.isCollapsedGeometry === b.isCollapsedGeometry &&
-    a.isCollapsedVisible === b.isCollapsedVisible &&
-    a.isMobileGeometry === b.isMobileGeometry &&
-    a.isMobileVisible === b.isMobileVisible &&
-    a.isSmallViewport === b.isSmallViewport
-  );
-};
-
-const resolveDragVariant = (
-  rawWidth: number,
-  dragVariant: DesktopSidebarVariant,
-  startVariant: DesktopSidebarVariant
-): DesktopSidebarVariant => {
-  if (startVariant === "static") {
-    if (dragVariant === "collapsed") {
-      return "collapsed";
-    }
-
-    return rawWidth <= SIDEBAR_COLLAPSE_SNAP_X ? "collapsed" : "static";
-  }
-
-  if (dragVariant === "static") {
-    return "static";
-  }
-
-  return rawWidth >= SIDEBAR_EXPAND_SNAP_X ? "static" : "collapsed";
-};
-
-const resolveLayerWidth = (store: SidebarStore) => {
-  return store.isSmallViewport ? store.mobileWidth : store.staticWidth;
-};
-
-const getSnapshot = (store: SidebarStore): SidebarSnapshot => {
-  const state: SidebarState =
-    store.variant === "static"
-      ? "open"
-      : store.variant === "mobile"
-        ? store.isOpen
-          ? "mobile-open"
-          : "mobile"
-        : store.isOpen
-          ? "collapsed-hover"
-          : "collapsed";
-  const layerWidth =
-    store.variant === "static" ? store.staticWidth : resolveLayerWidth(store);
-  const spacerWidth =
-    store.variant === "static" ? store.staticWidth : COLLAPSED_SPACER_WIDTH;
-  const hiddenLeft =
-    store.resizingMode === "static"
-      ? -layerWidth - 10
-      : store.isSmallViewport
-        ? -layerWidth
-        : -layerWidth - 12;
-  const isCollapsedGeometry = store.variant === "collapsed";
-  const isMobileGeometry = store.variant === "mobile";
-  const isCollapsedDragPreview =
-    store.isResizing && store.drag?.startVariant === "collapsed";
-  const isCollapsedVisible =
-    isCollapsedGeometry && (store.isOpen || isCollapsedDragPreview);
-  const isMobileVisible = isMobileGeometry && store.isOpen;
-
-  return {
-    variant: store.variant,
-    state,
-    isOpen: store.isOpen,
-    isSmallViewport: store.isSmallViewport,
-    isResizing: store.isResizing,
-    width: layerWidth,
-    staticWidth: store.staticWidth,
-    spacerWidth,
-    layerWidth,
-    hiddenLeft,
-    isCollapsedGeometry,
-    isCollapsedVisible,
-    isMobileGeometry,
-    isMobileVisible,
-  };
+const resolveStateValue = <T,>(
+  nextValue: React.SetStateAction<T>,
+  currentValue: T
+): T => {
+  return typeof nextValue === "function"
+    ? (nextValue as (value: T) => T)(currentValue)
+    : nextValue;
 };
 
 type SidebarProviderProps = React.ComponentProps<"div"> & {
-  defaultWidth?: number;
-  minWidth?: number;
-  maxWidth?: number;
-  defaultVariant?: DesktopSidebarVariant;
-  trafficLightPosition?: boolean;
+  defaultOpen?: boolean;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  openMobile?: boolean;
+  onOpenMobileChange?: (open: boolean) => void;
 };
 
 function SidebarProvider({
-  defaultWidth = DEFAULT_STATIC_SIDEBAR_WIDTH,
-  minWidth = DEFAULT_SIDEBAR_MIN_WIDTH,
-  maxWidth = DEFAULT_SIDEBAR_MAX_WIDTH,
-  defaultVariant = "static",
-  trafficLightPosition = false,
+  defaultOpen = true,
+  open: openProp,
+  onOpenChange,
+  openMobile: openMobileProp,
+  onOpenMobileChange,
   className,
   style,
   children,
   ...props
 }: SidebarProviderProps) {
-  const boundedMinWidth = Math.max(0, minWidth);
-  const boundedMaxWidth = Math.max(boundedMinWidth, maxWidth);
-  const initialStaticWidth = clamp(
-    defaultWidth,
-    boundedMinWidth,
-    boundedMaxWidth
-  );
+  const isMobile = useMobile(() => SIDEBAR_MOBILE_BREAKPOINT);
 
-  const storeRef = React.useRef<SidebarStore | null>(null);
-  if (!storeRef.current) {
-    storeRef.current = {
-      variant: defaultVariant,
-      desktopVariant: defaultVariant,
-      staticWidth: initialStaticWidth,
-      mobileWidth: MOBILE_SIDEBAR_WIDTH,
-      minWidth: boundedMinWidth,
-      maxWidth: boundedMaxWidth,
-      isOpen: false,
-      isSmallViewport: false,
-      isResizing: false,
-      resizingMode: null,
-      drag: null,
-      liveWidth: initialStaticWidth,
-      suppressDoubleClick: false,
-      rafId: null,
-      pendingLayout: null,
-    };
-  }
+  const [openState, setOpenState] = React.useState(defaultOpen);
+  const [openMobileState, setOpenMobileState] = React.useState(false);
 
-  const shellRef = React.useRef<HTMLDivElement | null>(null);
-  const [snapshot, setSnapshot] = React.useState<SidebarSnapshot>(() => {
-    return getSnapshot(storeRef.current as SidebarStore);
-  });
+  const open = openProp ?? openState;
+  const openMobile = openMobileProp ?? openMobileState;
 
-  const emit = React.useCallback(() => {
-    const store = storeRef.current;
-    if (!store) {
+  const setOpen: React.Dispatch<React.SetStateAction<boolean>> = (nextOpen) => {
+    const resolvedOpen = resolveStateValue(nextOpen, open);
+
+    if (openProp === undefined) {
+      setOpenState(resolvedOpen);
+    }
+
+    onOpenChange?.(resolvedOpen);
+  };
+
+  const setOpenMobile: React.Dispatch<React.SetStateAction<boolean>> = (
+    nextOpen
+  ) => {
+    const resolvedOpen = resolveStateValue(nextOpen, openMobile);
+
+    if (openMobileProp === undefined) {
+      setOpenMobileState(resolvedOpen);
+    }
+
+    onOpenMobileChange?.(resolvedOpen);
+  };
+
+  const toggleSidebar = () => {
+    if (isMobile) {
+      setOpenMobile((currentValue) => !currentValue);
       return;
     }
 
-    const nextSnapshot = getSnapshot(store);
-    setSnapshot((prevSnapshot) => {
-      return shallowEqualSnapshot(prevSnapshot, nextSnapshot)
-        ? prevSnapshot
-        : nextSnapshot;
-    });
-  }, []);
-
-  const applyLayout = React.useCallback(
-    (spacerWidth: number, layerWidth: number) => {
-      const shellElement = shellRef.current;
-      if (!shellElement) {
-        return;
-      }
-
-      shellElement.style.setProperty(
-        "--sidebar-spacer-width",
-        `${spacerWidth}px`
-      );
-      shellElement.style.setProperty(
-        "--sidebar-layer-width",
-        `${layerWidth}px`
-      );
-    },
-    []
-  );
-
-  const scheduleLayout = React.useCallback(
-    (spacerWidth: number, layerWidth: number) => {
-      const store = storeRef.current;
-      if (!store) {
-        return;
-      }
-
-      store.pendingLayout = { spacerWidth, layerWidth };
-
-      if (store.rafId !== null) {
-        return;
-      }
-
-      store.rafId = window.requestAnimationFrame(() => {
-        const currentStore = storeRef.current;
-        if (!currentStore) {
-          return;
-        }
-
-        currentStore.rafId = null;
-        const pendingLayout = currentStore.pendingLayout;
-        currentStore.pendingLayout = null;
-        if (!pendingLayout) {
-          return;
-        }
-
-        applyLayout(pendingLayout.spacerWidth, pendingLayout.layerWidth);
-      });
-    },
-    [applyLayout]
-  );
-
-  React.useEffect(() => {
-    const mediaQuery = window.matchMedia(
-      `(max-width: ${SIDEBAR_MOBILE_BREAKPOINT}px)`
-    );
-
-    const syncViewportVariant = () => {
-      const store = storeRef.current;
-      if (!store) {
-        return;
-      }
-
-      const isSmallViewport = mediaQuery.matches;
-      const nextVariant: SidebarVariant = isSmallViewport
-        ? "mobile"
-        : store.desktopVariant;
-      const viewportChanged =
-        store.isSmallViewport !== isSmallViewport ||
-        store.variant !== nextVariant;
-      if (!viewportChanged) {
-        return;
-      }
-
-      store.isSmallViewport = isSmallViewport;
-      store.variant = nextVariant;
-      store.isOpen = false;
-
-      const nextLayerWidth =
-        nextVariant === "static" ? store.staticWidth : resolveLayerWidth(store);
-      const nextSpacerWidth =
-        nextVariant === "static" ? store.staticWidth : COLLAPSED_SPACER_WIDTH;
-      scheduleLayout(nextSpacerWidth, nextLayerWidth);
-      emit();
-    };
-
-    syncViewportVariant();
-    mediaQuery.addEventListener("change", syncViewportVariant);
-    return () => {
-      mediaQuery.removeEventListener("change", syncViewportVariant);
-    };
-  }, [emit, scheduleLayout]);
-
-  const commitResize = React.useCallback(
-    (
-      finalWidth: number,
-      finalVariant: DesktopSidebarVariant,
-      preserveOpenOnCollapsed = false
-    ) => {
-      const store = storeRef.current;
-      if (!store) {
-        return;
-      }
-
-      store.isResizing = false;
-      store.resizingMode = null;
-      store.isOpen = false;
-
-      if (finalVariant === "collapsed") {
-        store.desktopVariant = "collapsed";
-        store.variant = store.isSmallViewport ? "mobile" : "collapsed";
-        store.isOpen = preserveOpenOnCollapsed;
-        const collapsedWidth = resolveLayerWidth(store);
-        store.liveWidth = collapsedWidth;
-        scheduleLayout(COLLAPSED_SPACER_WIDTH, collapsedWidth);
-        emit();
-        return;
-      }
-
-      const clampedWidth = clamp(finalWidth, store.minWidth, store.maxWidth);
-      store.liveWidth = clampedWidth;
-      store.staticWidth = clampedWidth;
-      store.desktopVariant = "static";
-      store.variant = store.isSmallViewport ? "mobile" : "static";
-      if (store.variant === "static") {
-        scheduleLayout(clampedWidth, clampedWidth);
-      } else {
-        scheduleLayout(COLLAPSED_SPACER_WIDTH, resolveLayerWidth(store));
-      }
-      emit();
-    },
-    [emit, scheduleLayout]
-  );
-
-  const expand = React.useCallback(() => {
-    const store = storeRef.current;
-    if (!store) {
-      return;
-    }
-
-    if (store.variant === "mobile") {
-      if (store.isOpen) {
-        return;
-      }
-
-      store.isOpen = true;
-      scheduleLayout(COLLAPSED_SPACER_WIDTH, resolveLayerWidth(store));
-      emit();
-      return;
-    }
-
-    if (store.variant === "static") {
-      return;
-    }
-
-    store.desktopVariant = "static";
-    const restoredWidth = store.staticWidth;
-    store.variant = "static";
-    store.isOpen = false;
-    store.liveWidth = restoredWidth;
-    scheduleLayout(restoredWidth, restoredWidth);
-    emit();
-  }, [emit, scheduleLayout]);
-
-  const collapse = React.useCallback(() => {
-    const store = storeRef.current;
-    if (!store) {
-      return;
-    }
-
-    if (store.variant === "mobile") {
-      if (!store.isOpen) {
-        return;
-      }
-
-      store.isOpen = false;
-      scheduleLayout(COLLAPSED_SPACER_WIDTH, resolveLayerWidth(store));
-      emit();
-      return;
-    }
-
-    if (store.variant === "collapsed") {
-      return;
-    }
-
-    store.desktopVariant = "collapsed";
-    store.variant = "collapsed";
-    store.isOpen = false;
-    const collapsedWidth = resolveLayerWidth(store);
-    store.liveWidth = collapsedWidth;
-    scheduleLayout(COLLAPSED_SPACER_WIDTH, collapsedWidth);
-    emit();
-  }, [emit, scheduleLayout]);
-
-  const toggle = React.useCallback(() => {
-    const store = storeRef.current;
-    if (!store) {
-      return;
-    }
-
-    if (store.variant === "mobile") {
-      store.isOpen = !store.isOpen;
-      scheduleLayout(COLLAPSED_SPACER_WIDTH, resolveLayerWidth(store));
-      emit();
-      return;
-    }
-
-    if (store.variant === "collapsed") {
-      expand();
-      return;
-    }
-
-    collapse();
-  }, [collapse, emit, expand, scheduleLayout]);
-
-  const onSidebarMouseEnter = React.useCallback(() => {
-    const store = storeRef.current;
-    if (
-      !store ||
-      store.variant !== "collapsed" ||
-      store.isResizing ||
-      store.isOpen
-    ) {
-      return;
-    }
-
-    store.isOpen = true;
-    scheduleLayout(COLLAPSED_SPACER_WIDTH, resolveLayerWidth(store));
-    emit();
-  }, [emit, scheduleLayout]);
-
-  const onSidebarMouseLeave = React.useCallback(() => {
-    const store = storeRef.current;
-    if (
-      !store ||
-      store.variant !== "collapsed" ||
-      store.isResizing ||
-      !store.isOpen
-    ) {
-      return;
-    }
-
-    store.isOpen = false;
-    scheduleLayout(COLLAPSED_SPACER_WIDTH, resolveLayerWidth(store));
-    emit();
-  }, [emit, scheduleLayout]);
-
-  const onCollapsedEdgeEnter = React.useCallback(() => {
-    const store = storeRef.current;
-    if (
-      !store ||
-      store.variant !== "collapsed" ||
-      store.isResizing ||
-      store.isOpen
-    ) {
-      return;
-    }
-
-    store.isOpen = true;
-    scheduleLayout(COLLAPSED_SPACER_WIDTH, resolveLayerWidth(store));
-    emit();
-  }, [emit, scheduleLayout]);
-
-  const startResize = React.useCallback(
-    (pointerId: number, clientX: number) => {
-      const store = storeRef.current;
-      if (!store) {
-        return;
-      }
-      if (store.variant === "mobile" && !store.isOpen) {
-        return;
-      }
-
-      const startVariant = store.desktopVariant;
-      const startWidth = resolveLayerWidth(store);
-
-      store.drag = {
-        pointerId,
-        startX: clientX,
-        startWidth,
-        startVariant,
-        dragVariant: startVariant,
-        hasMoved: false,
-        rawWidth: startWidth,
-      };
-      store.liveWidth = startWidth;
-      store.isResizing = true;
-      store.resizingMode = startVariant;
-      if (store.variant === "mobile" && !store.isOpen) {
-        store.isOpen = true;
-      }
-
-      if (store.variant === "mobile" || startVariant === "collapsed") {
-        store.isOpen = true;
-        scheduleLayout(COLLAPSED_SPACER_WIDTH, startWidth);
-      } else {
-        scheduleLayout(startWidth, startWidth);
-      }
-
-      emit();
-    },
-    [emit, scheduleLayout]
-  );
-
-  const moveResize = React.useCallback(
-    (pointerId: number, clientX: number) => {
-      const store = storeRef.current;
-      if (!store || !store.drag || store.drag.pointerId !== pointerId) {
-        return;
-      }
-
-      const dragState = store.drag;
-      const deltaX = clientX - dragState.startX;
-      if (!dragState.hasMoved && Math.abs(deltaX) >= DRAG_MOVE_THRESHOLD) {
-        dragState.hasMoved = true;
-      }
-
-      const rawWidth = dragState.startWidth + deltaX;
-      dragState.rawWidth = rawWidth;
-
-      const nextWidth = clamp(rawWidth, store.minWidth, store.maxWidth);
-      store.liveWidth = nextWidth;
-
-      let shouldEmit = false;
-      if (store.variant === "mobile") {
-        store.mobileWidth = nextWidth;
-        store.desktopVariant = "collapsed";
-        store.resizingMode = "collapsed";
-        if (!store.isOpen) {
-          store.isOpen = true;
-          shouldEmit = true;
-        }
-        scheduleLayout(COLLAPSED_SPACER_WIDTH, nextWidth);
-        if (shouldEmit) {
-          emit();
-        }
-        return;
-      }
-
-      const computedNextVariant = resolveDragVariant(
-        rawWidth,
-        dragState.dragVariant,
-        dragState.startVariant
-      );
-      const nextVariant =
-        dragState.startVariant === "collapsed"
-          ? "collapsed"
-          : computedNextVariant;
-
-      if (nextVariant !== dragState.dragVariant) {
-        dragState.dragVariant = nextVariant;
-        store.desktopVariant = nextVariant;
-        store.resizingMode = nextVariant;
-        const nextRenderedVariant = store.isSmallViewport
-          ? "mobile"
-          : nextVariant;
-        if (store.variant !== nextRenderedVariant) {
-          store.variant = nextRenderedVariant;
-          shouldEmit = true;
-        }
-      }
-
-      if (dragState.startVariant === "collapsed") {
-        store.staticWidth = nextWidth;
-      } else if (nextVariant === "static") {
-        store.staticWidth = nextWidth;
-      }
-
-      if (nextVariant === "collapsed") {
-        const nextIsOpen = dragState.startVariant === "collapsed";
-        if (store.isOpen !== nextIsOpen) {
-          store.isOpen = nextIsOpen;
-          shouldEmit = true;
-        }
-        scheduleLayout(COLLAPSED_SPACER_WIDTH, resolveLayerWidth(store));
-      } else {
-        if (store.isOpen) {
-          store.isOpen = false;
-          shouldEmit = true;
-        }
-        scheduleLayout(nextWidth, nextWidth);
-      }
-
-      if (shouldEmit) {
-        emit();
-      }
-    },
-    [emit, scheduleLayout]
-  );
-
-  const finishResize = React.useCallback(
-    (pointerId: number) => {
-      const store = storeRef.current;
-      if (!store || !store.drag || store.drag.pointerId !== pointerId) {
-        return;
-      }
-
-      const dragState = store.drag;
-      store.drag = null;
-
-      if (store.variant === "mobile") {
-        store.isResizing = false;
-        store.resizingMode = null;
-        store.desktopVariant = "collapsed";
-        store.mobileWidth = clamp(
-          store.liveWidth,
-          store.minWidth,
-          store.maxWidth
-        );
-        store.isOpen = true;
-        scheduleLayout(COLLAPSED_SPACER_WIDTH, store.mobileWidth);
-        emit();
-        return;
-      }
-
-      if (!dragState.hasMoved) {
-        store.isResizing = false;
-        store.resizingMode = null;
-        store.isOpen = false;
-        store.desktopVariant = "collapsed";
-        store.variant = store.isSmallViewport ? "mobile" : "collapsed";
-        const collapsedWidth = resolveLayerWidth(store);
-        store.liveWidth = collapsedWidth;
-        scheduleLayout(COLLAPSED_SPACER_WIDTH, collapsedWidth);
-        emit();
-        return;
-      }
-
-      store.suppressDoubleClick = true;
-      window.requestAnimationFrame(() => {
-        const currentStore = storeRef.current;
-        if (!currentStore) {
-          return;
-        }
-
-        currentStore.suppressDoubleClick = false;
-      });
-
-      commitResize(
-        store.liveWidth,
-        dragState.dragVariant,
-        dragState.startVariant === "collapsed"
-      );
-    },
-    [commitResize, emit, scheduleLayout]
-  );
-
-  const onRailDoubleClick = React.useCallback(() => {
-    const store = storeRef.current;
-    if (
-      !store ||
-      store.variant === "mobile" ||
-      store.isResizing ||
-      store.suppressDoubleClick
-    ) {
-      return;
-    }
-
-    if (store.variant === "collapsed") {
-      expand();
-      return;
-    }
-
-    collapse();
-  }, [collapse, expand]);
-
-  const sidebarContextValue = React.useMemo<SidebarContextValue>(() => {
-    return {
-      variant: snapshot.variant,
-      state: snapshot.state,
-      isOpen: snapshot.isOpen,
-      isResizing: snapshot.isResizing,
-      width: snapshot.width,
-      staticWidth: snapshot.staticWidth,
-      toggle,
-      toggleSidebar: toggle,
-      expand,
-      collapse,
-    };
-  }, [collapse, expand, snapshot, toggle]);
-
-  const sidebarInternalContextValue =
-    React.useMemo<SidebarInternalContextValue>(() => {
-      return {
-        snapshot,
-        scheduleLayout,
-        startResize,
-        moveResize,
-        finishResize,
-        onRailDoubleClick,
-        onSidebarMouseEnter,
-        onSidebarMouseLeave,
-        onCollapsedEdgeEnter,
-        toggle,
-      };
-    }, [
-      finishResize,
-      moveResize,
-      onCollapsedEdgeEnter,
-      onRailDoubleClick,
-      onSidebarMouseEnter,
-      onSidebarMouseLeave,
-      scheduleLayout,
-      snapshot,
-      startResize,
-      toggle,
-    ]);
+    setOpen((currentValue) => !currentValue);
+  };
+
+  const state: SidebarState = open ? "expanded" : "collapsed";
+  const variant: SidebarVariant = isMobile
+    ? "mobile"
+    : open
+      ? "static"
+      : "collapsed";
+
+  const contextValue: SidebarContextValue = {
+    state,
+    open,
+    setOpen,
+    openMobile,
+    setOpenMobile,
+    isMobile,
+    toggleSidebar,
+    variant,
+  };
 
   const shellStyle = {
-    "--sidebar-spacer-width": `${snapshot.spacerWidth}px`,
-    "--sidebar-layer-width": `${snapshot.layerWidth}px`,
-    "--sidebar-mobile-max-width": `min(calc(100vw - 40px), ${MOBILE_SIDEBAR_WIDTH}px)`,
-    "--sidebar-float-left": "8px",
-    "--sidebar-float-top": "37.5px",
-    "--sidebar-float-bottom": "8px",
-    "--sidebar-collapsed-margin": "6px",
-    "--sidebar-collapsed-radius": "5px",
-    "--sidebar-collapsed-edge-left": trafficLightPosition ? "-5px" : "0px",
-    "--sidebar-rail-offset": "-5px",
-    "--sidebar-rail-top": "14px",
-    "--sidebar-rail-bottom": "14px",
-    "--sidebar-rail-width": "10px",
-    "--sidebar-transition-fast": "0.1s",
-    "--sidebar-transition-normal": "0.25s",
-    "--sidebar-ease": "cubic-bezier(0.215, 0.61, 0.355, 1)",
+    "--sidebar-desktop-width": `${SIDEBAR_DESKTOP_WIDTH}px`,
+    "--sidebar-mobile-width": `min(calc(100vw - 40px), ${SIDEBAR_MOBILE_WIDTH}px)`,
+    "--sidebar-transition-fast": "var(--speed-quickTransition, 0.1s)",
+    "--sidebar-transition-normal": "var(--speed-regularTransition, 0.25s)",
+    "--sidebar-ease":
+      "var(--ease-out-cubic, cubic-bezier(0.215, 0.61, 0.355, 1))",
+    "--sidebar-focus-color": "var(--color-focus)",
     "--sidebar-rail-indicator-color": "var(--color-rail)",
     "--sidebar-rail-indicator-active-color": "var(--color-icon-active)",
-    "--sidebar-focus-color": "var(--color-focus)",
     "--sidebar-hover-overlay-bg": "rgba(0, 0, 0, 0.6)",
-    "--sidebar-hover-overlay-opacity": "1",
-    "--sidebar-hover-proximity": "14px",
     ...style,
   } as React.CSSProperties;
 
   return (
-    <SidebarContext.Provider value={sidebarContextValue}>
-      <SidebarInternalContext.Provider value={sidebarInternalContextValue}>
+    <SidebarContext.Provider value={contextValue}>
+      <div
+        data-sidebar-shell
+        data-slot="sidebar-wrapper"
+        className={cn("min-h-dvh w-full", className)}
+        style={shellStyle}
+        {...props}
+      >
         <div
-          ref={shellRef}
-          data-sidebar-shell
-          className={cn("min-h-dvh w-full", className)}
-          style={shellStyle}
-          {...props}
+          data-sidebar-track
+          data-slot="sidebar-track"
+          data-state={state}
+          data-collapsible={open ? "" : "offcanvas"}
+          data-variant={variant}
+          data-side="left"
+          className="relative flex size-full"
         >
-          <div
-            data-sidebar-track
-            data-sidebar-state={snapshot.state}
-            data-sidebar-collapsed={
-              snapshot.variant === "static" ? "false" : "true"
-            }
-            data-resizing={snapshot.isResizing ? "true" : undefined}
-            className="relative flex size-full"
-          >
-            {children}
-          </div>
+          {children}
         </div>
-      </SidebarInternalContext.Provider>
+      </div>
     </SidebarContext.Provider>
   );
 }
@@ -832,156 +161,130 @@ function useSidebar() {
   return context;
 }
 
-function useSidebarInternal() {
-  const context = React.useContext(SidebarInternalContext);
-  if (!context) {
-    throw new Error(
-      "Sidebar components must be used within a SidebarProvider."
-    );
-  }
+type SidebarSpacerProps = {
+  expanded: boolean;
+  shouldReduceMotion: boolean;
+};
 
-  return context;
+function SidebarSpacer({ expanded, shouldReduceMotion }: SidebarSpacerProps) {
+  const spacerStyle = {
+    width: expanded ? "var(--sidebar-desktop-width)" : "0px",
+    flexBasis: expanded ? "var(--sidebar-desktop-width)" : "0px",
+    transition: shouldReduceMotion
+      ? "none"
+      : "width var(--sidebar-transition-fast) var(--sidebar-ease)",
+  } as React.CSSProperties;
+
+  return (
+    <div
+      data-sidebar-spacer
+      data-slot="sidebar-gap"
+      aria-hidden
+      className="h-full shrink-0"
+      style={spacerStyle}
+    />
+  );
 }
 
-function Sidebar({
+type SidebarDesktopProps = React.ComponentProps<"aside"> & {
+  shouldReduceMotion: boolean;
+};
+
+function SidebarDesktopStatic({
   className,
   children,
+  shouldReduceMotion,
   ...props
-}: React.ComponentProps<"aside">) {
-  const {
-    snapshot,
-    onSidebarMouseEnter,
-    onSidebarMouseLeave,
-    onCollapsedEdgeEnter,
-    toggle,
-  } = useSidebarInternal();
-
-  const spacerStyle = {
-    width: "var(--sidebar-spacer-width)",
-    flexBasis: "var(--sidebar-spacer-width)",
-    transition: "width var(--sidebar-transition-fast) var(--sidebar-ease)",
-  } as React.CSSProperties;
-
-  const isFloatingVisible =
-    snapshot.isCollapsedVisible || snapshot.isMobileVisible;
-  const hoverProximity = "var(--sidebar-hover-proximity, 0px)";
-  const layerHitAreaStyle = {
-    width: snapshot.isCollapsedGeometry
-      ? `calc(var(--sidebar-layer-width) + (${hoverProximity} * 2))`
-      : "var(--sidebar-layer-width)",
-    left:
-      snapshot.variant === "static"
-        ? 0
-        : snapshot.isCollapsedGeometry
-          ? snapshot.isCollapsedVisible
-            ? `calc(var(--sidebar-float-left) - ${hoverProximity})`
-            : `calc(${snapshot.hiddenLeft}px - ${hoverProximity})`
-          : snapshot.isMobileVisible
-            ? 0
-            : snapshot.hiddenLeft,
-    top: snapshot.isCollapsedGeometry
-      ? `calc(var(--sidebar-float-top) - ${hoverProximity})`
-      : 0,
-    bottom: snapshot.isCollapsedGeometry
-      ? `calc(var(--sidebar-float-bottom) - ${hoverProximity})`
-      : 0,
-  } as React.CSSProperties;
+}: SidebarDesktopProps) {
   const layerStyle = {
-    width: "var(--sidebar-layer-width)",
-    maxWidth: snapshot.isMobileGeometry
-      ? "var(--sidebar-mobile-max-width)"
-      : undefined,
-    left:
-      snapshot.variant === "static"
-        ? 0
-        : snapshot.isCollapsedGeometry
-          ? hoverProximity
-          : snapshot.isMobileVisible
-            ? 0
-            : snapshot.hiddenLeft,
-    top: snapshot.isCollapsedGeometry ? hoverProximity : 0,
-    bottom: snapshot.isCollapsedGeometry ? hoverProximity : 0,
-    borderColor:
-      (snapshot.isCollapsedGeometry || snapshot.isMobileGeometry) &&
-      isFloatingVisible
-        ? "var(--sidebar-collapsed-border-color, var(--color-border-strong))"
-        : "transparent",
-    boxShadow:
-      (snapshot.isCollapsedGeometry || snapshot.isMobileGeometry) &&
-      isFloatingVisible
-        ? "var(--sidebar-collapsed-shadow, none)"
-        : "none",
-    borderRadius: snapshot.isCollapsedGeometry
-      ? "var(--sidebar-collapsed-radius)"
-      : "0px",
-    transition:
-      "width var(--sidebar-transition-fast) var(--sidebar-ease), left var(--sidebar-transition-normal) var(--sidebar-ease), top var(--sidebar-transition-normal) var(--sidebar-ease), bottom var(--sidebar-transition-normal) var(--sidebar-ease), border-color var(--sidebar-transition-normal) var(--sidebar-ease), box-shadow var(--sidebar-transition-normal) var(--sidebar-ease), border-radius var(--sidebar-transition-normal) var(--sidebar-ease)",
-  } as React.CSSProperties;
-
-  const collapsedEdgeStyle = {
-    top: "calc(var(--sidebar-float-top) + var(--sidebar-rail-top) - 20px)",
-    bottom:
-      "calc(var(--sidebar-float-bottom) + var(--sidebar-rail-bottom) - 5px)",
-    left: "var(--sidebar-collapsed-edge-left)",
-    width: "20px",
-  } as React.CSSProperties;
-
-  const showOverlay =
-    snapshot.state === "collapsed-hover" || snapshot.state === "mobile-open";
-  const hoverOverlayStyle = {
-    opacity: showOverlay ? "var(--sidebar-hover-overlay-opacity, 1)" : "0",
-    backgroundColor: "var(--sidebar-hover-overlay-bg, rgba(0, 0, 0, 0.6))",
-    transition: "opacity var(--sidebar-transition-normal) var(--sidebar-ease)",
+    transition: shouldReduceMotion
+      ? "none"
+      : "left var(--sidebar-transition-normal) var(--sidebar-ease)",
   } as React.CSSProperties;
 
   return (
     <>
+      <SidebarSpacer expanded shouldReduceMotion={shouldReduceMotion} />
       <div
-        data-sidebar-spacer
-        aria-hidden
-        className="h-full shrink-0"
-        style={spacerStyle}
-      />
-      {snapshot.state === "mobile-open" ? (
-        <button
-          type="button"
-          data-sidebar-hover-overlay
-          aria-label="Close sidebar"
-          className="absolute inset-0 z-[19] border-0 bg-transparent p-0"
-          style={hoverOverlayStyle}
-          onClick={toggle}
-        />
-      ) : (
+        data-sidebar-layer
+        data-slot="sidebar-container"
+        className="absolute inset-y-0 left-0 z-20 w-[var(--sidebar-desktop-width)] overflow-hidden border border-transparent"
+        style={layerStyle}
+      >
+        <aside
+          data-sidebar="sidebar"
+          data-slot="sidebar"
+          className={cn("flex h-full min-w-0 flex-col", className)}
+          {...props}
+        >
+          {children}
+        </aside>
+      </div>
+    </>
+  );
+}
+
+function SidebarDesktopCollapsed({
+  className,
+  children,
+  shouldReduceMotion,
+  ...props
+}: SidebarDesktopProps) {
+  const { toggleSidebar } = useSidebar();
+
+  const previewStyle = {
+    transition: shouldReduceMotion
+      ? "none"
+      : "left var(--sidebar-transition-normal) var(--sidebar-ease)",
+  } as React.CSSProperties;
+
+  const overlayStyle = {
+    transition: shouldReduceMotion
+      ? "none"
+      : "opacity var(--sidebar-transition-normal) var(--sidebar-ease)",
+  } as React.CSSProperties;
+
+  const edgeStyle = {
+    top: "31.5px",
+    bottom: "17px",
+    left: "0px",
+    width: "20px",
+  } as React.CSSProperties;
+
+  return (
+    <>
+      <SidebarSpacer expanded={false} shouldReduceMotion={shouldReduceMotion} />
+      <div className="group/sidebar-collapsed absolute inset-y-0 left-0 z-20 isolate w-5">
         <div
           aria-hidden="true"
           data-sidebar-hover-overlay
-          className="pointer-events-none absolute inset-0 z-[19]"
-          style={hoverOverlayStyle}
+          className="pointer-events-none fixed inset-0 z-10 bg-[var(--sidebar-hover-overlay-bg)] opacity-0 group-focus-within/sidebar-collapsed:opacity-100 group-hover/sidebar-collapsed:opacity-100"
+          style={overlayStyle}
         />
-      )}
-      <div
-        data-sidebar-layer-hit-area
-        className="absolute inset-y-0 left-0 z-20"
-        style={layerHitAreaStyle}
-        onMouseEnter={onSidebarMouseEnter}
-        onMouseLeave={onSidebarMouseLeave}
-      >
+
+        <button
+          type="button"
+          data-sidebar-edge
+          aria-label="Open sidebar"
+          onClick={toggleSidebar}
+          className="absolute z-20 cursor-pointer border-0 bg-transparent p-0 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--sidebar-focus-color)] group-focus-within/sidebar-collapsed:pointer-events-none group-hover/sidebar-collapsed:pointer-events-none"
+          style={edgeStyle}
+        >
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute bottom-[5px] left-1/2 top-5 w-px -translate-x-1/2 rounded-full bg-[var(--sidebar-rail-indicator-color)] opacity-0 transition-[opacity,width,background-color] duration-[var(--sidebar-transition-fast)] ease-[var(--sidebar-ease)] group-hover:w-0.5 group-hover:bg-[var(--sidebar-rail-indicator-active-color)] group-hover:opacity-100 group-focus-visible:w-0.5 group-focus-visible:bg-[var(--sidebar-rail-indicator-active-color)] group-focus-visible:opacity-100"
+          />
+        </button>
+
         <div
           data-sidebar-layer
-          data-sidebar-variant={snapshot.variant}
-          data-sidebar-width={snapshot.layerWidth}
-          data-sidebar-open={snapshot.isOpen ? "true" : "false"}
-          data-collapsed-geometry={
-            snapshot.isCollapsedGeometry ? "true" : "false"
-          }
-          data-collapsed-visible={
-            snapshot.isCollapsedVisible ? "true" : "false"
-          }
-          className="absolute inset-y-0 left-0 overflow-hidden border border-transparent"
-          style={layerStyle}
+          data-slot="sidebar-container"
+          className="absolute bottom-2 left-[calc((var(--sidebar-desktop-width)+12px)*-1)] top-[37.5px] z-30 w-[var(--sidebar-desktop-width)] overflow-hidden rounded-[5px] border border-[var(--sidebar-collapsed-border-color,var(--color-border-strong))] bg-[var(--color-sidebar-bg)] shadow-[var(--sidebar-collapsed-shadow,none)] group-focus-within/sidebar-collapsed:left-2 group-hover/sidebar-collapsed:left-2"
+          style={previewStyle}
         >
           <aside
-            data-sidebar
+            data-sidebar="sidebar"
+            data-slot="sidebar"
             className={cn("flex h-full min-w-0 flex-col", className)}
             {...props}
           >
@@ -989,130 +292,119 @@ function Sidebar({
           </aside>
         </div>
       </div>
-
-      {snapshot.variant === "collapsed" ? (
-        <button
-          type="button"
-          data-sidebar-edge
-          aria-label="Preview sidebar"
-          onMouseEnter={onCollapsedEdgeEnter}
-          onFocus={onCollapsedEdgeEnter}
-          onClick={toggle}
-          className="group absolute z-[18] cursor-col-resize border-0 bg-transparent p-0 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--sidebar-focus-color)]"
-          style={collapsedEdgeStyle}
-        >
-          <span
-            aria-hidden="true"
-            className="pointer-events-none absolute bottom-[5px] left-1/2 top-5 w-px -translate-x-1/2 rounded-full bg-[var(--sidebar-rail-indicator-color)] opacity-0 transition-[opacity,width,background-color] duration-[var(--sidebar-transition-fast)] ease-[var(--sidebar-ease)] group-hover:w-0.5 group-hover:bg-[var(--sidebar-rail-indicator-active-color)] group-hover:opacity-100 group-focus-visible:w-0.5 group-focus-visible:bg-[var(--sidebar-rail-indicator-active-color)] group-focus-visible:opacity-100"
-          />
-        </button>
-      ) : null}
     </>
+  );
+}
+
+function SidebarMobileDrawer({
+  className,
+  children,
+  ...props
+}: React.ComponentProps<"aside">) {
+  const { openMobile, setOpenMobile } = useSidebar();
+
+  return (
+    <>
+      <SidebarSpacer expanded={false} shouldReduceMotion={false} />
+      <Drawer
+        open={openMobile}
+        onOpenChange={setOpenMobile}
+        direction="left"
+        modal
+      >
+        <DrawerContent
+          data-slot="sidebar-container"
+          className="gap-0 overflow-hidden border-r border-[var(--sidebar-collapsed-border-color,var(--color-border-strong))] p-0 data-[vaul-drawer-direction=left]:w-[var(--sidebar-mobile-width)] data-[vaul-drawer-direction=left]:max-w-[var(--sidebar-mobile-width)] data-[vaul-drawer-direction=left]:rounded-none data-[vaul-drawer-direction=left]:sm:max-w-none"
+        >
+          <aside
+            data-sidebar="sidebar"
+            data-slot="sidebar"
+            className={cn("relative flex h-full min-w-0 flex-col", className)}
+            {...props}
+          >
+            {children}
+          </aside>
+        </DrawerContent>
+      </Drawer>
+    </>
+  );
+}
+
+function Sidebar({
+  className,
+  children,
+  ...props
+}: React.ComponentProps<"aside">) {
+  const { isMobile, state } = useSidebar();
+  const shouldReduceMotion = useReducedMotion() ?? false;
+
+  if (isMobile) {
+    return (
+      <SidebarMobileDrawer className={className} {...props}>
+        {children}
+      </SidebarMobileDrawer>
+    );
+  }
+
+  if (state === "expanded") {
+    return (
+      <SidebarDesktopStatic
+        className={className}
+        shouldReduceMotion={shouldReduceMotion}
+        {...props}
+      >
+        {children}
+      </SidebarDesktopStatic>
+    );
+  }
+
+  return (
+    <SidebarDesktopCollapsed
+      className={className}
+      shouldReduceMotion={shouldReduceMotion}
+      {...props}
+    >
+      {children}
+    </SidebarDesktopCollapsed>
   );
 }
 
 function SidebarRail({
   className,
-  onPointerDown,
-  onPointerMove,
-  onPointerUp,
-  onPointerCancel,
-  onLostPointerCapture,
-  onDoubleClick,
+  onClick,
   ...props
 }: React.ComponentProps<"button">) {
-  const { snapshot, startResize, moveResize, finishResize, onRailDoubleClick } =
-    useSidebarInternal();
-
-  if (snapshot.variant === "mobile" && !snapshot.isOpen) {
-    return null;
-  }
+  const { toggleSidebar } = useSidebar();
 
   const railStyle = {
-    right: "var(--sidebar-rail-offset)",
-    top: "var(--sidebar-rail-top)",
-    bottom: "var(--sidebar-rail-bottom)",
+    right: "-5px",
+    top: "14px",
+    bottom: "14px",
   } as React.CSSProperties;
 
   return (
     <button
       type="button"
-      data-sidebar-rail
-      data-resizing={snapshot.isResizing ? "true" : undefined}
+      data-sidebar="rail"
+      data-slot="sidebar-rail"
       className={cn(
-        "group absolute z-[25] w-(--sidebar-rail-width) cursor-col-resize border-0 bg-transparent p-0 touch-none focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--sidebar-focus-color)]",
+        "group absolute z-[25] w-[10px] cursor-pointer border-0 bg-transparent p-0 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--sidebar-focus-color)]",
         className
       )}
       style={railStyle}
-      onPointerDown={(event) => {
-        onPointerDown?.(event);
+      onClick={(event) => {
+        onClick?.(event);
         if (event.defaultPrevented) {
           return;
         }
 
-        event.preventDefault();
-        try {
-          event.currentTarget.setPointerCapture(event.pointerId);
-        } catch {
-          return;
-        }
-        startResize(event.pointerId, event.clientX);
-      }}
-      onPointerMove={(event) => {
-        onPointerMove?.(event);
-        if (event.defaultPrevented) {
-          return;
-        }
-
-        moveResize(event.pointerId, event.clientX);
-      }}
-      onPointerUp={(event) => {
-        onPointerUp?.(event);
-        if (event.defaultPrevented) {
-          return;
-        }
-
-        if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-          event.currentTarget.releasePointerCapture(event.pointerId);
-        }
-        finishResize(event.pointerId);
-      }}
-      onPointerCancel={(event) => {
-        onPointerCancel?.(event);
-        if (event.defaultPrevented) {
-          return;
-        }
-
-        if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-          event.currentTarget.releasePointerCapture(event.pointerId);
-        }
-        finishResize(event.pointerId);
-      }}
-      onLostPointerCapture={(event) => {
-        onLostPointerCapture?.(event);
-        if (event.defaultPrevented) {
-          return;
-        }
-
-        finishResize(event.pointerId);
-      }}
-      onDoubleClick={(event) => {
-        onDoubleClick?.(event);
-        if (event.defaultPrevented) {
-          return;
-        }
-
-        onRailDoubleClick();
+        toggleSidebar();
       }}
       {...props}
     >
       <span
         aria-hidden="true"
-        className={cn(
-          "pointer-events-none absolute inset-y-0 left-1/2 w-px -translate-x-1/2 rounded-full bg-[var(--sidebar-rail-indicator-color)] opacity-0 transition-[opacity,width,background-color] duration-[var(--sidebar-transition-fast)] ease-[var(--sidebar-ease)] group-hover:w-0.5 group-hover:bg-[var(--sidebar-rail-indicator-active-color)] group-hover:opacity-100 group-focus-visible:w-0.5 group-focus-visible:bg-[var(--sidebar-rail-indicator-active-color)] group-focus-visible:opacity-100",
-          snapshot.isResizing &&
-            "w-0.5 bg-[var(--sidebar-rail-indicator-active-color)] opacity-100"
-        )}
+        className="pointer-events-none absolute inset-y-0 left-1/2 w-px -translate-x-1/2 rounded-full bg-[var(--sidebar-rail-indicator-color)] opacity-0 transition-[opacity,width,background-color] duration-[var(--sidebar-transition-fast)] ease-[var(--sidebar-ease)] group-hover:w-0.5 group-hover:bg-[var(--sidebar-rail-indicator-active-color)] group-hover:opacity-100 group-focus-visible:w-0.5 group-focus-visible:bg-[var(--sidebar-rail-indicator-active-color)] group-focus-visible:opacity-100"
       />
     </button>
   );
@@ -1124,15 +416,18 @@ function SidebarInset({
   children,
   ...props
 }: React.ComponentProps<"main">) {
-  const { snapshot } = useSidebarInternal();
+  const { state, isMobile } = useSidebar();
+  const shouldReduceMotion = useReducedMotion() ?? false;
 
   const insetStyle = {
     paddingTop: "var(--shell-gutter, 8px)",
     paddingRight: "var(--shell-gutter, 8px)",
     paddingBottom: "var(--shell-gutter, 8px)",
-    paddingLeft: snapshot.variant === "static" ? 0 : "var(--shell-gutter, 8px)",
-    transition:
-      "padding-left var(--sidebar-transition-normal) var(--sidebar-ease)",
+    paddingLeft:
+      !isMobile && state === "expanded" ? 0 : "var(--shell-gutter, 8px)",
+    transition: shouldReduceMotion
+      ? "none"
+      : "padding-left var(--sidebar-transition-normal) var(--sidebar-ease)",
     ...style,
   } as React.CSSProperties;
 
@@ -1143,6 +438,7 @@ function SidebarInset({
   return (
     <main
       data-sidebar-inset
+      data-slot="sidebar-inset"
       className={cn("min-h-0 min-w-0 flex-1", className)}
       style={insetStyle}
       {...props}
@@ -1161,7 +457,8 @@ function SidebarInset({
 function SidebarHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
-      data-sidebar-header
+      data-sidebar="header"
+      data-slot="sidebar-header"
       className={cn("flex flex-col gap-2", className)}
       {...props}
     />
@@ -1171,7 +468,8 @@ function SidebarHeader({ className, ...props }: React.ComponentProps<"div">) {
 function SidebarFooter({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
-      data-sidebar-footer
+      data-sidebar="footer"
+      data-slot="sidebar-footer"
       className={cn("flex flex-col gap-2", className)}
       {...props}
     />
@@ -1181,7 +479,8 @@ function SidebarFooter({ className, ...props }: React.ComponentProps<"div">) {
 function SidebarContent({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
-      data-sidebar-content
+      data-sidebar="content"
+      data-slot="sidebar-content"
       className={cn("min-h-0 flex-1 overflow-auto", className)}
       {...props}
     />
@@ -1195,21 +494,22 @@ type SidebarTriggerProps = React.ComponentProps<"button"> & {
 function SidebarTrigger({
   className,
   onClick,
-  hideWhenExpanded = true,
+  hideWhenExpanded = false,
   children,
   type,
   ...props
 }: SidebarTriggerProps) {
-  const { variant, toggle } = useSidebar();
+  const { state, isMobile, toggleSidebar } = useSidebar();
 
-  if (hideWhenExpanded && variant === "static") {
+  if (hideWhenExpanded && !isMobile && state === "expanded") {
     return null;
   }
 
   return (
     <button
       type={type ?? "button"}
-      data-sidebar-trigger
+      data-sidebar="trigger"
+      data-slot="sidebar-trigger"
       className={cn(
         "absolute left-3 top-2 z-[2] inline-flex size-6.5 items-center justify-center rounded-[5px] border-0 bg-transparent text-[var(--color-text-muted)] hover:bg-[var(--color-control-bg-hover)] hover:text-[var(--color-text-primary)] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--sidebar-focus-color)]",
         className
@@ -1220,13 +520,11 @@ function SidebarTrigger({
           return;
         }
 
-        toggle();
+        toggleSidebar();
       }}
       {...props}
     >
-      {children ?? (
-        <IconSidebarLeftArrow className="size-4" aria-hidden="true" />
-      )}
+      {children ?? <IconSidebar className="size-4" aria-hidden="true" />}
       <span className="sr-only">Toggle Sidebar</span>
     </button>
   );

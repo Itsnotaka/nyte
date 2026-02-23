@@ -1,5 +1,4 @@
 import "~/styles/globals.css";
-import "~/styles/linear-native.css";
 import { Providers } from "~/components/providers";
 
 export default function RootLayout({
