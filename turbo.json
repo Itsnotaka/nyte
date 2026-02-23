@@ -23,7 +23,7 @@
     },
     "typecheck": {
       "dependsOn": ["transit"],
-      "outputs": ["node_modules/.cache/tsbuildinfo.json"]
+      "outputs": [".cache/tsbuildinfo.json"]
     },
     "generate": {},
     "push": {},
