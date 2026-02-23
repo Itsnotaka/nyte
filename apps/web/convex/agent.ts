@@ -1,11 +1,12 @@
 import { v } from "convex/values";
+import { nanoid } from "nanoid";
 
 import { mutation } from "./_generated/server";
 import { buildQueueItemFromCommand } from "./lib/agent";
 import { requireAuthUserId } from "./lib/auth";
 
 function createItemId(now: number): string {
-  return `agent:${now}:${Math.random().toString(36).slice(2, 10)}`;
+  return `agent:${now}:${nanoid(10)}`;
 }
 
 export const run = mutation({

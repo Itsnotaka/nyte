@@ -54,29 +54,26 @@ it is a single conversation.
 3. Each signal is scored for urgency, relationship weight, and decision impact.
 4. Signals above the threshold surface as messages in your thread.
 5. You approve, edit, or skip. Approved actions execute immediately.
-6. All state transitions are logged to Postgres and carry an audit trail.
+6. All state transitions are logged in Convex and carry an audit trail.
 
 ## What runs where
 
-- `apps/web`: Next.js chat UI and tRPC API gateway (`/api/trpc`).
+- `apps/web`: Next.js chat UI and Convex backend functions.
 - `packages/domain`: urgency scoring, gate evaluation, and work item
   composition.
-- `packages/application`: use-case coordination and persistence orchestration.
 - `packages/integrations`: Gmail and Google Calendar ingestion adapters.
-- `packages/workflows`: background task orchestration — ingest, act, audit.
 - `packages/pi-runtime` (`@nyte/extension-runtime`): action execution runtime
   for provider operations (save draft, create calendar event).
-- `packages/db`: Drizzle Postgres schema, client, and migrations.
+- `packages/ui`: shared UI primitives.
 
 ## Local setup
 
 1. Install dependencies: `pnpm install`
 2. Configure env in `apps/web/.env` or `apps/web/.env.local`
-   - `DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/nyte`
    - `BETTER_AUTH_SECRET=...`
    - `GOOGLE_CLIENT_ID=...`
    - `GOOGLE_CLIENT_SECRET=...`
-3. Apply schema: `pnpm db:push`
+3. Start Convex + Next.js: `pnpm dev`
 4. Validate: `pnpm typecheck && pnpm lint`
 
 ## Extend the system
@@ -86,17 +83,17 @@ it is a single conversation.
 1. Add request/result contracts in `packages/pi-runtime/src/contracts.ts`.
 2. Implement handler in `packages/pi-runtime/src/extensions/*`.
 3. Register handler in `packages/pi-runtime/src/registry.ts`.
-4. Dispatch it from `packages/workflows/src/extension-dispatch.ts`.
+4. Dispatch from `apps/web/convex/actions.ts`.
 
 ### Add a workflow task
 
-1. Add task logic in `packages/workflows/src/tasks`.
-2. Derive API types in `packages/workflows/src/contracts.ts`.
-3. Expose runner entrypoints in `packages/workflows/src`.
-4. Wire usage in `apps/web/src/lib/server/router.ts`.
+1. Add ingestion or orchestration logic in `apps/web/convex/ingestion.ts`.
+2. Schedule background work in `apps/web/convex/crons.ts`.
+3. Persist operational events in `apps/web/convex/runlog.ts`.
+4. Wire any UI consumption via Convex queries/mutations.
 
 ### Add a signal gate
 
 1. Update gate logic in `packages/domain/src/triage.ts`.
-2. Persist/consume evaluations in `packages/application/src/queue`.
+2. Persist/consume outputs in `apps/web/convex/ingestion.ts`.
 3. Surface gate impact in the thread when relevant.

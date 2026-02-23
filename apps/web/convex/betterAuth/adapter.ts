@@ -3,12 +3,15 @@ import { createApi } from "@convex-dev/better-auth";
 import { createAuthOptions } from "./auth";
 import schema from "./schema";
 
-const adapterApi = createApi(schema, createAuthOptions);
+const adapterApi: ReturnType<typeof createApi> = createApi(
+  schema,
+  createAuthOptions
+);
 
-export const create: any = adapterApi.create;
-export const findOne: any = adapterApi.findOne;
-export const findMany: any = adapterApi.findMany;
-export const updateOne: any = adapterApi.updateOne;
-export const updateMany: any = adapterApi.updateMany;
-export const deleteOne: any = adapterApi.deleteOne;
-export const deleteMany: any = adapterApi.deleteMany;
+export const create: typeof adapterApi.create = adapterApi.create;
+export const findOne: typeof adapterApi.findOne = adapterApi.findOne;
+export const findMany: typeof adapterApi.findMany = adapterApi.findMany;
+export const updateOne: typeof adapterApi.updateOne = adapterApi.updateOne;
+export const updateMany: typeof adapterApi.updateMany = adapterApi.updateMany;
+export const deleteOne: typeof adapterApi.deleteOne = adapterApi.deleteOne;
+export const deleteMany: typeof adapterApi.deleteMany = adapterApi.deleteMany;

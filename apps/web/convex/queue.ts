@@ -22,7 +22,11 @@ export const feed = query({
     const includeAll = args.includeAll ?? false;
     const filtered = includeAll
       ? items
-      : items.filter((item) => item.priorityScore >= MIN_IMPORTANT_PRIORITY);
+      : items.filter(
+          (item) =>
+            (item.importanceScore ?? item.priorityScore) >=
+            MIN_IMPORTANT_PRIORITY
+        );
 
     const approvalQueue = filtered
       .slice()

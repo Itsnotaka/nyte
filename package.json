@@ -9,10 +9,6 @@
     "fmt": "oxfmt -c .config/.oxfmtrc.json",
     "knip": "knip -c .config/knip.json",
     "typecheck": "turbo run typecheck",
-    "db:generate": "turbo run -F @nyte/db generate",
-    "db:push": "turbo run -F @nyte/db push",
-    "db:studio": "turbo run -F @nyte/db studio",
-    "db:migrate": "turbo run -F @nyte/db migrate",
     "clean:workspaces": "turbo run clean",
     "clean": "git clean -xdf node_modules .cache",
     "lint:ws": "pnpx sherif@latest"

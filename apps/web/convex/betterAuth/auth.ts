@@ -20,6 +20,11 @@ const GOOGLE_SCOPES = [
   "https://www.googleapis.com/auth/calendar.events",
 ];
 
+const authBaseURL =
+  process.env.BETTER_AUTH_URL ??
+  process.env.BETTER_AUTH_PRODUCTION_URL ??
+  process.env.SITE_URL;
+
 // Better Auth component client.
 export const authComponent = createClient<DataModel, typeof schema>(
   components.betterAuth,
@@ -29,10 +34,12 @@ export const authComponent = createClient<DataModel, typeof schema>(
   }
 );
 
-export const createAuthOptions = (ctx: GenericCtx<DataModel>) =>
+export const createAuthOptions = (
+  ctx: GenericCtx<DataModel>
+): BetterAuthOptions =>
   ({
     appName: "Nyte",
-    baseURL: process.env.SITE_URL,
+    baseURL: authBaseURL,
     secret: process.env.BETTER_AUTH_SECRET,
     database: authComponent.adapter(ctx),
     socialProviders: {
@@ -48,8 +55,12 @@ export const createAuthOptions = (ctx: GenericCtx<DataModel>) =>
   }) satisfies BetterAuthOptions;
 
 // Used by @better-auth/cli during schema generation.
-export const options = createAuthOptions({} as GenericCtx<DataModel>);
+export const options: BetterAuthOptions = createAuthOptions(
+  {} as GenericCtx<DataModel>
+);
 
-export const createAuth = (ctx: GenericCtx<DataModel>) => {
+export const createAuth = (
+  ctx: GenericCtx<DataModel>
+): ReturnType<typeof betterAuth> => {
   return betterAuth(createAuthOptions(ctx));
 };

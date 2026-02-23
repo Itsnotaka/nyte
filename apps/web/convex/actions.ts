@@ -1,7 +1,19 @@
+import { executeProposedAction } from "@nyte/domain/execution";
+import {
+  executeExtension,
+  EXTENSION_AUTH_PROVIDERS,
+  EXTENSION_AUTH_SCOPES,
+  EXTENSION_AUDIT_SOURCES,
+  EXTENSION_NAMES,
+  type ExtensionRequest,
+} from "@nyte/extension-runtime";
 import { ConvexError, v } from "convex/values";
+import { nanoid } from "nanoid";
 
 import { mutation, type MutationCtx } from "./_generated/server";
+import { recordAuditLog } from "./audit";
 import { requireAuthUserId } from "./lib/auth";
+import { recordWorkItemRun } from "./runlog";
 
 const toolCallPayloadValidator = v.union(
   v.object({
@@ -40,6 +52,157 @@ async function loadItemById(ctx: MutationCtx, userId: string, itemId: string) {
   return item;
 }
 
+type ActionExecution = {
+  destination: "gmail_drafts" | "google_calendar" | "refund_queue";
+  providerReference: string;
+  idempotencyKey: string;
+  executedAt: number;
+};
+
+function toExecutionTimestamp(value: string, fallback: number): number {
+  const parsed = Date.parse(value);
+  if (Number.isFinite(parsed)) {
+    return parsed;
+  }
+  return fallback;
+}
+
+function extensionRequestForPayload({
+  payload,
+  userId,
+  itemId,
+  idempotencyKey,
+}: {
+  payload:
+    | {
+        kind: "gmail.createDraft";
+        to: string[];
+        subject: string;
+        body: string;
+      }
+    | {
+        kind: "google-calendar.createEvent";
+        title: string;
+        startsAt: string;
+        endsAt: string;
+        attendees: string[];
+        description: string;
+      };
+  userId: string;
+  itemId: string;
+  idempotencyKey: string;
+}): ExtensionRequest {
+  if (payload.kind === "gmail.createDraft") {
+    return {
+      name: EXTENSION_NAMES.gmailSaveDraft,
+      auth: {
+        provider: EXTENSION_AUTH_PROVIDERS.google,
+        userId,
+        scopes: [...EXTENSION_AUTH_SCOPES.googleWorkspace],
+      },
+      idempotencyKey,
+      audit: {
+        workItemId: itemId,
+        actionId: `${itemId}:action`,
+        source: EXTENSION_AUDIT_SOURCES.decisionQueue,
+      },
+      input: payload,
+    };
+  }
+
+  return {
+    name: EXTENSION_NAMES.calendarCreateEvent,
+    auth: {
+      provider: EXTENSION_AUTH_PROVIDERS.google,
+      userId,
+      scopes: [...EXTENSION_AUTH_SCOPES.googleWorkspace],
+    },
+    idempotencyKey,
+    audit: {
+      workItemId: itemId,
+      actionId: `${itemId}:action`,
+      source: EXTENSION_AUDIT_SOURCES.decisionQueue,
+    },
+    input: payload,
+  };
+}
+
+async function executePayload({
+  payload,
+  userId,
+  itemId,
+  now,
+  idempotencyKey,
+}: {
+  payload:
+    | {
+        kind: "gmail.createDraft";
+        to: string[];
+        subject: string;
+        body: string;
+      }
+    | {
+        kind: "google-calendar.createEvent";
+        title: string;
+        startsAt: string;
+        endsAt: string;
+        attendees: string[];
+        description: string;
+      }
+    | {
+        kind: "billing.queueRefund";
+        customerName: string;
+        amount: number;
+        currency: "USD";
+        reason: string;
+      };
+  userId: string;
+  itemId: string;
+  now: number;
+  idempotencyKey: string;
+}): Promise<ActionExecution> {
+  if (payload.kind === "billing.queueRefund") {
+    const execution = executeProposedAction(payload, new Date(now), {
+      idempotencyKey,
+    });
+    return {
+      destination: execution.destination,
+      providerReference: execution.providerReference,
+      idempotencyKey: execution.idempotencyKey,
+      executedAt: toExecutionTimestamp(execution.executedAt, now),
+    };
+  }
+
+  const result = await executeExtension(
+    extensionRequestForPayload({
+      payload,
+      userId,
+      itemId,
+      idempotencyKey,
+    })
+  );
+
+  if (result.name === EXTENSION_NAMES.gmailSaveDraft) {
+    return {
+      destination: "gmail_drafts",
+      providerReference: result.output.providerDraftId,
+      idempotencyKey: result.idempotencyKey,
+      executedAt: toExecutionTimestamp(result.executedAt, now),
+    };
+  }
+
+  if (result.name === EXTENSION_NAMES.calendarCreateEvent) {
+    return {
+      destination: "google_calendar",
+      providerReference: result.output.providerEventId,
+      idempotencyKey: result.idempotencyKey,
+      executedAt: toExecutionTimestamp(result.executedAt, now),
+    };
+  }
+
+  throw new ConvexError("Unsupported extension result.");
+}
+
 export const approve = mutation({
   args: {
     itemId: v.string(),
@@ -48,15 +211,132 @@ export const approve = mutation({
   handler: async (ctx, args) => {
     const userId = await requireAuthUserId(ctx);
     const item = await loadItemById(ctx, userId, args.itemId);
+    if (item.status === "dismissed") {
+      throw new ConvexError("Dismissed item cannot be approved.");
+    }
+
+    if (item.status === "completed" && item.actionStatus === "executed") {
+      await recordAuditLog(ctx, {
+        userId,
+        action: "action.approve.idempotent",
+        targetType: "work_item",
+        targetId: item.workItemId,
+        payload: {
+          idempotencyKey: item.idempotencyKey ?? null,
+        },
+      });
+      return {
+        ok: true,
+        idempotent: true,
+      };
+    }
+
+    const payload = args.payloadOverride ?? item.proposedAction;
     const now = Date.now();
+    const idempotencyKey = item.idempotencyKey ?? `approve_${nanoid(12)}`;
 
-    await ctx.db.patch(item._id, {
-      status: "completed",
-      proposedAction: args.payloadOverride ?? item.proposedAction,
-      updatedAt: now,
-    });
+    try {
+      const execution = await executePayload({
+        payload,
+        userId,
+        itemId: item.workItemId,
+        now,
+        idempotencyKey,
+      });
 
-    return { ok: true };
+      await ctx.db.patch(item._id, {
+        status: "completed",
+        proposedAction: payload,
+        actionStatus: "executed",
+        actionDestination: execution.destination,
+        providerReference: execution.providerReference,
+        idempotencyKey: execution.idempotencyKey,
+        executedAt: execution.executedAt,
+        actionError: undefined,
+        updatedAt: now,
+      });
+
+      await recordWorkItemRun(ctx, {
+        workItemId: item.workItemId,
+        phase: "approve",
+        status: "completed",
+        now,
+        events: [
+          {
+            kind: "action.approved",
+            payload: {
+              kind: payload.kind,
+            },
+          },
+          {
+            kind: "action.executed",
+            payload: {
+              destination: execution.destination,
+              providerReference: execution.providerReference,
+              idempotencyKey: execution.idempotencyKey,
+            },
+          },
+        ],
+      });
+
+      await recordAuditLog(ctx, {
+        userId,
+        action: "action.approve",
+        targetType: "work_item",
+        targetId: item.workItemId,
+        payload: {
+          destination: execution.destination,
+          providerReference: execution.providerReference,
+          idempotencyKey: execution.idempotencyKey,
+        },
+        now,
+      });
+
+      return {
+        ok: true,
+        idempotent: false,
+        execution,
+      };
+    } catch (error) {
+      const message =
+        error instanceof Error && error.message.trim().length > 0
+          ? error.message
+          : "Unable to execute approval action.";
+
+      await ctx.db.patch(item._id, {
+        actionStatus: "failed",
+        actionError: message,
+        updatedAt: now,
+      });
+
+      await recordWorkItemRun(ctx, {
+        workItemId: item.workItemId,
+        phase: "approve",
+        status: "failed",
+        now,
+        events: [
+          {
+            kind: "action.execution_failed",
+            payload: {
+              message,
+            },
+          },
+        ],
+      });
+
+      await recordAuditLog(ctx, {
+        userId,
+        action: "action.approve.failed",
+        targetType: "work_item",
+        targetId: item.workItemId,
+        payload: {
+          message,
+        },
+        now,
+      });
+
+      throw new ConvexError(message);
+    }
   },
 });
 
@@ -67,11 +347,54 @@ export const dismiss = mutation({
   handler: async (ctx, args) => {
     const userId = await requireAuthUserId(ctx);
     const item = await loadItemById(ctx, userId, args.itemId);
+    if (item.status === "completed") {
+      throw new ConvexError("Completed item cannot be dismissed.");
+    }
+
+    const now = Date.now();
+    if (item.status === "dismissed") {
+      await recordAuditLog(ctx, {
+        userId,
+        action: "action.dismiss.idempotent",
+        targetType: "work_item",
+        targetId: item.workItemId,
+        payload: {},
+        now,
+      });
+      return { ok: true, idempotent: true };
+    }
+
     await ctx.db.patch(item._id, {
       status: "dismissed",
-      updatedAt: Date.now(),
+      actionStatus: "dismissed",
+      updatedAt: now,
     });
-    return { ok: true };
+
+    await recordWorkItemRun(ctx, {
+      workItemId: item.workItemId,
+      phase: "dismiss",
+      status: "completed",
+      now,
+      events: [
+        {
+          kind: "action.dismissed",
+          payload: {
+            reason: "user dismissed from queue",
+          },
+        },
+      ],
+    });
+
+    await recordAuditLog(ctx, {
+      userId,
+      action: "action.dismiss",
+      targetType: "work_item",
+      targetId: item.workItemId,
+      payload: {},
+      now,
+    });
+
+    return { ok: true, idempotent: false };
   },
 });
 
@@ -83,7 +406,10 @@ export const feedback = mutation({
   },
   handler: async (ctx, args) => {
     const userId = await requireAuthUserId(ctx);
-    await loadItemById(ctx, userId, args.itemId);
+    const item = await loadItemById(ctx, userId, args.itemId);
+    if (item.status !== "completed" && item.status !== "dismissed") {
+      throw new ConvexError("Feedback is only available for processed items.");
+    }
 
     const existing = await ctx.db
       .query("feedbackEntries")
@@ -107,6 +433,33 @@ export const feedback = mutation({
         updatedAt: now,
       });
     }
+
+    await recordWorkItemRun(ctx, {
+      workItemId: item.workItemId,
+      phase: "feedback",
+      status: "completed",
+      now,
+      events: [
+        {
+          kind: "feedback.recorded",
+          payload: {
+            rating: args.rating,
+            hasNote: Boolean(args.note?.trim()),
+          },
+        },
+      ],
+    });
+
+    await recordAuditLog(ctx, {
+      userId,
+      action: "feedback.recorded",
+      targetType: "work_item",
+      targetId: item.workItemId,
+      payload: {
+        rating: args.rating,
+      },
+      now,
+    });
 
     return { ok: true };
   },

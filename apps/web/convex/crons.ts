@@ -4,11 +4,10 @@ import { internal } from "./_generated/api";
 
 const crons = cronJobs();
 
-// Placeholder server-side heartbeat while queue ingestion moves to Convex actions.
 crons.interval(
-  "queue-heartbeat",
+  "queue-ingestion",
   { minutes: 5 },
-  internal.system.heartbeat,
+  internal.ingestion.enqueueCronIngestion,
   {}
 );
 

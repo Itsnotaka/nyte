@@ -10,12 +10,16 @@
 
 import type * as actions from "../actions.js";
 import type * as agent from "../agent.js";
+import type * as audit from "../audit.js";
 import type * as auth from "../auth.js";
 import type * as crons from "../crons.js";
+import type * as dashboard from "../dashboard.js";
 import type * as http from "../http.js";
+import type * as ingestion from "../ingestion.js";
 import type * as lib_agent from "../lib/agent.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as queue from "../queue.js";
+import type * as runlog from "../runlog.js";
 import type * as system from "../system.js";
 
 import type {
@@ -27,12 +31,16 @@ import type {
 declare const fullApi: ApiFromModules<{
   actions: typeof actions;
   agent: typeof agent;
+  audit: typeof audit;
   auth: typeof auth;
   crons: typeof crons;
+  dashboard: typeof dashboard;
   http: typeof http;
+  ingestion: typeof ingestion;
   "lib/agent": typeof lib_agent;
   "lib/auth": typeof lib_auth;
   queue: typeof queue;
+  runlog: typeof runlog;
   system: typeof system;
 }>;
 
