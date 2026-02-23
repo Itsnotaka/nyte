@@ -36,7 +36,7 @@ export const EXTENSION_AUTH_SCOPES = {
 
 export type ExtensionAuth = {
   provider: ExtensionAuthProvider;
-  userId: string | null;
+  userId: string;
   scopes: string[];
 };
 
@@ -138,6 +138,41 @@ export type ExtensionResultByName = {
 };
 
 export type ExtensionResult = ExtensionResultByName[ExtensionName];
+
+export const PI_RUNTIME_AI_PROVIDERS = {
+  opencode: "opencode",
+} as const;
+
+export type PiRuntimeAiProvider =
+  (typeof PI_RUNTIME_AI_PROVIDERS)[keyof typeof PI_RUNTIME_AI_PROVIDERS];
+
+export const PI_RUNTIME_AI_MODELS = {
+  zen: "zen",
+} as const;
+
+export type PiRuntimeAiModel =
+  (typeof PI_RUNTIME_AI_MODELS)[keyof typeof PI_RUNTIME_AI_MODELS];
+
+export type ImportanceTier = "critical" | "important" | "later";
+
+export type ImportanceClassificationRequest = {
+  summary: string;
+  context: string;
+  preview: string;
+  ruleScore: number;
+  provider?: PiRuntimeAiProvider;
+  model?: PiRuntimeAiModel;
+};
+
+export type ImportanceClassificationResult = {
+  provider: PiRuntimeAiProvider;
+  model: PiRuntimeAiModel;
+  score: number;
+  tier: ImportanceTier;
+  reason: string;
+  confidence: number;
+  fallback: boolean;
+};
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) {

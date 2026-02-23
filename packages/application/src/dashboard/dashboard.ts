@@ -13,7 +13,7 @@ import {
   type WorkItemWithAction,
 } from "@nyte/domain/actions";
 import type { WorkItem } from "@nyte/domain/triage";
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, or } from "drizzle-orm";
 import { Effect } from "effect";
 
 function toIsoString(value: Date): string {
@@ -51,6 +51,11 @@ export type DashboardData = {
   processed: ProcessedEntry[];
 };
 
+export type DashboardDataOptions = {
+  importantOnly?: boolean;
+  includeSecondary?: boolean;
+};
+
 export type DraftEntry = {
   id: string;
   actor: string;
@@ -64,6 +69,7 @@ export type DraftEntry = {
 const SOURCES = ["Gmail", "Google Calendar"] as const;
 const GATES = ["decision", "time", "relationship", "impact", "watch"] as const;
 const FEEDBACK_RATINGS = ["positive", "negative"] as const;
+const IMPORTANT_TIERS = ["critical", "important"] as const;
 
 type FeedbackRating = (typeof FEEDBACK_RATINGS)[number];
 
@@ -129,52 +135,88 @@ function presentationForAction(
   };
 }
 
-async function loadApprovalQueue(): Promise<WorkItemWithAction[]> {
+async function loadApprovalQueue({
+  userId,
+  importantOnly,
+}: {
+  userId: string;
+  importantOnly: boolean;
+}): Promise<WorkItemWithAction[]> {
+  const whereClause = importantOnly
+    ? and(
+        eq(workItems.userId, userId),
+        eq(workItems.status, "awaiting_approval"),
+        or(
+          inArray(workItems.importanceTier, IMPORTANT_TIERS),
+          gte(workItems.importanceScore, 70)
+        )
+      )
+    : and(eq(workItems.userId, userId), eq(workItems.status, "awaiting_approval"));
+
   const pendingRows = await db
     .select()
     .from(workItems)
-    .where(eq(workItems.status, "awaiting_approval"))
+    .where(whereClause)
     .orderBy(desc(workItems.priorityScore), desc(workItems.updatedAt));
 
-  const queue: WorkItemWithAction[] = [];
+  if (pendingRows.length === 0) {
+    return [];
+  }
 
-  for (const row of pendingRows) {
-    const actionRow = await db
-      .select()
-      .from(proposedActions)
-      .where(eq(proposedActions.workItemId, row.id))
-      .limit(1);
-    const proposal = actionRow.at(0);
-    if (!proposal) {
-      continue;
-    }
-
-    const payload = parseToolCallPayload(proposal.payloadJson);
-    if (!payload) {
-      continue;
-    }
-    const presentation = presentationForAction(payload.kind);
-
-    if (!isSource(row.source)) {
-      continue;
-    }
-
-    const gateRows = await db
+  const workItemIds = pendingRows.map((row) => row.id);
+  const [actionRows, gateRows] = await Promise.all([
+    db
       .select({
+        workItemId: proposedActions.workItemId,
+        payloadJson: proposedActions.payloadJson,
+      })
+      .from(proposedActions)
+      .where(inArray(proposedActions.workItemId, workItemIds)),
+    db
+      .select({
+        workItemId: gateEvaluations.workItemId,
         gate: gateEvaluations.gate,
       })
       .from(gateEvaluations)
       .where(
         and(
-          eq(gateEvaluations.workItemId, row.id),
+          inArray(gateEvaluations.workItemId, workItemIds),
           eq(gateEvaluations.matched, true)
         )
-      );
+      ),
+  ]);
 
-    const gates = gateRows
-      .map((gate) => gate.gate)
-      .filter((gate): gate is WorkItem["gates"][number] => isGate(gate));
+  const actionByItemId = new Map<string, ToolCallPayload>();
+  for (const row of actionRows) {
+    if (actionByItemId.has(row.workItemId)) {
+      continue;
+    }
 
+    const payload = parseToolCallPayload(row.payloadJson);
+    if (payload) {
+      actionByItemId.set(row.workItemId, payload);
+    }
+  }
+
+  const gatesByItemId = new Map<string, WorkItem["gates"]>();
+  for (const row of gateRows) {
+    if (!isGate(row.gate)) {
+      continue;
+    }
+
+    const existing = gatesByItemId.get(row.workItemId) ?? [];
+    existing.push(row.gate);
+    gatesByItemId.set(row.workItemId, existing);
+  }
+
+  const queue: WorkItemWithAction[] = [];
+  for (const row of pendingRows) {
+    const payload = actionByItemId.get(row.id);
+    if (!payload || !isSource(row.source)) {
+      continue;
+    }
+
+    const presentation = presentationForAction(payload.kind);
     queue.push({
       id: row.id,
       type: presentation.type,
@@ -186,7 +228,7 @@ async function loadApprovalQueue(): Promise<WorkItemWithAction[]> {
       actionLabel: presentation.actionLabel,
       secondaryLabel: presentation.secondaryLabel,
       cta: presentation.cta,
-      gates,
+      gates: gatesByItemId.get(row.id) ?? [],
       priorityScore: row.priorityScore,
       proposedAction: payload,
     });
@@ -195,7 +237,7 @@ async function loadApprovalQueue(): Promise<WorkItemWithAction[]> {
   return queue;
 }
 
-async function loadDrafts(): Promise<DraftEntry[]> {
+async function loadDrafts(userId: string): Promise<DraftEntry[]> {
   const rows = await db
     .select({
       id: workItems.id,
@@ -206,6 +248,7 @@ async function loadDrafts(): Promise<DraftEntry[]> {
     .from(gmailDrafts)
     .innerJoin(proposedActions, eq(gmailDrafts.actionId, proposedActions.id))
     .innerJoin(workItems, eq(proposedActions.workItemId, workItems.id))
+    .where(eq(workItems.userId, userId))
     .orderBy(desc(gmailDrafts.syncedAt));
 
   return rows
@@ -232,35 +275,15 @@ async function loadDrafts(): Promise<DraftEntry[]> {
     .filter((entry): entry is DraftEntry => entry !== null);
 }
 
-async function resolveProcessedDetail(
-  payload: ToolCallPayload,
-  actionId: string
-): Promise<string> {
-  if (payload.kind === "billing.queueRefund") {
-    return "refund_queue • queued";
-  }
-
-  if (payload.kind === "gmail.createDraft") {
-    const draftRows = await db
-      .select()
-      .from(gmailDrafts)
-      .where(eq(gmailDrafts.actionId, actionId))
-      .limit(1);
-
-    return `gmail_drafts • ${draftRows.at(0)?.providerDraftId ?? "pending"}`;
-  }
-
-  const eventRows = await db
-    .select()
-    .from(calendarEvents)
-    .where(eq(calendarEvents.actionId, actionId))
-    .limit(1);
-
-  return `google_calendar • ${eventRows.at(0)?.providerEventId ?? "pending"}`;
-}
-
-async function loadProcessed(): Promise<ProcessedEntry[]> {
-  const feedbackRows = await db.select().from(feedbackEntries);
+async function loadProcessed(userId: string): Promise<ProcessedEntry[]> {
+  const feedbackRows = await db
+    .select({
+      workItemId: feedbackEntries.workItemId,
+      rating: feedbackEntries.rating,
+    })
+    .from(feedbackEntries)
+    .innerJoin(workItems, eq(feedbackEntries.workItemId, workItems.id))
+    .where(eq(workItems.userId, userId));
   const feedbackByItem = new Map(
     feedbackRows.map((entry) => [
       entry.workItemId,
@@ -271,18 +294,73 @@ async function loadProcessed(): Promise<ProcessedEntry[]> {
   const rows = await db
     .select()
     .from(workItems)
-    .where(inArray(workItems.status, ["completed", "dismissed"]))
+    .where(
+      and(
+        eq(workItems.userId, userId),
+        inArray(workItems.status, ["completed", "dismissed"])
+      )
+    )
     .orderBy(desc(workItems.updatedAt));
+
+  if (rows.length === 0) {
+    return [];
+  }
+
+  const workItemIds = rows.map((row) => row.id);
+  const actionRows = await db
+    .select({
+      id: proposedActions.id,
+      workItemId: proposedActions.workItemId,
+      payloadJson: proposedActions.payloadJson,
+    })
+    .from(proposedActions)
+    .where(inArray(proposedActions.workItemId, workItemIds));
+
+  const actionByItemId = new Map<
+    string,
+    { id: string; payloadJson: string }
+  >();
+  for (const action of actionRows) {
+    if (!actionByItemId.has(action.workItemId)) {
+      actionByItemId.set(action.workItemId, {
+        id: action.id,
+        payloadJson: action.payloadJson,
+      });
+    }
+  }
+
+  const actionIds = Array.from(actionByItemId.values()).map((action) => action.id);
+  const [draftRows, eventRows] =
+    actionIds.length > 0
+      ? await Promise.all([
+          db
+            .select({
+              actionId: gmailDrafts.actionId,
+              providerDraftId: gmailDrafts.providerDraftId,
+            })
+            .from(gmailDrafts)
+            .where(inArray(gmailDrafts.actionId, actionIds)),
+          db
+            .select({
+              actionId: calendarEvents.actionId,
+              providerEventId: calendarEvents.providerEventId,
+            })
+            .from(calendarEvents)
+            .where(inArray(calendarEvents.actionId, actionIds)),
+        ])
+      : [[], []];
+
+  const draftByActionId = new Map(
+    draftRows.map((row) => [row.actionId, row.providerDraftId])
+  );
+  const eventByActionId = new Map(
+    eventRows.map((row) => [row.actionId, row.providerEventId])
+  );
 
   const processed: ProcessedEntry[] = [];
 
   for (const row of rows) {
-    const actionRow = await db
-      .select()
-      .from(proposedActions)
-      .where(eq(proposedActions.workItemId, row.id))
-      .limit(1);
-    const action = actionRow.at(0);
+    const action = actionByItemId.get(row.id);
     if (!action) {
       continue;
     }
@@ -316,7 +394,12 @@ async function loadProcessed(): Promise<ProcessedEntry[]> {
       continue;
     }
 
-    const detail = await resolveProcessedDetail(payload, action.id);
+    const detail =
+      payload.kind === "billing.queueRefund"
+        ? "refund_queue • queued"
+        : payload.kind === "gmail.createDraft"
+          ? `gmail_drafts • ${draftByActionId.get(action.id) ?? "pending"}`
+          : `google_calendar • ${eventByActionId.get(action.id) ?? "pending"}`;
 
     processed.push({
       id: `${row.id}:${action.id}`,
@@ -333,11 +416,21 @@ async function loadProcessed(): Promise<ProcessedEntry[]> {
   return processed;
 }
 
-export async function getDashboardData(): Promise<DashboardData> {
+export async function getDashboardData(
+  userId: string,
+  { importantOnly = false, includeSecondary = true }: DashboardDataOptions = {}
+): Promise<DashboardData> {
+  const approvalQueuePromise = loadApprovalQueue({ userId, importantOnly });
+  const draftsPromise = includeSecondary
+    ? loadDrafts(userId)
+    : Promise.resolve([]);
+  const processedPromise = includeSecondary
+    ? loadProcessed(userId)
+    : Promise.resolve([]);
   const [approvalQueue, drafts, processed] = await Promise.all([
-    loadApprovalQueue(),
-    loadDrafts(),
-    loadProcessed(),
+    approvalQueuePromise,
+    draftsPromise,
+    processedPromise,
   ]);
 
   return {
@@ -347,5 +440,7 @@ export async function getDashboardData(): Promise<DashboardData> {
   };
 }
 
-export const getDashboardDataProgram = () =>
-  Effect.tryPromise(() => getDashboardData());
+export const getDashboardDataProgram = (
+  userId: string,
+  options: DashboardDataOptions = {}
+) => Effect.tryPromise(() => getDashboardData(userId, options));

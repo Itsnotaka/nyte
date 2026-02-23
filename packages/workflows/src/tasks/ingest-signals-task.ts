@@ -1,4 +1,9 @@
 import { getDashboardData } from "@nyte/application/dashboard/data";
+import { requireUserId } from "@nyte/application/identity/user-id";
+import {
+  getUserIngestionState,
+  upsertUserIngestionState,
+} from "@nyte/application/queue/ingestion-state";
 import { persistSignals } from "@nyte/application/queue/persist-signals";
 import { ingestGoogleCalendarSignals } from "@nyte/integrations/calendar/ingestion";
 import { ingestGmailSignals } from "@nyte/integrations/gmail/ingestion";
@@ -7,6 +12,7 @@ type GmailIngestionInput = Parameters<typeof ingestGmailSignals>[0];
 type DashboardApprovalQueue = Awaited<
   ReturnType<typeof getDashboardData>
 >["approvalQueue"];
+const DEFAULT_STALE_AFTER_MS = 2 * 60 * 1000;
 
 type QueueCursorEnvelope = {
   version: 1;
@@ -19,6 +25,8 @@ export type IngestSignalsTaskInput = {
   accessToken: GmailIngestionInput["accessToken"];
   cursor?: GmailIngestionInput["cursor"];
   watchKeywords?: GmailIngestionInput["watchKeywords"];
+  staleAfterMs?: number;
+  force?: boolean;
   now?: GmailIngestionInput["now"];
 };
 
@@ -132,14 +140,76 @@ function getErrorMessage(error: unknown): string {
   return "Unknown ingestion error";
 }
 
+function parseStateDate(value: string | null): Date | null {
+  if (!value) {
+    return null;
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+
+  return parsed;
+}
+
+function isStale({
+  now,
+  lastSyncedAt,
+  staleAfterMs,
+}: {
+  now: Date;
+  lastSyncedAt: Date | null;
+  staleAfterMs: number;
+}) {
+  if (!lastSyncedAt) {
+    return true;
+  }
+
+  return now.getTime() - lastSyncedAt.getTime() >= staleAfterMs;
+}
+
 export async function ingestSignalsTask({
   userId,
   accessToken,
   cursor,
   watchKeywords = [],
+  staleAfterMs = DEFAULT_STALE_AFTER_MS,
+  force = false,
   now = new Date(),
 }: IngestSignalsTaskInput): Promise<IngestSignalsTaskResult> {
-  const { gmailCursor, calendarCursor } = parseQueueCursor(cursor);
+  const normalizedUserId = requireUserId(userId);
+  const storedState = await getUserIngestionState(normalizedUserId);
+  const fallbackCursor = parseQueueCursor(cursor);
+  const gmailCursor =
+    storedState?.gmailCursor ?? fallbackCursor.gmailCursor ?? undefined;
+  const calendarCursor =
+    storedState?.calendarCursor ?? fallbackCursor.calendarCursor ?? undefined;
+  const lastSyncedAt = parseStateDate(storedState?.lastSyncedAt ?? null);
+
+  if (
+    !force &&
+    storedState?.bootstrapCompletedAt &&
+    !isStale({
+      now,
+      lastSyncedAt,
+      staleAfterMs,
+    })
+  ) {
+    const dashboard = await getDashboardData(normalizedUserId, {
+      importantOnly: false,
+      includeSecondary: false,
+    });
+
+    return {
+      cursor: serializeQueueCursor({
+        gmailCursor,
+        calendarCursor,
+      }),
+      queuedCount: 0,
+      approvalQueue: dashboard.approvalQueue,
+    } satisfies IngestSignalsTaskResult;
+  }
 
   const [gmailResult, calendarResult] = await Promise.allSettled([
     ingestGmailSignals({
@@ -160,6 +230,18 @@ export async function ingestSignalsTask({
     gmailResult.status === "rejected" &&
     calendarResult.status === "rejected"
   ) {
+    await upsertUserIngestionState({
+      userId: normalizedUserId,
+      gmailCursor: storedState?.gmailCursor ?? gmailCursor ?? null,
+      calendarCursor: storedState?.calendarCursor ?? calendarCursor ?? null,
+      lastSyncedAt,
+      bootstrapCompletedAt: parseStateDate(
+        storedState?.bootstrapCompletedAt ?? null
+      ),
+      lastError: `gmail:${getErrorMessage(gmailResult.reason)} | calendar:${getErrorMessage(calendarResult.reason)}`,
+      now,
+    });
+
     throw new Error(
       `Signal ingestion failed for Gmail and Calendar. Gmail: ${getErrorMessage(gmailResult.reason)}. Calendar: ${getErrorMessage(calendarResult.reason)}.`
     );
@@ -183,8 +265,27 @@ export async function ingestSignalsTask({
         : calendarCursor,
   });
 
-  await persistSignals(signals, userId, now);
-  const dashboard = await getDashboardData();
+  await persistSignals(signals, normalizedUserId, now);
+  await upsertUserIngestionState({
+    userId: normalizedUserId,
+    gmailCursor:
+      gmailResult.status === "fulfilled"
+        ? gmailResult.value.nextCursor
+        : (gmailCursor ?? null),
+    calendarCursor:
+      calendarResult.status === "fulfilled"
+        ? calendarResult.value.nextCursor
+        : (calendarCursor ?? null),
+    lastSyncedAt: now,
+    bootstrapCompletedAt:
+      parseStateDate(storedState?.bootstrapCompletedAt ?? null) ?? now,
+    lastError: null,
+    now,
+  });
+  const dashboard = await getDashboardData(normalizedUserId, {
+    importantOnly: false,
+    includeSecondary: false,
+  });
 
   return {
     cursor: nextCursor,

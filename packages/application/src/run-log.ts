@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import { db } from "@nyte/db/client";
 import { workflowEvents, workflowRuns } from "@nyte/db/schema";
-import { asc, desc, eq } from "drizzle-orm";
+import { asc, desc, eq, inArray, lt, or } from "drizzle-orm";
 import { Effect } from "effect";
 import { z } from "zod";
 
@@ -107,20 +107,33 @@ export async function listWorkItemRunTimeline(
     .where(eq(workflowRuns.workItemId, workItemId))
     .orderBy(desc(workflowRuns.createdAt));
 
+  if (runs.length === 0) {
+    return [];
+  }
+
+  const runIds = runs.map((run) => run.id);
+  const events = await db
+    .select()
+    .from(workflowEvents)
+    .where(inArray(workflowEvents.runId, runIds))
+    .orderBy(asc(workflowEvents.createdAt));
+
+  const eventsByRunId = new Map<string, typeof events>();
+  for (const event of events) {
+    const existing = eventsByRunId.get(event.runId) ?? [];
+    existing.push(event);
+    eventsByRunId.set(event.runId, existing);
+  }
+
   const timeline: WorkItemRunTimelineEntry[] = [];
   for (const run of runs) {
-    const events = await db
-      .select()
-      .from(workflowEvents)
-      .where(eq(workflowEvents.runId, run.id))
-      .orderBy(asc(workflowEvents.createdAt));
-
+    const runEvents = eventsByRunId.get(run.id) ?? [];
     timeline.push({
       runId: run.id,
       phase: run.phase,
       status: run.status,
       at: runTimestampSchema.parse(run.createdAt),
-      events: events.map((event) => ({
+      events: runEvents.map((event) => ({
         kind: event.kind,
         payload: workflowEventPayloadSchema.parse(event.payloadJson),
         at: runTimestampSchema.parse(event.createdAt),
@@ -133,3 +146,51 @@ export async function listWorkItemRunTimeline(
 
 export const listWorkItemRunTimelineProgram = (workItemId: string) =>
   Effect.tryPromise(() => listWorkItemRunTimeline(workItemId));
+
+export async function pruneWorkflowEvents({
+  olderThan,
+  now = new Date(),
+}: {
+  olderThan: Date;
+  now?: Date;
+}) {
+  if (Number.isNaN(olderThan.getTime())) {
+    throw new TypeError("Invalid date value.");
+  }
+
+  const oldRunRows = await db
+    .select({
+      id: workflowRuns.id,
+    })
+    .from(workflowRuns)
+    .where(or(lt(workflowRuns.updatedAt, olderThan), lt(workflowRuns.createdAt, olderThan)));
+  const runIds = oldRunRows.map((row) => row.id);
+
+  if (runIds.length === 0) {
+    return {
+      deletedEvents: 0,
+      deletedRuns: 0,
+      prunedAt: runTimestampSchema.parse(now),
+    };
+  }
+
+  const oldEventRows = await db
+    .select({
+      id: workflowEvents.id,
+    })
+    .from(workflowEvents)
+    .where(inArray(workflowEvents.runId, runIds));
+
+  await db
+    .delete(workflowEvents)
+    .where(inArray(workflowEvents.runId, runIds));
+  await db
+    .delete(workflowRuns)
+    .where(inArray(workflowRuns.id, runIds));
+
+  return {
+    deletedEvents: oldEventRows.length,
+    deletedRuns: runIds.length,
+    prunedAt: runTimestampSchema.parse(now),
+  };
+}

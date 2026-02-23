@@ -7,11 +7,12 @@ const t = initTRPC.context<TRPCContext>().create();
 export const router = t.router;
 
 export const authedProcedure = t.procedure.use(({ ctx, next }) => {
-  if (!ctx.userId) {
+  const userId = ctx.userId?.trim();
+  if (!userId) {
     throw new TRPCError({
       code: "UNAUTHORIZED",
       message: "Authentication required.",
     });
   }
-  return next({ ctx: { ...ctx, userId: ctx.userId } });
+  return next({ ctx: { ...ctx, userId } });
 });

@@ -2,8 +2,10 @@ import { randomUUID } from "node:crypto";
 
 import { db } from "@nyte/db/client";
 import { auditLogs } from "@nyte/db/schema";
-import { and, count, desc, eq } from "drizzle-orm";
+import { and, count, desc, eq, lt, or } from "drizzle-orm";
 import { Effect } from "effect";
+
+import { requireUserId } from "../identity/user-id";
 
 type AuditExecutor = Pick<typeof db, "insert">;
 
@@ -37,7 +39,7 @@ function parseRecordPayload(payloadJson: string): Record<string, unknown> {
 }
 
 export type AuditLogInput = {
-  userId?: string | null;
+  userId: string;
   action: string;
   targetType: string;
   targetId: string;
@@ -47,7 +49,7 @@ export type AuditLogInput = {
 };
 
 export async function recordAuditLog({
-  userId = null,
+  userId,
   action,
   targetType,
   targetId,
@@ -55,9 +57,11 @@ export async function recordAuditLog({
   now = new Date(),
   executor = db,
 }: AuditLogInput) {
+  const normalizedUserId = requireUserId(userId);
+
   await executor.insert(auditLogs).values({
     id: `${targetType}:${targetId}:${action}:${now.getTime()}:${randomUUID()}`,
-    userId,
+    userId: normalizedUserId,
     action,
     targetType,
     targetId,
@@ -71,7 +75,7 @@ export const recordAuditLogProgram = (input: AuditLogInput) =>
 
 export type AuditLogEntry = {
   id: string;
-  userId: string | null;
+  userId: string;
   action: string;
   targetType: string;
   targetId: string;
@@ -159,10 +163,55 @@ export const countAuditLogsByTargetProgram = (
   targetId: string
 ) => Effect.tryPromise(() => countAuditLogsByTarget(targetType, targetId));
 
+export type AuditLogCursor = {
+  createdAt: string;
+  id: string;
+};
+
+export async function listAuditLogsByCursor({
+  limit = 100,
+  cursor,
+}: {
+  limit?: number;
+  cursor?: AuditLogCursor;
+}): Promise<AuditLogEntry[]> {
+  const rows =
+    cursor === undefined
+      ? await db
+          .select()
+          .from(auditLogs)
+          .orderBy(desc(auditLogs.createdAt), desc(auditLogs.id))
+          .limit(limit)
+      : await db
+          .select()
+          .from(auditLogs)
+          .where(
+            or(
+              lt(auditLogs.createdAt, new Date(cursor.createdAt)),
+              and(
+                eq(auditLogs.createdAt, new Date(cursor.createdAt)),
+                lt(auditLogs.id, cursor.id)
+              )
+            )
+          )
+          .orderBy(desc(auditLogs.createdAt), desc(auditLogs.id))
+          .limit(limit);
+
+  return rows.map(toAuditLogEntry);
+}
+
+export async function pruneAuditLogs({ olderThan }: { olderThan: Date }) {
+  if (Number.isNaN(olderThan.getTime())) {
+    throw new TypeError("Invalid date value.");
+  }
+
+  return db.delete(auditLogs).where(lt(auditLogs.createdAt, olderThan));
+}
+
 function toAuditLogEntry(row: typeof auditLogs.$inferSelect): AuditLogEntry {
   return {
     id: row.id,
-    userId: row.userId,
+    userId: requireUserId(row.userId),
     action: row.action,
     targetType: row.targetType,
     targetId: row.targetId,

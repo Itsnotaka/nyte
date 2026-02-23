@@ -16,12 +16,12 @@ type ApprovedWorkItem = Awaited<ReturnType<typeof approveWorkItem>>;
 
 type ExtensionDispatchInput = {
   approvedItem: ApprovedWorkItem;
-  userId?: string | null;
+  userId: string;
 };
 
 export async function dispatchApprovedActionToExtension({
   approvedItem,
-  userId = null,
+  userId,
 }: ExtensionDispatchInput): Promise<ExtensionResult | null> {
   const extensionContext: ExtensionExecutionContext = {
     auth: {

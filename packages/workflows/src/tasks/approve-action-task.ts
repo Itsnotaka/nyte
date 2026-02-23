@@ -1,4 +1,5 @@
 import { approveWorkItem } from "@nyte/application/actions/approve";
+import { requireUserId } from "@nyte/application/identity/user-id";
 
 import { dispatchApprovedActionToExtension } from "../extension-dispatch";
 
@@ -9,16 +10,17 @@ export type ApproveActionTaskInput = {
   now?: ApproveWorkItemParameters[1];
   idempotencyKey?: ApproveWorkItemParameters[2];
   payloadOverride?: ApproveWorkItemParameters[3];
-  actorUserId?: string | null;
+  actorUserId: string;
 };
 
 export async function approveActionTask({
   itemId,
   idempotencyKey,
   payloadOverride,
-  actorUserId = null,
+  actorUserId,
   now = new Date(),
 }: ApproveActionTaskInput) {
+  const normalizedActorUserId = requireUserId(actorUserId);
   const approvedItem = await approveWorkItem(
     itemId,
     now,
@@ -27,7 +29,7 @@ export async function approveActionTask({
   );
   const extensionResult = await dispatchApprovedActionToExtension({
     approvedItem,
-    userId: actorUserId,
+    userId: normalizedActorUserId,
   });
 
   return {

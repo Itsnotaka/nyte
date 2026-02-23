@@ -2,15 +2,6 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-@font-face {
-  font-family: "Berkeley Mono";
-  font-style: normal;
-  font-weight: 100 900;
-  font-display: swap;
-  src: url("https://static.linear.app/fonts/Berkeley-Mono-Variable.woff2?v=3.2")
-    format("woff2");
-}
-
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -18,8 +9,8 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-inter), system-ui, sans-serif;
   --font-mono:
-    "Berkeley Mono", "SFMono Regular", Consolas, "Liberation Mono", Menlo,
-    Courier, monospace;
+    var(--font-berkeley-mono), "SFMono Regular", Consolas, "Liberation Mono",
+    Menlo, Courier, monospace;
   --text-sm: 0.8125rem;
   --text-sm--line-height: calc(21 / 14);
   --color-sidebar-ring: var(--sidebar-ring);

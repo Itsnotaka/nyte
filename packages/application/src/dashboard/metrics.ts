@@ -3,6 +3,8 @@ import { feedbackEntries, gateEvaluations, workItems } from "@nyte/db/schema";
 import { and, eq } from "drizzle-orm";
 import { Effect } from "effect";
 
+import { requireUserId } from "../identity/user-id";
+
 const GATES = ["decision", "time", "relationship", "impact", "watch"] as const;
 type GateKey = (typeof GATES)[number];
 
@@ -56,10 +58,21 @@ function median(values: number[]): number {
 }
 
 export async function getMetricsSnapshot(
+  userId: string,
   now = new Date()
 ): Promise<MetricsSnapshot> {
-  const rows = await db.select().from(workItems);
-  const feedbackRows = await db.select().from(feedbackEntries);
+  const normalizedUserId = requireUserId(userId);
+  const rows = await db
+    .select()
+    .from(workItems)
+    .where(eq(workItems.userId, normalizedUserId));
+  const feedbackRows = await db
+    .select({
+      rating: feedbackEntries.rating,
+    })
+    .from(feedbackEntries)
+    .innerJoin(workItems, eq(feedbackEntries.workItemId, workItems.id))
+    .where(eq(workItems.userId, normalizedUserId));
 
   let awaitingCount = 0;
   let completedCount = 0;
@@ -94,14 +107,29 @@ export async function getMetricsSnapshot(
   const gateHitCounts = Object.fromEntries(
     GATES.map((gate) => [gate, 0])
   ) as Record<GateKey, number>;
-  for (const gate of GATES) {
-    const hits = await db
-      .select({ id: gateEvaluations.id })
-      .from(gateEvaluations)
-      .where(
-        and(eq(gateEvaluations.gate, gate), eq(gateEvaluations.matched, true))
-      );
-    gateHitCounts[gate] = hits.length;
+  const gateRows = await db
+    .select({
+      gate: gateEvaluations.gate,
+    })
+    .from(gateEvaluations)
+    .innerJoin(workItems, eq(gateEvaluations.workItemId, workItems.id))
+    .where(
+      and(
+        eq(gateEvaluations.matched, true),
+        eq(workItems.userId, normalizedUserId)
+      )
+    );
+
+  for (const row of gateRows) {
+    if (
+      row.gate === "decision" ||
+      row.gate === "time" ||
+      row.gate === "relationship" ||
+      row.gate === "impact" ||
+      row.gate === "watch"
+    ) {
+      gateHitCounts[row.gate] += 1;
+    }
   }
 
   return {
@@ -118,5 +146,5 @@ export async function getMetricsSnapshot(
   };
 }
 
-export const getMetricsSnapshotProgram = (now = new Date()) =>
-  Effect.tryPromise(() => getMetricsSnapshot(now));
+export const getMetricsSnapshotProgram = (userId: string, now = new Date()) =>
+  Effect.tryPromise(() => getMetricsSnapshot(userId, now));

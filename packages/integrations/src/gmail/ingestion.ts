@@ -567,16 +567,62 @@ function inferDeadline(intent: "draft_reply" | "refund_request", now: Date) {
   return undefined;
 }
 
+function inferRequiresDecision({
+  intent,
+  subject,
+  snippet,
+  watchMatched,
+  relationshipScore,
+  impactScore,
+}: {
+  intent: "draft_reply" | "refund_request";
+  subject: string;
+  snippet: string;
+  watchMatched: boolean;
+  relationshipScore: number;
+  impactScore: number;
+}) {
+  if (intent === "refund_request") {
+    return true;
+  }
+
+  if (watchMatched) {
+    return true;
+  }
+
+  if (relationshipScore >= 0.82 || impactScore >= 0.76) {
+    return true;
+  }
+
+  const haystack = `${subject} ${snippet}`.toLowerCase();
+  return (
+    haystack.includes("urgent") ||
+    haystack.includes("blocked") ||
+    haystack.includes("deadline") ||
+    haystack.includes("contract")
+  );
+}
+
 function toSignal(
   snapshot: GmailThreadSnapshot,
   watchKeywords: string[],
   now: Date
 ): IntakeSignal {
   const intent = inferIntent(snapshot.subject, snapshot.snippet);
+  const relationshipScore = inferRelationshipScore(snapshot.subject, snapshot.from);
+  const impactScore = inferImpactScore(snapshot.subject, snapshot.snippet, intent);
   const haystack = `${snapshot.subject} ${snapshot.snippet}`.toLowerCase();
   const watchMatched = watchKeywords.some((keyword) =>
     haystack.includes(keyword.toLowerCase())
   );
+  const requiresDecision = inferRequiresDecision({
+    intent,
+    subject: snapshot.subject,
+    snippet: snapshot.snippet,
+    watchMatched,
+    relationshipScore,
+    impactScore,
+  });
 
   return {
     id: `gmail:${snapshot.id}`,
@@ -587,10 +633,10 @@ function toSignal(
     preview:
       snapshot.snippet || snapshot.subject || "Open in Gmail for full content.",
     intent,
-    requiresDecision: true,
+    requiresDecision,
     deadlineAt: inferDeadline(intent, now),
-    relationshipScore: inferRelationshipScore(snapshot.subject, snapshot.from),
-    impactScore: inferImpactScore(snapshot.subject, snapshot.snippet, intent),
+    relationshipScore,
+    impactScore,
     watchMatched,
   };
 }

@@ -10,7 +10,10 @@
     "./audit/log": "./src/audit/audit-log.ts",
     "./dashboard/data": "./src/dashboard/dashboard.ts",
     "./dashboard/metrics": "./src/dashboard/metrics.ts",
+    "./identity/user-id": "./src/identity/user-id.ts",
+    "./queue/ingestion-state": "./src/queue/ingestion-state.ts",
     "./queue/persist-signals": "./src/queue/queue-store.ts",
+    "./queue/queue-tool-call": "./src/queue/queue-tool-call.ts",
     "./run-log": "./src/run-log.ts"
   },
   "scripts": {
@@ -20,6 +23,7 @@
   "dependencies": {
     "@nyte/db": "workspace:*",
     "@nyte/domain": "workspace:*",
+    "@nyte/extension-runtime": "workspace:*",
     "drizzle-orm": "^0.45.1",
     "effect": "^3.19.19",
     "zod": "^4.3.6"

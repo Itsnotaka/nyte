@@ -48,8 +48,12 @@ export function useChat(): UseChatResult {
 
   const { data: session, isPending: isSessionPending } =
     authClient.useSession();
-  const userId = session?.user?.id ?? null;
-  const connected = Boolean(session);
+  const userId = session?.user?.id?.trim() ?? "";
+  const connected = userId.length > 0;
+  const chatSyncQueryKey = React.useMemo(
+    () => ["chat.sync", userId] as const,
+    [userId]
+  );
 
   const {
     data: syncPages,
@@ -58,7 +62,7 @@ export function useChat(): UseChatResult {
     dataUpdatedAt,
     fetchNextPage,
   } = useInfiniteQuery({
-    queryKey: ["chat.sync", userId],
+    queryKey: chatSyncQueryKey,
     enabled: connected,
     retry: false,
     refetchOnWindowFocus: false,
@@ -98,7 +102,7 @@ export function useChat(): UseChatResult {
 
   const connectGoogle = React.useCallback(async () => {
     setMutationError(null);
-    queryClient.removeQueries({ queryKey: ["chat.sync", userId] });
+    queryClient.removeQueries({ queryKey: chatSyncQueryKey });
     try {
       await authClient.signIn.social({
         provider: GOOGLE_AUTH_PROVIDER,
@@ -107,18 +111,18 @@ export function useChat(): UseChatResult {
     } catch {
       setMutationError("Unable to connect Google right now.");
     }
-  }, [queryClient, userId]);
+  }, [chatSyncQueryKey, queryClient]);
 
   const disconnectGoogle = React.useCallback(async () => {
     setMutationError(null);
     try {
       await authClient.signOut();
-      queryClient.removeQueries({ queryKey: ["chat.sync", userId] });
+      queryClient.removeQueries({ queryKey: chatSyncQueryKey });
       router.refresh();
     } catch {
       setMutationError("Unable to disconnect right now.");
     }
-  }, [queryClient, router, userId]);
+  }, [chatSyncQueryKey, queryClient, router]);
 
   const markAction = React.useCallback(
     async (

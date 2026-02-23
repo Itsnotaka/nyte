@@ -11,6 +11,9 @@ import {
   isFeedbackError,
   type FeedbackError,
 } from "@nyte/application/actions/feedback";
+import { getDashboardData } from "@nyte/application/dashboard/data";
+import { getUserIngestionState } from "@nyte/application/queue/ingestion-state";
+import { queueToolCall } from "@nyte/application/queue/queue-tool-call";
 import {
   runApproveActionTask,
   runDismissActionTask,
@@ -23,11 +26,13 @@ import { z } from "zod";
 import { auth } from "~/lib/auth";
 import { GOOGLE_AUTH_PROVIDER } from "~/lib/auth-provider";
 
+import { buildDefaultPayload, parseCommandToToolCall } from "./parse-command";
 import { authedProcedure, router } from "./trpc";
 
 const WATCH_KEYWORD_MIN_LENGTH = 3;
 const WATCH_KEYWORD_MAX_LENGTH = 64;
 const WATCH_KEYWORD_LIMIT = 8;
+const QUEUE_STALE_THRESHOLD_MS = 2 * 60 * 1000;
 
 const watchKeywordSchema = z
   .string()
@@ -42,16 +47,16 @@ const watchKeywordsSchema = z
 const toolCallPayloadSchema = z.union([
   z.object({
     kind: z.literal("gmail.createDraft"),
-    to: z.array(z.string().email()).min(1).max(20),
+    to: z.array(z.email()).min(1).max(20),
     subject: z.string().trim().min(1).max(300),
     body: z.string().trim().min(1).max(5000),
   }),
   z.object({
     kind: z.literal("google-calendar.createEvent"),
     title: z.string().trim().min(1).max(300),
-    startsAt: z.string().datetime({ offset: true }),
-    endsAt: z.string().datetime({ offset: true }),
-    attendees: z.array(z.string().email()).max(50),
+    startsAt: z.iso.datetime({ offset: true }),
+    endsAt: z.iso.datetime({ offset: true }),
+    attendees: z.array(z.email()).max(50),
     description: z.string().trim().min(1).max(5000),
   }),
   z.object({
@@ -88,14 +93,52 @@ function resolveAccessToken(value: unknown): string | null {
   return token.trim().length > 0 ? token : null;
 }
 
+function isQueueStale(lastSyncedAt: string | null): boolean {
+  if (!lastSyncedAt) {
+    return true;
+  }
+
+  const parsed = new Date(lastSyncedAt);
+  if (Number.isNaN(parsed.getTime())) {
+    return true;
+  }
+
+  return Date.now() - parsed.getTime() >= QUEUE_STALE_THRESHOLD_MS;
+}
+
 export const appRouter = router({
   queue: router({
+    feed: authedProcedure
+      .input(
+        z
+          .object({
+            includeAll: z.boolean().optional(),
+          })
+          .optional()
+      )
+      .query(async ({ input, ctx }) => {
+        const includeAll = input?.includeAll ?? false;
+        const dashboard = await getDashboardData(ctx.userId, {
+          importantOnly: !includeAll,
+          includeSecondary: false,
+        });
+        const state = await getUserIngestionState(ctx.userId);
+
+        return {
+          approvalQueue: dashboard.approvalQueue,
+          lastSyncedAt: state?.lastSyncedAt ?? null,
+          isStale: isQueueStale(state?.lastSyncedAt ?? null),
+        };
+      }),
     sync: authedProcedure
       .input(
-        z.object({
-          cursor: z.string().optional(),
-          watchKeywords: watchKeywordsSchema.optional(),
-        })
+        z
+          .object({
+            cursor: z.string().optional(),
+            watchKeywords: watchKeywordsSchema.optional(),
+            force: z.boolean().optional(),
+          })
+          .optional()
       )
       .query(async ({ input, ctx }) => {
         const accessToken = resolveAccessToken(
@@ -116,9 +159,26 @@ export const appRouter = router({
         return runIngestSignalsTask({
           userId: ctx.userId,
           accessToken,
-          cursor: input.cursor,
-          watchKeywords: input.watchKeywords,
+          cursor: input?.cursor,
+          watchKeywords: input?.watchKeywords,
+          staleAfterMs: QUEUE_STALE_THRESHOLD_MS,
+          force: input?.force,
         });
+      }),
+  }),
+
+  agent: router({
+    run: authedProcedure
+      .input(
+        z.object({
+          message: z.string().trim().min(1).max(1000),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        const kind = parseCommandToToolCall(input.message);
+        const payload = buildDefaultPayload(kind, input.message);
+        const itemId = await queueToolCall(payload, ctx.userId, input.message);
+        return { itemId };
       }),
   }),
 
