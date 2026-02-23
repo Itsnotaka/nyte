@@ -26,9 +26,7 @@ export const run = mutation({
       const message = args.message.trim();
       log.set({ userId, messageLength: message.length });
       if (message.length === 0) {
-        const error = new Error("Message is required.");
-        log.error(error, { step: "validation" });
-        throw error;
+        throw new Error("Message is required.");
       }
 
       const now = Date.now();
@@ -49,15 +47,6 @@ export const run = mutation({
 
       log.set({ queueState: "queued" });
       return { itemId };
-    } catch (error) {
-      if (error instanceof Error) {
-        log.error(error, { step: "agent.run" });
-      } else {
-        log.error(new Error("Unknown error in agent.run"), {
-          step: "agent.run",
-        });
-      }
-      throw error;
     } finally {
       log.emit();
     }

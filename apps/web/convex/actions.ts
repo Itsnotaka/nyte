@@ -228,9 +228,7 @@ export const approve = mutation({
       });
 
       if (item.status === "dismissed") {
-        const error = new ConvexError("Dismissed item cannot be approved.");
-        log.error(error, { step: "precondition.dismissed" });
-        throw error;
+        throw new ConvexError("Dismissed item cannot be approved.");
       }
 
       if (item.status === "completed" && item.actionStatus === "executed") {
@@ -370,15 +368,6 @@ export const approve = mutation({
 
         throw new ConvexError(message);
       }
-    } catch (error) {
-      if (error instanceof Error) {
-        log.error(error, { step: "actions.approve" });
-      } else {
-        log.error(new Error("Unknown error in actions.approve"), {
-          step: "actions.approve",
-        });
-      }
-      throw error;
     } finally {
       log.emit();
     }
@@ -405,9 +394,7 @@ export const dismiss = mutation({
         queueStatus: item.status,
       });
       if (item.status === "completed") {
-        const error = new ConvexError("Completed item cannot be dismissed.");
-        log.error(error, { step: "precondition.completed" });
-        throw error;
+        throw new ConvexError("Completed item cannot be dismissed.");
       }
 
       const now = Date.now();
@@ -456,15 +443,6 @@ export const dismiss = mutation({
       log.set({ idempotent: false, queueState: "dismissed" });
 
       return { ok: true, idempotent: false };
-    } catch (error) {
-      if (error instanceof Error) {
-        log.error(error, { step: "actions.dismiss" });
-      } else {
-        log.error(new Error("Unknown error in actions.dismiss"), {
-          step: "actions.dismiss",
-        });
-      }
-      throw error;
     } finally {
       log.emit();
     }
@@ -497,11 +475,9 @@ export const feedback = mutation({
         queueStatus: item.status,
       });
       if (item.status !== "completed" && item.status !== "dismissed") {
-        const error = new ConvexError(
+        throw new ConvexError(
           "Feedback is only available for processed items."
         );
-        log.error(error, { step: "precondition.status" });
-        throw error;
       }
 
       const existing = await ctx.db
@@ -558,15 +534,6 @@ export const feedback = mutation({
       log.set({ feedbackState: "recorded" });
 
       return { ok: true };
-    } catch (error) {
-      if (error instanceof Error) {
-        log.error(error, { step: "actions.feedback" });
-      } else {
-        log.error(new Error("Unknown error in actions.feedback"), {
-          step: "actions.feedback",
-        });
-      }
-      throw error;
     } finally {
       log.emit();
     }
