@@ -334,12 +334,12 @@ function SidebarMobileDrawer({
       <Drawer
         open={openMobile}
         onOpenChange={setOpenMobile}
-        direction="left"
+        swipeDirection="right"
         modal
       >
         <DrawerContent
           data-slot="sidebar-container"
-          className="gap-0 overflow-hidden border-r border-[var(--sidebar-collapsed-border-color,var(--color-border-strong))] p-0 data-[vaul-drawer-direction=left]:w-[var(--sidebar-mobile-width)] data-[vaul-drawer-direction=left]:max-w-[var(--sidebar-mobile-width)] data-[vaul-drawer-direction=left]:rounded-none data-[vaul-drawer-direction=left]:sm:max-w-none"
+          className="gap-0 overflow-hidden border-r border-[var(--sidebar-collapsed-border-color,var(--color-border-strong))] p-0 data-[swipe-direction=right]:w-[var(--sidebar-mobile-width)] data-[swipe-direction=right]:max-w-[var(--sidebar-mobile-width)] data-[swipe-direction=right]:rounded-none data-[swipe-direction=right]:sm:max-w-none"
         >
           <aside
             data-sidebar="sidebar"
