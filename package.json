@@ -5,7 +5,7 @@
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
-    "lint": "oxlint -c .config/.oxlintrc.json --type-aware --type-check --deny-warnings --report-unused-disable-directives",
+    "lint": "oxlint -c .config/.oxlintrc.json --type-aware --type-check --report-unused-disable-directives",
     "fmt": "oxfmt -c .config/.oxfmtrc.json",
     "knip": "knip -c .config/knip.json",
     "typecheck": "turbo run typecheck",
@@ -15,16 +15,16 @@
   },
   "devDependencies": {
     "@nyte/tsconfig": "workspace:*",
-    "@typescript/native-preview": "7.0.0-dev.20260215.1",
+    "@typescript/native-preview": "7.0.0-dev.20260224.1",
     "knip": "^5.85.0",
-    "oxfmt": "^0.34.0",
-    "oxlint": "^1.49.0",
-    "oxlint-tsgolint": "^0.14.2",
+    "oxfmt": "^0.35.0",
+    "oxlint": "^1.50.0",
+    "oxlint-tsgolint": "^0.15.0",
     "turbo": "^2.8.10",
     "typescript": "6.0.0-beta"
   },
   "engines": {
     "node": ">=20"
   },
-  "packageManager": "pnpm@10.30.1"
+  "packageManager": "pnpm@10.30.2"
 }

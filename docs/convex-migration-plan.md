@@ -7,6 +7,17 @@ Postgres) and TanStack Query/tRPC layer to Convex. Includes findings from 10
 finder subagents, tradeoff analysis, convexskills patterns, and a step-by-step
 Better Auth + Convex integration (pnpm).
 
+### Runtime Contract Update (Current)
+
+- Primary user surface is the `Important` list and inline command conversation.
+- Command lifecycle is `preview` -> `respond` (follow-up) -> `confirm`.
+- Command confirmations execute inline (no command-run todo queue indirection).
+- Email confirmation executes send semantics (`gmail.send`) with idempotency,
+  not draft-only behavior.
+- pi-runtime requires Convex runtime env for LLM calls:
+  - `OPENCODE_API_KEY`
+  - `PI_RUNTIME_MODEL`
+
 ---
 
 ## 1. Current Architecture

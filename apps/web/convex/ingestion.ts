@@ -96,7 +96,7 @@ const actionStatusValidator = v.union(
   v.literal("failed")
 );
 const actionDestinationValidator = v.union(
-  v.literal("gmail_drafts"),
+  v.literal("gmail_sent"),
   v.literal("google_calendar"),
   v.literal("refund_queue")
 );
@@ -136,7 +136,7 @@ const queuedItemValidator = v.object({
   actionLabel: v.string(),
   secondaryLabel: v.string(),
   cta: v.union(
-    v.literal("Save draft"),
+    v.literal("Send email"),
     v.literal("Create event"),
     v.literal("Queue refund")
   ),
@@ -170,7 +170,7 @@ type QueuedItemInput = {
   context: string;
   actionLabel: string;
   secondaryLabel: string;
-  cta: "Save draft" | "Create event" | "Queue refund";
+  cta: "Send email" | "Create event" | "Queue refund";
   gates: Array<"decision" | "time" | "relationship" | "impact" | "watch">;
   preview: string;
   priorityScore: number;
@@ -203,7 +203,7 @@ type QueuedItemInput = {
   importanceVersion: string;
   classifiedAt: number;
   actionStatus: "pending" | "executed" | "dismissed" | "failed";
-  actionDestination?: "gmail_drafts" | "google_calendar" | "refund_queue";
+  actionDestination?: "gmail_sent" | "google_calendar" | "refund_queue";
   providerReference?: string;
   idempotencyKey?: string;
   executedAt?: number;
@@ -718,7 +718,7 @@ export const runForUser = internalAction({
 
     const accessToken = await loadGoogleAccessToken({
       userId: args.userId,
-      runQuery: ctx.runQuery,
+      runQuery: (query, ...queryArgs) => ctx.runQuery(query, ...queryArgs),
     });
 
     if (!accessToken) {
@@ -900,7 +900,7 @@ export const enqueueCronIngestion = internalAction({
     });
 
     const userIds = await listGoogleAccountUserIds({
-      runQuery: ctx.runQuery,
+      runQuery: (query, ...queryArgs) => ctx.runQuery(query, ...queryArgs),
     });
 
     for (const userId of userIds) {

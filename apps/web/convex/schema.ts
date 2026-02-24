@@ -35,7 +35,7 @@ const actionStatusValidator = v.union(
   v.literal("failed")
 );
 const actionDestinationValidator = v.union(
-  v.literal("gmail_drafts"),
+  v.literal("gmail_sent"),
   v.literal("google_calendar"),
   v.literal("refund_queue")
 );
@@ -48,6 +48,29 @@ const workflowPhaseValidator = v.union(
 const workflowStatusValidator = v.union(
   v.literal("completed"),
   v.literal("failed")
+);
+const runtimeRiskLevelValidator = v.union(
+  v.literal("low"),
+  v.literal("medium"),
+  v.literal("high")
+);
+const runtimeRunStatusValidator = v.union(
+  v.literal("awaiting_follow_up"),
+  v.literal("awaiting_approval"),
+  v.literal("completed"),
+  v.literal("failed"),
+  v.literal("cancelled")
+);
+const runtimeFlowTriggerTypeValidator = v.union(
+  v.literal("manual"),
+  v.literal("event"),
+  v.literal("schedule")
+);
+const commandKnowledgeSourceTypeValidator = v.union(
+  v.literal("queue_item"),
+  v.literal("workflow_event"),
+  v.literal("feedback"),
+  v.literal("audit")
 );
 
 const toolCallPayloadValidator = v.union(
@@ -86,7 +109,7 @@ export default defineSchema({
     actionLabel: v.string(),
     secondaryLabel: v.string(),
     cta: v.union(
-      v.literal("Save draft"),
+      v.literal("Send email"),
       v.literal("Create event"),
       v.literal("Queue refund")
     ),
@@ -166,4 +189,72 @@ export default defineSchema({
     payloadJson: v.string(),
     createdAt: v.number(),
   }).index("by_run_id", ["runId"]),
+
+  commandRuns: defineTable({
+    runId: v.string(),
+    userId: v.string(),
+    inputText: v.string(),
+    status: runtimeRunStatusValidator,
+    proposalJson: v.string(),
+    retrievalHitsJson: v.string(),
+    conversationJson: v.string(),
+    followUpQuestion: v.optional(v.string()),
+    executionJson: v.optional(v.string()),
+    lastError: v.optional(v.string()),
+    suggestionText: v.string(),
+    riskLevel: runtimeRiskLevelValidator,
+    triggerType: runtimeFlowTriggerTypeValidator,
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_run_id", ["runId"])
+    .index("by_user_status_updated", ["userId", "status", "updatedAt"])
+    .index("by_user_updated", ["userId", "updatedAt"]),
+
+  flowDefinitions: defineTable({
+    flowId: v.string(),
+    userId: v.string(),
+    name: v.string(),
+    triggerType: runtimeFlowTriggerTypeValidator,
+    triggerConfigJson: v.string(),
+    stepsJson: v.string(),
+    approvalPolicy: v.string(),
+    isActive: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_flow_id", ["flowId"])
+    .index("by_user_trigger", ["userId", "triggerType"])
+    .index("by_user_updated", ["userId", "updatedAt"]),
+
+  contacts: defineTable({
+    userId: v.string(),
+    contactId: v.string(),
+    email: v.string(),
+    display: v.string(),
+    lastUsedAt: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_contact_id", ["contactId"])
+    .index("by_user_email", ["userId", "email"])
+    .index("by_user_updated", ["userId", "updatedAt"]),
+
+  commandKnowledge: defineTable({
+    userId: v.string(),
+    sourceType: commandKnowledgeSourceTypeValidator,
+    sourceId: v.string(),
+    summary: v.string(),
+    metadataJson: v.string(),
+    embedding: v.array(v.float64()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user_source", ["userId", "sourceType", "sourceId"])
+    .index("by_user_updated", ["userId", "updatedAt"])
+    .vectorIndex("by_embedding", {
+      vectorField: "embedding",
+      dimensions: 64,
+      filterFields: ["userId", "sourceType"],
+    }),
 });

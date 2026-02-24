@@ -9,6 +9,9 @@
 - Enforce strict non-null `userId` for backend processes and validate it at
   process boundaries.
 - Do not use emojis unless explicitly requested.
+- Prefer runtime-first architecture in monorepo work: push intelligence,
+  filtering, and workflow logic into `packages/` (especially
+  `packages/pi-runtime`) and keep app frontend code thin.
 
 ## Learned Workspace Facts
 

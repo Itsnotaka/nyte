@@ -8,7 +8,7 @@ import {
   calendarCreateEvent,
   calendarUpdateEvent,
 } from "./extensions/calendar";
-import { gmailReadThreadContext, gmailSaveDraft } from "./extensions/gmail";
+import { gmailReadThreadContext, gmailSend } from "./extensions/gmail";
 
 type ExtensionRegistry = {
   [Name in ExtensionName]: (
@@ -18,7 +18,7 @@ type ExtensionRegistry = {
 
 export const extensionRegistry: ExtensionRegistry = {
   [EXTENSION_NAMES.gmailReadThreadContext]: gmailReadThreadContext,
-  [EXTENSION_NAMES.gmailSaveDraft]: gmailSaveDraft,
+  [EXTENSION_NAMES.gmailSend]: gmailSend,
   [EXTENSION_NAMES.calendarCreateEvent]: calendarCreateEvent,
   [EXTENSION_NAMES.calendarUpdateEvent]: calendarUpdateEvent,
 };

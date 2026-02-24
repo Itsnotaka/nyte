@@ -1,9 +1,9 @@
 import { Suspense } from "react";
 
+import { CommandCenter } from "./_components/command-center";
 import { CommandInput } from "./_components/command-input";
 import { FeedProvider } from "./_components/feed-provider";
 import { FeedSkeleton } from "./_components/feed-skeleton";
-import { NotificationFeed } from "./_components/notification-feed";
 
 export default function App() {
   return (
@@ -12,7 +12,7 @@ export default function App() {
         <CommandInput />
         <Suspense fallback={<FeedSkeleton />}>
           <FeedProvider>
-            <NotificationFeed />
+            <CommandCenter />
           </FeedProvider>
         </Suspense>
       </div>
