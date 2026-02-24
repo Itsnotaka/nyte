@@ -1,47 +1,10 @@
 import {
-  PI_RUNTIME_AI_MODELS,
   PI_RUNTIME_AI_PROVIDERS,
   type ImportanceClassificationRequest,
   type ImportanceClassificationResult,
-  type ImportanceTier,
+  type PiRuntimeAiModel,
 } from "./contracts";
-
-function clampScore(value: number): number {
-  if (!Number.isFinite(value)) {
-    return 0;
-  }
-
-  return Math.max(0, Math.min(100, Math.round(value)));
-}
-
-function toTier(score: number): ImportanceTier {
-  if (score >= 85) {
-    return "critical";
-  }
-
-  if (score >= 70) {
-    return "important";
-  }
-
-  return "later";
-}
-
-function createFallbackResult(
-  request: ImportanceClassificationRequest,
-  reason: string
-): ImportanceClassificationResult {
-  const score = clampScore(request.ruleScore);
-
-  return {
-    provider: request.provider ?? PI_RUNTIME_AI_PROVIDERS.opencode,
-    model: request.model ?? PI_RUNTIME_AI_MODELS.zen,
-    score,
-    tier: toTier(score),
-    reason,
-    confidence: 0.45,
-    fallback: true,
-  };
-}
+import { openCodeJsonCompletion } from "./opencode";
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -51,7 +14,15 @@ function asRecord(value: unknown): Record<string, unknown> | null {
   return value as Record<string, unknown>;
 }
 
-function parseGatewayResponse(
+function clampScore(value: number): number {
+  if (!Number.isFinite(value)) {
+    return 0;
+  }
+
+  return Math.max(0, Math.min(100, Math.round(value)));
+}
+
+function parseClassificationResponse(
   payload: unknown
 ): Pick<
   ImportanceClassificationResult,
@@ -97,71 +68,38 @@ function parseGatewayResponse(
 export async function classifyImportance(
   request: ImportanceClassificationRequest
 ): Promise<ImportanceClassificationResult> {
-  const provider = request.provider ?? PI_RUNTIME_AI_PROVIDERS.opencode;
-  const model = request.model ?? PI_RUNTIME_AI_MODELS.zen;
-  const runtimeEnv = (
-    globalThis as {
-      process?: {
-        env?: Record<string, string | undefined>;
-      };
-    }
-  ).process?.env;
-  const gatewayUrl = runtimeEnv?.PI_RUNTIME_GATEWAY_URL?.trim();
-  const apiKey = runtimeEnv?.AI_GATEWAY_API_KEY?.trim();
-
-  if (!gatewayUrl || !apiKey) {
-    return createFallbackResult(
-      request,
-      "AI gateway unavailable, using rules score."
-    );
-  }
-
-  try {
-    const response = await fetch(`${gatewayUrl}/v1/importance/classify`, {
-      method: "POST",
-      headers: {
-        authorization: `Bearer ${apiKey}`,
-        "content-type": "application/json",
+  const completion = await openCodeJsonCompletion({
+    temperature: 0,
+    messages: [
+      {
+        role: "system",
+        content:
+          "You classify importance for user notifications. Return JSON only with keys score, tier, reason, confidence. score is an integer 0-100, tier is critical|important|later, reason is concise, confidence is 0-1.",
       },
-      body: JSON.stringify({
-        provider,
-        model,
-        summary: request.summary,
-        context: request.context,
-        preview: request.preview,
-        ruleScore: clampScore(request.ruleScore),
-      }),
-      cache: "no-store",
-    });
+      {
+        role: "user",
+        content: JSON.stringify({
+          summary: request.summary,
+          context: request.context,
+          preview: request.preview,
+          ruleScore: clampScore(request.ruleScore),
+        }),
+      },
+    ],
+  });
 
-    if (!response.ok) {
-      return createFallbackResult(
-        request,
-        `AI gateway request failed (${response.status}), using rules score.`
-      );
-    }
-
-    const parsed = parseGatewayResponse(await response.json());
-    if (!parsed) {
-      return createFallbackResult(
-        request,
-        "AI gateway returned an invalid payload, using rules score."
-      );
-    }
-
-    return {
-      provider,
-      model,
-      score: parsed.score,
-      tier: parsed.tier,
-      reason: parsed.reason,
-      confidence: parsed.confidence,
-      fallback: false,
-    };
-  } catch {
-    return createFallbackResult(
-      request,
-      "AI gateway request errored, using rules score."
-    );
+  const parsed = parseClassificationResponse(completion.json);
+  if (!parsed) {
+    throw new Error("OpenCode returned an invalid importance payload.");
   }
+
+  return {
+    provider: PI_RUNTIME_AI_PROVIDERS.opencode,
+    model: completion.model as PiRuntimeAiModel,
+    score: parsed.score,
+    tier: parsed.tier,
+    reason: parsed.reason,
+    confidence: parsed.confidence,
+    fallback: false,
+  };
 }

@@ -21,7 +21,7 @@ type DraftEntry = {
   to: string[];
   subject: string;
   body: string;
-  providerDraftId: string;
+  providerMessageId: string;
 };
 
 const IMPORTANT_TIERS = new Set(["critical", "important"]);
@@ -120,7 +120,7 @@ export const getData = query({
         (item) =>
           item.status === "completed" &&
           item.actionStatus === "executed" &&
-          item.actionDestination === "gmail_drafts" &&
+          item.actionDestination === "gmail_sent" &&
           item.proposedAction.kind === "gmail.createDraft"
       )
       .map((item) => {
@@ -136,7 +136,7 @@ export const getData = query({
           to: payload.to,
           subject: payload.subject,
           body: payload.body,
-          providerDraftId: item.providerReference ?? "pending",
+          providerMessageId: item.providerReference ?? "pending",
         };
       })
       .filter((entry): entry is DraftEntry => entry !== null);
@@ -160,8 +160,8 @@ export const getData = query({
         }
 
         const detail =
-          item.actionDestination === "gmail_drafts"
-            ? `gmail_drafts • ${item.providerReference ?? "pending"}`
+          item.actionDestination === "gmail_sent"
+            ? `gmail_sent • ${item.providerReference ?? "pending"}`
             : item.actionDestination === "google_calendar"
               ? `google_calendar • ${item.providerReference ?? "pending"}`
               : "refund_queue • queued";

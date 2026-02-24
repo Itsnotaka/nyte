@@ -5,7 +5,7 @@ import type {
 
 export const EXTENSION_NAMES = {
   gmailReadThreadContext: "gmail.readThreadContext",
-  gmailSaveDraft: "gmail.saveDraft",
+  gmailSend: "gmail.send",
   calendarCreateEvent: "calendar.createEvent",
   calendarUpdateEvent: "calendar.updateEvent",
 } as const;
@@ -30,6 +30,7 @@ export type ExtensionAuthProvider =
 export const EXTENSION_AUTH_SCOPES = {
   googleWorkspace: [
     "https://www.googleapis.com/auth/gmail.compose",
+    "https://www.googleapis.com/auth/gmail.send",
     "https://www.googleapis.com/auth/calendar.events",
   ],
 } as const;
@@ -59,8 +60,8 @@ export type GmailReadThreadContextRequest = ExtensionExecutionContext & {
   };
 };
 
-export type GmailSaveDraftRequest = ExtensionExecutionContext & {
-  name: typeof EXTENSION_NAMES.gmailSaveDraft;
+export type GmailSendRequest = ExtensionExecutionContext & {
+  name: typeof EXTENSION_NAMES.gmailSend;
   input: GmailCreateDraftToolCall;
 };
 
@@ -82,7 +83,7 @@ export type CalendarUpdateEventRequest = ExtensionExecutionContext & {
 
 export type ExtensionRequestByName = {
   [EXTENSION_NAMES.gmailReadThreadContext]: GmailReadThreadContextRequest;
-  [EXTENSION_NAMES.gmailSaveDraft]: GmailSaveDraftRequest;
+  [EXTENSION_NAMES.gmailSend]: GmailSendRequest;
   [EXTENSION_NAMES.calendarCreateEvent]: CalendarCreateEventRequest;
   [EXTENSION_NAMES.calendarUpdateEvent]: CalendarUpdateEventRequest;
 };
@@ -105,11 +106,12 @@ export type GmailReadThreadContextResult = BaseExtensionResult<
   }
 >;
 
-export type GmailSaveDraftResult = BaseExtensionResult<
-  typeof EXTENSION_NAMES.gmailSaveDraft,
+export type GmailSendResult = BaseExtensionResult<
+  typeof EXTENSION_NAMES.gmailSend,
   {
-    providerDraftId: string;
+    providerMessageId: string;
     subject: string;
+    recipients: string[];
   }
 >;
 
@@ -132,7 +134,7 @@ export type CalendarUpdateEventResult = BaseExtensionResult<
 
 export type ExtensionResultByName = {
   [EXTENSION_NAMES.gmailReadThreadContext]: GmailReadThreadContextResult;
-  [EXTENSION_NAMES.gmailSaveDraft]: GmailSaveDraftResult;
+  [EXTENSION_NAMES.gmailSend]: GmailSendResult;
   [EXTENSION_NAMES.calendarCreateEvent]: CalendarCreateEventResult;
   [EXTENSION_NAMES.calendarUpdateEvent]: CalendarUpdateEventResult;
 };
@@ -150,8 +152,7 @@ export const PI_RUNTIME_AI_MODELS = {
   zen: "zen",
 } as const;
 
-export type PiRuntimeAiModel =
-  (typeof PI_RUNTIME_AI_MODELS)[keyof typeof PI_RUNTIME_AI_MODELS];
+export type PiRuntimeAiModel = string;
 
 export type ImportanceTier = "critical" | "important" | "later";
 

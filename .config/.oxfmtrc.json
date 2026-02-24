@@ -13,25 +13,23 @@
   "bracketSameLine": false,
   "arrowParens": "always",
   "endOfLine": "lf",
-  "experimentalSortPackageJson": true,
-  "experimentalSortImports": {
+  "sortPackageJson": true,
+  "sortImports": {
     "ignoreCase": true,
     "newlinesBetween": true,
     "order": "asc"
   },
-  "experimentalTailwindcss": {
+  "sortTailwindcss": {
     "stylesheet": "./tooling/tailwind/theme.css",
-    "attributes": ["class", "className"],
-    "functions": ["clsx", "cn"],
-    "preserveDuplicates": false,
-    "preserveWhitespace": false
+    "functions": ["clsx", "cn", "cva"]
   },
   "ignorePatterns": [
     "stylelint.config.mjs",
     "node_modules/**",
     ".vercel/**",
     ".next/**",
-    "_generated/**",
+    "apps/web/convex/_generated/**",
+    "apps/web/convex/betterAuth/_generated/**",
     "out/**"
   ]
 }

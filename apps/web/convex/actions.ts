@@ -12,6 +12,7 @@ import { createRequestLogger } from "evlog";
 import { nanoid } from "nanoid";
 
 import "./evlog";
+import { internal } from "./_generated/api";
 import { mutation, type MutationCtx } from "./_generated/server";
 import { recordAuditLog } from "./audit";
 import { requireAuthUserId } from "./lib/auth";
@@ -55,7 +56,7 @@ async function loadItemById(ctx: MutationCtx, userId: string, itemId: string) {
 }
 
 type ActionExecution = {
-  destination: "gmail_drafts" | "google_calendar" | "refund_queue";
+  destination: "gmail_sent" | "google_calendar" | "refund_queue";
   providerReference: string;
   idempotencyKey: string;
   executedAt: number;
@@ -96,7 +97,7 @@ function extensionRequestForPayload({
 }): ExtensionRequest {
   if (payload.kind === "gmail.createDraft") {
     return {
-      name: EXTENSION_NAMES.gmailSaveDraft,
+      name: EXTENSION_NAMES.gmailSend,
       auth: {
         provider: EXTENSION_AUTH_PROVIDERS.google,
         userId,
@@ -184,10 +185,10 @@ async function executePayload({
     })
   );
 
-  if (result.name === EXTENSION_NAMES.gmailSaveDraft) {
+  if (result.name === EXTENSION_NAMES.gmailSend) {
     return {
-      destination: "gmail_drafts",
-      providerReference: result.output.providerDraftId,
+      destination: "gmail_sent",
+      providerReference: result.output.providerMessageId,
       idempotencyKey: result.idempotencyKey,
       executedAt: toExecutionTimestamp(result.executedAt, now),
     };
@@ -312,6 +313,16 @@ export const approve = mutation({
             idempotencyKey: execution.idempotencyKey,
           },
           now,
+        });
+        await ctx.runMutation(internal.retrieval.upsertKnowledge, {
+          userId,
+          sourceType: "workflow_event",
+          sourceId: `${item.workItemId}:approve:${now}`,
+          summary: `Approved ${payload.kind} for ${item.summary}`,
+          metadataJson: JSON.stringify({
+            workItemId: item.workItemId,
+            destination: execution.destination,
+          }),
         });
         log.set({
           executionDestination: execution.destination,
@@ -440,6 +451,15 @@ export const dismiss = mutation({
         payload: {},
         now,
       });
+      await ctx.runMutation(internal.retrieval.upsertKnowledge, {
+        userId,
+        sourceType: "workflow_event",
+        sourceId: `${item.workItemId}:dismiss:${now}`,
+        summary: `Dismissed ${item.proposedAction.kind} for ${item.summary}`,
+        metadataJson: JSON.stringify({
+          workItemId: item.workItemId,
+        }),
+      });
       log.set({ idempotent: false, queueState: "dismissed" });
 
       return { ok: true, idempotent: false };
@@ -530,6 +550,16 @@ export const feedback = mutation({
           rating: args.rating,
         },
         now,
+      });
+      await ctx.runMutation(internal.retrieval.upsertKnowledge, {
+        userId,
+        sourceType: "feedback",
+        sourceId: `${item.workItemId}:feedback`,
+        summary: `Feedback ${args.rating} for ${item.summary}`,
+        metadataJson: JSON.stringify({
+          workItemId: item.workItemId,
+          rating: args.rating,
+        }),
       });
       log.set({ feedbackState: "recorded" });
 

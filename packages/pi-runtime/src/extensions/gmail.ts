@@ -1,8 +1,8 @@
 import type {
+  GmailSendRequest,
+  GmailSendResult,
   GmailReadThreadContextRequest,
   GmailReadThreadContextResult,
-  GmailSaveDraftRequest,
-  GmailSaveDraftResult,
 } from "../contracts";
 import { EXTENSION_NAMES } from "../contracts";
 
@@ -21,16 +21,17 @@ export async function gmailReadThreadContext(
   };
 }
 
-export async function gmailSaveDraft(
-  request: GmailSaveDraftRequest
-): Promise<GmailSaveDraftResult> {
+export async function gmailSend(
+  request: GmailSendRequest
+): Promise<GmailSendResult> {
   return {
-    name: EXTENSION_NAMES.gmailSaveDraft,
+    name: EXTENSION_NAMES.gmailSend,
     status: "executed",
     idempotencyKey: request.idempotencyKey,
     output: {
-      providerDraftId: `draft_${request.idempotencyKey}`,
+      providerMessageId: `msg_${request.idempotencyKey}`,
       subject: request.input.subject,
+      recipients: request.input.to,
     },
     executedAt: new Date().toISOString(),
   };

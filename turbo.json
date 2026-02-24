@@ -4,7 +4,8 @@
   "globalDependencies": ["apps/web/.env*"],
   "globalEnv": [
     "NEXT_PUBLIC_SERVER_URL",
-    "AI_GATEWAY_API_KEY",
+    "OPENCODE_API_KEY",
+    "PI_RUNTIME_MODEL",
     "CENTRAL_LICENSE_KEY"
   ],
   "tasks": {

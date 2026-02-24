@@ -39,21 +39,21 @@ export function NotificationFeed() {
 
       <div className="flex items-center justify-between text-xs text-[var(--color-text-tertiary)]">
         <p>
-          {approvalQueue.length} pending{" "}
-          {approvalQueue.length === 1 ? "item" : "items"}
+          {approvalQueue.length} important{" "}
+          {approvalQueue.length === 1 ? "item" : "items"} today
         </p>
       </div>
 
       {approvalQueue.length === 0 ? (
         <div className="rounded-xl border border-dashed border-[var(--color-border-subtle)] bg-[var(--color-main-bg)] p-6 text-center">
           <p className="text-sm text-[var(--color-text-secondary)]">
-            Nothing pending right now.
+            No important items right now.
           </p>
         </div>
       ) : (
         <ScrollArea className="min-h-0 flex-1 pr-1">
           <ul className="space-y-3 pb-2">
-            {approvalQueue.map((item) => (
+            {approvalQueue.map((item: (typeof approvalQueue)[number]) => (
               <li
                 key={item.id}
                 className="work-item-card"

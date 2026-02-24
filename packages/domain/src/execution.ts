@@ -3,7 +3,7 @@ import { Effect } from "effect";
 import type { ToolCallPayload } from "./actions";
 
 export type ActionDestination =
-  | "gmail_drafts"
+  | "gmail_sent"
   | "google_calendar"
   | "refund_queue";
 
@@ -16,7 +16,7 @@ export type ExecutionResult = {
 };
 
 const prefixes: Record<ToolCallPayload["kind"], ActionDestination> = {
-  "gmail.createDraft": "gmail_drafts",
+  "gmail.createDraft": "gmail_sent",
   "google-calendar.createEvent": "google_calendar",
   "billing.queueRefund": "refund_queue",
 };

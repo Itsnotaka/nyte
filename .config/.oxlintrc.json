@@ -1,15 +1,13 @@
 {
   "$schema": "../node_modules/oxlint/configuration_schema.json",
   "plugins": [
-    "unicorn",
+    "nextjs",
     "typescript",
     "oxc",
     "import",
-    "react",
-    "nextjs",
     "promise",
-    "react-perf",
-    "node"
+    "react",
+    "react-perf"
   ],
   "settings": {
     "next": {
@@ -27,7 +25,8 @@
     ".next/**",
     "out/**",
     ".pi/**",
-    "_generated/**"
+    "apps/web/convex/_generated/**",
+    "apps/web/convex/betterAuth/_generated/**"
   ],
   "env": {
     "builtin": true

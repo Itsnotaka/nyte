@@ -13,9 +13,9 @@ no settings to configure. Your mom opens it and types.
 
 ### Interaction model
 
-One infinite conversation thread, like iMessage. You send a message; it replies,
-acts, or asks the one thing it needs from you. The AI handles the rest in the
-background. You never look at a queue.
+One command box and one `Important` list for today. You send a message; Nyte
+either asks a follow-up question or prepares an action for approval. Approval
+executes immediately.
 
 ### What it does without being asked
 
@@ -52,9 +52,10 @@ it is a single conversation.
 2. Background ingestion pulls new signals incrementally — threads, invites,
    deadline changes.
 3. Each signal is scored for urgency, relationship weight, and decision impact.
-4. Signals above the threshold surface as messages in your thread.
-5. You approve, edit, or skip. Approved actions execute immediately.
-6. All state transitions are logged in Convex and carry an audit trail.
+4. Signals above the threshold surface in the `Important` list.
+5. Command requests run inline: preview -> follow-up (if needed) -> confirm.
+6. Approving an email action sends the message (not draft-only storage).
+7. All state transitions are logged in Convex and carry an audit trail.
 
 ## What runs where
 
@@ -62,8 +63,9 @@ it is a single conversation.
 - `packages/domain`: urgency scoring, gate evaluation, and work item
   composition.
 - `packages/integrations`: Gmail and Google Calendar ingestion adapters.
-- `packages/pi-runtime` (`@nyte/extension-runtime`): action execution runtime
-  for provider operations (save draft, create calendar event).
+- `packages/pi-runtime` (`@nyte/extension-runtime`): primary LLM runtime for
+  command interpretation, follow-up generation, importance adjudication, and
+  provider execution (send email, create calendar event).
 - `packages/ui`: shared UI primitives.
 
 ## Local setup
@@ -73,6 +75,8 @@ it is a single conversation.
    - `BETTER_AUTH_SECRET=...`
    - `GOOGLE_CLIENT_ID=...`
    - `GOOGLE_CLIENT_SECRET=...`
+   - `OPENCODE_API_KEY=...`
+   - `PI_RUNTIME_MODEL=...`
 3. Start Convex + Next.js: `pnpm dev`
 4. Validate: `pnpm typecheck && pnpm lint`
 

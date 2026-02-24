@@ -11,8 +11,8 @@ export async function executeExtension(
   switch (request.name) {
     case EXTENSION_NAMES.gmailReadThreadContext:
       return extensionRegistry[EXTENSION_NAMES.gmailReadThreadContext](request);
-    case EXTENSION_NAMES.gmailSaveDraft:
-      return extensionRegistry[EXTENSION_NAMES.gmailSaveDraft](request);
+    case EXTENSION_NAMES.gmailSend:
+      return extensionRegistry[EXTENSION_NAMES.gmailSend](request);
     case EXTENSION_NAMES.calendarCreateEvent:
       return extensionRegistry[EXTENSION_NAMES.calendarCreateEvent](request);
     case EXTENSION_NAMES.calendarUpdateEvent:

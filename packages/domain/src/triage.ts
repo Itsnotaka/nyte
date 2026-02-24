@@ -37,7 +37,7 @@ export type WorkItem = {
   context: string;
   actionLabel: string;
   secondaryLabel: string;
-  cta: "Save draft" | "Create event" | "Queue refund";
+  cta: "Send email" | "Create event" | "Queue refund";
   gates: Gate[];
   preview: string;
   priorityScore: number;
@@ -173,7 +173,7 @@ function actionText(type: WorkType) {
   return {
     actionLabel: "Review draft reply",
     secondaryLabel: "Dismiss",
-    cta: "Save draft" as const,
+    cta: "Send email" as const,
   };
 }
 

@@ -8,40 +8,56 @@
  * @module
  */
 
-import type * as actions from "../actions.js";
-import type * as agent from "../agent.js";
-import type * as audit from "../audit.js";
-import type * as auth from "../auth.js";
-import type * as crons from "../crons.js";
-import type * as dashboard from "../dashboard.js";
-import type * as http from "../http.js";
-import type * as ingestion from "../ingestion.js";
-import type * as lib_agent from "../lib/agent.js";
-import type * as lib_auth from "../lib/auth.js";
-import type * as queue from "../queue.js";
-import type * as runlog from "../runlog.js";
-import type * as system from "../system.js";
-
 import type {
   ApiFromModules,
   FilterApi,
   FunctionReference,
 } from "convex/server";
 
+import type * as actions from "../actions.js";
+import type * as agent from "../agent.js";
+import type * as audit from "../audit.js";
+import type * as auth from "../auth.js";
+import type * as commandCenter from "../commandCenter.js";
+import type * as contacts from "../contacts.js";
+import type * as coordinator from "../coordinator.js";
+import type * as crons from "../crons.js";
+import type * as dashboard from "../dashboard.js";
+import type * as evlog from "../evlog.js";
+import type * as flows from "../flows.js";
+import type * as http from "../http.js";
+import type * as ingestion from "../ingestion.js";
+import type * as lib_agent from "../lib/agent.js";
+import type * as lib_auth from "../lib/auth.js";
+import type * as lib_retrieval from "../lib/retrieval.js";
+import type * as queue from "../queue.js";
+import type * as retrieval from "../retrieval.js";
+import type * as runlog from "../runlog.js";
+import type * as system from "../system.js";
+import type * as telemetry from "../telemetry.js";
+
 declare const fullApi: ApiFromModules<{
   actions: typeof actions;
   agent: typeof agent;
   audit: typeof audit;
   auth: typeof auth;
+  commandCenter: typeof commandCenter;
+  contacts: typeof contacts;
+  coordinator: typeof coordinator;
   crons: typeof crons;
   dashboard: typeof dashboard;
+  evlog: typeof evlog;
+  flows: typeof flows;
   http: typeof http;
   ingestion: typeof ingestion;
   "lib/agent": typeof lib_agent;
   "lib/auth": typeof lib_auth;
+  "lib/retrieval": typeof lib_retrieval;
   queue: typeof queue;
+  retrieval: typeof retrieval;
   runlog: typeof runlog;
   system: typeof system;
+  telemetry: typeof telemetry;
 }>;
 
 /**
