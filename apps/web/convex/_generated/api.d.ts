@@ -8,12 +8,6 @@
  * @module
  */
 
-import type {
-  ApiFromModules,
-  FilterApi,
-  FunctionReference,
-} from "convex/server";
-
 import type * as actions from "../actions.js";
 import type * as agent from "../agent.js";
 import type * as audit from "../audit.js";
@@ -27,7 +21,6 @@ import type * as evlog from "../evlog.js";
 import type * as flows from "../flows.js";
 import type * as http from "../http.js";
 import type * as ingestion from "../ingestion.js";
-import type * as lib_agent from "../lib/agent.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_retrieval from "../lib/retrieval.js";
 import type * as queue from "../queue.js";
@@ -35,6 +28,12 @@ import type * as retrieval from "../retrieval.js";
 import type * as runlog from "../runlog.js";
 import type * as system from "../system.js";
 import type * as telemetry from "../telemetry.js";
+
+import type {
+  ApiFromModules,
+  FilterApi,
+  FunctionReference,
+} from "convex/server";
 
 declare const fullApi: ApiFromModules<{
   actions: typeof actions;
@@ -50,7 +49,6 @@ declare const fullApi: ApiFromModules<{
   flows: typeof flows;
   http: typeof http;
   ingestion: typeof ingestion;
-  "lib/agent": typeof lib_agent;
   "lib/auth": typeof lib_auth;
   "lib/retrieval": typeof lib_retrieval;
   queue: typeof queue;

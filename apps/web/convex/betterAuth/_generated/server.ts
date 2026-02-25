@@ -28,7 +28,6 @@ import {
   internalMutationGeneric,
   internalQueryGeneric,
 } from "convex/server";
-
 import type { DataModel } from "./dataModel.js";
 
 /**

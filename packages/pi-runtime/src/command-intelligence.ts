@@ -252,15 +252,6 @@ function proposalPresentation(
   };
 }
 
-function fallbackPreviewFromPayload(payload: ToolCallPayload): string {
-  if (payload.kind === "google-calendar.createEvent") {
-    return `${payload.title} • ${payload.startsAt}`;
-  }
-  if (payload.kind === "billing.queueRefund") {
-    return `${payload.customerName} • $${payload.amount.toFixed(2)} ${payload.currency}`;
-  }
-  return `${payload.to.join(", ")} • ${payload.subject}`;
-}
 
 function parseRuntimeTurnOutput(
   output: unknown,
@@ -279,17 +270,26 @@ function parseRuntimeTurnOutput(
     throw new Error("Command intelligence payload is invalid.");
   }
 
-  const summary =
-    asNonEmptyString(parsed.summary) ?? request.message.trim().slice(0, 300);
-  const preview =
-    asNonEmptyString(parsed.preview) ?? fallbackPreviewFromPayload(payload);
+  const summary = asNonEmptyString(parsed.summary);
+  if (!summary) {
+    throw new Error("Command intelligence summary is missing.");
+  }
+  const context = asNonEmptyString(parsed.context);
+  if (!context) {
+    throw new Error("Command intelligence context is missing.");
+  }
+  const preview = asNonEmptyString(parsed.preview);
+  if (!preview) {
+    throw new Error("Command intelligence preview is missing.");
+  }
   const riskLevelRaw = parsed.riskLevel;
   if (!isRiskLevel(riskLevelRaw)) {
     throw new Error("Command intelligence riskLevel is invalid.");
   }
-  const suggestionText =
-    asNonEmptyString(parsed.suggestionText) ??
-    "Adjust this prompt if you want a different action.";
+  const suggestionText = asNonEmptyString(parsed.suggestionText);
+  if (!suggestionText) {
+    throw new Error("Command intelligence suggestionText is missing.");
+  }
   const followUpQuestion =
     asNonEmptyString(parsed.followUpQuestion) ?? undefined;
 
@@ -300,7 +300,7 @@ function parseRuntimeTurnOutput(
     proposal: {
       ...presentation,
       summary,
-      context: "Generated from inline command conversation.",
+      context,
       preview,
       riskLevel: riskLevelRaw,
       suggestionText,
@@ -322,7 +322,7 @@ export async function interpretCommandTurn(
       {
         role: "system",
         content:
-          "You are Nyte command runtime. Decide the next action for the user. Always return JSON with keys: payload, summary, preview, riskLevel, suggestionText, followUpQuestion. payload.kind must be one of gmail.createDraft, google-calendar.createEvent, billing.queueRefund. If key details are missing, include a concise followUpQuestion. Do not return markdown.",
+          "You are Nyte command runtime. Decide the next action for the user. Always return JSON with keys: payload, summary, context, preview, riskLevel, suggestionText, followUpQuestion. summary, context, preview, and suggestionText must be non-empty strings. payload.kind must be one of gmail.createDraft, google-calendar.createEvent, billing.queueRefund. If key details are missing, include a concise followUpQuestion. Do not return markdown.",
       },
       {
         role: "user",
@@ -335,6 +335,7 @@ export async function interpretCommandTurn(
             ? {
                 payload: request.previousProposal.payload,
                 summary: request.previousProposal.summary,
+                context: request.previousProposal.context,
                 preview: request.previousProposal.preview,
               }
             : null,

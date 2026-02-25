@@ -40,7 +40,7 @@
     "@types/react-dom": "^19.2.3",
     "postcss-import": "^16.1.1",
     "sass": "^1.97.3",
-    "typescript": "6.0.0-beta",
+    "typescript": "5.9.3",
     "vitest": "^4.0.18"
   }
 }

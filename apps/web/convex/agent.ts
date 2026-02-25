@@ -20,10 +20,12 @@ import "./evlog";
 import { internal } from "./_generated/api";
 import {
   action,
+  internalAction,
   internalMutation,
   internalQuery,
   mutation,
   query,
+  type ActionCtx,
   type MutationCtx,
 } from "./_generated/server";
 import { recordAuditLog } from "./audit";
@@ -169,10 +171,8 @@ function parseStoredProposal(proposalJson: string): RuntimeCommandProposal {
   }
 
   const summary = asNonEmptyString(parsed.summary);
+  const context = asNonEmptyString(parsed.context);
   const preview = asNonEmptyString(parsed.preview);
-  const context =
-    asNonEmptyString(parsed.context) ??
-    "Generated from inline command conversation.";
   const suggestionText = asNonEmptyString(parsed.suggestionText);
   const riskLevel = parsed.riskLevel;
   const payload = parsed.payload;
@@ -180,6 +180,7 @@ function parseStoredProposal(proposalJson: string): RuntimeCommandProposal {
 
   if (
     !summary ||
+    !context ||
     !preview ||
     !suggestionText ||
     (riskLevel !== "low" && riskLevel !== "medium" && riskLevel !== "high") ||
@@ -197,7 +198,7 @@ function parseStoredProposal(proposalJson: string): RuntimeCommandProposal {
     suggestionText,
     riskLevel,
     payload,
-    suggestedContactEmail: suggestedContactEmail ?? undefined,
+    ...(suggestedContactEmail ? { suggestedContactEmail } : {}),
   };
 }
 
@@ -690,11 +691,93 @@ async function confirmRunById(args: {
   }
 }
 
+type PreviewRunResult = {
+  runId: string;
+  status: "awaiting_follow_up" | "awaiting_approval";
+  followUpQuestion?: string;
+  proposal: RuntimeCommandProposal;
+  retrievalHits: RetrievalHit[];
+};
+
+async function createPreviewRun(args: {
+  ctx: ActionCtx;
+  userId: string;
+  message: string;
+  parts: PromptPart[] | undefined;
+  triggerType: "manual" | "event" | "schedule";
+}): Promise<PreviewRunResult> {
+  const userId = args.userId.trim();
+  if (userId.length === 0) {
+    throw new ConvexError("User is required.");
+  }
+
+  const message = normalizeMessage(args.message);
+  if (message.length === 0) {
+    throw new ConvexError("Message is required.");
+  }
+
+  const parts = parsePromptParts(args.parts, message);
+  const now = Date.now();
+  const retrievalHits = (await args.ctx.runAction(
+    internal.retrieval.retrieveContextForCommand,
+    {
+      userId,
+      queryText: message,
+      limit: 8,
+    }
+  )) as RetrievalHit[];
+
+  const conversation: RuntimeConversationTurn[] = [
+    { role: "user", text: message, createdAt: now },
+  ];
+
+  const turn = await interpretCommandTurn({
+    message,
+    parts,
+    retrievalHits,
+    conversation,
+  });
+
+  if (turn.followUpQuestion) {
+    conversation.push({
+      role: "assistant",
+      text: turn.followUpQuestion,
+      createdAt: now,
+    });
+  }
+
+  const runId = createRunId(now);
+
+  await args.ctx.runMutation(internal.agent.storePreviewRun, {
+    runId,
+    userId,
+    inputText: message,
+    status: turn.status,
+    proposalJson: JSON.stringify(turn.proposal),
+    retrievalHitsJson: JSON.stringify(turn.retrievalHits),
+    conversationJson: JSON.stringify(conversation),
+    suggestionText: turn.proposal.suggestionText,
+    riskLevel: turn.proposal.riskLevel,
+    followUpQuestion: turn.followUpQuestion,
+    triggerType: args.triggerType,
+    retrievalHitCount: turn.retrievalHits.length,
+    now,
+  });
+
+  return {
+    runId,
+    status: turn.status,
+    followUpQuestion: turn.followUpQuestion,
+    proposal: turn.proposal,
+    retrievalHits: turn.retrievalHits,
+  };
+}
+
 export const preview = action({
   args: {
     message: v.string(),
     parts: v.optional(v.array(promptPartValidator)),
-    triggerType: v.optional(triggerTypeValidator),
+    triggerType: triggerTypeValidator,
   },
   handler: async (ctx, args) => {
     const log = createRequestLogger({
@@ -704,78 +787,50 @@ export const preview = action({
 
     try {
       const userId = await requireAuthUserId(ctx);
-      const message = normalizeMessage(args.message);
-      if (message.length === 0) {
-        throw new Error("Message is required.");
-      }
-
-      const parts = parsePromptParts(args.parts, message);
-      const triggerType = args.triggerType ?? "manual";
-      const now = Date.now();
-
-      const retrievalHits = (await ctx.runAction(
-        internal.retrieval.retrieveContextForCommand,
-        {
-          userId,
-          queryText: message,
-          limit: 8,
-        }
-      )) as RetrievalHit[];
-
-      const conversation: RuntimeConversationTurn[] = [
-        { role: "user", text: message, createdAt: now },
-      ];
-
-      const turn = await interpretCommandTurn({
-        message,
-        parts,
-        retrievalHits,
-        conversation,
-      });
-
-      if (turn.followUpQuestion) {
-        conversation.push({
-          role: "assistant",
-          text: turn.followUpQuestion,
-          createdAt: now,
-        });
-      }
-
-      const runId = createRunId(now);
-
-      await ctx.runMutation(internal.agent.storePreviewRun, {
-        runId,
+      const result = await createPreviewRun({
+        ctx,
         userId,
-        inputText: message,
-        status: turn.status,
-        proposalJson: JSON.stringify(turn.proposal),
-        retrievalHitsJson: JSON.stringify(turn.retrievalHits),
-        conversationJson: JSON.stringify(conversation),
-        suggestionText: turn.proposal.suggestionText,
-        riskLevel: turn.proposal.riskLevel,
-        followUpQuestion: turn.followUpQuestion,
-        triggerType,
-        retrievalHitCount: turn.retrievalHits.length,
-        now,
+        message: args.message,
+        parts: args.parts,
+        triggerType: args.triggerType,
       });
 
       log.set({
         userId,
-        runId,
-        runStatus: turn.status,
-        riskLevel: turn.proposal.riskLevel,
+        runId: result.runId,
+        runStatus: result.status,
+        riskLevel: result.proposal.riskLevel,
       });
 
-      return {
-        runId,
-        status: turn.status,
-        followUpQuestion: turn.followUpQuestion,
-        proposal: turn.proposal,
-        retrievalHits: turn.retrievalHits,
-      };
+      return result;
     } finally {
       log.emit();
     }
+  },
+});
+
+export const previewFromFlowTrigger = internalAction({
+  args: {
+    userId: v.string(),
+    message: v.string(),
+    parts: v.optional(v.array(promptPartValidator)),
+    triggerType: triggerTypeValidator,
+  },
+  handler: async (ctx, args) => {
+    const result = await createPreviewRun({
+      ctx,
+      userId: args.userId,
+      message: args.message,
+      parts: args.parts,
+      triggerType: args.triggerType,
+    });
+
+    return {
+      runId: result.runId,
+      status: result.status,
+      followUpQuestion: result.followUpQuestion,
+      proposal: result.proposal,
+    };
   },
 });
 
@@ -886,17 +941,6 @@ export const confirm = mutation({
   },
 });
 
-export const run = mutation({
-  args: {
-    message: v.string(),
-    parts: v.optional(v.array(promptPartValidator)),
-  },
-  handler: async () => {
-    throw new ConvexError(
-      "agent.run is deprecated. Use preview/respond/confirm inline flow."
-    );
-  },
-});
 
 export const recentRuns = query({
   args: {

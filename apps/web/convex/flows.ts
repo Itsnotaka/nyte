@@ -1,13 +1,15 @@
 import { ConvexError, v } from "convex/values";
 import { nanoid } from "nanoid";
 
-import { api, internal } from "./_generated/api";
+import { internal } from "./_generated/api";
 import {
+  action,
   internalAction,
   internalMutation,
+  internalQuery,
   mutation,
   query,
-  type MutationCtx,
+  type ActionCtx,
 } from "./_generated/server";
 import { recordAuditLog } from "./audit";
 import { requireAuthUserId } from "./lib/auth";
@@ -18,9 +20,69 @@ const triggerTypeValidator = v.union(
   v.literal("schedule")
 );
 
+const flowRunStatusValidator = v.union(
+  v.literal("awaiting_follow_up"),
+  v.literal("awaiting_approval")
+);
+
 function createFlowId(now: number): string {
   return `flow:${now}:${nanoid(8)}`;
 }
+
+type FlowRunResult = {
+  runId: string;
+  status: "awaiting_follow_up" | "awaiting_approval";
+  followUpQuestion?: string;
+  proposal: unknown;
+};
+
+export const getDefinitionForUser = internalQuery({
+  args: {
+    flowId: v.string(),
+    userId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const row = await ctx.db
+      .query("flowDefinitions")
+      .withIndex("by_flow_id", (q) => q.eq("flowId", args.flowId))
+      .unique();
+
+    if (!row || row.userId !== args.userId) {
+      return null;
+    }
+
+    return {
+      flowId: row.flowId,
+      triggerType: row.triggerType,
+      isActive: row.isActive,
+    };
+  },
+});
+
+export const recordTriggerAudit = internalMutation({
+  args: {
+    userId: v.string(),
+    flowId: v.string(),
+    triggerType: triggerTypeValidator,
+    runId: v.string(),
+    status: flowRunStatusValidator,
+    now: v.number(),
+  },
+  handler: async (ctx, args) => {
+    await recordAuditLog(ctx, {
+      userId: args.userId,
+      action: "flow.trigger",
+      targetType: "flow",
+      targetId: args.flowId,
+      payload: {
+        triggerType: args.triggerType,
+        runId: args.runId,
+        status: args.status,
+      },
+      now: args.now,
+    });
+  },
+});
 
 async function triggerFlowRun({
   ctx,
@@ -28,41 +90,35 @@ async function triggerFlowRun({
   flowId,
   message,
 }: {
-  ctx: MutationCtx;
+  ctx: ActionCtx;
   userId: string;
   flowId: string;
   message: string;
-}): Promise<unknown> {
-  const flow = await ctx.db
-    .query("flowDefinitions")
-    .withIndex("by_flow_id", (q) => q.eq("flowId", flowId))
-    .unique();
-  if (!flow || flow.userId !== userId) {
+}): Promise<FlowRunResult> {
+  const flow = await ctx.runQuery(internal.flows.getDefinitionForUser, {
+    flowId,
+    userId,
+  });
+  if (!flow) {
     throw new ConvexError("Flow not found.");
   }
   if (!flow.isActive) {
     throw new ConvexError("Flow is paused.");
   }
 
-  const runResult = await ctx.runMutation(api.agent.run, {
-    message,
-  });
-  const now = Date.now();
-  await recordAuditLog(ctx, {
+  const runResult = await ctx.runAction(internal.agent.previewFromFlowTrigger, {
     userId,
-    action: "flow.trigger",
-    targetType: "flow",
-    targetId: flow.flowId,
-    payload: {
-      triggerType: flow.triggerType,
-      itemId:
-        typeof runResult === "object" &&
-        runResult !== null &&
-        "itemId" in runResult
-          ? ((runResult as { itemId?: string }).itemId ?? null)
-          : null,
-    },
-    now,
+    message,
+    triggerType: flow.triggerType,
+  });
+
+  await ctx.runMutation(internal.flows.recordTriggerAudit, {
+    userId,
+    flowId: flow.flowId,
+    triggerType: flow.triggerType,
+    runId: runResult.runId,
+    status: runResult.status,
+    now: Date.now(),
   });
 
   return runResult;
@@ -116,12 +172,12 @@ export const listDefinitions = query({
   },
 });
 
-export const trigger = mutation({
+export const trigger = action({
   args: {
     flowId: v.string(),
     message: v.string(),
   },
-  handler: async (ctx, args): Promise<unknown> => {
+  handler: async (ctx, args): Promise<FlowRunResult> => {
     const userId = await requireAuthUserId(ctx);
     return triggerFlowRun({
       ctx,
@@ -132,13 +188,13 @@ export const trigger = mutation({
   },
 });
 
-export const triggerInternal = internalMutation({
+export const triggerInternal = internalAction({
   args: {
     flowId: v.string(),
     userId: v.string(),
     message: v.string(),
   },
-  handler: async (ctx, args): Promise<unknown> => {
+  handler: async (ctx, args): Promise<FlowRunResult> => {
     return triggerFlowRun({
       ctx,
       userId: args.userId,
@@ -154,15 +210,12 @@ export const triggerScheduled = internalAction({
     userId: v.string(),
     message: v.string(),
   },
-  handler: async (ctx, args): Promise<unknown> => {
-    const preview: unknown = await ctx.runMutation(
-      internal.flows.triggerInternal,
-      {
-        flowId: args.flowId,
-        userId: args.userId,
-        message: args.message,
-      }
-    );
+  handler: async (ctx, args): Promise<FlowRunResult> => {
+    const preview = await ctx.runAction(internal.flows.triggerInternal, {
+      flowId: args.flowId,
+      userId: args.userId,
+      message: args.message,
+    });
     return preview;
   },
 });
@@ -173,15 +226,12 @@ export const triggerEvent = internalAction({
     userId: v.string(),
     message: v.string(),
   },
-  handler: async (ctx, args): Promise<unknown> => {
-    const preview: unknown = await ctx.runMutation(
-      internal.flows.triggerInternal,
-      {
-        flowId: args.flowId,
-        userId: args.userId,
-        message: args.message,
-      }
-    );
+  handler: async (ctx, args): Promise<FlowRunResult> => {
+    const preview = await ctx.runAction(internal.flows.triggerInternal, {
+      flowId: args.flowId,
+      userId: args.userId,
+      message: args.message,
+    });
     return preview;
   },
 });

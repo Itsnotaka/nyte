@@ -9,6 +9,7 @@ import { useRef, useState } from "react";
 
 import { api } from "~/lib/convex";
 
+import type { CommandRunState } from "./command-run-state";
 import {
   createContactPill,
   getCursorPosition,
@@ -22,32 +23,6 @@ import {
   type CommandSuggestionItem,
 } from "./command-input/slash-popover";
 
-type CommandRunState = {
-  runId: string;
-  status: "awaiting_follow_up" | "awaiting_approval";
-  followUpQuestion?: string;
-  proposal: {
-    summary: string;
-    preview: string;
-    riskLevel: "low" | "medium" | "high";
-    suggestionText: string;
-    suggestedContactEmail?: string;
-    cta: "Send email" | "Create event" | "Queue refund";
-    payload: {
-      kind:
-        | "gmail.createDraft"
-        | "google-calendar.createEvent"
-        | "billing.queueRefund";
-    };
-  };
-  retrievalHits: Array<{
-    sourceType: string;
-    sourceId: string;
-    summary: string;
-    score: number;
-    whyRelevant: string;
-  }>;
-};
 
 const EMPTY_CONTACTS: Array<{
   contactId: string;
@@ -104,6 +79,9 @@ export function CommandInput() {
   const [isAddContactPending, setIsAddContactPending] = useState(false);
   const [runState, setRunState] = useState<CommandRunState | null>(null);
 
+  const syncedFollowUpRun = useQuery(api.commandCenter.latestFollowUpRun, {});
+  const activeRunState = runState ?? syncedFollowUpRun ?? null;
+
   const previewAgent = useAction(api.agent.preview);
   const respondAgent = useAction(api.agent.respond);
   const confirmAgent = useMutation(api.agent.confirm);
@@ -142,7 +120,7 @@ export function CommandInput() {
 
   const canSubmit = message.trim().length > 0 && !isTurnPending;
   const canConfirm =
-    runState?.status === "awaiting_approval" && !isConfirmPending;
+    activeRunState?.status === "awaiting_approval" && !isConfirmPending;
 
   const mentionEmailCandidate =
     mode.type === "mention" && isLikelyEmail(mode.query)
@@ -274,9 +252,9 @@ export function CommandInput() {
     try {
       const trimmedMessage = message.trim();
       const response =
-        runState?.status === "awaiting_follow_up"
+        activeRunState?.status === "awaiting_follow_up"
           ? await respondAgent({
-              runId: runState.runId,
+              runId: activeRunState.runId,
               message: trimmedMessage,
               parts,
             })
@@ -295,13 +273,13 @@ export function CommandInput() {
   }
 
   async function confirmRun() {
-    if (!runState?.runId || !canConfirm) {
+    if (!activeRunState?.runId || !canConfirm) {
       return;
     }
     setError(null);
     setIsConfirmPending(true);
     try {
-      await confirmAgent({ runId: runState.runId });
+      await confirmAgent({ runId: activeRunState.runId });
       setRunState(null);
       clearComposer();
     } catch (mutationError) {
@@ -312,7 +290,7 @@ export function CommandInput() {
   }
 
   function applyPrefillSuggestion() {
-    const suggestion = runState?.proposal.suggestionText?.trim();
+    const suggestion = activeRunState?.proposal.suggestionText?.trim();
     const editor = editorRef.current;
     if (!editor || !suggestion) {
       return;
@@ -343,10 +321,10 @@ export function CommandInput() {
             aria-label="Command"
             contentEditable
             suppressContentEditableWarning
-            className="min-h-10 rounded-lg border border-[var(--color-border-subtle)] px-3 py-2 text-sm outline-none focus:border-[var(--color-border-default)]"
+            className="min-h-10 rounded-lg border border-[var(--color-border-subtle)] px-3 py-2 text-sm outline-none focus:border-[var(--color-border-strong)]"
             onInput={() => {
               syncFromEditor();
-              if (runState?.status === "awaiting_approval") {
+              if (activeRunState?.status === "awaiting_approval") {
                 setRunState(null);
               }
             }}
@@ -401,7 +379,7 @@ export function CommandInput() {
             data-placeholder="Ask in plain language. Nyte asks follow-ups if needed."
           />
           {message.trim().length === 0 ? (
-            <p className="pointer-events-none absolute top-2.5 left-3 text-sm text-[var(--color-text-tertiary)]">
+            <p className="pointer-events-none absolute top-2.5 left-3 text-sm text-[var(--color-text-faint)]">
               Ask in plain language. Nyte asks follow-ups if needed.
             </p>
           ) : null}
@@ -423,29 +401,29 @@ export function CommandInput() {
           />
         </div>
 
-        {runState ? (
+        {activeRunState ? (
           <div className="rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-inset-bg)] p-2.5">
-            <p className="text-xs text-[var(--color-text-tertiary)]">
-              {runState.status === "awaiting_follow_up"
+            <p className="text-xs text-[var(--color-text-faint)]">
+              {activeRunState.status === "awaiting_follow_up"
                 ? "Follow-up"
                 : "Ready for approval"}
             </p>
-            {runState.status === "awaiting_follow_up" &&
-            runState.followUpQuestion ? (
+            {activeRunState.status === "awaiting_follow_up" &&
+            activeRunState.followUpQuestion ? (
               <p className="text-sm text-[var(--color-text-primary)]">
-                {runState.followUpQuestion}
+                {activeRunState.followUpQuestion}
               </p>
             ) : null}
             <p className="mt-1 text-sm text-[var(--color-text-primary)]">
-              {runState.proposal.summary}
+              {activeRunState.proposal.summary}
             </p>
             <p className="mt-1 text-xs text-[var(--color-text-secondary)]">
-              {runState.proposal.preview}
+              {activeRunState.proposal.preview}
             </p>
-            <p className="mt-1 text-xs text-[var(--color-text-tertiary)]">
-              Risk: {runState.proposal.riskLevel}
+            <p className="mt-1 text-xs text-[var(--color-text-faint)]">
+              Risk: {activeRunState.proposal.riskLevel}
             </p>
-            {runState.proposal.suggestedContactEmail ? (
+            {activeRunState.proposal.suggestedContactEmail ? (
               <div className="mt-2">
                 <Button
                   type="button"
@@ -453,21 +431,21 @@ export function CommandInput() {
                   size="xs"
                   disabled={isAddContactPending}
                   onClick={() => {
-                    if (runState.proposal.suggestedContactEmail) {
+                    if (activeRunState.proposal.suggestedContactEmail) {
                       void addEmailContact(
-                        runState.proposal.suggestedContactEmail
+                        activeRunState.proposal.suggestedContactEmail
                       );
                     }
                   }}
                 >
                   {isAddContactPending
                     ? "Adding contact..."
-                    : `Add ${runState.proposal.suggestedContactEmail} to contacts`}
+                    : `Add ${activeRunState.proposal.suggestedContactEmail} to contacts`}
                 </Button>
               </div>
             ) : null}
             <div className="mt-2 flex items-center gap-2">
-              {runState.status === "awaiting_approval" ? (
+              {activeRunState.status === "awaiting_approval" ? (
                 <Button
                   type="button"
                   size="sm"
@@ -482,7 +460,7 @@ export function CommandInput() {
                       Approving
                     </span>
                   ) : (
-                    runState.proposal.cta
+                    activeRunState.proposal.cta
                   )}
                 </Button>
               ) : (
@@ -490,23 +468,25 @@ export function CommandInput() {
                   Reply in the input above to continue.
                 </p>
               )}
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setRunState(null);
-                }}
-              >
-                Clear
-              </Button>
+              {runState ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setRunState(null);
+                  }}
+                >
+                  Clear
+                </Button>
+              ) : null}
             </div>
-            {runState.retrievalHits.length > 0 ? (
+            {activeRunState.retrievalHits.length > 0 ? (
               <div className="mt-2 space-y-1">
-                <p className="text-[10px] uppercase tracking-wide text-[var(--color-text-tertiary)]">
+                <p className="text-[10px] uppercase tracking-wide text-[var(--color-text-faint)]">
                   Related context
                 </p>
-                {runState.retrievalHits.slice(0, 5).map((hit) => (
+                {activeRunState.retrievalHits.slice(0, 5).map((hit) => (
                   <p
                     key={`${hit.sourceType}:${hit.sourceId}`}
                     className="text-xs text-[var(--color-text-secondary)]"
@@ -519,10 +499,10 @@ export function CommandInput() {
           </div>
         ) : null}
 
-        {runState?.proposal.suggestionText ? (
+        {activeRunState?.proposal.suggestionText ? (
           <div className="rounded-md border border-dashed border-[var(--color-border-subtle)] px-2 py-1.5">
             <p className="text-xs text-[var(--color-text-secondary)]">
-              {runState.proposal.suggestionText}
+              {activeRunState.proposal.suggestionText}
             </p>
             <div className="mt-1">
               <Button
@@ -538,7 +518,7 @@ export function CommandInput() {
         ) : null}
 
         <div className="flex items-center justify-between gap-2">
-          <p className="text-xs text-[var(--color-text-tertiary)]">
+          <p className="text-xs text-[var(--color-text-faint)]">
             @mentions are optional helper pills; all text is processed as-is.
           </p>
           <Button type="submit" size="sm" disabled={!canSubmit}>
@@ -547,7 +527,7 @@ export function CommandInput() {
                 <Spinner className="size-3.5" />
                 Working
               </span>
-            ) : runState?.status === "awaiting_follow_up" ? (
+            ) : activeRunState?.status === "awaiting_follow_up" ? (
               "Reply"
             ) : (
               "Preview"
