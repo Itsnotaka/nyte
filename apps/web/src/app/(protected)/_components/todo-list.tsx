@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "convex/react";
+import { Authenticated, AuthLoading, Unauthenticated, useQuery } from "convex/react";
 
 import { api } from "~/lib/convex";
 
@@ -12,14 +12,34 @@ function formatTime(timestamp: number): string {
   return date.toLocaleString();
 }
 
+function TodoListLoadingState() {
+  return (
+    <div className="rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-main-bg)] p-4 text-sm text-[var(--color-text-secondary)]">
+      Loading todo list...
+    </div>
+  );
+}
+
 export function TodoList() {
+  return (
+    <>
+      <AuthLoading>
+        <TodoListLoadingState />
+      </AuthLoading>
+      <Unauthenticated>
+        <TodoListLoadingState />
+      </Unauthenticated>
+      <Authenticated>
+        <TodoListContent />
+      </Authenticated>
+    </>
+  );
+}
+
+function TodoListContent() {
   const data = useQuery(api.commandCenter.todoList, { limit: 20 });
   if (!data) {
-    return (
-      <div className="rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-main-bg)] p-4 text-sm text-[var(--color-text-secondary)]">
-        Loading todo list...
-      </div>
-    );
+    return <TodoListLoadingState />;
   }
 
   return (

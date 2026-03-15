@@ -18,7 +18,6 @@
   },
   "tailwindCSS.classFunctions": ["cva", "cn", "cx"],
   "typescript.enablePromptUseWorkspaceTsdk": true,
-  "typescript.experimental.useTsgo": true,
   "typescript.preferences.autoImportSpecifierExcludeRegexes": ["^(node:)?os$"],
   "typescript.tsdk": "node_modules/typescript/lib",
   "[jsonc]": {

@@ -3,7 +3,14 @@
 import { Button } from "@nyte/ui/components/button";
 import { ScrollArea } from "@nyte/ui/components/scroll-area";
 import { Spinner } from "@nyte/ui/components/spinner";
-import { useAction, useMutation, useQuery } from "convex/react";
+import {
+  Authenticated,
+  AuthLoading,
+  Unauthenticated,
+  useAction,
+  useMutation,
+  useQuery,
+} from "convex/react";
 import { useEffect, useState } from "react";
 
 import { api } from "~/lib/convex";
@@ -31,6 +38,22 @@ function formatUpdatedAt(updatedAt: number): string {
 }
 
 export function NotificationFeed() {
+  return (
+    <>
+      <AuthLoading>
+        <FeedSkeleton />
+      </AuthLoading>
+      <Unauthenticated>
+        <FeedSkeleton />
+      </Unauthenticated>
+      <Authenticated>
+        <NotificationFeedContent />
+      </Authenticated>
+    </>
+  );
+}
+
+function NotificationFeedContent() {
   const reviewRuns = useQuery(api.commandCenter.reviewReplyList, { limit: 24 });
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
   const detail = useQuery(

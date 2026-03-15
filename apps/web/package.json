@@ -11,18 +11,13 @@
     "clean": "rm -rf .turbo .cache node_modules dist"
   },
   "dependencies": {
-    "@central-icons-react/round-filled-radius-2-stroke-1.5": "^1.1.142",
-    "@convex-dev/better-auth": "0.10.11",
-    "@nyte/domain": "workspace:^",
-    "@nyte/extension-runtime": "workspace:^",
-    "@nyte/integrations": "workspace:^",
+    "@central-icons-react/round-filled-radius-2-stroke-1.5": "^1.1.157",
     "@nyte/ui": "workspace:^",
     "@t3-oss/env-nextjs": "^0.13.10",
-    "@tanstack/react-form": "^1.28.3",
-    "better-auth": "1.4.9",
-    "convex": "1.32.0",
-    "evlog": "^1.11.0",
-    "motion": "^12.34.3",
+    "@tanstack/react-form": "^1.28.5",
+    "better-auth": "^1.5.5",
+    "evlog": "^2.7.0",
+    "motion": "^12.36.0",
     "nanoid": "^5.1.6",
     "next": "16.1.6",
     "next-themes": "^0.4.6",
@@ -35,12 +30,12 @@
     "@nyte/tailwind-config": "workspace:*",
     "@nyte/tsconfig": "workspace:*",
     "@tailwindcss/postcss": "^4.2.1",
-    "@types/node": "^25.3.0",
+    "@types/node": "^25.5.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "postcss-import": "^16.1.1",
-    "sass": "^1.97.3",
+    "sass": "^1.98.0",
     "typescript": "5.9.3",
-    "vitest": "^4.0.18"
+    "vitest": "^4.1.0"
   }
 }

@@ -4,7 +4,14 @@ import { Button } from "@nyte/ui/components/button";
 import { Kbd } from "@nyte/ui/components/kbd";
 import { Spinner } from "@nyte/ui/components/spinner";
 import { useFilteredList } from "@nyte/ui/hooks/use-filtered-list";
-import { useAction, useMutation, useQuery } from "convex/react";
+import {
+  Authenticated,
+  AuthLoading,
+  Unauthenticated,
+  useAction,
+  useMutation,
+  useQuery,
+} from "convex/react";
 import { useRef, useState } from "react";
 
 import { api } from "~/lib/convex";
@@ -58,7 +65,34 @@ function displayFromEmail(email: string): string {
   return localPart && localPart.length > 0 ? localPart : email;
 }
 
+function CommandInputLoadingState({ message }: { message: string }) {
+  return (
+    <section className="rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-main-bg)] p-3">
+      <div className="flex items-center gap-2 text-sm text-[var(--color-text-secondary)]">
+        <Spinner className="size-4" />
+        {message}
+      </div>
+    </section>
+  );
+}
+
 export function CommandInput() {
+  return (
+    <>
+      <AuthLoading>
+        <CommandInputLoadingState message="Loading command composer..." />
+      </AuthLoading>
+      <Unauthenticated>
+        <CommandInputLoadingState message="Authentication required." />
+      </Unauthenticated>
+      <Authenticated>
+        <CommandInputContent />
+      </Authenticated>
+    </>
+  );
+}
+
+function CommandInputContent() {
   const editorRef = useRef<HTMLDivElement | null>(null);
   const [message, setMessage] = useState("");
   const [parts, setParts] = useState<PromptPart[]>([]);
@@ -78,6 +112,9 @@ export function CommandInput() {
   const [isConfirmPending, setIsConfirmPending] = useState(false);
   const [isAddContactPending, setIsAddContactPending] = useState(false);
   const [runState, setRunState] = useState<CommandRunState | null>(null);
+  const [appliedSuggestionRunId, setAppliedSuggestionRunId] = useState<string | null>(
+    null
+  );
 
   const syncedFollowUpRun = useQuery(api.commandCenter.latestFollowUpRun, {});
   const activeRunState = runState ?? syncedFollowUpRun ?? null;
@@ -264,6 +301,7 @@ export function CommandInput() {
               triggerType: "manual",
             });
       setRunState(response as CommandRunState);
+      setAppliedSuggestionRunId(null);
       clearComposer();
     } catch (mutationError) {
       setError(toErrorMessage(mutationError));
@@ -282,6 +320,7 @@ export function CommandInput() {
       await confirmAgent({ runId: activeRunState.runId });
       setRunState(null);
       clearComposer();
+      setAppliedSuggestionRunId(null);
     } catch (mutationError) {
       setError(toErrorMessage(mutationError));
     } finally {
@@ -292,13 +331,16 @@ export function CommandInput() {
   function applyPrefillSuggestion() {
     const suggestion = activeRunState?.proposal.suggestionText?.trim();
     const editor = editorRef.current;
-    if (!editor || !suggestion) {
+    if (!editor || !suggestion || !activeRunState) {
       return;
     }
     editor.replaceChildren(document.createTextNode(suggestion));
+    editor.focus();
     setCursorPosition(editor, suggestion.length);
-    setRunState(null);
-    syncFromEditor();
+    setMessage(suggestion);
+    setParts([{ type: "text", text: suggestion }]);
+    setMode({ type: null, query: "", tokenLength: 0 });
+    setAppliedSuggestionRunId(activeRunState.runId);
   }
 
   return (
@@ -475,31 +517,18 @@ export function CommandInput() {
                   size="sm"
                   onClick={() => {
                     setRunState(null);
+                    setAppliedSuggestionRunId(null);
                   }}
                 >
                   Clear
                 </Button>
               ) : null}
             </div>
-            {activeRunState.retrievalHits.length > 0 ? (
-              <div className="mt-2 space-y-1">
-                <p className="text-[10px] uppercase tracking-wide text-[var(--color-text-faint)]">
-                  Related context
-                </p>
-                {activeRunState.retrievalHits.slice(0, 5).map((hit) => (
-                  <p
-                    key={`${hit.sourceType}:${hit.sourceId}`}
-                    className="text-xs text-[var(--color-text-secondary)]"
-                  >
-                    [{hit.sourceType}] {hit.summary}
-                  </p>
-                ))}
-              </div>
-            ) : null}
           </div>
         ) : null}
 
-        {activeRunState?.proposal.suggestionText ? (
+        {activeRunState?.proposal.suggestionText &&
+        appliedSuggestionRunId !== activeRunState.runId ? (
           <div className="rounded-md border border-dashed border-[var(--color-border-subtle)] px-2 py-1.5">
             <p className="text-xs text-[var(--color-text-secondary)]">
               {activeRunState.proposal.suggestionText}
