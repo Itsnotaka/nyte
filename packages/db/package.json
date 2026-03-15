@@ -1,5 +1,5 @@
 {
-  "name": "@nyte/github",
+  "name": "@nyte/db",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -14,15 +14,17 @@
     }
   },
   "scripts": {
+    "push": "",
     "typecheck": "tsgo --noEmit",
     "clean": "rm -rf .turbo .cache node_modules dist"
   },
   "dependencies": {
-    "octokit": "^5.0.5"
+    "pg": "^8.20.0"
   },
   "devDependencies": {
     "@nyte/tsconfig": "workspace:*",
     "@types/node": "^25.5.0",
+    "@types/pg": "^8.18.0",
     "typescript": "5.9.3"
   }
 }

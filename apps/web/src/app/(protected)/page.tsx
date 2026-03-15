@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-import { getOnboardingState, getInstallationRepos } from "~/lib/github-server";
+import { getOnboardingState, getInstallationRepos } from "~/lib/github/server";
 
 import { RepoLanding } from "./_components/repo-landing";
 export default async function App() {

@@ -8,9 +8,23 @@ import {
   GitHubError,
 } from "@nyte/github";
 
-import { auth } from "./auth";
-import { getSession } from "./auth-server";
-import { env } from "./server/env";
+import { auth } from "../auth";
+import { getSession } from "../auth/server";
+import { env } from "../server/env";
+
+type SetupRedirectInput = {
+  installationId: number | null;
+  setupAction: string | null;
+};
+
+export type OnboardingState =
+  | { step: "no_session" }
+  | { step: "no_github_token" }
+  | { step: "no_installation" }
+  | {
+      step: "has_installations";
+      installations: GitHubInstallation[];
+    };
 
 async function getGitHubAccessToken(userId: string): Promise<string | null> {
   const result = await auth.api.getAccessToken({
@@ -22,15 +36,20 @@ async function getGitHubAccessToken(userId: string): Promise<string | null> {
   );
 }
 
-export type OnboardingState =
-  | { step: "no_session" }
-  | { step: "no_github_token" }
-  | { step: "no_installation"; appInstallUrl: string }
-  | {
-      step: "has_installations";
-      installations: GitHubInstallation[];
-      appInstallUrl: string;
-    };
+export function getGitHubAppInstallUrl(): string {
+  return getInstallUrl(env.GITHUB_APP_SLUG);
+}
+
+export function resolveGitHubAppSetupRedirect({
+  installationId,
+  setupAction,
+}: SetupRedirectInput): { redirectTo: "/setup" | "/setup/repos" } {
+  if (setupAction === "install" && installationId) {
+    return { redirectTo: "/setup/repos" };
+  }
+
+  return { redirectTo: "/setup" };
+}
 
 export async function getOnboardingState(): Promise<OnboardingState> {
   const session = await getSession();
@@ -39,28 +58,25 @@ export async function getOnboardingState(): Promise<OnboardingState> {
   const token = await getGitHubAccessToken(session.user.id);
   if (!token) return { step: "no_github_token" };
 
-  const appInstallUrl = getInstallUrl(env.GITHUB_APP_SLUG);
-
   try {
     const installations = await listUserInstallations(token);
     const appInstallations = installations.filter(
-      (i) => i.app_slug === env.GITHUB_APP_SLUG
+      (installation) => installation.app_slug === env.GITHUB_APP_SLUG
     );
 
     if (appInstallations.length === 0) {
-      return { step: "no_installation", appInstallUrl };
+      return { step: "no_installation" };
     }
 
     return {
       step: "has_installations",
       installations: appInstallations,
-      appInstallUrl,
     };
-  } catch (e) {
-    if (e instanceof GitHubError && e.code === "unauthorized") {
+  } catch (error) {
+    if (error instanceof GitHubError && error.code === "unauthorized") {
       return { step: "no_github_token" };
     }
-    throw e;
+    throw error;
   }
 }
 

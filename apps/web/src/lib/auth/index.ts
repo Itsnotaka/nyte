@@ -1,10 +1,11 @@
+import "server-only";
 import { betterAuth } from "better-auth";
-import { Pool } from "pg";
+import { getPostgresPool } from "@nyte/database";
 
-import { env } from "./server/env";
+import { env } from "../server/env";
 
 export const auth = betterAuth({
-  database: new Pool({ connectionString: env.DATABASE_URL }),
+  database: getPostgresPool(env.DATABASE_URL),
   baseURL: env.BETTER_AUTH_URL,
   secret: env.BETTER_AUTH_SECRET,
   socialProviders: {

@@ -13,20 +13,25 @@
   "dependencies": {
     "@central-icons-react/round-filled-radius-2-stroke-1.5": "^1.1.157",
     "@nyte/github": "workspace:^",
+    "@nyte/database": "workspace:^",
     "@nyte/ui": "workspace:^",
     "@t3-oss/env-nextjs": "^0.13.10",
     "@tanstack/react-form": "^1.28.5",
-    "zod": "^4.3.6",
+    "@tanstack/react-query": "^5.74.3",
+    "@trpc/client": "^11.0.4",
+    "@trpc/react-query": "^11.0.4",
+    "@trpc/server": "^11.0.4",
     "better-auth": "^1.5.5",
     "evlog": "^2.7.0",
     "motion": "^12.36.0",
     "nanoid": "^5.1.6",
     "next": "16.1.6",
     "next-themes": "^0.4.6",
-    "pg": "^8.20.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
-    "server-only": "^0.0.1"
+    "server-only": "^0.0.1",
+    "superjson": "^2.2.2",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@nyte/tailwind-config": "workspace:*",
@@ -36,7 +41,6 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "postcss-import": "^16.1.1",
-    "typescript": "5.9.3",
-    "@types/pg": "^8.18.0"
+    "typescript": "5.9.3"
   }
 }

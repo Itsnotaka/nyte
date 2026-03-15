@@ -1,4 +1,3 @@
-export { githubFetch } from "./client.ts";
 export {
   listUserInstallations,
   getInstallUrl,

@@ -1,12 +1,35 @@
 "use client";
 
-type ConnectViewProps = {
-  appInstallUrl: string;
-};
+import { Button } from "@nyte/ui/components/button";
+import * as React from "react";
 
-export function ConnectView({ appInstallUrl }: ConnectViewProps) {
+import { trpc } from "~/lib/trpc/client";
+
+export function ConnectView() {
+  const [didOpenGithub, setDidOpenGithub] = React.useState(false);
+  const startInstallMutation = trpc.github.startInstall.useMutation();
+
+  async function handleInstall() {
+    const installWindow = window.open("", "_blank", "noopener,noreferrer");
+
+    try {
+      const { url } = await startInstallMutation.mutateAsync();
+      setDidOpenGithub(true);
+
+      if (installWindow) {
+        installWindow.location.href = url;
+        installWindow.focus();
+        return;
+      }
+
+      window.location.href = url;
+    } catch {
+      installWindow?.close();
+    }
+  }
+
   return (
-    <section className="flex h-full items-center justify-center">
+    <section className="flex h-full items-center justify-center px-4">
       <div className="mx-auto flex w-full max-w-md flex-col items-center gap-4 text-center">
         <div className="flex flex-col items-center gap-2">
           <h1 className="text-xl font-semibold text-[var(--color-text-primary)]">
@@ -18,17 +41,29 @@ export function ConnectView({ appInstallUrl }: ConnectViewProps) {
           </p>
         </div>
 
-        <a
-          href={appInstallUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="bg-primary text-primary-foreground hover:bg-primary/80 inline-flex h-9 items-center justify-center gap-1.5 rounded-lg px-3 text-sm font-medium transition-all"
+        <Button
+          size="lg"
+          disabled={startInstallMutation.isPending}
+          onClick={() => void handleInstall()}
         >
-          Install the Nyte App on GitHub
-        </a>
+          {startInstallMutation.isPending
+            ? "Opening GitHub..."
+            : didOpenGithub
+              ? "Open GitHub again"
+              : "Install the Nyte App on GitHub"}
+        </Button>
+
+        {startInstallMutation.error ? (
+          <p className="text-sm text-red-500">
+            {startInstallMutation.error.message ??
+              "Unable to start the GitHub app install."}
+          </p>
+        ) : null}
 
         <p className="text-xs text-[var(--color-text-faint)]">
-          After installing, return here to continue setup.
+          {didOpenGithub
+            ? "GitHub opened in a new tab. Finish installation there and we’ll bring you back automatically."
+            : "We’ll open GitHub in a new tab so you can finish installation without losing your place."}
         </p>
       </div>
     </section>

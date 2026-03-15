@@ -12,14 +12,15 @@ import { Input } from "@nyte/ui/components/input";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 
-type RepoPickerViewProps = {
+export function RepoPickerView({
+  installation,
+  repos,
+}: {
   installation: GitHubInstallation;
   repos: GitHubRepository[];
-  appInstallUrl: string;
-};
-
-export function RepoPickerView({ installation, repos }: RepoPickerViewProps) {
+}) {
   const router = useRouter();
+  const [isNavigating, startNavigation] = React.useTransition();
   const [search, setSearch] = React.useState("");
   const [selected, setSelected] = React.useState<Set<number>>(new Set());
 
@@ -44,11 +45,14 @@ export function RepoPickerView({ installation, repos }: RepoPickerViewProps) {
   }
 
   function handleContinue() {
-    const selectedRepos = repos.filter((r) => selected.has(r.id));
+    const selectedRepos = repos.filter((repo) => selected.has(repo.id));
     const encoded = encodeURIComponent(
-      JSON.stringify(selectedRepos.map((r) => r.full_name))
+      JSON.stringify(selectedRepos.map((repo) => repo.full_name))
     );
-    router.push(`/?repos=${encoded}`);
+
+    startNavigation(() => {
+      router.push(`/?repos=${encoded}`);
+    });
   }
 
   return (
@@ -131,10 +135,10 @@ export function RepoPickerView({ installation, repos }: RepoPickerViewProps) {
 
         <Button
           size="lg"
-          disabled={selected.size === 0}
+          disabled={selected.size === 0 || isNavigating}
           onClick={handleContinue}
         >
-          Continue
+          {isNavigating ? "Continuing..." : "Continue"}
         </Button>
       </div>
     </section>
