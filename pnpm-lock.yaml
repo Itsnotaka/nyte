@@ -50,9 +50,6 @@ importers:
       '@tanstack/react-form':
         specifier: ^1.28.5
         version: 1.28.5(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
-      '@types/pg':
-        specifier: ^8.18.0
-        version: 8.18.0
       better-auth:
         specifier: ^1.5.5
         version: 1.5.5(drizzle-kit@0.31.9)(drizzle-orm@0.45.1(@neondatabase/serverless@1.0.2)(@opentelemetry/api@1.9.0)(@types/pg@8.18.0)(kysely@0.28.11)(pg@8.20.0))(mongodb@7.1.0)(next@16.1.6(@opentelemetry/api@1.9.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(sass@1.98.0))(pg@8.20.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(vitest@4.1.0(@opentelemetry/api@1.9.0)(@types/node@25.5.0)(msw@2.12.10(@types/node@25.5.0)(typescript@5.9.3))(vite@7.3.1(@types/node@25.5.0)(jiti@2.6.1)(lightningcss@1.31.1)(sass@1.98.0)(yaml@2.8.2)))
@@ -99,6 +96,9 @@ importers:
       '@types/node':
         specifier: ^25.5.0
         version: 25.5.0
+      '@types/pg':
+        specifier: ^8.18.0
+        version: 8.18.0
       '@types/react':
         specifier: ^19.2.14
         version: 19.2.14
