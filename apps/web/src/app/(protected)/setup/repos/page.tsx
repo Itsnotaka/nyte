@@ -2,8 +2,9 @@ import { redirect } from "next/navigation";
 
 import { getOnboardingState, getInstallationRepos } from "~/lib/github-server";
 
-import { RepoLanding } from "./_components/repo-landing";
-export default async function App() {
+import { RepoPickerView } from "../_components/repo-picker-view";
+
+export default async function ReposPage() {
   const state = await getOnboardingState();
 
   if (state.step !== "has_installations") {
@@ -13,5 +14,11 @@ export default async function App() {
   const firstInstallation = state.installations[0]!;
   const repos = await getInstallationRepos(firstInstallation.id);
 
-  return <RepoLanding installation={firstInstallation} repos={repos} />;
+  return (
+    <RepoPickerView
+      installation={firstInstallation}
+      repos={repos}
+      appInstallUrl={state.appInstallUrl}
+    />
+  );
 }

@@ -1,0 +1,11 @@
+{
+  "extends": "@nyte/tsconfig/base",
+  "compilerOptions": {
+    "strictNullChecks": true,
+    "paths": {
+      "~/*": ["./src/*"]
+    }
+  },
+  "include": ["src"],
+  "exclude": ["node_modules", ".cache", "dist"]
+}

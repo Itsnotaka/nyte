@@ -1,24 +1,15 @@
 import "server-only";
-import { convexBetterAuthNextJs } from "@convex-dev/better-auth/nextjs";
+import { headers } from "next/headers";
 
-import { env } from "./server/env";
+import { auth } from "./auth";
 
-const helpers = convexBetterAuthNextJs({
-  convexUrl: env.CONVEX_URL,
-  convexSiteUrl: env.CONVEX_SITE_URL,
-});
+export async function getSession() {
+  return auth.api.getSession({ headers: await headers() });
+}
 
-type BetterAuthNextHelpers = ReturnType<typeof convexBetterAuthNextJs>;
+export async function isAuthenticated() {
+  const session = await getSession();
+  return session !== null;
+}
 
-export const handler: BetterAuthNextHelpers["handler"] = helpers.handler;
-export const preloadAuthQuery: BetterAuthNextHelpers["preloadAuthQuery"] =
-  helpers.preloadAuthQuery;
-export const isAuthenticated: BetterAuthNextHelpers["isAuthenticated"] =
-  helpers.isAuthenticated;
-export const getToken: BetterAuthNextHelpers["getToken"] = helpers.getToken;
-export const fetchAuthQuery: BetterAuthNextHelpers["fetchAuthQuery"] =
-  helpers.fetchAuthQuery;
-export const fetchAuthMutation: BetterAuthNextHelpers["fetchAuthMutation"] =
-  helpers.fetchAuthMutation;
-export const fetchAuthAction: BetterAuthNextHelpers["fetchAuthAction"] =
-  helpers.fetchAuthAction;
+export { auth };

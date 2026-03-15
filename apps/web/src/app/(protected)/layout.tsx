@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-import { isAuthenticated } from "~/lib/auth-server";
+import { getSession } from "~/lib/auth-server";
 
 import { AppShell } from "./app-shell";
 
@@ -9,8 +9,8 @@ export default async function Layout({
 }: {
   children: React.ReactNode;
 }) {
-  const authenticated = await isAuthenticated();
-  if (!authenticated) {
+  const session = await getSession();
+  if (!session) {
     redirect("/login");
   }
 
