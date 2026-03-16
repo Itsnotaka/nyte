@@ -158,3 +158,46 @@ documentation, features, and bugs.
 - [ ] Run `vp install` after pulling remote changes and before getting started.
 - [ ] Run `vp check` and `vp test` to validate changes.
 <!--VITE PLUS END-->
+
+## Cursor Cloud specific instructions
+
+### Architecture
+
+Nyte is a pnpm monorepo with a single Next.js 16 full-stack app (`apps/web`)
+and internal packages (`packages/db`, `packages/github`, `packages/ui`,
+`tooling/tailwind`, `tooling/typescript`). There are no Docker services, message
+queues, or local databases -- the app connects to **Neon Postgres** (remote) and
+**GitHub API** (remote) via environment variables.
+
+### Running services
+
+- **Dev server:** `pnpm turbo run dev --filter=web` (runs `next dev` on port
+  3000). Do **not** use `vp dev` for the web app -- that starts a bare Vite
+  server, not Next.js.
+- **UI package watch:** `cd packages/ui && vp run build` (or `vp pack --watch`
+  for continuous rebuilds). The UI dist must be built at least once before tests
+  or the dev server can resolve `@sachikit/ui/components/*` imports.
+
+### Lint / Test / Typecheck
+
+- `vp lint` -- Oxlint across the monorepo (fast, ~25 ms)
+- `vp test` -- Vitest (requires `@sachikit/ui` dist to exist)
+- `pnpm turbo run typecheck` -- tsgo across all workspaces
+- `vp check` -- runs format + lint + typecheck in one pass; may report
+  pre-existing formatting issues
+
+### Environment variables
+
+All eight required env vars are defined in `apps/web/src/lib/server/env.ts`
+(validated by `@t3-oss/env-nextjs`). They must be present in
+`apps/web/.env.local`. In Cloud Agent environments the values come from injected
+secrets; the update script writes them to `.env.local` on startup.
+
+### Gotchas
+
+- pnpm v10 ignores postinstall scripts by default. `pnpm rebuild` after install
+  ensures native addons (`esbuild`, `sharp`, `@parcel/watcher`) are built.
+- The `@sachikit/ui` package exports point `import` conditions to `dist/` files.
+  Tests and the Next.js dev server will fail with "Cannot find package" errors if
+  the UI package has never been built. Run `vp run build` in `packages/ui` once
+  after a fresh install.
