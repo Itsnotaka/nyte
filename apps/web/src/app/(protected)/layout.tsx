@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
 
 import { getSession } from "~/lib/auth/server";
+import { getOnboardingState, getInstallationRepos } from "~/lib/github/server";
 
+import { RepoProvider } from "./_components/repo-context";
 import { AppShell } from "./app-shell";
 
 export default async function Layout({
@@ -14,5 +16,18 @@ export default async function Layout({
     redirect("/login");
   }
 
-  return <AppShell>{children}</AppShell>;
+  const state = await getOnboardingState();
+
+  if (state.step !== "has_installations") {
+    return <AppShell>{children}</AppShell>;
+  }
+
+  const firstInstallation = state.installations[0]!;
+  const repos = await getInstallationRepos(firstInstallation.id);
+
+  return (
+    <RepoProvider installations={state.installations} repos={repos}>
+      <AppShell>{children}</AppShell>
+    </RepoProvider>
+  );
 }

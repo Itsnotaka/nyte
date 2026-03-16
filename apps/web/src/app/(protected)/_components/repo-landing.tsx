@@ -1,19 +1,10 @@
 "use client";
 
-import type { GitHubInstallation, GitHubRepository } from "@nyte/github";
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@nyte/ui/components/avatar";
 import { Badge } from "@nyte/ui/components/badge";
 import { Input } from "@nyte/ui/components/input";
 import * as React from "react";
 
-type RepoLandingProps = {
-  installation: GitHubInstallation;
-  repos: GitHubRepository[];
-};
+import { useRepo } from "./repo-context";
 
 function formatUpdated(dateString: string): string {
   const date = new Date(dateString);
@@ -34,7 +25,8 @@ function formatUpdated(dateString: string): string {
   return `${String(diffMonths)}mo ago`;
 }
 
-export function RepoLanding({ installation, repos }: RepoLandingProps) {
+export function RepoLanding() {
+  const { repos, selectedRepo } = useRepo();
   const [search, setSearch] = React.useState("");
 
   const filtered = repos.filter((r) =>
@@ -45,17 +37,9 @@ export function RepoLanding({ installation, repos }: RepoLandingProps) {
     <section className="h-full min-h-0 bg-[var(--color-inset-bg)]">
       <div className="mx-auto flex h-full w-full max-w-[860px] flex-col gap-4 px-4 pb-6 pt-4 sm:px-6">
         <header className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <Avatar size="sm">
-              <AvatarImage src={installation.account.avatar_url} />
-              <AvatarFallback>
-                {installation.account.login.charAt(0).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            <h1 className="text-lg font-semibold text-[var(--color-text-primary)]">
-              {installation.account.login}
-            </h1>
-          </div>
+          <h1 className="text-lg font-semibold text-[var(--color-text-primary)]">
+            {selectedRepo ? selectedRepo.full_name : "Repositories"}
+          </h1>
           <span className="text-xs text-[var(--color-text-muted)]">
             {repos.length} {repos.length === 1 ? "repository" : "repositories"}
           </span>

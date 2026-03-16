@@ -10,7 +10,7 @@ type RepoContextValue = {
   setSelectedRepo: (repo: GitHubRepository) => void;
 };
 
-const RepoContext = React.createContext<RepoContextValue | undefined>(undefined);
+const RepoContext = React.createContext<RepoContextValue | null>(null);
 
 export function useRepo() {
   const ctx = React.useContext(RepoContext);
@@ -18,6 +18,10 @@ export function useRepo() {
     throw new Error("useRepo must be used within RepoProvider");
   }
   return ctx;
+}
+
+export function useRepoOptional() {
+  return React.useContext(RepoContext);
 }
 
 type RepoProviderProps = {

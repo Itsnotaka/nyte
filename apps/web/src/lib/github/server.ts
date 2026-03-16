@@ -9,6 +9,7 @@ import {
 import { err, ok, ResultAsync } from "neverthrow";
 import type { Result } from "neverthrow";
 import { headers } from "next/headers";
+import { cache } from "react";
 
 import { auth } from "../auth";
 import { getSession } from "../auth/server";
@@ -57,7 +58,7 @@ export function resolveGitHubAppSetupRedirect({
   return { redirectTo: "/setup" };
 }
 
-export async function getOnboardingState(): Promise<OnboardingState> {
+export const getOnboardingState = cache(async (): Promise<OnboardingState> => {
   const session = await getSession();
   if (!session) return { step: "no_session" };
 
@@ -78,7 +79,7 @@ export async function getOnboardingState(): Promise<OnboardingState> {
         ? { step: "no_github_token" }
         : { step: "no_github_token" }
   );
-}
+});
 
 export async function getInstallationRepos(
   installationId: number
