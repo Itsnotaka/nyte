@@ -4,9 +4,9 @@ import type {
   GitHubBranch,
   GitHubPullRequest,
   GitHubRepository,
-} from "@nyte/github";
-import { Badge } from "@ticu/ui/components/badge";
-import { Button } from "@ticu/ui/components/button";
+} from "@sachikit/github";
+import { Badge } from "@sachikit/ui/components/badge";
+import { Button } from "@sachikit/ui/components/button";
 import {
   Card,
   CardContent,
@@ -14,14 +14,14 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@ticu/ui/components/card";
-import { Input } from "@ticu/ui/components/input";
+} from "@sachikit/ui/components/card";
+import { Input } from "@sachikit/ui/components/input";
 import {
   NativeSelect,
   NativeSelectOption,
-} from "@ticu/ui/components/native-select";
-import { Textarea } from "@ticu/ui/components/textarea";
-import { InsetView } from "@ticu/ui/components/sidebar";
+} from "@sachikit/ui/components/native-select";
+import { Textarea } from "@sachikit/ui/components/textarea";
+import { InsetView } from "@sachikit/ui/components/sidebar";
 import { useMutation } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";

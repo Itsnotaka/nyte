@@ -26,7 +26,7 @@ import {
   type GitHubReviewCommentDraft,
   type GitHubReviewEvent,
   updatePullRequest,
-} from "@nyte/github";
+} from "@sachikit/github";
 import { err, ok, ResultAsync } from "neverthrow";
 import type { Result } from "neverthrow";
 import { headers } from "next/headers";

@@ -1,5 +1,5 @@
 {
-  "extends": "@nyte/tsconfig/base",
+  "extends": "@sachikit/tsconfig/base",
   "compilerOptions": {
     "jsx": "react-jsx",
     "lib": ["es2023", "dom", "dom.iterable"],

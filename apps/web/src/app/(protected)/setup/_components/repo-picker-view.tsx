@@ -1,14 +1,14 @@
 "use client";
 
-import type { GitHubInstallation, GitHubRepository } from "@nyte/github";
+import type { GitHubInstallation, GitHubRepository } from "@sachikit/github";
 import {
   Avatar,
   AvatarFallback,
   AvatarImage,
-} from "@ticu/ui/components/avatar";
-import { Button } from "@ticu/ui/components/button";
-import { Checkbox } from "@ticu/ui/components/checkbox";
-import { Input } from "@ticu/ui/components/input";
+} from "@sachikit/ui/components/avatar";
+import { Button } from "@sachikit/ui/components/button";
+import { Checkbox } from "@sachikit/ui/components/checkbox";
+import { Input } from "@sachikit/ui/components/input";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 

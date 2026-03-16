@@ -6,11 +6,11 @@ import type {
   GitHubPullRequestReview,
   GitHubPullRequestReviewComment,
   GitHubRepository,
-} from "@nyte/github";
+} from "@sachikit/github";
 import type { DiffLineAnnotation, FileDiffMetadata } from "@pierre/diffs/react";
 import { FileDiff } from "@pierre/diffs/react";
-import { Badge } from "@ticu/ui/components/badge";
-import { Button } from "@ticu/ui/components/button";
+import { Badge } from "@sachikit/ui/components/badge";
+import { Button } from "@sachikit/ui/components/button";
 import {
   Card,
   CardContent,
@@ -18,10 +18,10 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@ticu/ui/components/card";
-import { InsetView } from "@ticu/ui/components/sidebar";
-import { Input } from "@ticu/ui/components/input";
-import { Textarea } from "@ticu/ui/components/textarea";
+} from "@sachikit/ui/components/card";
+import { InsetView } from "@sachikit/ui/components/sidebar";
+import { Input } from "@sachikit/ui/components/input";
+import { Textarea } from "@sachikit/ui/components/textarea";
 import { useMutation } from "@tanstack/react-query";
 import { nanoid } from "nanoid";
 import { useRouter } from "next/navigation";

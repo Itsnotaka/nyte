@@ -1,7 +1,7 @@
 "use client";
 
-import { Toaster } from "@ticu/ui/components/sonner";
-import { TooltipProvider } from "@ticu/ui/components/tooltip";
+import { Toaster } from "@sachikit/ui/components/sonner";
+import { TooltipProvider } from "@sachikit/ui/components/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider as NextThemesProvider } from "next-themes";
 import { NuqsAdapter } from "nuqs/adapters/next/app";

@@ -1,6 +1,6 @@
 "use client";
 
-import { Button } from "@ticu/ui/components/button";
+import { Button } from "@sachikit/ui/components/button";
 import { useMutation } from "@tanstack/react-query";
 import * as React from "react";
 

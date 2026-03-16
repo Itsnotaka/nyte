@@ -10,7 +10,7 @@ import {
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@ticu/ui/components/dropdown-menu";
+} from "@sachikit/ui/components/dropdown-menu";
 import {
   Sidebar,
   SidebarContent,
@@ -19,7 +19,7 @@ import {
   SidebarProvider,
   SidebarRail,
   SidebarTrigger,
-} from "@ticu/ui/components/sidebar";
+} from "@sachikit/ui/components/sidebar";
 
 import { useRepoOptional } from "./_components/repo-context";
 

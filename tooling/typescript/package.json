@@ -1,5 +1,5 @@
 {
-  "name": "@nyte/tsconfig",
+  "name": "@sachikit/tsconfig",
   "private": true,
   "type": "module",
   "exports": {

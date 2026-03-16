@@ -1,6 +1,6 @@
 import "server-only";
-import { db } from "@nyte/db";
-import * as authSchema from "@nyte/db/schema/auth";
+import { db } from "@sachikit/db";
+import * as authSchema from "@sachikit/db/schema/auth";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 

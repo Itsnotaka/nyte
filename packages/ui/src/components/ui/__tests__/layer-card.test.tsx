@@ -14,7 +14,7 @@ describe("LayerCard", () => {
         <LayerCardPrimary className="primary-class" aria-label="Layer content">
           Body
         </LayerCardPrimary>
-      </LayerCard>
+      </LayerCard>,
     );
 
     expect(html).toContain('data-slot="layer-card"');

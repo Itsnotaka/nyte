@@ -1,7 +1,7 @@
 "use client";
 
-import { Badge } from "@ticu/ui/components/badge";
-import { Input } from "@ticu/ui/components/input";
+import { Badge } from "@sachikit/ui/components/badge";
+import { Input } from "@sachikit/ui/components/input";
 import Link from "next/link";
 import * as React from "react";
 

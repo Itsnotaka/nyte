@@ -1,5 +1,5 @@
 {
-  "name": "@nyte/tailwind-config",
+  "name": "@sachikit/tailwind-config",
   "private": true,
   "type": "module",
   "exports": {

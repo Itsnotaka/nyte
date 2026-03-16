@@ -1,14 +1,14 @@
-# @nyte/ui
+# @sachikit/ui
 
 Publishable Nyte UI component library built with Vite+ and tsdown.
 
 ## Public API
 
-- `@nyte/ui`
-- `@nyte/ui/components/*`
-- `@nyte/ui/hooks/*`
-- `@nyte/ui/lib/*`
-- `@nyte/ui/styles`
+- `@sachikit/ui`
+- `@sachikit/ui/components/*`
+- `@sachikit/ui/hooks/*`
+- `@sachikit/ui/lib/*`
+- `@sachikit/ui/styles`
 
 ## Local commands
 

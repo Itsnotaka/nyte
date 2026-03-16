@@ -1,6 +1,6 @@
 "use client";
 
-import type { GitHubInstallation, GitHubRepository } from "@nyte/github";
+import type { GitHubInstallation, GitHubRepository } from "@sachikit/github";
 import * as React from "react";
 
 type RepoContextValue = {

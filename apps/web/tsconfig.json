@@ -1,5 +1,5 @@
 {
-  "extends": "@nyte/tsconfig/nextjs",
+  "extends": "@sachikit/tsconfig/nextjs",
   "compilerOptions": {
     "paths": {
       "~/*": ["./src/*"]

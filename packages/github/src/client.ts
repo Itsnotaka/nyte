@@ -10,7 +10,7 @@ import {
   type GitHubErrorCode,
 } from "./types.ts";
 
-const USER_AGENT = "@nyte/github";
+const USER_AGENT = "@sachikit/github";
 
 type GitHubRequestFailure = {
   status?: unknown;
