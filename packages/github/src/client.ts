@@ -1,3 +1,4 @@
+import { createAppAuth } from "@octokit/auth-app";
 import { err, ok, ResultAsync } from "neverthrow";
 import type { Result } from "neverthrow";
 import { Octokit } from "octokit";
@@ -5,6 +6,7 @@ import { Octokit } from "octokit";
 import {
   GitHubError,
   type GitHubAccount,
+  type GitHubAppInstallationAuth,
   type GitHubErrorCode,
 } from "./types.ts";
 
@@ -18,6 +20,10 @@ type GitHubRequestFailure = {
   message?: unknown;
 };
 
+/**
+ * Shared subset of nested GitHub account objects returned by installation,
+ * repository, pull request, and comment REST responses.
+ */
 type GitHubAccountResponse = {
   id: number;
   avatar_url: string;
@@ -96,6 +102,20 @@ export function createGitHubClient(token: string): Octokit {
   });
 }
 
+export function createGitHubInstallationClient(
+  auth: GitHubAppInstallationAuth
+): Octokit {
+  return new Octokit({
+    authStrategy: createAppAuth,
+    auth: {
+      appId: auth.appId,
+      privateKey: auth.privateKey,
+      installationId: auth.installationId,
+    },
+    userAgent: USER_AGENT,
+  });
+}
+
 export function normalizeGitHubError(error: unknown): GitHubError {
   if (error instanceof GitHubError) {
     return error;
@@ -131,9 +151,10 @@ export function toGitHubAccount(
     );
   }
 
-  if (typeof account.login === "string" && typeof account.type === "string") {
+  const login = account.login;
+  if (typeof login === "string" && typeof account.type === "string") {
     return accountTypeFromResponse(account.type, accountLabel).map((type) => ({
-      login: account.login as string,
+      login,
       id: account.id,
       avatar_url: account.avatar_url,
       type,
@@ -145,7 +166,7 @@ export function toGitHubAccount(
       login: account.slug,
       id: account.id,
       avatar_url: account.avatar_url,
-      type: "Organization" as const,
+      type: "Organization",
     });
   }
 
@@ -163,5 +184,13 @@ export function withGitHubClient<T>(
   run: (client: Octokit) => Promise<T>
 ): ResultAsync<T, GitHubError> {
   const client = createGitHubClient(token);
+  return ResultAsync.fromPromise(run(client), normalizeGitHubError);
+}
+
+export function withGitHubInstallationClient<T>(
+  auth: GitHubAppInstallationAuth,
+  run: (client: Octokit) => Promise<T>
+): ResultAsync<T, GitHubError> {
+  const client = createGitHubInstallationClient(auth);
   return ResultAsync.fromPromise(run(client), normalizeGitHubError);
 }

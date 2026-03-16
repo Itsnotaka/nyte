@@ -2,6 +2,7 @@
 
 import { Badge } from "@nyte/ui/components/badge";
 import { Input } from "@nyte/ui/components/input";
+import Link from "next/link";
 import * as React from "react";
 
 import { useRepo } from "./repo-context";
@@ -21,16 +22,15 @@ function formatUpdated(dateString: string): string {
   const diffDays = Math.floor(diffHours / 24);
   if (diffDays < 30) return `${String(diffDays)}d ago`;
 
-  const diffMonths = Math.floor(diffDays / 30);
-  return `${String(diffMonths)}mo ago`;
+  return `${String(Math.floor(diffDays / 30))}mo ago`;
 }
 
 export function RepoLanding() {
   const { repos, selectedRepo } = useRepo();
   const [search, setSearch] = React.useState("");
 
-  const filtered = repos.filter((r) =>
-    r.full_name.toLowerCase().includes(search.toLowerCase())
+  const filtered = repos.filter((repo) =>
+    repo.full_name.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -50,15 +50,16 @@ export function RepoLanding() {
             type="search"
             placeholder="Search repositories..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(event) => setSearch(event.target.value)}
           />
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto">
           <div className="divide-y divide-[var(--color-border-subtle)] rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-main-bg)]">
             {filtered.map((repo) => (
-              <div
+              <Link
                 key={repo.id}
+                href={`/repo/${repo.owner.login}/${repo.name}/submit`}
                 className="flex items-center justify-between gap-4 px-4 py-3 transition-colors hover:bg-[var(--color-sidebar-link-bg)]"
               >
                 <div className="flex min-w-0 flex-col gap-0.5">
@@ -81,7 +82,7 @@ export function RepoLanding() {
                   {repo.language ? <span>{repo.language}</span> : null}
                   <span>{formatUpdated(repo.updated_at)}</span>
                 </div>
-              </div>
+              </Link>
             ))}
 
             {filtered.length === 0 ? (
