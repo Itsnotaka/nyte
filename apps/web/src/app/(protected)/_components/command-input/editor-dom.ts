@@ -36,17 +36,9 @@ function getNodeLength(node: Node): number {
   return total;
 }
 
-function setRangeEdge(
-  root: HTMLElement,
-  range: Range,
-  edge: "start" | "end",
-  offset: number
-) {
+function setRangeEdge(root: HTMLElement, range: Range, edge: "start" | "end", offset: number) {
   let remaining = offset;
-  const walker = document.createTreeWalker(
-    root,
-    NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT
-  );
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT);
   let current: Node | null = walker.currentNode;
 
   while (current) {
@@ -71,10 +63,7 @@ function setRangeEdge(
         if (!parent) {
           break;
         }
-        const nodeIndex = Array.prototype.indexOf.call(
-          parent.childNodes,
-          current
-        );
+        const nodeIndex = Array.prototype.indexOf.call(parent.childNodes, current);
         if (edge === "start") {
           range.setStart(parent, nodeIndex);
         } else {
@@ -118,15 +107,12 @@ export function setCursorPosition(root: HTMLElement, offset: number) {
   selection.addRange(range);
 }
 
-function readContactPart(
-  node: HTMLElement
-): Extract<PromptPart, { type: "contact" }> | null {
+function readContactPart(node: HTMLElement): Extract<PromptPart, { type: "contact" }> | null {
   if (node.dataset.type !== "contact") {
     return null;
   }
   const email = node.dataset.email?.trim();
-  const display =
-    node.dataset.display?.trim() ?? node.textContent?.trim() ?? "";
+  const display = node.dataset.display?.trim() ?? node.textContent?.trim() ?? "";
   if (!email) {
     return null;
   }
@@ -186,8 +172,7 @@ export function createContactPill(input: {
   span.dataset.email = input.email;
   span.dataset.display = input.display;
   span.contentEditable = "false";
-  span.className =
-    "mx-0.5 inline-flex items-center rounded-md bg-[var(--color-inset-bg)] px-1.5 py-0.5 text-xs";
+  span.className = "mx-0.5 inline-flex items-center rounded-md bg-sachi-base px-1.5 py-0.5 text-xs";
   span.textContent = `@${input.display}`;
   return span;
 }

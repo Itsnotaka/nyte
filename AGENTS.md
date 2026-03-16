@@ -16,6 +16,15 @@
 - Prefer runtime-first architecture in monorepo work: push intelligence,
   filtering, and workflow logic into `packages/` (especially
   `packages/pi-runtime`) and keep app frontend code thin.
+- Always use `sachi-*` Tailwind v4 semantic tokens (e.g., `bg-sachi-base`,
+  `text-sachi-fg`, `border-sachi-line`) instead of `[var(--color-*)]` arbitrary
+  value syntax in all component code. `@sachikit/ui` components must natively
+  use these tokens so coloring is consistent when the package is published.
+- Never use raw `[var(--color-*)]` class syntax in JSX; use the generated
+  Tailwind utility name instead.
+- Prefer flat component layouts over nested compound components (e.g., avoid
+  wrapping each diff file in a LayerCard inside another LayerCard); use plain
+  divs with subtle separators when nesting adds no value.
 
 ## Learned Workspace Facts
 
@@ -24,6 +33,29 @@
 - Important feed refresh policy is stale-gated on app open with a 2-minute
   threshold.
 - Background queue refresh is scheduled via cron every 5 minutes.
+- Sachikit design tokens are defined in `tooling/tailwind/theme.css` as
+  `--color-sachi-*` inside `@theme inline` using CSS `light-dark(light, dark)`.
+  Token groups: surfaces (`sachi-shell`, `sachi-sidebar`, `sachi-surface`,
+  `sachi-base`, `sachi-fill`, `sachi-fill-hover`, `sachi-overlay`), borders
+  (`sachi-line`, `sachi-line-subtle`), text (`sachi-fg`, `sachi-fg-secondary`,
+  `sachi-fg-muted`, `sachi-fg-faint`), accent (`sachi-accent`, `sachi-rail`,
+  `sachi-focus`). The theme is exported as `@sachikit/ui/styles`.
+- Dark mode for `light-dark()` is driven by `color-scheme: light` / `dark`
+  toggled via the `.dark` class; Tailwind's `dark:` variant is not used for
+  sachikit tokens.
+- `evlog` (`apps/web/src/lib/evlog.ts`) is the lightweight observability utility
+  used to instrument GitHub API calls and other key runtime paths.
+- The diff viewer is `@pierre/diffs` (v1.1.0). It renders inside a shadow DOM;
+  custom styling (e.g., font size) is injected via the `unsafeCSS` option on
+  `BaseCodeOptions`.
+- User diff display preferences (diffStyle, contextLines, overflow,
+  lineDiffType, hideComments) are persisted in the `user_diff_settings` DB table
+  and exposed via the `settings` tRPC router with optimistic updates.
+- LayerCard token assignments: `bg-sachi-fill` (root), `bg-sachi-base`
+  (primary), `ring-sachi-line` (borders), modeled after Cloudflare Kumo's
+  layered card pattern.
+- Pull request markdown is rendered by `Streamdown` with explicit Tailwind
+  arbitrary selectors for list styling (not `@tailwindcss/typography`).
 
 <!--VITE PLUS START-->
 

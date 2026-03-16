@@ -4,7 +4,7 @@ import { Combobox as ComboboxPrimitive } from "@base-ui/react";
 import {
   IconCheckmark2Small,
   IconChevronDownSmall,
-  IconX,
+  IconCrossMedium,
 } from "@central-icons-react/round-filled-radius-2-stroke-1.5";
 import * as React from "react";
 
@@ -48,7 +48,7 @@ function ComboboxClear({ className, ...props }: ComboboxPrimitive.Clear.Props) {
       className={cn(className)}
       {...props}
     >
-      <IconX className="pointer-events-none" />
+      <IconCrossMedium className="pointer-events-none" />
     </ComboboxPrimitive.Clear>
   );
 }
@@ -260,7 +260,7 @@ function ComboboxChip({
           className="-ml-1 opacity-50 hover:opacity-100"
           data-slot="combobox-chip-remove"
         >
-          <IconX className="pointer-events-none" />
+          <IconCrossMedium className="pointer-events-none" />
         </ComboboxPrimitive.ChipRemove>
       )}
     </ComboboxPrimitive.Chip>

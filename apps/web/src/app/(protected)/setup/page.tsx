@@ -28,8 +28,7 @@ export default async function SetupPage({ searchParams }: SetupPageProps) {
       redirect("/login");
     case "no_github_token":
     case "no_installation": {
-      const { installation_id, setup_action } =
-        await setupSearchParamsCache.parse(searchParams);
+      const { installation_id, setup_action } = await setupSearchParamsCache.parse(searchParams);
 
       if (installation_id !== null || setup_action !== null) {
         return <SetupRedirectView />;

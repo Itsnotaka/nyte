@@ -10,7 +10,6 @@ import { cn } from "../../lib/utils";
 import { Drawer, DrawerContent } from "./drawer";
 
 const SIDEBAR_DESKTOP_WIDTH = 244;
-const SIDEBAR_MOBILE_WIDTH = 330;
 const SIDEBAR_MOBILE_BREAKPOINT = 1024;
 
 type SidebarState = "expanded" | "collapsed";
@@ -32,10 +31,9 @@ const SidebarContext = React.createContext<SidebarContextValue | null>(null);
 const sidebarLayerVariants = cva("absolute overflow-hidden", {
   variants: {
     mode: {
-      static:
-        "inset-y-0 left-0 z-20 w-[var(--sidebar-desktop-width)] border border-transparent",
+      static: "inset-y-0 left-0 z-20 w-[var(--sidebar-desktop-width)] border border-transparent",
       collapsed:
-        "top-[37.5px] bottom-2 left-[calc((var(--sidebar-desktop-width)+12px)*-1)] z-30 w-[var(--sidebar-desktop-width)] rounded-[5px] border border-[var(--sidebar-collapsed-border-color,var(--color-border-strong))] bg-[var(--color-sidebar-bg)] shadow-[var(--sidebar-collapsed-shadow,none)] group-focus-within/sidebar-collapsed:left-2 group-hover/sidebar-collapsed:left-2",
+        "top-[37.5px] bottom-2 left-[calc((var(--sidebar-desktop-width)+12px)*-1)] z-30 w-[var(--sidebar-desktop-width)] rounded-[5px] border border-[var(--sidebar-collapsed-border-color,var(--color-sachi-line))] bg-sachi-sidebar shadow-[var(--sidebar-collapsed-shadow,none)] group-focus-within/sidebar-collapsed:left-2 group-hover/sidebar-collapsed:left-2",
     },
   },
 });
@@ -52,13 +50,8 @@ const sidebarBodyVariants = cva("flex h-full min-w-0 flex-col", {
   },
 });
 
-const resolveStateValue = <T,>(
-  nextValue: React.SetStateAction<T>,
-  currentValue: T
-): T => {
-  return typeof nextValue === "function"
-    ? (nextValue as (value: T) => T)(currentValue)
-    : nextValue;
+const resolveStateValue = <T,>(nextValue: React.SetStateAction<T>, currentValue: T): T => {
+  return typeof nextValue === "function" ? (nextValue as (value: T) => T)(currentValue) : nextValue;
 };
 
 type SidebarProviderProps = React.ComponentProps<"div"> & {
@@ -98,9 +91,7 @@ function SidebarProvider({
     onOpenChange?.(resolvedOpen);
   };
 
-  const setOpenMobile: React.Dispatch<React.SetStateAction<boolean>> = (
-    nextOpen
-  ) => {
+  const setOpenMobile: React.Dispatch<React.SetStateAction<boolean>> = (nextOpen) => {
     const resolvedOpen = resolveStateValue(nextOpen, openMobile);
 
     if (openMobileProp === undefined) {
@@ -120,11 +111,7 @@ function SidebarProvider({
   };
 
   const state: SidebarState = open ? "expanded" : "collapsed";
-  const variant: SidebarVariant = isMobile
-    ? "mobile"
-    : open
-      ? "static"
-      : "collapsed";
+  const variant: SidebarVariant = isMobile ? "mobile" : open ? "static" : "collapsed";
 
   const contextValue: SidebarContextValue = {
     state,
@@ -139,16 +126,13 @@ function SidebarProvider({
 
   const shellStyle = {
     "--sidebar-desktop-width": `${SIDEBAR_DESKTOP_WIDTH}px`,
-    "--sidebar-mobile-width": `min(calc(100vw - 40px), ${SIDEBAR_MOBILE_WIDTH}px)`,
     "--sidebar-transition-fast": "var(--speed-quickTransition, 0.1s)",
     "--sidebar-transition-normal": "var(--speed-regularTransition, 0.25s)",
-    "--sidebar-ease":
-      "var(--ease-out-cubic, cubic-bezier(0.215, 0.61, 0.355, 1))",
-    "--sidebar-focus-color": "var(--color-focus)",
-    "--sidebar-rail-indicator-color": "var(--color-rail)",
-    "--sidebar-rail-indicator-active-color": "var(--color-icon-active)",
-    "--sidebar-hover-overlay-bg":
-      "var(--color-sidebar-hover-overlay-bg, rgba(0, 0, 0, 0.6))",
+    "--sidebar-ease": "var(--ease-out, cubic-bezier(0.25, 0.1, 0.25, 1))",
+    "--sidebar-focus-color": "var(--color-sachi-focus)",
+    "--sidebar-rail-indicator-color": "var(--color-sachi-rail)",
+    "--sidebar-rail-indicator-active-color": "var(--color-sachi-accent)",
+    "--sidebar-hover-overlay-bg": "var(--color-sachi-overlay)",
     ...style,
   } as React.CSSProperties;
 
@@ -197,7 +181,7 @@ function SidebarSpacer({ expanded, shouldReduceMotion }: SidebarSpacerProps) {
     flexBasis: expanded ? "var(--sidebar-desktop-width)" : "0px",
     transition: shouldReduceMotion
       ? "none"
-      : "width var(--sidebar-transition-fast) var(--sidebar-ease)",
+      : "width var(--sidebar-transition-normal) var(--sidebar-ease), flex-basis var(--sidebar-transition-normal) var(--sidebar-ease)",
   } as React.CSSProperties;
 
   return (
@@ -321,25 +305,16 @@ function SidebarDesktopCollapsed({
   );
 }
 
-function SidebarMobileDrawer({
-  className,
-  children,
-  ...props
-}: React.ComponentProps<"aside">) {
+function SidebarMobileDrawer({ className, children, ...props }: React.ComponentProps<"aside">) {
   const { openMobile, setOpenMobile } = useSidebar();
 
   return (
     <>
       <SidebarSpacer expanded={false} shouldReduceMotion={false} />
-      <Drawer
-        open={openMobile}
-        onOpenChange={setOpenMobile}
-        swipeDirection="right"
-        modal
-      >
+      <Drawer open={openMobile} onOpenChange={setOpenMobile} swipeDirection="right" modal>
         <DrawerContent
           data-slot="sidebar-container"
-          className="h-full gap-0 overflow-hidden border-r border-[var(--sidebar-collapsed-border-color,var(--color-border-strong))] p-0 data-[swipe-direction=right]:w-[var(--sidebar-mobile-width)] data-[swipe-direction=right]:max-w-[var(--sidebar-mobile-width)] data-[swipe-direction=right]:rounded-none data-[swipe-direction=right]:sm:max-w-none"
+          className="h-full gap-0 overflow-hidden border-r border-[var(--sidebar-collapsed-border-color,var(--color-sachi-line))] p-0 data-[swipe-direction=right]:rounded-none"
         >
           <aside
             data-sidebar="sidebar"
@@ -355,11 +330,7 @@ function SidebarMobileDrawer({
   );
 }
 
-function Sidebar({
-  className,
-  children,
-  ...props
-}: React.ComponentProps<"aside">) {
+function Sidebar({ className, children, ...props }: React.ComponentProps<"aside">) {
   const { isMobile, state } = useSidebar();
   const shouldReduceMotion = useReducedMotion() ?? false;
 
@@ -394,11 +365,7 @@ function Sidebar({
   );
 }
 
-function SidebarRail({
-  className,
-  onClick,
-  ...props
-}: React.ComponentProps<"button">) {
+function SidebarRail({ className, onClick, ...props }: React.ComponentProps<"button">) {
   const { toggleSidebar } = useSidebar();
 
   const railStyle = {
@@ -414,7 +381,7 @@ function SidebarRail({
       data-slot="sidebar-rail"
       className={cn(
         "group absolute z-[25] w-[10px] cursor-pointer border-0 bg-transparent p-0 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--sidebar-focus-color)]",
-        className
+        className,
       )}
       style={railStyle}
       onClick={(event) => {
@@ -435,12 +402,7 @@ function SidebarRail({
   );
 }
 
-function SidebarInset({
-  className,
-  style,
-  children,
-  ...props
-}: React.ComponentProps<"main">) {
+function SidebarInset({ className, style, children, ...props }: React.ComponentProps<"main">) {
   const { state, isMobile } = useSidebar();
   const shouldReduceMotion = useReducedMotion() ?? false;
 
@@ -448,8 +410,7 @@ function SidebarInset({
     paddingTop: "var(--shell-gutter, 8px)",
     paddingRight: "var(--shell-gutter, 8px)",
     paddingBottom: "var(--shell-gutter, 8px)",
-    paddingLeft:
-      !isMobile && state === "expanded" ? 0 : "var(--shell-gutter, 8px)",
+    paddingLeft: !isMobile && state === "expanded" ? 0 : "var(--shell-gutter, 8px)",
     transition: shouldReduceMotion
       ? "none"
       : "padding-left var(--sidebar-transition-normal) var(--sidebar-ease)",
@@ -470,7 +431,7 @@ function SidebarInset({
     >
       <div
         data-sidebar-inset-inner
-        className="relative flex h-full min-h-0 flex-col overflow-hidden border border-[var(--color-border-strong)] bg-[var(--color-inset-bg)] [&>*]:min-h-0"
+        className="relative flex h-full min-h-0 flex-col overflow-hidden border border-sachi-line bg-sachi-base [&>*]:min-h-0"
         style={insetInnerStyle}
       >
         {children}
@@ -538,11 +499,9 @@ function SidebarTrigger({
       data-sidebar="trigger"
       data-slot="sidebar-trigger"
       className={cn(
-        "inline-flex size-6.5 items-center justify-center rounded-[5px] border-0 bg-transparent text-[var(--color-text-muted)] hover:bg-[var(--color-control-bg-hover)] hover:text-[var(--color-text-primary)] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--sidebar-focus-color)]",
-        layout === "floating"
-          ? "absolute top-2 left-3 z-[2]"
-          : "relative z-[1] shrink-0",
-        className
+        "inline-flex size-6.5 items-center justify-center rounded-[5px] border-0 bg-transparent text-sachi-fg-muted hover:bg-sachi-fill-hover hover:text-sachi-fg focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--sidebar-focus-color)]",
+        layout === "floating" ? "absolute top-2 left-3 z-[2]" : "relative z-[1] shrink-0",
+        className,
       )}
       onClick={(event) => {
         onClick?.(event);
@@ -562,42 +521,31 @@ function SidebarTrigger({
 
 const SidebarRails = SidebarRail;
 
-const insetViewVariants = cva(
-  "mx-auto flex h-full w-full flex-col gap-4 px-4 pt-4 pb-6 sm:px-6",
-  {
-    variants: {
-      maxWidth: {
-        sm: "max-w-[640px]",
-        md: "max-w-[768px]",
-        lg: "max-w-[1024px]",
-        xl: "max-w-[1280px]",
-        "2xl": "max-w-[1536px]",
-        full: "max-w-none",
-      },
+const insetViewVariants = cva("mx-auto flex h-full w-full flex-col gap-4 px-4 pt-4 pb-6 sm:px-6", {
+  variants: {
+    maxWidth: {
+      sm: "max-w-[640px]",
+      md: "max-w-[768px]",
+      lg: "max-w-[1024px]",
+      xl: "max-w-[1280px]",
+      "2xl": "max-w-[1536px]",
+      full: "max-w-none",
     },
-    defaultVariants: {
-      maxWidth: "xl",
-    },
-  }
-);
+  },
+  defaultVariants: {
+    maxWidth: "xl",
+  },
+});
 
 type InsetViewProps = React.ComponentProps<"section"> & {
   maxWidth?: "sm" | "md" | "lg" | "xl" | "2xl" | "full";
 };
 
-function InsetView({
-  className,
-  maxWidth = "xl",
-  children,
-  ...props
-}: InsetViewProps) {
+function InsetView({ className, maxWidth = "xl", children, ...props }: InsetViewProps) {
   return (
     <section
       data-slot="inset-view"
-      className={cn(
-        "h-full min-h-0 overflow-auto bg-[var(--color-inset-bg)]",
-        className
-      )}
+      className={cn("h-full min-h-0 overflow-auto bg-sachi-base", className)}
       {...props}
     >
       <div className={insetViewVariants({ maxWidth })}>{children}</div>

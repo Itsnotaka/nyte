@@ -4,8 +4,7 @@ import superjson from "superjson";
 
 import type { AppRouter } from "./router";
 
-export const { TRPCProvider, useTRPC, useTRPCClient } =
-  createTRPCContext<AppRouter>();
+export const { TRPCProvider, useTRPC, useTRPCClient } = createTRPCContext<AppRouter>();
 
 export function makeTRPCClient() {
   return createTRPCClient<AppRouter>({

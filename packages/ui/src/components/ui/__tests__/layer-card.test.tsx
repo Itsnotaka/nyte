@@ -1,11 +1,11 @@
-import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { describe, it } from "vite-plus/test";
 
+import { expectMarkup } from "./markup-test-utils";
 import { LayerCard, LayerCardPrimary, LayerCardSecondary } from "../layer-card";
 
 describe("LayerCard", () => {
   it("renders layered slots and merges custom props", () => {
-    const html = renderToStaticMarkup(
+    expectMarkup(
       <LayerCard className="root-class" id="layer-card-root">
         <LayerCardSecondary className="secondary-class">
           <span>Docs</span>
@@ -14,19 +14,23 @@ describe("LayerCard", () => {
         <LayerCardPrimary className="primary-class" aria-label="Layer content">
           Body
         </LayerCardPrimary>
-      </LayerCard>
+      </LayerCard>,
+      {
+        contains: [
+          'data-slot="layer-card"',
+          'data-slot="layer-card-secondary"',
+          'data-slot="layer-card-primary"',
+          "root-class",
+          "secondary-class",
+          "primary-class",
+          "bg-sachi-fill",
+          "justify-between",
+          "bg-sachi-base",
+          'id="layer-card-root"',
+          'aria-label="Layer content"',
+        ],
+        excludes: [/\bp-1\.5\b/],
+      },
     );
-
-    expect(html).toContain('data-slot="layer-card"');
-    expect(html).toContain('data-slot="layer-card-secondary"');
-    expect(html).toContain('data-slot="layer-card-primary"');
-    expect(html).toContain("root-class");
-    expect(html).toContain("secondary-class");
-    expect(html).toContain("primary-class");
-    expect(html).toContain("bg-card");
-    expect(html).toContain("justify-between");
-    expect(html).toContain("bg-background");
-    expect(html).toContain('id="layer-card-root"');
-    expect(html).toContain('aria-label="Layer content"');
   });
 });

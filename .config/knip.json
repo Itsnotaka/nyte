@@ -35,19 +35,12 @@
         ".config/.oxlintrc.json",
         ".config/knip.json"
       ],
-      "project": [
-        "*.{js,mjs,cjs,ts,mts,cts,json}",
-        ".config/**/*.{json,js,mjs,cjs,ts,mts,cts}"
-      ]
+      "project": ["*.{js,mjs,cjs,ts,mts,cts,json}", ".config/**/*.{json,js,mjs,cjs,ts,mts,cts}"]
     },
     "apps/web": {},
     "packages/ui": {},
     "tooling/tailwind": {
-      "ignoreDependencies": [
-        "@tailwindcss/postcss",
-        "postcss",
-        "postcss-import"
-      ]
+      "ignoreDependencies": ["@tailwindcss/postcss", "postcss", "postcss-import"]
     }
   },
   "tags": ["-lintignore"]
