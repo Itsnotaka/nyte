@@ -8,13 +8,13 @@ import {
 } from "@central-icons-react/round-filled-radius-2-stroke-1.5";
 import * as React from "react";
 
-import { Button } from "~/components/ui/button";
+import { Button } from "./button";
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupButton,
   InputGroupInput,
-} from "~/components/ui/input-group";
+} from "./input-group";
 
 import { cn } from "../../lib/utils";
 
