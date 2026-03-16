@@ -1,36 +1,21 @@
 "use client";
 
-import { Button } from "@nyte/ui/components/button";
 import { useRouter } from "next/navigation";
-import * as React from "react";
+import { parseAsInteger, parseAsString, useQueryStates } from "nuqs";
+import { useEffect } from "react";
 
-import { trpc } from "~/lib/trpc/client";
-
-type SetupRedirectViewProps = {
-  installationId: number | null;
-  setupAction: string | null;
-};
-
-export function SetupRedirectView({
-  installationId,
-  setupAction,
-}: SetupRedirectViewProps) {
+export function SetupRedirectView() {
+  const [{ installation_id, setup_action }] = useQueryStates({
+    installation_id: parseAsInteger,
+    setup_action: parseAsString,
+  });
   const router = useRouter();
-  const { mutate, error, isPending, reset } =
-    trpc.github.resolveSetupRedirect.useMutation({
-      onSuccess: ({ redirectTo }) => {
-        router.replace(redirectTo);
-      },
-    });
 
-  const resolveSetupRedirect = React.useCallback(() => {
-    reset();
-    mutate({ installationId, setupAction });
-  }, [installationId, mutate, reset, setupAction]);
-
-  React.useEffect(() => {
-    resolveSetupRedirect();
-  }, [resolveSetupRedirect]);
+  useEffect(() => {
+    const redirectTo =
+      setup_action === "install" && installation_id ? "/setup/repos" : "/setup";
+    router.replace(redirectTo);
+  }, [installation_id, setup_action, router]);
 
   return (
     <section className="flex h-full items-center justify-center px-4">
@@ -44,24 +29,6 @@ export function SetupRedirectView({
             repository selection.
           </p>
         </div>
-
-        {error ? (
-          <>
-            <p className="text-sm text-red-500">
-              {error.message ?? "Unable to finalize GitHub app setup."}
-            </p>
-            <div className="flex items-center gap-2">
-              <Button onClick={resolveSetupRedirect}>Try again</Button>
-              <Button variant="outline" onClick={() => router.replace("/setup")}>
-                Back to setup
-              </Button>
-            </div>
-          </>
-        ) : (
-          <Button size="lg" disabled>
-            {isPending ? "Loading..." : "Redirecting..."}
-          </Button>
-        )}
       </div>
     </section>
   );

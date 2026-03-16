@@ -45,13 +45,8 @@ export function RepoPickerView({
   }
 
   function handleContinue() {
-    const selectedRepos = repos.filter((repo) => selected.has(repo.id));
-    const encoded = encodeURIComponent(
-      JSON.stringify(selectedRepos.map((repo) => repo.full_name))
-    );
-
     startNavigation(() => {
-      router.push(`/?repos=${encoded}`);
+      router.push("/");
     });
   }
 

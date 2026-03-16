@@ -5,6 +5,7 @@
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
+    "db:push": "turbo run db:push --filter=@nyte/db",
     "lint": "oxlint -c .config/.oxlintrc.json --type-aware --type-check --report-unused-disable-directives",
     "fmt": "oxfmt -c .config/.oxfmtrc.json",
     "knip": "knip -c .config/knip.json",
@@ -21,7 +22,7 @@
     "oxlint": "^1.55.0",
     "oxlint-tsgolint": "^0.17.0",
     "turbo": "^2.8.17",
-    "typescript": "5.9.3"
+    "typescript": "6.0.0-beta"
   },
   "engines": {
     "node": ">=20"

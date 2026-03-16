@@ -1,22 +1,10 @@
-import { Pool } from "pg";
+import { neon, neonConfig } from "@neondatabase/serverless";
+import { drizzle } from "drizzle-orm/neon-http";
 
-declare global {
-  var __nyteDatabasePools__: Map<string, Pool> | undefined;
-}
+import * as authSchema from "./schema/auth";
 
-const poolCache =
-  globalThis.__nyteDatabasePools__ ??= new Map<string, Pool>();
+neonConfig.fetchEndpoint = (host) => `https://${host}/sql`;
 
-export function getPostgresPool(connectionString: string): Pool {
-  const existingPool = poolCache.get(connectionString);
-  if (existingPool) {
-    return existingPool;
-  }
+const sql = neon(process.env.DATABASE_URL!);
 
-  // Next.js dev hot reload re-runs module scope, so cache pools on globalThis
-  // and key them by connection string to avoid opening duplicate connections.
-  const pool = new Pool({ connectionString });
-  poolCache.set(connectionString, pool);
-
-  return pool;
-}
+export const db = drizzle({ client: sql, schema: { ...authSchema } });

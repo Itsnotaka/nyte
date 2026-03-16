@@ -1,11 +1,16 @@
 import "server-only";
+import { db } from "@nyte/db";
+import * as authSchema from "@nyte/db/schema/auth";
 import { betterAuth } from "better-auth";
-import { getPostgresPool } from "@nyte/database";
+import { drizzleAdapter } from "better-auth/adapters/drizzle";
 
 import { env } from "../server/env";
 
 export const auth = betterAuth({
-  database: getPostgresPool(env.DATABASE_URL),
+  database: drizzleAdapter(db, {
+    provider: "pg",
+    schema: authSchema,
+  }),
   baseURL: env.BETTER_AUTH_URL,
   secret: env.BETTER_AUTH_SECRET,
   socialProviders: {

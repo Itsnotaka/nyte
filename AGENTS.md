@@ -9,6 +9,10 @@
 - Enforce strict non-null `userId` for backend processes and validate it at
   process boundaries.
 - Do not use emojis unless explicitly requested.
+- Prefer the tRPC TanStack Query integration (`@trpc/tanstack-react-query`) over
+  the classic React Query integration (`@trpc/react-query`). Use
+  `createTRPCContext` for context-based setups and `useTRPC()` /
+  `trpc.*.queryOptions()` / `trpc.*.mutationOptions()` at call sites.
 - Prefer runtime-first architecture in monorepo work: push intelligence,
   filtering, and workflow logic into `packages/` (especially
   `packages/pi-runtime`) and keep app frontend code thin.

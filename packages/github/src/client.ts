@@ -1,4 +1,7 @@
+import { err, ok, ResultAsync } from "neverthrow";
+import type { Result } from "neverthrow";
 import { Octokit } from "octokit";
+
 import {
   GitHubError,
   type GitHubAccount,
@@ -64,21 +67,25 @@ function errorMessageFromFailure(
     return error.message;
   }
 
-  return status > 0 ? `GitHub API error: ${status}` : "GitHub API request failed";
+  return status > 0
+    ? `GitHub API error: ${status}`
+    : "GitHub API request failed";
 }
 
 function accountTypeFromResponse(
   type: string,
   accountLabel: string
-): GitHubAccount["type"] {
+): Result<GitHubAccount["type"], GitHubError> {
   if (type === "User" || type === "Organization") {
-    return type;
+    return ok(type);
   }
 
-  throw new GitHubError(
-    `GitHub ${accountLabel} has unsupported account type: ${type}`,
-    0,
-    "unknown"
+  return err(
+    new GitHubError(
+      `GitHub ${accountLabel} has unsupported account type: ${type}`,
+      0,
+      "unknown"
+    )
   );
 }
 
@@ -113,49 +120,48 @@ export function normalizeGitHubError(error: unknown): GitHubError {
 export function toGitHubAccount(
   account: GitHubAccountResponse | null,
   accountLabel: string
-): GitHubAccount {
+): Result<GitHubAccount, GitHubError> {
   if (!account) {
-    throw new GitHubError(
-      `GitHub ${accountLabel} is missing account details`,
-      0,
-      "unknown"
+    return err(
+      new GitHubError(
+        `GitHub ${accountLabel} is missing account details`,
+        0,
+        "unknown"
+      )
     );
   }
 
   if (typeof account.login === "string" && typeof account.type === "string") {
-    return {
-      login: account.login,
+    return accountTypeFromResponse(account.type, accountLabel).map((type) => ({
+      login: account.login as string,
       id: account.id,
       avatar_url: account.avatar_url,
-      type: accountTypeFromResponse(account.type, accountLabel),
-    };
+      type,
+    }));
   }
 
   if (typeof account.slug === "string" && account.slug.length > 0) {
-    return {
+    return ok({
       login: account.slug,
       id: account.id,
       avatar_url: account.avatar_url,
-      type: "Organization",
-    };
+      type: "Organization" as const,
+    });
   }
 
-  throw new GitHubError(
-    `GitHub ${accountLabel} is missing a canonical login`,
-    0,
-    "unknown"
+  return err(
+    new GitHubError(
+      `GitHub ${accountLabel} is missing a canonical login`,
+      0,
+      "unknown"
+    )
   );
 }
 
-export async function withGitHubClient<T>(
+export function withGitHubClient<T>(
   token: string,
   run: (client: Octokit) => Promise<T>
-): Promise<T> {
+): ResultAsync<T, GitHubError> {
   const client = createGitHubClient(token);
-
-  try {
-    return await run(client);
-  } catch (error) {
-    throw normalizeGitHubError(error);
-  }
+  return ResultAsync.fromPromise(run(client), normalizeGitHubError);
 }

@@ -25,6 +25,10 @@
       "dependsOn": ["transit"],
       "outputs": [".cache/tsbuildinfo.json"]
     },
+    "db:push": {
+      "cache": false,
+      "env": ["DATABASE_URL"]
+    },
     "clean": {
       "cache": false
     }

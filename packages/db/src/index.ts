@@ -1,1 +1,2 @@
-export { getPostgresPool } from "./pool.ts";
+export { db } from "./pool";
+export * as authSchema from "./schema/auth";

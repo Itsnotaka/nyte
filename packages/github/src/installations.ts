@@ -1,5 +1,8 @@
-import { GitHubError, type GitHubInstallation } from "./types.ts";
+import { err, ok, Result } from "neverthrow";
+import type { ResultAsync } from "neverthrow";
+
 import { toGitHubAccount, withGitHubClient } from "./client.ts";
+import { GitHubError, type GitHubInstallation } from "./types.ts";
 
 type InstallationResponse = {
   id: number;
@@ -19,59 +22,69 @@ type InstallationResponse = {
 
 function targetTypeFromResponse(
   targetType: string
-): GitHubInstallation["target_type"] {
+): Result<GitHubInstallation["target_type"], GitHubError> {
   if (targetType === "User" || targetType === "Organization") {
-    return targetType;
+    return ok(targetType);
   }
 
-  throw new GitHubError(
-    `GitHub installation has unsupported target type: ${targetType}`,
-    0,
-    "unknown"
+  return err(
+    new GitHubError(
+      `GitHub installation has unsupported target type: ${targetType}`,
+      0,
+      "unknown"
+    )
   );
 }
 
 function repositorySelectionFromResponse(
   repositorySelection: string
-): GitHubInstallation["repository_selection"] {
+): Result<GitHubInstallation["repository_selection"], GitHubError> {
   if (repositorySelection === "all" || repositorySelection === "selected") {
-    return repositorySelection;
+    return ok(repositorySelection);
   }
 
-  throw new GitHubError(
-    `GitHub installation has unsupported repository selection: ${repositorySelection}`,
-    0,
-    "unknown"
+  return err(
+    new GitHubError(
+      `GitHub installation has unsupported repository selection: ${repositorySelection}`,
+      0,
+      "unknown"
+    )
   );
 }
 
 function toGitHubInstallation(
   installation: InstallationResponse
-): GitHubInstallation {
-  return {
-    id: installation.id,
-    account: toGitHubAccount(installation.account, "installation"),
-    app_slug: installation.app_slug,
-    target_type: targetTypeFromResponse(installation.target_type),
-    permissions: installation.permissions,
-    repository_selection: repositorySelectionFromResponse(
-      installation.repository_selection
-    ),
-    created_at: installation.created_at,
-  };
+): Result<GitHubInstallation, GitHubError> {
+  return toGitHubAccount(installation.account, "installation").andThen(
+    (account) =>
+      targetTypeFromResponse(installation.target_type).andThen((target_type) =>
+        repositorySelectionFromResponse(installation.repository_selection).map(
+          (repository_selection) => ({
+            id: installation.id,
+            account,
+            app_slug: installation.app_slug,
+            target_type,
+            permissions: installation.permissions,
+            repository_selection,
+            created_at: installation.created_at,
+          })
+        )
+      )
+  );
 }
 
-export async function listUserInstallations(
+export function listUserInstallations(
   userAccessToken: string
-): Promise<GitHubInstallation[]> {
+): ResultAsync<GitHubInstallation[], GitHubError> {
   return withGitHubClient(userAccessToken, async (client) => {
     const installations = await client.paginate(
       client.rest.apps.listInstallationsForAuthenticatedUser,
       { per_page: 100 }
     );
-
-    return installations.map(toGitHubInstallation);
-  });
+    return installations;
+  }).andThen((installations) =>
+    Result.combine(installations.map(toGitHubInstallation))
+  );
 }
 
 export function getInstallUrl(appSlug: string): string {

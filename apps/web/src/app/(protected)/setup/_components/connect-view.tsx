@@ -1,28 +1,35 @@
 "use client";
 
 import { Button } from "@nyte/ui/components/button";
+import { useMutation } from "@tanstack/react-query";
 import * as React from "react";
 
-import { trpc } from "~/lib/trpc/client";
+import { useTRPC } from "~/lib/trpc/client";
 
 export function ConnectView() {
+  const trpc = useTRPC();
   const [didOpenGithub, setDidOpenGithub] = React.useState(false);
-  const startInstallMutation = trpc.github.startInstall.useMutation();
+  const startInstallMutation = useMutation(
+    trpc.github.startInstall.mutationOptions()
+  );
 
   async function handleInstall() {
-    const installWindow = window.open("", "_blank", "noopener,noreferrer");
+    const installWindow = window.open("about:blank", "_blank");
+    if (installWindow) {
+      installWindow.opener = null;
+    }
 
     try {
       const { url } = await startInstallMutation.mutateAsync();
       setDidOpenGithub(true);
 
-      if (installWindow) {
-        installWindow.location.href = url;
+      if (installWindow && !installWindow.closed) {
+        installWindow.location.assign(url);
         installWindow.focus();
         return;
       }
 
-      window.location.href = url;
+      window.location.assign(url);
     } catch {
       installWindow?.close();
     }
@@ -62,8 +69,8 @@ export function ConnectView() {
 
         <p className="text-xs text-[var(--color-text-faint)]">
           {didOpenGithub
-            ? "GitHub opened in a new tab. Finish installation there and we’ll bring you back automatically."
-            : "We’ll open GitHub in a new tab so you can finish installation without losing your place."}
+            ? "GitHub opened in a new tab. Finish installation there and we'll bring you back automatically."
+            : "We'll open GitHub in a new tab so you can finish installation without losing your place."}
         </p>
       </div>
     </section>
