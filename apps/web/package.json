@@ -7,6 +7,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "test": "vp test",
     "typecheck": "tsgo --noEmit",
     "clean": "rm -rf .turbo .cache node_modules dist"
   },
@@ -24,6 +25,7 @@
     "@trpc/tanstack-react-query": "^11.13.4",
     "better-auth": "^1.5.5",
     "dialkit": "^1.1.0",
+    "drizzle-orm": "^0.45.1",
     "evlog": "^2.8.0",
     "motion": "^12.37.0",
     "nanoid": "^5.1.7",
@@ -46,6 +48,8 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "postcss-import": "^16.1.1",
-    "typescript": "6.0.0-beta"
+    "typescript": "6.0.0-beta",
+    "vite-plus": "catalog:",
+    "vitest": "catalog:"
   }
 }

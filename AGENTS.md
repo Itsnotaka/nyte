@@ -22,6 +22,9 @@
   use these tokens so coloring is consistent when the package is published.
 - Never use raw `[var(--color-*)]` class syntax in JSX; use the generated
   Tailwind utility name instead.
+- Prefer flat component layouts over nested compound components (e.g., avoid
+  wrapping each diff file in a LayerCard inside another LayerCard); use plain
+  divs with subtle separators when nesting adds no value.
 
 ## Learned Workspace Facts
 
@@ -42,6 +45,17 @@
   sachikit tokens.
 - `evlog` (`apps/web/src/lib/evlog.ts`) is the lightweight observability utility
   used to instrument GitHub API calls and other key runtime paths.
+- The diff viewer is `@pierre/diffs` (v1.1.0). It renders inside a shadow DOM;
+  custom styling (e.g., font size) is injected via the `unsafeCSS` option on
+  `BaseCodeOptions`.
+- User diff display preferences (diffStyle, contextLines, overflow,
+  lineDiffType, hideComments) are persisted in the `user_diff_settings` DB table
+  and exposed via the `settings` tRPC router with optimistic updates.
+- LayerCard token assignments: `bg-sachi-fill` (root), `bg-sachi-base`
+  (primary), `ring-sachi-line` (borders), modeled after Cloudflare Kumo's
+  layered card pattern.
+- Pull request markdown is rendered by `Streamdown` with explicit Tailwind
+  arbitrary selectors for list styling (not `@tailwindcss/typography`).
 
 <!--VITE PLUS START-->
 

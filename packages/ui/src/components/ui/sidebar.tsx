@@ -10,7 +10,6 @@ import { cn } from "../../lib/utils";
 import { Drawer, DrawerContent } from "./drawer";
 
 const SIDEBAR_DESKTOP_WIDTH = 244;
-const SIDEBAR_MOBILE_WIDTH = 330;
 const SIDEBAR_MOBILE_BREAKPOINT = 1024;
 
 type SidebarState = "expanded" | "collapsed";
@@ -127,7 +126,6 @@ function SidebarProvider({
 
   const shellStyle = {
     "--sidebar-desktop-width": `${SIDEBAR_DESKTOP_WIDTH}px`,
-    "--sidebar-mobile-width": `min(calc(100vw - 40px), ${SIDEBAR_MOBILE_WIDTH}px)`,
     "--sidebar-transition-fast": "var(--speed-quickTransition, 0.1s)",
     "--sidebar-transition-normal": "var(--speed-regularTransition, 0.25s)",
     "--sidebar-ease": "var(--ease-out, cubic-bezier(0.25, 0.1, 0.25, 1))",
@@ -316,7 +314,7 @@ function SidebarMobileDrawer({ className, children, ...props }: React.ComponentP
       <Drawer open={openMobile} onOpenChange={setOpenMobile} swipeDirection="right" modal>
         <DrawerContent
           data-slot="sidebar-container"
-          className="h-full gap-0 overflow-hidden border-r border-[var(--sidebar-collapsed-border-color,var(--color-sachi-line))] p-0 data-[swipe-direction=right]:w-[var(--sidebar-mobile-width)] data-[swipe-direction=right]:max-w-[var(--sidebar-mobile-width)] data-[swipe-direction=right]:rounded-none data-[swipe-direction=right]:sm:max-w-none"
+          className="h-full gap-0 overflow-hidden border-r border-[var(--sidebar-collapsed-border-color,var(--color-sachi-line))] p-0 data-[swipe-direction=right]:rounded-none"
         >
           <aside
             data-sidebar="sidebar"

@@ -3,6 +3,8 @@
 import { parsePatchFiles } from "@pierre/diffs";
 import type { DiffLineAnnotation, FileDiffMetadata } from "@pierre/diffs/react";
 import { FileDiff } from "@pierre/diffs/react";
+import { DIFF_SETTINGS_DEFAULTS } from "@sachikit/db/schema/settings";
+import type { DiffSettingsJson } from "@sachikit/db/schema/settings";
 import type {
   GitHubPullRequestReview,
   GitHubPullRequestReviewComment,
@@ -17,6 +19,7 @@ import {
 } from "@sachikit/ui/components/layer-card";
 import { InsetView } from "@sachikit/ui/components/sidebar";
 import { Textarea } from "@sachikit/ui/components/textarea";
+import { cn } from "@sachikit/ui/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { inferRouterOutputs } from "@trpc/server";
 import { nanoid } from "nanoid";
@@ -25,6 +28,8 @@ import { Streamdown } from "streamdown";
 
 import { useTRPC } from "~/lib/trpc/client";
 import type { AppRouter } from "~/lib/trpc/router";
+
+import { DiffSettingsPopover } from "./diff-settings-popover";
 
 type PullRequestPageData = NonNullable<
   inferRouterOutputs<AppRouter>["github"]["getPullRequestPage"]
@@ -97,7 +102,11 @@ type MarkdownContentProps = {
 };
 
 function resolveMarkdownUrl(url: string, repository: GitHubRepository): string {
-  if (url.startsWith("#") || url.startsWith("//") || /^[a-zA-Z][a-zA-Z\d+.-]*:/.test(url)) {
+  if (
+    url.startsWith("#") ||
+    url.startsWith("//") ||
+    /^[a-zA-Z][a-zA-Z\d+.-]*:/.test(url)
+  ) {
     return url;
   }
 
@@ -109,7 +118,12 @@ function resolveMarkdownUrl(url: string, repository: GitHubRepository): string {
   }
 }
 
-function MarkdownContent({ content, repository, emptyFallback, className }: MarkdownContentProps) {
+function MarkdownContent({
+  content,
+  repository,
+  emptyFallback,
+  className,
+}: MarkdownContentProps) {
   const markdown = content?.trim() ?? "";
 
   if (markdown.length === 0) {
@@ -118,7 +132,11 @@ function MarkdownContent({ content, repository, emptyFallback, className }: Mark
 
   return (
     <Streamdown
-      className={className}
+      className={cn(
+        "[&_ol]:list-decimal [&_ol]:pl-4 [&_ul]:list-disc [&_ul]:pl-4",
+        "[&_p]:mb-2 [&_p]:last:mb-0",
+        className
+      )}
       linkSafety={{ enabled: false }}
       mode="static"
       urlTransform={(url) => resolveMarkdownUrl(url, repository)}
@@ -151,12 +169,16 @@ function ReviewSurface({
         <div className="min-w-0 space-y-1">
           <h2 className="text-sm font-semibold text-sachi-fg">{title}</h2>
           {description ? (
-            <p className="text-sm font-normal text-sachi-fg-muted">{description}</p>
+            <p className="text-sm font-normal text-sachi-fg-muted">
+              {description}
+            </p>
           ) : null}
         </div>
         {action}
       </LayerCardSecondary>
-      <LayerCardPrimary className={contentClassName}>{children}</LayerCardPrimary>
+      <LayerCardPrimary className={contentClassName}>
+        {children}
+      </LayerCardPrimary>
     </LayerCard>
   );
 }
@@ -169,7 +191,13 @@ type ReviewEntryProps = {
   emptyFallback?: string;
 };
 
-function ReviewEntry({ author, body, repository, meta, emptyFallback }: ReviewEntryProps) {
+function ReviewEntry({
+  author,
+  body,
+  repository,
+  meta,
+  emptyFallback,
+}: ReviewEntryProps) {
   return (
     <LayerCard className="bg-transparent p-0 shadow-none ring-0">
       <LayerCardSecondary className="rounded-lg bg-sachi-surface px-3 py-2 text-xs font-normal text-sachi-fg-muted ring-1 ring-sachi-line-subtle">
@@ -211,16 +239,23 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
       initialData.pullRequest.number,
       initialData.repository.name,
       initialData.repository.owner.login,
-    ],
+    ]
   );
 
-  const pullRequestPageQueryKey = trpc.github.getPullRequestPage.queryKey(queryInput);
+  const pullRequestPageQueryKey =
+    trpc.github.getPullRequestPage.queryKey(queryInput);
   const pullRequestPageQuery = useQuery(
     trpc.github.getPullRequestPage.queryOptions(queryInput, {
       initialData,
       staleTime: 0,
-    }),
+    })
   );
+
+  const diffSettingsQuery = useQuery(
+    trpc.settings.getDiffSettings.queryOptions()
+  );
+  const diffSettings: DiffSettingsJson =
+    diffSettingsQuery.data ?? DIFF_SETTINGS_DEFAULTS;
 
   const pageData = pullRequestPageQuery.data ?? initialData;
   const repository = pageData.repository;
@@ -236,7 +271,7 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
       pullNumber: pullRequest.number,
       repo: repository.name,
     }),
-    [pullRequest.number, repository.name, repository.owner.login],
+    [pullRequest.number, repository.name, repository.owner.login]
   );
 
   const addComment = useMutation(
@@ -247,7 +282,7 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
           queryKey: pullRequestPageQueryKey,
         });
       },
-    }),
+    })
   );
 
   const submitReview = useMutation(
@@ -259,13 +294,16 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
           queryKey: pullRequestPageQueryKey,
         });
       },
-    }),
+    })
   );
 
   function addDraft(path: string, lineNumber: number, side: "LEFT" | "RIGHT") {
     setDrafts((current) => {
       const exists = current.some(
-        (draft) => draft.path === path && draft.lineNumber === lineNumber && draft.side === side,
+        (draft) =>
+          draft.path === path &&
+          draft.lineNumber === lineNumber &&
+          draft.side === side
       );
       if (exists) {
         return current;
@@ -285,7 +323,9 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
   }
 
   function updateDraft(id: string, body: string) {
-    setDrafts((current) => current.map((draft) => (draft.id === id ? { ...draft, body } : draft)));
+    setDrafts((current) =>
+      current.map((draft) => (draft.id === id ? { ...draft, body } : draft))
+    );
   }
 
   function removeDraft(id: string) {
@@ -325,7 +365,9 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
     <InsetView maxWidth="xl">
       <header className="space-y-2">
         <div className="flex flex-wrap items-center gap-2">
-          <h1 className="text-lg font-semibold text-sachi-fg">{pullRequest.title}</h1>
+          <h1 className="text-lg font-semibold text-sachi-fg">
+            {pullRequest.title}
+          </h1>
           <Badge variant="outline">#{pullRequest.number}</Badge>
           {pullRequest.draft ? <Badge variant="outline">draft</Badge> : null}
         </div>
@@ -359,7 +401,10 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
             contentClassName="gap-4"
           >
             <div className="space-y-2">
-              <label htmlFor={reviewBodyId} className="text-sm font-medium text-sachi-fg">
+              <label
+                htmlFor={reviewBodyId}
+                className="text-sm font-medium text-sachi-fg"
+              >
                 Review summary
               </label>
               <Textarea
@@ -380,13 +425,15 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
                 rows={6}
               />
               <p id={reviewBodyHelpId} className="text-sm text-sachi-fg-muted">
-                Choose Comment, Approve, or Request changes below. Inline drafts with text are
-                included with the selected review action. Press Cmd+Enter or Ctrl+Enter to send a
-                comment review quickly.
+                Choose Comment, Approve, or Request changes below. Inline drafts
+                with text are included with the selected review action. Press
+                Cmd+Enter or Ctrl+Enter to send a comment review quickly.
               </p>
             </div>
             {submitReview.error ? (
-              <p className="text-sm text-red-500">{submitReview.error.message}</p>
+              <p className="text-sm text-red-500">
+                {submitReview.error.message}
+              </p>
             ) : null}
             <div className="flex flex-wrap items-center gap-2">
               <Button
@@ -420,18 +467,24 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
             title="Diff"
             description="Use the gutter plus button on a changed line to start an inline draft. Drafts stay pending until you submit the review."
             action={
-              <Badge variant="outline">
-                {files.length} file{files.length === 1 ? "" : "s"}
-              </Badge>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline">
+                  {files.length} file{files.length === 1 ? "" : "s"}
+                </Badge>
+                <DiffSettingsPopover />
+              </div>
             }
             contentClassName="gap-4"
           >
             {files.length === 0 ? (
-              <p className="text-sm text-sachi-fg-muted">No files changed in this pull request.</p>
+              <p className="text-sm text-sachi-fg-muted">
+                No files changed in this pull request.
+              </p>
             ) : (
               files.map((file) => (
                 <DiffFile
                   key={`${file.name}:${file.newObjectId ?? file.prevObjectId ?? file.mode ?? "file"}`}
+                  diffSettings={diffSettings}
                   drafts={drafts.filter((draft) => draft.path === file.name)}
                   file={file}
                   onAddDraft={addDraft}
@@ -439,7 +492,8 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
                   onDraftRemove={removeDraft}
                   repository={repository}
                   reviewComments={reviewComments.filter(
-                    (comment) => comment.path === file.name && comment.line !== null,
+                    (comment) =>
+                      comment.path === file.name && comment.line !== null
                   )}
                 />
               ))
@@ -465,7 +519,10 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
               }}
             >
               <div className="space-y-2">
-                <label htmlFor={commentBodyId} className="text-sm font-medium text-sachi-fg">
+                <label
+                  htmlFor={commentBodyId}
+                  className="text-sm font-medium text-sachi-fg"
+                >
                   Comment body
                 </label>
                 <Textarea
@@ -478,7 +535,10 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
                     }
 
                     event.preventDefault();
-                    if (commentBody.trim().length === 0 || addComment.isPending) {
+                    if (
+                      commentBody.trim().length === 0 ||
+                      addComment.isPending
+                    ) {
                       return;
                     }
 
@@ -489,17 +549,24 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
                   placeholder="Ask a question, leave context, or note follow-up work."
                   rows={5}
                 />
-                <p id={commentBodyHelpId} className="text-sm text-sachi-fg-muted">
+                <p
+                  id={commentBodyHelpId}
+                  className="text-sm text-sachi-fg-muted"
+                >
                   Press Cmd+Enter or Ctrl+Enter to add it quickly.
                 </p>
               </div>
               {addComment.error ? (
-                <p className="text-sm text-red-500">{addComment.error.message}</p>
+                <p className="text-sm text-red-500">
+                  {addComment.error.message}
+                </p>
               ) : null}
               <div className="flex justify-end">
                 <Button
                   type="submit"
-                  disabled={commentBody.trim().length === 0 || addComment.isPending}
+                  disabled={
+                    commentBody.trim().length === 0 || addComment.isPending
+                  }
                 >
                   Add comment
                 </Button>
@@ -509,7 +576,9 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
 
           <ReviewSurface title="Discussion" contentClassName="gap-3">
             {issueComments.length === 0 ? (
-              <p className="text-sm text-sachi-fg-muted">No pull request comments yet.</p>
+              <p className="text-sm text-sachi-fg-muted">
+                No pull request comments yet.
+              </p>
             ) : (
               issueComments.map((comment) => (
                 <ReviewEntry
@@ -557,7 +626,12 @@ type DiffFileProps = {
   repository: GitHubRepository;
   reviewComments: GitHubPullRequestReviewComment[];
   drafts: DraftComment[];
-  onAddDraft: (path: string, lineNumber: number, side: "LEFT" | "RIGHT") => void;
+  diffSettings: DiffSettingsJson;
+  onAddDraft: (
+    path: string,
+    lineNumber: number,
+    side: "LEFT" | "RIGHT"
+  ) => void;
   onDraftChange: (id: string, body: string) => void;
   onDraftRemove: (id: string) => void;
 };
@@ -567,6 +641,7 @@ function DiffFile({
   repository,
   reviewComments,
   drafts,
+  diffSettings,
   onAddDraft,
   onDraftChange,
   onDraftRemove,
@@ -574,44 +649,50 @@ function DiffFile({
   const publishedCommentCount = reviewComments.length;
   const draftCommentCount = drafts.length;
 
-  const annotations = React.useMemo<DiffLineAnnotation<AnnotationPayload>[]>(() => {
-    const existing: DiffLineAnnotation<AnnotationPayload>[] = reviewComments.flatMap((comment) => {
-      if (comment.line == null || comment.side == null) {
-        return [];
-      }
+  const annotations = React.useMemo<
+    DiffLineAnnotation<AnnotationPayload>[]
+  >(() => {
+    if (diffSettings.hideComments) return [];
 
-      return [
-        {
-          lineNumber: comment.line,
-          metadata: {
-            comment,
-            kind: "existing" as const,
+    const existing: DiffLineAnnotation<AnnotationPayload>[] =
+      reviewComments.flatMap((comment) => {
+        if (comment.line == null || comment.side == null) {
+          return [];
+        }
+
+        return [
+          {
+            lineNumber: comment.line,
+            metadata: {
+              comment,
+              kind: "existing" as const,
+            },
+            side: annotationSide(comment.side),
           },
-          side: annotationSide(comment.side),
-        },
-      ];
-    });
+        ];
+      });
 
-    const pending: DiffLineAnnotation<AnnotationPayload>[] = drafts.map((draft) => ({
-      lineNumber: draft.lineNumber,
-      metadata: {
-        draft,
-        kind: "draft" as const,
-      },
-      side: annotationSide(draft.side),
-    }));
+    const pending: DiffLineAnnotation<AnnotationPayload>[] = drafts.map(
+      (draft) => ({
+        lineNumber: draft.lineNumber,
+        metadata: {
+          draft,
+          kind: "draft" as const,
+        },
+        side: annotationSide(draft.side),
+      })
+    );
 
     return [...existing, ...pending];
-  }, [drafts, reviewComments]);
+  }, [drafts, reviewComments, diffSettings.hideComments]);
 
   return (
-    <LayerCard>
-      <LayerCardSecondary className="flex-wrap items-start">
+    <div className="overflow-hidden rounded-lg ring-1 ring-sachi-line">
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-sachi-line bg-sachi-fill px-3 py-2">
         <div className="min-w-0 space-y-1">
-          <h3 className="truncate text-sm font-semibold text-sachi-fg">{file.name}</h3>
-          <p className="text-xs font-normal text-sachi-fg-muted">
-            Add inline feedback from the gutter on either side of the diff.
-          </p>
+          <h3 className="truncate text-sm font-semibold text-sachi-fg">
+            {file.name}
+          </h3>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {publishedCommentCount > 0 ? (
@@ -623,88 +704,95 @@ function DiffFile({
             </Badge>
           ) : null}
         </div>
-      </LayerCardSecondary>
-      <LayerCardPrimary className="gap-0 overflow-hidden p-0">
-        <FileDiff
-          className="w-full"
-          fileDiff={file}
-          options={{
-            // Use the built-in gutter utility; custom gutter renderers can
-            // scroll-jump in Safari with the default line-info separators.
-            diffStyle: "split",
-            enableGutterUtility: true,
-            onGutterUtilityClick: (range) => {
-              const side = range.side === "deletions" ? "LEFT" : "RIGHT";
-              onAddDraft(file.name, range.start, side);
-            },
-            theme: {
-              dark: "github-dark",
-              light: "github-light",
-            },
-          }}
-          lineAnnotations={annotations}
-          renderAnnotation={(annotation) => {
-            const meta = annotation.metadata;
-            if (meta.kind === "existing") {
-              return (
-                <LayerCard className="max-w-2xl">
-                  <LayerCardSecondary className="flex-wrap items-center rounded-lg bg-sachi-surface px-3 py-2 text-xs font-normal text-sachi-fg-muted ring-1 ring-sachi-line-subtle">
-                    <div className="flex min-w-0 flex-wrap items-center gap-2">
-                      <span className="font-medium text-sachi-fg-secondary">
-                        {meta.comment.user.login}
-                      </span>
-                      <Badge variant="outline">Published</Badge>
-                      <span>{formatUpdated(meta.comment.updated_at)}</span>
-                    </div>
-                  </LayerCardSecondary>
-                  <LayerCardPrimary className="gap-0">
-                    <MarkdownContent
-                      className="pull-request-markdown text-sm text-sachi-fg-secondary"
-                      content={meta.comment.body}
-                      emptyFallback="No comment body."
-                      repository={repository}
-                    />
-                  </LayerCardPrimary>
-                </LayerCard>
-              );
-            }
-
-            const draftFieldId = `draft-${meta.draft.id}`;
-
+      </div>
+      <FileDiff
+        className="w-full"
+        fileDiff={file}
+        options={{
+          collapsedContextThreshold: diffSettings.contextLines,
+          diffStyle: diffSettings.diffStyle,
+          enableGutterUtility: true,
+          lineDiffType: diffSettings.lineDiffType,
+          onGutterUtilityClick: (range) => {
+            const side = range.side === "deletions" ? "LEFT" : "RIGHT";
+            onAddDraft(file.name, range.start, side);
+          },
+          overflow: diffSettings.overflow,
+          theme: {
+            dark: "github-dark",
+            light: "github-light",
+          },
+          unsafeCSS: "pre { font-size: 13px; }",
+        }}
+        lineAnnotations={annotations}
+        renderAnnotation={(annotation) => {
+          const meta = annotation.metadata;
+          if (meta.kind === "existing") {
             return (
-              <LayerCard className="max-w-2xl">
-                <LayerCardSecondary className="flex-wrap items-center rounded-lg bg-sachi-surface px-3 py-2">
-                  <div className="flex min-w-0 flex-wrap items-center gap-2 text-xs font-normal text-sachi-fg-muted">
-                    <span className="font-medium text-sachi-fg-secondary">Draft comment</span>
-                    <Badge variant="outline">Pending</Badge>
-                    <span>Line {meta.draft.lineNumber}</span>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onDraftRemove(meta.draft.id)}
+              <div className="max-w-2xl space-y-1.5 p-2">
+                <div className="flex flex-wrap items-center gap-2 rounded-lg bg-sachi-surface px-3 py-2 text-xs font-normal text-sachi-fg-muted ring-1 ring-sachi-line-subtle">
+                  <span className="font-medium text-sachi-fg-secondary">
+                    {meta.comment.user.login}
+                  </span>
+                  <Badge variant="outline">Published</Badge>
+                  <span>{formatUpdated(meta.comment.updated_at)}</span>
+                </div>
+                <div className="rounded-lg bg-sachi-base px-3 py-3 ring-1 ring-sachi-line">
+                  <MarkdownContent
+                    className="pull-request-markdown text-sm text-sachi-fg-secondary"
+                    content={meta.comment.body}
+                    emptyFallback="No comment body."
+                    repository={repository}
+                  />
+                </div>
+              </div>
+            );
+          }
+
+          const draftFieldId = `draft-${meta.draft.id}`;
+
+          return (
+            <div className="max-w-2xl space-y-1.5 p-2">
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-sachi-surface px-3 py-2 ring-1 ring-sachi-line-subtle">
+                <div className="flex flex-wrap items-center gap-2 text-xs font-normal text-sachi-fg-muted">
+                  <span className="font-medium text-sachi-fg-secondary">
+                    Draft comment
+                  </span>
+                  <Badge variant="outline">Pending</Badge>
+                  <span>Line {meta.draft.lineNumber}</span>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onDraftRemove(meta.draft.id)}
+                >
+                  Remove
+                </Button>
+              </div>
+              <div className="rounded-lg bg-sachi-base px-3 py-3 ring-1 ring-sachi-line">
+                <div className="space-y-2">
+                  <label
+                    htmlFor={draftFieldId}
+                    className="text-sm font-medium text-sachi-fg"
                   >
-                    Remove
-                  </Button>
-                </LayerCardSecondary>
-                <LayerCardPrimary className="gap-2">
-                  <label htmlFor={draftFieldId} className="text-sm font-medium text-sachi-fg">
                     Inline feedback
                   </label>
                   <Textarea
                     id={draftFieldId}
                     value={meta.draft.body}
-                    onChange={(event) => onDraftChange(meta.draft.id, event.target.value)}
+                    onChange={(event) =>
+                      onDraftChange(meta.draft.id, event.target.value)
+                    }
                     placeholder="Explain what should change or why this looks good."
                     rows={3}
                   />
-                </LayerCardPrimary>
-              </LayerCard>
-            );
-          }}
-        />
-      </LayerCardPrimary>
-    </LayerCard>
+                </div>
+              </div>
+            </div>
+          );
+        }}
+      />
+    </div>
   );
 }

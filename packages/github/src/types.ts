@@ -45,12 +45,12 @@ export type GitHubPullRequest = {
   state: "open" | "closed";
   draft: boolean;
   merged: boolean;
-  comments: number;
-  review_comments: number;
-  commits: number;
-  additions: number;
-  deletions: number;
-  changed_files: number;
+  comments: number | null;
+  review_comments: number | null;
+  commits: number | null;
+  additions: number | null;
+  deletions: number | null;
+  changed_files: number | null;
   created_at: string;
   updated_at: string;
   user: GitHubAccount;

@@ -83,7 +83,11 @@ function formatUpdated(dateString: string): string {
   return `${String(Math.floor(diffDays / 30))}mo`;
 }
 
-function formatChanges(additions: number, deletions: number): React.ReactNode {
+function formatChanges(additions: number | null, deletions: number | null): React.ReactNode {
+  if (additions == null || deletions == null) {
+    return <span className="text-xs whitespace-nowrap text-sachi-fg-faint">—</span>;
+  }
+
   return (
     <span className="text-xs whitespace-nowrap">
       <span className="text-green-600">+{additions}</span>
