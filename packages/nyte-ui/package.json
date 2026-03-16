@@ -1,5 +1,5 @@
 {
-  "name": "@nyte/ui",
+  "name": "@ticu/ui",
   "version": "0.1.0",
   "private": false,
   "description": "Shared Nyte UI components, hooks, and styling primitives.",

@@ -11,10 +11,10 @@
     "clean": "rm -rf .turbo .cache node_modules dist"
   },
   "dependencies": {
-    "@central-icons-react/round-filled-radius-2-stroke-1.5": "^1.1.157",
+    "@central-icons-react/round-filled-radius-2-stroke-1.5": "^1.1.158",
     "@nyte/db": "workspace:^",
     "@nyte/github": "workspace:^",
-    "@nyte/ui": "workspace:^",
+    "@ticu/ui": "workspace:^",
     "@pierre/diffs": "^1.1.0",
     "@t3-oss/env-nextjs": "^0.13.10",
     "@tanstack/react-form": "^1.28.5",
@@ -24,7 +24,7 @@
     "@trpc/tanstack-react-query": "^11.13.4",
     "better-auth": "^1.5.5",
     "evlog": "^2.8.0",
-    "motion": "^12.36.0",
+    "motion": "^12.37.0",
     "nanoid": "^5.1.7",
     "neverthrow": "^8.2.0",
     "next": "16.1.6",
@@ -33,6 +33,7 @@
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "server-only": "^0.0.1",
+    "streamdown": "^2.4.0",
     "superjson": "^2.2.6",
     "zod": "^4.3.6"
   },

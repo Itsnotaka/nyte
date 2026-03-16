@@ -5,8 +5,8 @@ import type {
   GitHubPullRequest,
   GitHubRepository,
 } from "@nyte/github";
-import { Badge } from "@nyte/ui/components/badge";
-import { Button } from "@nyte/ui/components/button";
+import { Badge } from "@ticu/ui/components/badge";
+import { Button } from "@ticu/ui/components/button";
 import {
   Card,
   CardContent,
@@ -14,13 +14,14 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@nyte/ui/components/card";
-import { Input } from "@nyte/ui/components/input";
+} from "@ticu/ui/components/card";
+import { Input } from "@ticu/ui/components/input";
 import {
   NativeSelect,
   NativeSelectOption,
-} from "@nyte/ui/components/native-select";
-import { Textarea } from "@nyte/ui/components/textarea";
+} from "@ticu/ui/components/native-select";
+import { Textarea } from "@ticu/ui/components/textarea";
+import { InsetView } from "@ticu/ui/components/sidebar";
 import { useMutation } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -117,8 +118,7 @@ export function RepoSubmitView({
   }
 
   return (
-    <section className="h-full min-h-0 bg-[var(--color-inset-bg)]">
-      <div className="mx-auto flex h-full w-full max-w-[1200px] flex-col gap-4 px-4 pb-6 pt-4 sm:px-6">
+    <InsetView maxWidth="lg">
         <header className="flex flex-wrap items-center justify-between gap-3">
           <div className="space-y-1">
             <h1 className="text-lg font-semibold text-[var(--color-text-primary)]">
@@ -280,7 +280,6 @@ export function RepoSubmitView({
             </CardContent>
           </Card>
         </div>
-      </div>
-    </section>
+    </InsetView>
   );
 }

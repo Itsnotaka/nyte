@@ -1,7 +1,7 @@
 "use client";
 
-import { Badge } from "@nyte/ui/components/badge";
-import { Input } from "@nyte/ui/components/input";
+import { Badge } from "@ticu/ui/components/badge";
+import { Input } from "@ticu/ui/components/input";
 import Link from "next/link";
 import * as React from "react";
 
@@ -26,7 +26,7 @@ function formatUpdated(dateString: string): string {
 }
 
 export function RepoLanding() {
-  const { repos, selectedRepo } = useRepo();
+  const { repos } = useRepo();
   const [search, setSearch] = React.useState("");
 
   const filtered = repos.filter((repo) =>
@@ -38,7 +38,7 @@ export function RepoLanding() {
       <div className="mx-auto flex h-full w-full max-w-[860px] flex-col gap-4 px-4 pb-6 pt-4 sm:px-6">
         <header className="flex items-center justify-between gap-4">
           <h1 className="text-lg font-semibold text-[var(--color-text-primary)]">
-            {selectedRepo ? selectedRepo.full_name : "Repositories"}
+            Repositories
           </h1>
           <span className="text-xs text-[var(--color-text-muted)]">
             {repos.length} {repos.length === 1 ? "repository" : "repositories"}

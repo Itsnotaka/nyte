@@ -9,8 +9,8 @@ import type {
 } from "@nyte/github";
 import type { DiffLineAnnotation, FileDiffMetadata } from "@pierre/diffs/react";
 import { FileDiff } from "@pierre/diffs/react";
-import { Badge } from "@nyte/ui/components/badge";
-import { Button } from "@nyte/ui/components/button";
+import { Badge } from "@ticu/ui/components/badge";
+import { Button } from "@ticu/ui/components/button";
 import {
   Card,
   CardContent,
@@ -18,13 +18,16 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@nyte/ui/components/card";
-import { Input } from "@nyte/ui/components/input";
-import { Textarea } from "@nyte/ui/components/textarea";
+} from "@ticu/ui/components/card";
+import { InsetView } from "@ticu/ui/components/sidebar";
+import { Input } from "@ticu/ui/components/input";
+import { Textarea } from "@ticu/ui/components/textarea";
 import { useMutation } from "@tanstack/react-query";
 import { nanoid } from "nanoid";
 import { useRouter } from "next/navigation";
 import * as React from "react";
+
+import { Streamdown } from "streamdown";
 
 import { useTRPC } from "~/lib/trpc/client";
 
@@ -82,6 +85,50 @@ function reviewBadge(review: GitHubPullRequestReview): string {
   if (review.state === "CHANGES_REQUESTED") return "changes requested";
   if (review.state === "COMMENTED") return "commented";
   return review.state.toLowerCase();
+}
+
+type MarkdownContentProps = {
+  content: string | null;
+  repository: GitHubRepository;
+  emptyFallback?: string;
+  className?: string;
+};
+
+function resolveMarkdownUrl(url: string, repository: GitHubRepository): string {
+  if (url.startsWith("#") || url.startsWith("//") || /^[a-zA-Z][a-zA-Z\d+.-]*:/.test(url)) {
+    return url;
+  }
+
+  try {
+    const repositoryUrl = `https://github.com/${repository.owner.login}/${repository.name}/`;
+    return new URL(url, repositoryUrl).toString();
+  } catch {
+    return url;
+  }
+}
+
+function MarkdownContent({
+  content,
+  repository,
+  emptyFallback,
+  className,
+}: MarkdownContentProps) {
+  const markdown = content?.trim() ?? "";
+
+  if (markdown.length === 0) {
+    return emptyFallback ? <p className={className}>{emptyFallback}</p> : null;
+  }
+
+  return (
+    <Streamdown
+      className={className}
+      linkSafety={{ enabled: false }}
+      mode="static"
+      urlTransform={(url) => resolveMarkdownUrl(url, repository)}
+>
+      {markdown}
+    </Streamdown>
+  );
 }
 
 export function PullRequestView({
@@ -182,8 +229,7 @@ export function PullRequestView({
   }
 
   return (
-    <section className="h-full min-h-0 bg-[var(--color-inset-bg)]">
-      <div className="mx-auto flex h-full w-full max-w-[1280px] flex-col gap-4 px-4 pb-6 pt-4 sm:px-6">
+    <InsetView maxWidth="xl">
         <header className="space-y-2">
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-lg font-semibold text-[var(--color-text-primary)]">
@@ -204,9 +250,12 @@ export function PullRequestView({
                 <CardTitle>Description</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="whitespace-pre-wrap text-sm text-[var(--color-text-secondary)]">
-                  {pullRequest.body?.trim().length ? pullRequest.body : "No description provided."}
-                </div>
+                <MarkdownContent
+                  className="pull-request-markdown text-sm text-[var(--color-text-secondary)]"
+                  content={pullRequest.body}
+                  emptyFallback="No description provided."
+                  repository={repository}
+                />
               </CardContent>
             </Card>
 
@@ -268,6 +317,7 @@ export function PullRequestView({
                     onAddDraft={addDraft}
                     onDraftChange={updateDraft}
                     onDraftRemove={removeDraft}
+                    repository={repository}
                     reviewComments={reviewComments.filter(
                       (comment) => comment.path === file.name && comment.line !== null
                     )}
@@ -321,9 +371,11 @@ export function PullRequestView({
                         <span>{comment.user.login}</span>
                         <span>{formatUpdated(comment.updated_at)}</span>
                       </div>
-                      <p className="mt-2 whitespace-pre-wrap text-sm text-[var(--color-text-secondary)]">
-                        {comment.body}
-                      </p>
+                      <MarkdownContent
+                        className="pull-request-markdown mt-2 text-sm text-[var(--color-text-secondary)]"
+                        content={comment.body}
+                        repository={repository}
+                      />
                     </div>
                   ))
                 )}
@@ -349,9 +401,12 @@ export function PullRequestView({
                         <span>{review.user.login}</span>
                         <Badge variant="outline">{reviewBadge(review)}</Badge>
                       </div>
-                      <p className="mt-2 whitespace-pre-wrap text-sm text-[var(--color-text-secondary)]">
-                        {review.body?.trim().length ? review.body : "No summary."}
-                      </p>
+                      <MarkdownContent
+                        className="pull-request-markdown mt-2 text-sm text-[var(--color-text-secondary)]"
+                        content={review.body}
+                        emptyFallback="No summary."
+                        repository={repository}
+                      />
                     </div>
                   ))
                 )}
@@ -359,13 +414,13 @@ export function PullRequestView({
             </Card>
           </div>
         </div>
-      </div>
-    </section>
+    </InsetView>
   );
 }
 
 type DiffFileProps = {
   file: FileDiffMetadata;
+  repository: GitHubRepository;
   reviewComments: GitHubPullRequestReviewComment[];
   drafts: DraftComment[];
   onAddDraft: (path: string, lineNumber: number, side: "LEFT" | "RIGHT") => void;
@@ -375,6 +430,7 @@ type DiffFileProps = {
 
 function DiffFile({
   file,
+  repository,
   reviewComments,
   drafts,
   onAddDraft,
@@ -419,7 +475,14 @@ function DiffFile({
         className="w-full"
         fileDiff={file}
         options={{
-          diffStyle: "unified",
+          // Use the built-in gutter utility; custom gutter renderers can
+          // scroll-jump in Safari with the default line-info separators.
+          diffStyle: "split",
+          enableGutterUtility: true,
+          onGutterUtilityClick: (range) => {
+            const side = range.side === "deletions" ? "LEFT" : "RIGHT";
+            onAddDraft(file.name, range.start, side);
+          },
           theme: {
             dark: "github-dark",
             light: "github-light",
@@ -434,9 +497,11 @@ function DiffFile({
                 <div className="text-xs text-[var(--color-text-muted)]">
                   {meta.comment.user.login}
                 </div>
-                <p className="mt-2 whitespace-pre-wrap text-[var(--color-text-secondary)]">
-                  {meta.comment.body}
-                </p>
+                <MarkdownContent
+                  className="pull-request-markdown mt-2 text-[var(--color-text-secondary)]"
+                  content={meta.comment.body}
+                  repository={repository}
+                />
               </div>
             );
           }
@@ -458,24 +523,6 @@ function DiffFile({
                 </Button>
               </div>
             </div>
-          );
-        }}
-        renderGutterUtility={(getHoveredLine) => {
-          const hovered = getHoveredLine();
-          if (!hovered) {
-            return null;
-          }
-
-          const side = hovered.side === "deletions" ? "LEFT" : "RIGHT";
-
-          return (
-            <Button
-              variant="outline"
-              size="icon-xs"
-              onClick={() => onAddDraft(file.name, hovered.lineNumber, side)}
-            >
-              +
-            </Button>
           );
         }}
       />

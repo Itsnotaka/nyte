@@ -5,10 +5,10 @@ import {
   Avatar,
   AvatarFallback,
   AvatarImage,
-} from "@nyte/ui/components/avatar";
-import { Button } from "@nyte/ui/components/button";
-import { Checkbox } from "@nyte/ui/components/checkbox";
-import { Input } from "@nyte/ui/components/input";
+} from "@ticu/ui/components/avatar";
+import { Button } from "@ticu/ui/components/button";
+import { Checkbox } from "@ticu/ui/components/checkbox";
+import { Input } from "@ticu/ui/components/input";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 

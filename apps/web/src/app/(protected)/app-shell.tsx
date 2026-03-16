@@ -7,11 +7,10 @@ import {
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@nyte/ui/components/dropdown-menu";
+} from "@ticu/ui/components/dropdown-menu";
 import {
   Sidebar,
   SidebarContent,
@@ -20,7 +19,7 @@ import {
   SidebarProvider,
   SidebarRail,
   SidebarTrigger,
-} from "@nyte/ui/components/sidebar";
+} from "@ticu/ui/components/sidebar";
 
 import { useRepoOptional } from "./_components/repo-context";
 
@@ -50,20 +49,20 @@ function RepoSelector() {
         </DropdownMenuTrigger>
 
         <DropdownMenuContent align="start" sideOffset={4}>
-          <DropdownMenuLabel>Repositories</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          {repos.map((repo) => (
-            <DropdownMenuItem
-              key={repo.id}
-              onSelect={() => setSelectedRepo(repo)}
-              className="flex items-center justify-between gap-2"
-            >
-              <span className="truncate">{repo.name}</span>
-              {selectedRepo?.id === repo.id ? (
-                <IconCheckmark2Small className="size-4 shrink-0 text-[var(--color-text-muted)]" />
-              ) : null}
-            </DropdownMenuItem>
-          ))}
+          <DropdownMenuGroup>
+            {repos.map((repo) => (
+              <DropdownMenuItem
+                key={repo.id}
+                onSelect={() => setSelectedRepo(repo)}
+                className="flex items-center justify-between gap-2"
+              >
+                <span className="truncate">{repo.name}</span>
+                {selectedRepo?.id === repo.id ? (
+                  <IconCheckmark2Small className="size-4 shrink-0 text-[var(--color-text-muted)]" />
+                ) : null}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuGroup>
         </DropdownMenuContent>
       </DropdownMenu>
     </div>
@@ -84,8 +83,10 @@ export function AppShell({ children }: AppShellProps) {
       </Sidebar>
 
       <SidebarInset className="bg-[var(--color-main-bg)]">
-        <SidebarTrigger />
-        {children}
+        <header className="flex h-10 shrink-0 items-center border-b border-[var(--color-border-subtle)] bg-[var(--color-main-bg)] px-3">
+          <SidebarTrigger layout="inline" />
+        </header>
+        <div className="min-h-0 flex-1">{children}</div>
       </SidebarInset>
     </SidebarProvider>
   );
