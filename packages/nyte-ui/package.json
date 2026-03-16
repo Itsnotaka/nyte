@@ -1,0 +1,316 @@
+{
+  "name": "@nyte/ui",
+  "version": "0.1.0",
+  "private": false,
+  "description": "Shared Nyte UI components, hooks, and styling primitives.",
+  "homepage": "https://github.com/Itsnotaka/nyte#readme",
+  "bugs": {
+    "url": "https://github.com/Itsnotaka/nyte/issues"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Itsnotaka/nyte.git",
+    "directory": "packages/nyte-ui"
+  },
+  "files": [
+    "dist",
+    "src",
+    "components.json",
+    "README.md"
+  ],
+  "type": "module",
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./dist/index.mjs"
+    },
+    "./components/accordion": {
+      "types": "./src/components/ui/accordion.tsx",
+      "import": "./dist/components/accordion.mjs"
+    },
+    "./components/alert": {
+      "types": "./src/components/ui/alert.tsx",
+      "import": "./dist/components/alert.mjs"
+    },
+    "./components/alert-dialog": {
+      "types": "./src/components/ui/alert-dialog.tsx",
+      "import": "./dist/components/alert-dialog.mjs"
+    },
+    "./components/aspect-ratio": {
+      "types": "./src/components/ui/aspect-ratio.tsx",
+      "import": "./dist/components/aspect-ratio.mjs"
+    },
+    "./components/avatar": {
+      "types": "./src/components/ui/avatar.tsx",
+      "import": "./dist/components/avatar.mjs"
+    },
+    "./components/badge": {
+      "types": "./src/components/ui/badge.tsx",
+      "import": "./dist/components/badge.mjs"
+    },
+    "./components/breadcrumb": {
+      "types": "./src/components/ui/breadcrumb.tsx",
+      "import": "./dist/components/breadcrumb.mjs"
+    },
+    "./components/button": {
+      "types": "./src/components/ui/button.tsx",
+      "import": "./dist/components/button.mjs"
+    },
+    "./components/button-group": {
+      "types": "./src/components/ui/button-group.tsx",
+      "import": "./dist/components/button-group.mjs"
+    },
+    "./components/calendar": {
+      "types": "./src/components/ui/calendar.tsx",
+      "import": "./dist/components/calendar.mjs"
+    },
+    "./components/card": {
+      "types": "./src/components/ui/card.tsx",
+      "import": "./dist/components/card.mjs"
+    },
+    "./components/carousel": {
+      "types": "./src/components/ui/carousel.tsx",
+      "import": "./dist/components/carousel.mjs"
+    },
+    "./components/chart": {
+      "types": "./src/components/ui/chart.tsx",
+      "import": "./dist/components/chart.mjs"
+    },
+    "./components/checkbox": {
+      "types": "./src/components/ui/checkbox.tsx",
+      "import": "./dist/components/checkbox.mjs"
+    },
+    "./components/collapsible": {
+      "types": "./src/components/ui/collapsible.tsx",
+      "import": "./dist/components/collapsible.mjs"
+    },
+    "./components/combobox": {
+      "types": "./src/components/ui/combobox.tsx",
+      "import": "./dist/components/combobox.mjs"
+    },
+    "./components/command": {
+      "types": "./src/components/ui/command.tsx",
+      "import": "./dist/components/command.mjs"
+    },
+    "./components/context-menu": {
+      "types": "./src/components/ui/context-menu.tsx",
+      "import": "./dist/components/context-menu.mjs"
+    },
+    "./components/dialog": {
+      "types": "./src/components/ui/dialog.tsx",
+      "import": "./dist/components/dialog.mjs"
+    },
+    "./components/direction": {
+      "types": "./src/components/ui/direction.tsx",
+      "import": "./dist/components/direction.mjs"
+    },
+    "./components/drawer": {
+      "types": "./src/components/ui/drawer.tsx",
+      "import": "./dist/components/drawer.mjs"
+    },
+    "./components/dropdown-menu": {
+      "types": "./src/components/ui/dropdown-menu.tsx",
+      "import": "./dist/components/dropdown-menu.mjs"
+    },
+    "./components/empty": {
+      "types": "./src/components/ui/empty.tsx",
+      "import": "./dist/components/empty.mjs"
+    },
+    "./components/field": {
+      "types": "./src/components/ui/field.tsx",
+      "import": "./dist/components/field.mjs"
+    },
+    "./components/hover-card": {
+      "types": "./src/components/ui/hover-card.tsx",
+      "import": "./dist/components/hover-card.mjs"
+    },
+    "./components/input": {
+      "types": "./src/components/ui/input.tsx",
+      "import": "./dist/components/input.mjs"
+    },
+    "./components/input-group": {
+      "types": "./src/components/ui/input-group.tsx",
+      "import": "./dist/components/input-group.mjs"
+    },
+    "./components/input-otp": {
+      "types": "./src/components/ui/input-otp.tsx",
+      "import": "./dist/components/input-otp.mjs"
+    },
+    "./components/item": {
+      "types": "./src/components/ui/item.tsx",
+      "import": "./dist/components/item.mjs"
+    },
+    "./components/kbd": {
+      "types": "./src/components/ui/kbd.tsx",
+      "import": "./dist/components/kbd.mjs"
+    },
+    "./components/label": {
+      "types": "./src/components/ui/label.tsx",
+      "import": "./dist/components/label.mjs"
+    },
+    "./components/menubar": {
+      "types": "./src/components/ui/menubar.tsx",
+      "import": "./dist/components/menubar.mjs"
+    },
+    "./components/native-select": {
+      "types": "./src/components/ui/native-select.tsx",
+      "import": "./dist/components/native-select.mjs"
+    },
+    "./components/navigation-menu": {
+      "types": "./src/components/ui/navigation-menu.tsx",
+      "import": "./dist/components/navigation-menu.mjs"
+    },
+    "./components/pagination": {
+      "types": "./src/components/ui/pagination.tsx",
+      "import": "./dist/components/pagination.mjs"
+    },
+    "./components/popover": {
+      "types": "./src/components/ui/popover.tsx",
+      "import": "./dist/components/popover.mjs"
+    },
+    "./components/progress": {
+      "types": "./src/components/ui/progress.tsx",
+      "import": "./dist/components/progress.mjs"
+    },
+    "./components/radio-group": {
+      "types": "./src/components/ui/radio-group.tsx",
+      "import": "./dist/components/radio-group.mjs"
+    },
+    "./components/resizable": {
+      "types": "./src/components/ui/resizable.tsx",
+      "import": "./dist/components/resizable.mjs"
+    },
+    "./components/scroll-area": {
+      "types": "./src/components/ui/scroll-area.tsx",
+      "import": "./dist/components/scroll-area.mjs"
+    },
+    "./components/select": {
+      "types": "./src/components/ui/select.tsx",
+      "import": "./dist/components/select.mjs"
+    },
+    "./components/separator": {
+      "types": "./src/components/ui/separator.tsx",
+      "import": "./dist/components/separator.mjs"
+    },
+    "./components/sheet": {
+      "types": "./src/components/ui/sheet.tsx",
+      "import": "./dist/components/sheet.mjs"
+    },
+    "./components/sidebar": {
+      "types": "./src/components/ui/sidebar.tsx",
+      "import": "./dist/components/sidebar.mjs"
+    },
+    "./components/skeleton": {
+      "types": "./src/components/ui/skeleton.tsx",
+      "import": "./dist/components/skeleton.mjs"
+    },
+    "./components/slider": {
+      "types": "./src/components/ui/slider.tsx",
+      "import": "./dist/components/slider.mjs"
+    },
+    "./components/sonner": {
+      "types": "./src/components/ui/sonner.tsx",
+      "import": "./dist/components/sonner.mjs"
+    },
+    "./components/spinner": {
+      "types": "./src/components/ui/spinner.tsx",
+      "import": "./dist/components/spinner.mjs"
+    },
+    "./components/switch": {
+      "types": "./src/components/ui/switch.tsx",
+      "import": "./dist/components/switch.mjs"
+    },
+    "./components/table": {
+      "types": "./src/components/ui/table.tsx",
+      "import": "./dist/components/table.mjs"
+    },
+    "./components/tabs": {
+      "types": "./src/components/ui/tabs.tsx",
+      "import": "./dist/components/tabs.mjs"
+    },
+    "./components/textarea": {
+      "types": "./src/components/ui/textarea.tsx",
+      "import": "./dist/components/textarea.mjs"
+    },
+    "./components/toggle": {
+      "types": "./src/components/ui/toggle.tsx",
+      "import": "./dist/components/toggle.mjs"
+    },
+    "./components/toggle-group": {
+      "types": "./src/components/ui/toggle-group.tsx",
+      "import": "./dist/components/toggle-group.mjs"
+    },
+    "./components/tooltip": {
+      "types": "./src/components/ui/tooltip.tsx",
+      "import": "./dist/components/tooltip.mjs"
+    },
+    "./hooks/use-filtered-list": {
+      "types": "./src/hooks/use-filtered-list.ts",
+      "import": "./dist/hooks/use-filtered-list.mjs"
+    },
+    "./hooks/use-mobile": {
+      "types": "./src/hooks/use-mobile.ts",
+      "import": "./dist/hooks/use-mobile.mjs"
+    },
+    "./lib/utils": {
+      "types": "./src/lib/utils.ts",
+      "import": "./dist/lib/utils.mjs"
+    },
+    "./styles": "./dist/styles/theme.css",
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "scripts": {
+    "build": "vp pack && node ./scripts/copy-styles.mjs",
+    "dev": "vp pack --watch",
+    "test": "vp test",
+    "typecheck": "tsgo --noEmit",
+    "clean": "rm -rf dist .cache .turbo",
+    "release": "bumpp",
+    "prepublishOnly": "vp run build"
+  },
+  "dependencies": {
+    "@base-ui/react": "^1.3.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "cmdk": "^1.1.1",
+    "embla-carousel-react": "^8.6.0",
+    "input-otp": "^1.4.2",
+    "motion": "^12.37.0",
+    "next-themes": "^0.4.6",
+    "react-day-picker": "^9.14.0",
+    "react-resizable-panels": "^4.7.3",
+    "recharts": "2.15.4",
+    "sonner": "^2.0.7",
+    "tailwind-merge": "^3.5.0"
+  },
+  "devDependencies": {
+    "@nyte/tailwind-config": "workspace:*",
+    "@nyte/tsconfig": "workspace:*",
+    "@types/node": "^25.5.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@typescript/native-preview": "7.0.0-dev.20260316.1",
+    "bumpp": "^11.0.1",
+    "tailwindcss": "^4.2.1",
+    "tsdown": "^0.21.4",
+    "typescript": "6.0.0-beta",
+    "vite-plus": "catalog:",
+    "vitest": "catalog:"
+  },
+  "peerDependencies": {
+    "@central-icons-react/round-filled-radius-2-stroke-1.5": "^1.1.157",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4"
+  }
+}

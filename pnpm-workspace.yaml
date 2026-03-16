@@ -1,3 +1,7 @@
+catalog:
+  vite-plus: ^0.1.12
+  vitest: ^4.1.0
+
 packages:
   - "apps/*"
   - "packages/*"
