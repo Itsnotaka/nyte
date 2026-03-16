@@ -233,7 +233,7 @@ function SidebarDesktopStatic({
       <div
         data-sidebar-layer
         data-slot="sidebar-container"
-        className={sidebarLayerVariants({ mode: "static" })}
+        className={cn(sidebarLayerVariants({ mode: "static" }), "h-full")}
         style={layerStyle}
       >
         <aside
@@ -304,7 +304,7 @@ function SidebarDesktopCollapsed({
         <div
           data-sidebar-layer
           data-slot="sidebar-container"
-          className={sidebarLayerVariants({ mode: "collapsed" })}
+          className={cn(sidebarLayerVariants({ mode: "collapsed" }), "h-full")}
           style={previewStyle}
         >
           <aside
@@ -339,7 +339,7 @@ function SidebarMobileDrawer({
       >
         <DrawerContent
           data-slot="sidebar-container"
-          className="gap-0 overflow-hidden border-r border-[var(--sidebar-collapsed-border-color,var(--color-border-strong))] p-0 data-[swipe-direction=right]:w-[var(--sidebar-mobile-width)] data-[swipe-direction=right]:max-w-[var(--sidebar-mobile-width)] data-[swipe-direction=right]:rounded-none data-[swipe-direction=right]:sm:max-w-none"
+          className="h-full gap-0 overflow-hidden border-r border-[var(--sidebar-collapsed-border-color,var(--color-border-strong))] p-0 data-[swipe-direction=right]:w-[var(--sidebar-mobile-width)] data-[swipe-direction=right]:max-w-[var(--sidebar-mobile-width)] data-[swipe-direction=right]:rounded-none data-[swipe-direction=right]:sm:max-w-none"
         >
           <aside
             data-sidebar="sidebar"
@@ -514,12 +514,14 @@ function SidebarContent({ className, ...props }: React.ComponentProps<"div">) {
 
 type SidebarTriggerProps = React.ComponentProps<"button"> & {
   hideWhenExpanded?: boolean;
+  layout?: "floating" | "inline";
 };
 
 function SidebarTrigger({
   className,
   onClick,
   hideWhenExpanded = false,
+  layout = "floating",
   children,
   type,
   ...props
@@ -536,7 +538,10 @@ function SidebarTrigger({
       data-sidebar="trigger"
       data-slot="sidebar-trigger"
       className={cn(
-        "absolute left-3 top-2 z-[2] inline-flex size-6.5 items-center justify-center rounded-[5px] border-0 bg-transparent text-[var(--color-text-muted)] hover:bg-[var(--color-control-bg-hover)] hover:text-[var(--color-text-primary)] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--sidebar-focus-color)]",
+        "inline-flex size-6.5 items-center justify-center rounded-[5px] border-0 bg-transparent text-[var(--color-text-muted)] hover:bg-[var(--color-control-bg-hover)] hover:text-[var(--color-text-primary)] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--sidebar-focus-color)]",
+        layout === "floating"
+          ? "absolute left-3 top-2 z-[2]"
+          : "relative z-[1] shrink-0",
         className
       )}
       onClick={(event) => {
@@ -557,7 +562,51 @@ function SidebarTrigger({
 
 const SidebarRails = SidebarRail;
 
+const insetViewVariants = cva(
+  "mx-auto flex h-full w-full flex-col gap-4 px-4 pb-6 pt-4 sm:px-6",
+  {
+    variants: {
+      maxWidth: {
+        sm: "max-w-[640px]",
+        md: "max-w-[768px]",
+        lg: "max-w-[1024px]",
+        xl: "max-w-[1280px]",
+        "2xl": "max-w-[1536px]",
+        full: "max-w-none",
+      },
+    },
+    defaultVariants: {
+      maxWidth: "xl",
+    },
+  }
+);
+
+type InsetViewProps = React.ComponentProps<"section"> & {
+  maxWidth?: "sm" | "md" | "lg" | "xl" | "2xl" | "full";
+};
+
+function InsetView({
+  className,
+  maxWidth = "xl",
+  children,
+  ...props
+}: InsetViewProps) {
+  return (
+    <section
+      data-slot="inset-view"
+      className={cn(
+        "h-full min-h-0 overflow-auto bg-[var(--color-inset-bg)]",
+        className
+      )}
+      {...props}
+    >
+      <div className={insetViewVariants({ maxWidth })}>{children}</div>
+    </section>
+  );
+}
+
 export {
+  InsetView,
   Sidebar,
   SidebarContent,
   SidebarFooter,
