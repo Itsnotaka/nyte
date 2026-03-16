@@ -1,34 +1,7 @@
-import { err, ok, Result } from "neverthrow";
 import type { ResultAsync } from "neverthrow";
-import type { Octokit } from "octokit";
 
 import { withGitHubInstallationClient } from "./client.ts";
-import {
-  type GitHubAppInstallationAuth,
-  type GitHubBranch,
-  GitHubError,
-} from "./types.ts";
-
-type BranchResponse = Awaited<
-  ReturnType<Octokit["rest"]["repos"]["listBranches"]>
->["data"][number];
-
-function toGitHubBranch(
-  branch: BranchResponse
-): Result<GitHubBranch, GitHubError> {
-  const sha = branch.commit?.sha;
-  if (typeof sha !== "string" || sha.length === 0) {
-    return err(
-      new GitHubError("GitHub branch is missing a commit sha", 0, "unknown")
-    );
-  }
-
-  return ok({
-    name: branch.name,
-    protected: branch.protected,
-    commit: { sha },
-  });
-}
+import { type GitHubAppInstallationAuth, type GitHubBranch, GitHubError } from "./types.ts";
 
 export function listRepositoryBranches(
   auth: GitHubAppInstallationAuth,
@@ -36,10 +9,25 @@ export function listRepositoryBranches(
   repo: string
 ): ResultAsync<GitHubBranch[], GitHubError> {
   return withGitHubInstallationClient(auth, async (client) => {
-    return client.paginate(client.rest.repos.listBranches, {
+    const branches = await client.paginate(client.rest.repos.listBranches, {
       owner,
       repo,
       per_page: 100,
     });
-  }).andThen((branches) => Result.combine(branches.map(toGitHubBranch)));
+    return branches.map((branch) => {
+      const sha = branch.commit?.sha;
+      if (typeof sha !== "string" || sha.length === 0) {
+        throw new GitHubError(
+          "GitHub branch is missing a commit sha",
+          0,
+          "unknown"
+        );
+      }
+      return {
+        name: branch.name,
+        protected: branch.protected,
+        commit: { sha },
+      };
+    });
+  });
 }

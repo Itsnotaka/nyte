@@ -9,8 +9,8 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-inter), system-ui, sans-serif;
   --font-mono:
-    var(--font-berkeley-mono), "SFMono Regular", Consolas, "Liberation Mono",
-    Menlo, Courier, monospace;
+    var(--font-berkeley-mono), "SFMono Regular", Consolas, "Liberation Mono", Menlo, Courier,
+    monospace;
   --text-sm: 0.8125rem;
   --text-sm--line-height: calc(21 / 14);
   --color-sidebar-ring: var(--sidebar-ring);

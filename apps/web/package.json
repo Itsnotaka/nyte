@@ -23,6 +23,7 @@
     "@trpc/server": "^11.13.4",
     "@trpc/tanstack-react-query": "^11.13.4",
     "better-auth": "^1.5.5",
+    "dialkit": "^1.1.0",
     "evlog": "^2.8.0",
     "motion": "^12.37.0",
     "nanoid": "^5.1.7",

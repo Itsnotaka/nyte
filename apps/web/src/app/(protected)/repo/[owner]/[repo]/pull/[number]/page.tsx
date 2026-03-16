@@ -1,5 +1,3 @@
-import type { FileDiffMetadata } from "@pierre/diffs";
-import { parsePatchFiles } from "@pierre/diffs";
 import { notFound } from "next/navigation";
 
 import { getPullRequestPageData } from "~/lib/github/server";
@@ -14,14 +12,6 @@ type PullRequestPageProps = {
   }>;
 };
 
-function parseFiles(diff: string): FileDiffMetadata[] {
-  if (diff.trim().length === 0) {
-    return [];
-  }
-
-  return parsePatchFiles(diff).flatMap((patch) => patch.files);
-}
-
 export default async function PullRequestPage({
   params,
 }: PullRequestPageProps) {
@@ -31,19 +21,10 @@ export default async function PullRequestPage({
     notFound();
   }
 
-  const data = await getPullRequestPageData(owner, repo, pullNumber);
-  if (!data) {
+  const initialData = await getPullRequestPageData(owner, repo, pullNumber);
+  if (!initialData) {
     notFound();
   }
 
-  return (
-    <PullRequestView
-      files={parseFiles(data.diff)}
-      issueComments={data.issueComments}
-      pullRequest={data.pullRequest}
-      repository={data.repository}
-      reviewComments={data.reviewComments}
-      reviews={data.reviews}
-    />
-  );
+  return <PullRequestView initialData={initialData} />;
 }

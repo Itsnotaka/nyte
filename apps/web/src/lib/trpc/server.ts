@@ -27,5 +27,5 @@ export const protectedProcedure = t.procedure.use(
         session: ctx.session,
       },
     });
-  })
+  }),
 );

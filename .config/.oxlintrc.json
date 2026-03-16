@@ -1,14 +1,6 @@
 {
   "$schema": "../node_modules/oxlint/configuration_schema.json",
-  "plugins": [
-    "nextjs",
-    "typescript",
-    "oxc",
-    "import",
-    "promise",
-    "react",
-    "react-perf"
-  ],
+  "plugins": ["nextjs", "typescript", "oxc", "import", "promise", "react", "react-perf"],
   "settings": {
     "next": {
       "rootDir": ["apps/web"]

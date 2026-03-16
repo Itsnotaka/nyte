@@ -12,8 +12,7 @@ export function SetupRedirectView() {
   const router = useRouter();
 
   useEffect(() => {
-    const redirectTo =
-      setup_action === "install" && installation_id ? "/setup/repos" : "/setup";
+    const redirectTo = setup_action === "install" && installation_id ? "/setup/repos" : "/setup";
     router.replace(redirectTo);
   }, [installation_id, setup_action, router]);
 
@@ -25,8 +24,7 @@ export function SetupRedirectView() {
             Finalizing GitHub setup
           </h1>
           <p className="max-w-sm text-sm text-[var(--color-text-muted)]">
-            We&apos;re validating the GitHub app setup and sending you to
-            repository selection.
+            We&apos;re validating the GitHub app setup and sending you to repository selection.
           </p>
         </div>
       </div>

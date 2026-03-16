@@ -1,10 +1,9 @@
 "use client";
 
+import { parsePatchFiles } from "@pierre/diffs";
 import type { DiffLineAnnotation, FileDiffMetadata } from "@pierre/diffs/react";
 import { FileDiff } from "@pierre/diffs/react";
 import type {
-  GitHubIssueComment,
-  GitHubPullRequest,
   GitHubPullRequestReview,
   GitHubPullRequestReviewComment,
   GitHubRepository,
@@ -22,21 +21,21 @@ import {
 import { Input } from "@sachikit/ui/components/input";
 import { InsetView } from "@sachikit/ui/components/sidebar";
 import { Textarea } from "@sachikit/ui/components/textarea";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { inferRouterOutputs } from "@trpc/server";
 import { nanoid } from "nanoid";
-import { useRouter } from "next/navigation";
 import * as React from "react";
 import { Streamdown } from "streamdown";
 
 import { useTRPC } from "~/lib/trpc/client";
+import type { AppRouter } from "~/lib/trpc/router";
+
+type PullRequestPageData = NonNullable<
+  inferRouterOutputs<AppRouter>["github"]["getPullRequestPage"]
+>;
 
 type PullRequestViewProps = {
-  repository: GitHubRepository;
-  pullRequest: GitHubPullRequest;
-  files: FileDiffMetadata[];
-  issueComments: GitHubIssueComment[];
-  reviews: GitHubPullRequestReview[];
-  reviewComments: GitHubPullRequestReviewComment[];
+  initialData: PullRequestPageData;
 };
 
 type DraftComment = {
@@ -84,6 +83,14 @@ function reviewBadge(review: GitHubPullRequestReview): string {
   if (review.state === "CHANGES_REQUESTED") return "changes requested";
   if (review.state === "COMMENTED") return "commented";
   return review.state.toLowerCase();
+}
+
+function parseFiles(diff: string): FileDiffMetadata[] {
+  if (diff.trim().length === 0) {
+    return [];
+  }
+
+  return parsePatchFiles(diff).flatMap((patch) => patch.files);
 }
 
 type MarkdownContentProps = {
@@ -134,35 +141,71 @@ function MarkdownContent({
   );
 }
 
-export function PullRequestView({
-  repository,
-  pullRequest,
-  files,
-  issueComments,
-  reviews,
-  reviewComments,
-}: PullRequestViewProps) {
+export function PullRequestView({ initialData }: PullRequestViewProps) {
   const trpc = useTRPC();
-  const router = useRouter();
+  const queryClient = useQueryClient();
   const [drafts, setDrafts] = React.useState<DraftComment[]>([]);
   const [reviewBody, setReviewBody] = React.useState("");
   const [commentBody, setCommentBody] = React.useState("");
 
+  const queryInput = React.useMemo(
+    () => ({
+      owner: initialData.repository.owner.login,
+      pullNumber: initialData.pullRequest.number,
+      repo: initialData.repository.name,
+    }),
+    [
+      initialData.pullRequest.number,
+      initialData.repository.name,
+      initialData.repository.owner.login,
+    ]
+  );
+
+  const pullRequestPageQueryKey =
+    trpc.github.getPullRequestPage.queryKey(queryInput);
+  const pullRequestPageQuery = useQuery(
+    trpc.github.getPullRequestPage.queryOptions(queryInput, {
+      initialData,
+      staleTime: 0,
+    })
+  );
+
+  const pageData = pullRequestPageQuery.data ?? initialData;
+  const repository = pageData.repository;
+  const pullRequest = pageData.pullRequest;
+  const issueComments = pageData.issueComments;
+  const reviews = pageData.reviews;
+  const reviewComments = pageData.reviewComments;
+  const files = React.useMemo(() => parseFiles(pageData.diff), [pageData.diff]);
+
+  const pullRequestIdentity = React.useMemo(
+    () => ({
+      owner: repository.owner.login,
+      pullNumber: pullRequest.number,
+      repo: repository.name,
+    }),
+    [pullRequest.number, repository.name, repository.owner.login]
+  );
+
   const addComment = useMutation(
     trpc.github.addPullRequestComment.mutationOptions({
-      onSuccess: () => {
+      onSuccess: async () => {
         setCommentBody("");
-        router.refresh();
+        await queryClient.invalidateQueries({
+          queryKey: pullRequestPageQueryKey,
+        });
       },
     })
   );
 
   const submitReview = useMutation(
     trpc.github.submitPullRequestReview.mutationOptions({
-      onSuccess: () => {
+      onSuccess: async () => {
         setDrafts([]);
         setReviewBody("");
-        router.refresh();
+        await queryClient.invalidateQueries({
+          queryKey: pullRequestPageQueryKey,
+        });
       },
     })
   );
@@ -213,21 +256,17 @@ export function PullRequestView({
       }));
 
     void submitReview.mutateAsync({
+      ...pullRequestIdentity,
       body: reviewBody.trim().length > 0 ? reviewBody.trim() : undefined,
       comments: comments.length > 0 ? comments : undefined,
       event,
-      owner: repository.owner.login,
-      pullNumber: pullRequest.number,
-      repo: repository.name,
     });
   }
 
   function onAddComment() {
     void addComment.mutateAsync({
+      ...pullRequestIdentity,
       body: commentBody.trim(),
-      owner: repository.owner.login,
-      pullNumber: pullRequest.number,
-      repo: repository.name,
     });
   }
 

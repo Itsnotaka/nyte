@@ -1,9 +1,8 @@
 import { redirect } from "next/navigation";
 
-import { getInstallationRepos, getOnboardingState } from "~/lib/github/server";
+import { getInboxData, getOnboardingState } from "~/lib/github/server";
 
-import { RepoProvider } from "./_components/repo-context";
-import { RepoLanding } from "./_components/repo-landing";
+import { InboxView } from "./_components/inbox-view";
 
 export default async function App() {
   const state = await getOnboardingState();
@@ -12,12 +11,11 @@ export default async function App() {
     redirect("/setup");
   }
 
-  const firstInstallation = state.installations[0]!;
-  const repos = await getInstallationRepos(firstInstallation.id);
+  const data = await getInboxData();
 
-  return (
-    <RepoProvider installations={state.installations} repos={repos}>
-      <RepoLanding />
-    </RepoProvider>
-  );
+  if (!data) {
+    redirect("/setup");
+  }
+
+  return <InboxView data={data} />;
 }

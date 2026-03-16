@@ -1,7 +1,9 @@
+import { DialRoot } from "dialkit";
 import { Inter } from "next/font/google";
-import localFont from "next/font/local";
 
 import "../styles/globals.css";
+import "dialkit/styles.css";
+import localFont from "next/font/local";
 import Script from "next/script";
 
 import { Providers } from "~/components/providers";
@@ -53,10 +55,9 @@ export default function RootLayout({
           />
         )}
       </head>
-      <body
-        className={`${inter.variable} ${berkeleyMono.variable} h-full font-sans`}
-      >
+      <body className={`${inter.variable} ${berkeleyMono.variable} h-full font-sans`}>
         <Providers>{children}</Providers>
+        <DialRoot />
       </body>
     </html>
   );

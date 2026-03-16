@@ -10,10 +10,7 @@ export type CommandRunState = {
     suggestedContactEmail?: string;
     cta: "Send email" | "Create event" | "Queue refund";
     payload: {
-      kind:
-        | "gmail.createDraft"
-        | "google-calendar.createEvent"
-        | "billing.queueRefund";
+      kind: "gmail.createDraft" | "google-calendar.createEvent" | "billing.queueRefund";
     };
   };
   retrievalHits: Array<{

@@ -54,6 +54,7 @@ export type GitHubPullRequest = {
   created_at: string;
   updated_at: string;
   user: GitHubAccount;
+  requested_reviewers: GitHubAccount[];
   head: {
     ref: string;
     sha: string;

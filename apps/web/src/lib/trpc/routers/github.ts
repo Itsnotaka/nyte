@@ -4,6 +4,8 @@ import {
   addPullRequestComment,
   addPullRequestReview,
   getGitHubAppInstallUrl,
+  getPullRequestPageData,
+  getRepoSubmitPageData,
   resolveGitHubAppSetupRedirect,
   saveBranchPullRequest,
 } from "../../github/server";
@@ -11,6 +13,8 @@ import { createTRPCRouter, protectedProcedure } from "../server";
 
 const FAILURES = {
   addComment: "Failed to add pull request comment.",
+  getPullRequestPage: "Pull request page data not found.",
+  getRepoSubmitPage: "Repository submit page data not found.",
   review: "Failed to submit pull request review.",
   savePullRequest: "Failed to save pull request.",
 } as const;
@@ -28,6 +32,46 @@ export const githubRouter = createTRPCRouter({
     )
     .mutation(({ input }) => {
       return resolveGitHubAppSetupRedirect(input);
+    }),
+  getPullRequestPage: protectedProcedure
+    .input(
+      z.object({
+        owner: z.string().min(1),
+        repo: z.string().min(1),
+        pullNumber: z.number().int().positive(),
+      })
+    )
+    .query(async ({ input }) => {
+      const data = await getPullRequestPageData(
+        input.owner,
+        input.repo,
+        input.pullNumber
+      );
+      if (!data) {
+        throw new Error(FAILURES.getPullRequestPage);
+      }
+
+      return data;
+    }),
+  getRepoSubmitPage: protectedProcedure
+    .input(
+      z.object({
+        owner: z.string().min(1),
+        repo: z.string().min(1),
+        branch: z.string().min(1).nullable(),
+      })
+    )
+    .query(async ({ input }) => {
+      const data = await getRepoSubmitPageData(
+        input.owner,
+        input.repo,
+        input.branch
+      );
+      if (!data) {
+        throw new Error(FAILURES.getRepoSubmitPage);
+      }
+
+      return data;
     }),
   savePullRequest: protectedProcedure
     .input(

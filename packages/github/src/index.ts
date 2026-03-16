@@ -1,3 +1,4 @@
+export { withGitHubClient } from "./client.ts";
 export {
   listUserInstallations,
   getInstallUrl,

@@ -142,8 +142,7 @@ function SidebarProvider({
     "--sidebar-mobile-width": `min(calc(100vw - 40px), ${SIDEBAR_MOBILE_WIDTH}px)`,
     "--sidebar-transition-fast": "var(--speed-quickTransition, 0.1s)",
     "--sidebar-transition-normal": "var(--speed-regularTransition, 0.25s)",
-    "--sidebar-ease":
-      "var(--ease-out-cubic, cubic-bezier(0.215, 0.61, 0.355, 1))",
+    "--sidebar-ease": "var(--ease-out, cubic-bezier(0.25, 0.1, 0.25, 1))",
     "--sidebar-focus-color": "var(--color-focus)",
     "--sidebar-rail-indicator-color": "var(--color-rail)",
     "--sidebar-rail-indicator-active-color": "var(--color-icon-active)",
@@ -197,7 +196,7 @@ function SidebarSpacer({ expanded, shouldReduceMotion }: SidebarSpacerProps) {
     flexBasis: expanded ? "var(--sidebar-desktop-width)" : "0px",
     transition: shouldReduceMotion
       ? "none"
-      : "width var(--sidebar-transition-fast) var(--sidebar-ease)",
+      : "width var(--sidebar-transition-normal) var(--sidebar-ease), flex-basis var(--sidebar-transition-normal) var(--sidebar-ease)",
   } as React.CSSProperties;
 
   return (

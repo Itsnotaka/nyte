@@ -15,6 +15,7 @@ import {
   listUserInstallations,
   markPullRequestReadyForReview,
   submitPullRequestReview,
+  withGitHubClient,
   type GitHubAppInstallationAuth,
   type GitHubBranch,
   type GitHubInstallation,
@@ -34,6 +35,7 @@ import { cache } from "react";
 
 import { auth } from "../auth";
 import { getSession } from "../auth/server";
+import { log } from "../evlog";
 import { env } from "../server/env";
 
 type SetupRedirectInput = {
@@ -65,6 +67,14 @@ export type PullRequestPageData = {
   issueComments: GitHubIssueComment[];
   reviews: GitHubPullRequestReview[];
   reviewComments: GitHubPullRequestReviewComment[];
+};
+
+export type RepoSubmitPageData = {
+  repository: GitHubRepository;
+  branches: GitHubBranch[];
+  selectedBranch: string | null;
+  existingPullRequest: GitHubPullRequest | null;
+  openPullRequests: GitHubPullRequest[];
 };
 
 async function getGitHubAccessToken(): Promise<Result<string, TokenError>> {
@@ -167,10 +177,11 @@ export const findRepoContext = cache(
   }
 );
 
-export async function getRepoBranches(
+export async function getRepoSubmitPageData(
   owner: string,
-  repo: string
-): Promise<{ repository: GitHubRepository; branches: GitHubBranch[] } | null> {
+  repo: string,
+  branch: string | null
+): Promise<RepoSubmitPageData | null> {
   const context = await findRepoContext(owner, repo);
   if (!context) {
     return null;
@@ -182,65 +193,42 @@ export async function getRepoBranches(
     context.repository.name
   ).unwrapOr([]);
 
+  const selectableBranches = branches.filter(
+    (candidate) => candidate.name !== context.repository.default_branch
+  );
+  const selectedBranch =
+    branch && selectableBranches.some((candidate) => candidate.name === branch)
+      ? branch
+      : (selectableBranches[0]?.name ?? null);
+
+  const [existingPullRequest, openPullRequests] = await Promise.all([
+    selectedBranch
+      ? findPullRequestByHead(
+          context.auth,
+          owner,
+          context.repository.name,
+          selectedBranch,
+          {
+            base: context.repository.default_branch,
+            headOwner: context.repository.owner.login,
+            state: "all",
+          }
+        ).unwrapOr(null)
+      : Promise.resolve(null),
+    listRepositoryPullRequests(
+      context.auth,
+      owner,
+      context.repository.name,
+      "open"
+    ).unwrapOr([]),
+  ]);
+
   return {
     repository: context.repository,
     branches,
-  };
-}
-
-export async function getRepoPullRequests(
-  owner: string,
-  repo: string
-): Promise<{
-  repository: GitHubRepository;
-  pullRequests: GitHubPullRequest[];
-} | null> {
-  const context = await findRepoContext(owner, repo);
-  if (!context) {
-    return null;
-  }
-
-  const pullRequests = await listRepositoryPullRequests(
-    context.auth,
-    owner,
-    context.repository.name,
-    "open"
-  ).unwrapOr([]);
-
-  return {
-    repository: context.repository,
-    pullRequests,
-  };
-}
-
-export async function getBranchPullRequest(
-  owner: string,
-  repo: string,
-  branch: string
-): Promise<{
-  repository: GitHubRepository;
-  pullRequest: GitHubPullRequest | null;
-} | null> {
-  const context = await findRepoContext(owner, repo);
-  if (!context) {
-    return null;
-  }
-
-  const pullRequest = await findPullRequestByHead(
-    context.auth,
-    owner,
-    context.repository.name,
-    branch,
-    {
-      base: context.repository.default_branch,
-      headOwner: context.repository.owner.login,
-      state: "all",
-    }
-  ).unwrapOr(null);
-
-  return {
-    repository: context.repository,
-    pullRequest,
+    selectedBranch,
+    existingPullRequest,
+    openPullRequests,
   };
 }
 
@@ -455,4 +443,71 @@ export async function addPullRequestReview(input: {
       throw error;
     }
   );
+}
+
+const getAuthenticatedGitHubLogin = cache(async (): Promise<string | null> => {
+  const tokenResult = await getGitHubAccessToken();
+  if (tokenResult.isErr()) return null;
+
+  return withGitHubClient(tokenResult.value, async (client) => {
+    const { data } = await client.rest.users.getAuthenticated();
+    return data.login;
+  }).unwrapOr(null);
+});
+
+export type InboxPullRequest = GitHubPullRequest & {
+  repoFullName: string;
+  repoOwner: string;
+  repoName: string;
+};
+
+export type InboxData = {
+  login: string;
+  pullRequests: InboxPullRequest[];
+};
+
+export async function getInboxData(): Promise<InboxData | null> {
+  const state = await getOnboardingState();
+  if (state.step !== "has_installations") return null;
+
+  const ghLogin = await getAuthenticatedGitHubLogin();
+  if (!ghLogin) return null;
+
+  const allPullRequests: InboxPullRequest[] = [];
+
+  for (const installation of state.installations) {
+    const installationAuth = getGitHubAppAuth(installation.id);
+    const repos = await getInstallationRepos(installation.id);
+
+    const repoPRResults = await Promise.all(
+      repos.map((repo) =>
+        listRepositoryPullRequests(
+          installationAuth,
+          repo.owner.login,
+          repo.name,
+          "open"
+        ).unwrapOr([])
+      )
+    );
+
+    for (let i = 0; i < repos.length; i++) {
+      const repo = repos[i]!;
+      const prs = repoPRResults[i]!;
+      for (const pr of prs) {
+        allPullRequests.push({
+          ...pr,
+          repoFullName: repo.full_name,
+          repoOwner: repo.owner.login,
+          repoName: repo.name,
+        });
+      }
+    }
+  }
+
+  log.info(
+    "inbox",
+    `Fetched ${String(allPullRequests.length)} open PRs for ${ghLogin}`
+  );
+
+  return { login: ghLogin, pullRequests: allPullRequests };
 }

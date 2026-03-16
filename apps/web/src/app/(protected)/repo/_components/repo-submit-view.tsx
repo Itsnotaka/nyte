@@ -1,10 +1,5 @@
 "use client";
 
-import type {
-  GitHubBranch,
-  GitHubPullRequest,
-  GitHubRepository,
-} from "@sachikit/github";
 import { Badge } from "@sachikit/ui/components/badge";
 import { Button } from "@sachikit/ui/components/button";
 import {
@@ -22,19 +17,17 @@ import {
 } from "@sachikit/ui/components/native-select";
 import { InsetView } from "@sachikit/ui/components/sidebar";
 import { Textarea } from "@sachikit/ui/components/textarea";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { parseAsString, useQueryState } from "nuqs";
 import * as React from "react";
 
+import type { RepoSubmitPageData } from "~/lib/github/server";
 import { useTRPC } from "~/lib/trpc/client";
 
 type RepoSubmitViewProps = {
-  repository: GitHubRepository;
-  branches: GitHubBranch[];
-  initialBranch: string | null;
-  existingPullRequest: GitHubPullRequest | null;
-  openPullRequests: GitHubPullRequest[];
+  initialData: RepoSubmitPageData;
 };
 
 function branchTitle(branch: string): string {
@@ -63,54 +56,102 @@ function formatUpdated(dateString: string): string {
   return `${String(Math.floor(diffDays / 30))}mo ago`;
 }
 
-export function RepoSubmitView({
-  repository,
-  branches,
-  initialBranch,
-  existingPullRequest,
-  openPullRequests,
-}: RepoSubmitViewProps) {
+function getDraftValues(data: RepoSubmitPageData) {
+  return {
+    body: data.existingPullRequest?.body ?? "",
+    title:
+      data.existingPullRequest?.title ??
+      (data.selectedBranch ? branchTitle(data.selectedBranch) : ""),
+  };
+}
+
+export function RepoSubmitView({ initialData }: RepoSubmitViewProps) {
   const trpc = useTRPC();
   const router = useRouter();
-  const [title, setTitle] = React.useState(
-    existingPullRequest?.title ??
-      (initialBranch ? branchTitle(initialBranch) : "")
+  const queryClient = useQueryClient();
+  const [branch, setBranch] = useQueryState("branch", parseAsString);
+  const initialBranchRef = React.useRef(branch);
+  const shouldUseInitialDataRef = React.useRef(true);
+  const queryInput = React.useMemo(
+    () => ({
+      branch,
+      owner: initialData.repository.owner.login,
+      repo: initialData.repository.name,
+    }),
+    [branch, initialData.repository.name, initialData.repository.owner.login]
   );
-  const [body, setBody] = React.useState(existingPullRequest?.body ?? "");
+  const initialQueryData =
+    shouldUseInitialDataRef.current && branch === initialBranchRef.current
+      ? initialData
+      : undefined;
+  if (initialQueryData) {
+    shouldUseInitialDataRef.current = false;
+  }
+  const repoSubmitPage = useQuery(
+    trpc.github.getRepoSubmitPage.queryOptions(queryInput, {
+      initialData: initialQueryData,
+      placeholderData: (previousData) => previousData,
+      staleTime: 0,
+    })
+  );
+  const data = repoSubmitPage.data ?? initialData;
+  const {
+    repository,
+    branches,
+    existingPullRequest,
+    openPullRequests,
+    selectedBranch,
+  } = data;
+  const selectable = React.useMemo(
+    () => branches.filter((item) => item.name !== repository.default_branch),
+    [branches, repository.default_branch]
+  );
+  const branchValues = React.useMemo(() => getDraftValues(data), [data]);
+  const [title, setTitle] = React.useState(branchValues.title);
+  const [body, setBody] = React.useState(branchValues.body);
+  const lastSelectedBranchRef = React.useRef(selectedBranch);
+  const hasClosedPullRequest =
+    existingPullRequest != null &&
+    (existingPullRequest.state === "closed" || existingPullRequest.merged);
+  const isBranchTransitionPending =
+    repoSubmitPage.isFetching && branch != null && branch !== selectedBranch;
+  const isFormDisabled =
+    !selectedBranch || hasClosedPullRequest || isBranchTransitionPending;
+
+  React.useEffect(() => {
+    if (lastSelectedBranchRef.current === selectedBranch) {
+      return;
+    }
+
+    lastSelectedBranchRef.current = selectedBranch;
+    setTitle(branchValues.title);
+    setBody(branchValues.body);
+  }, [branchValues.body, branchValues.title, selectedBranch]);
 
   const savePullRequest = useMutation(
     trpc.github.savePullRequest.mutationOptions({
-      onSuccess: (pullRequest) => {
+      onSuccess: async (pullRequest) => {
+        await queryClient.invalidateQueries({
+          queryKey: trpc.github.getRepoSubmitPage.queryKey(queryInput),
+        });
         router.push(
           `/repo/${repository.owner.login}/${repository.name}/pull/${String(pullRequest.number)}`
         );
-        router.refresh();
       },
     })
   );
 
-  const selectable = branches.filter(
-    (branch) => branch.name !== repository.default_branch
-  );
-  const currentBranch = initialBranch ?? selectable[0]?.name ?? null;
-  const hasClosedPullRequest =
-    existingPullRequest != null &&
-    (existingPullRequest.state === "closed" || existingPullRequest.merged);
-
   function onBranchChange(event: React.ChangeEvent<HTMLSelectElement>) {
-    const branch = event.target.value;
-    router.push(
-      `/repo/${repository.owner.login}/${repository.name}/submit?branch=${encodeURIComponent(branch)}`
-    );
+    void setBranch(event.target.value);
   }
 
   function onSave(draft: boolean) {
-    if (!currentBranch) return;
+    if (!selectedBranch || isBranchTransitionPending) return;
 
     void savePullRequest.mutateAsync({
       body,
       draft,
-      head: currentBranch,
+      head: selectedBranch,
       owner: repository.owner.login,
       repo: repository.name,
       title: title.trim(),
@@ -153,12 +194,13 @@ export function RepoSubmitView({
                   Head branch
                 </label>
                 <NativeSelect
-                  value={currentBranch ?? ""}
+                  value={branch ?? selectedBranch ?? ""}
                   onChange={onBranchChange}
+                  disabled={savePullRequest.isPending}
                 >
-                  {selectable.map((branch) => (
-                    <NativeSelectOption key={branch.name} value={branch.name}>
-                      {branch.name}
+                  {selectable.map((item) => (
+                    <NativeSelectOption key={item.name} value={item.name}>
+                      {item.name}
                     </NativeSelectOption>
                   ))}
                 </NativeSelect>
@@ -177,7 +219,7 @@ export function RepoSubmitView({
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
                 placeholder="Pull request title"
-                disabled={!currentBranch || hasClosedPullRequest}
+                disabled={isFormDisabled}
               />
             </div>
 
@@ -189,7 +231,7 @@ export function RepoSubmitView({
                 value={body}
                 onChange={(event) => setBody(event.target.value)}
                 placeholder="What changed?"
-                disabled={!currentBranch || hasClosedPullRequest}
+                disabled={isFormDisabled}
               />
             </div>
 
@@ -228,8 +270,7 @@ export function RepoSubmitView({
               <Button
                 variant="outline"
                 disabled={
-                  !currentBranch ||
-                  hasClosedPullRequest ||
+                  isFormDisabled ||
                   title.trim().length === 0 ||
                   savePullRequest.isPending
                 }
@@ -239,8 +280,7 @@ export function RepoSubmitView({
               </Button>
               <Button
                 disabled={
-                  !currentBranch ||
-                  hasClosedPullRequest ||
+                  isFormDisabled ||
                   title.trim().length === 0 ||
                   savePullRequest.isPending
                 }
