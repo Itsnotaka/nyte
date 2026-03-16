@@ -20,10 +20,8 @@ export function SetupRedirectView() {
     <section className="flex h-full items-center justify-center px-4">
       <div className="mx-auto flex w-full max-w-md flex-col items-center gap-4 text-center">
         <div className="flex flex-col items-center gap-2">
-          <h1 className="text-xl font-semibold text-[var(--color-text-primary)]">
-            Finalizing GitHub setup
-          </h1>
-          <p className="max-w-sm text-sm text-[var(--color-text-muted)]">
+          <h1 className="text-xl font-semibold text-sachi-fg">Finalizing GitHub setup</h1>
+          <p className="max-w-sm text-sm text-sachi-fg-muted">
             We&apos;re validating the GitHub app setup and sending you to repository selection.
           </p>
         </div>

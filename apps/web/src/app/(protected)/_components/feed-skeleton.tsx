@@ -6,7 +6,7 @@ export function FeedSkeleton() {
       {Array.from({ length: 4 }, (_, index) => (
         <div
           key={`feed-skeleton-${index}`}
-          className="rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-main-bg)] p-4"
+          className="rounded-xl border border-sachi-line-subtle bg-sachi-surface p-4"
         >
           <div className="space-y-3">
             <div className="flex gap-2">

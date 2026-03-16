@@ -12,9 +12,7 @@ type PullRequestPageProps = {
   }>;
 };
 
-export default async function PullRequestPage({
-  params,
-}: PullRequestPageProps) {
+export default async function PullRequestPage({ params }: PullRequestPageProps) {
   const { owner, repo, number } = await params;
   const pullNumber = Number(number);
   if (!Number.isInteger(pullNumber) || pullNumber <= 0) {

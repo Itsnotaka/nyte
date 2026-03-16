@@ -28,7 +28,7 @@ export const githubRouter = createTRPCRouter({
       z.object({
         installationId: z.number().int().positive().nullable(),
         setupAction: z.string().nullable(),
-      })
+      }),
     )
     .mutation(({ input }) => {
       return resolveGitHubAppSetupRedirect(input);
@@ -39,14 +39,10 @@ export const githubRouter = createTRPCRouter({
         owner: z.string().min(1),
         repo: z.string().min(1),
         pullNumber: z.number().int().positive(),
-      })
+      }),
     )
     .query(async ({ input }) => {
-      const data = await getPullRequestPageData(
-        input.owner,
-        input.repo,
-        input.pullNumber
-      );
+      const data = await getPullRequestPageData(input.owner, input.repo, input.pullNumber);
       if (!data) {
         throw new Error(FAILURES.getPullRequestPage);
       }
@@ -59,14 +55,10 @@ export const githubRouter = createTRPCRouter({
         owner: z.string().min(1),
         repo: z.string().min(1),
         branch: z.string().min(1).nullable(),
-      })
+      }),
     )
     .query(async ({ input }) => {
-      const data = await getRepoSubmitPageData(
-        input.owner,
-        input.repo,
-        input.branch
-      );
+      const data = await getRepoSubmitPageData(input.owner, input.repo, input.branch);
       if (!data) {
         throw new Error(FAILURES.getRepoSubmitPage);
       }
@@ -82,7 +74,7 @@ export const githubRouter = createTRPCRouter({
         owner: z.string().min(1),
         repo: z.string().min(1),
         title: z.string().min(1),
-      })
+      }),
     )
     .mutation(async ({ input }) => {
       try {
@@ -105,7 +97,7 @@ export const githubRouter = createTRPCRouter({
         owner: z.string().min(1),
         pullNumber: z.number().int().positive(),
         repo: z.string().min(1),
-      })
+      }),
     )
     .mutation(async ({ input }) => {
       try {
@@ -130,14 +122,14 @@ export const githubRouter = createTRPCRouter({
               line: z.number().int().positive(),
               path: z.string().min(1),
               side: z.enum(["LEFT", "RIGHT"]),
-            })
+            }),
           )
           .optional(),
         event: z.enum(["APPROVE", "REQUEST_CHANGES", "COMMENT"]),
         owner: z.string().min(1),
         pullNumber: z.number().int().positive(),
         repo: z.string().min(1),
-      })
+      }),
     )
     .mutation(async ({ input }) => {
       const body = input.body?.trim();
@@ -148,10 +140,7 @@ export const githubRouter = createTRPCRouter({
         side: comment.side,
       }));
 
-      if (
-        (!body || body.length === 0) &&
-        (!comments || comments.length === 0)
-      ) {
+      if ((!body || body.length === 0) && (!comments || comments.length === 0)) {
         throw new Error(FAILURES.review);
       }
 

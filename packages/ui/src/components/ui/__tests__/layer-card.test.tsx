@@ -23,9 +23,10 @@ describe("LayerCard", () => {
     expect(html).toContain("root-class");
     expect(html).toContain("secondary-class");
     expect(html).toContain("primary-class");
-    expect(html).toContain("bg-card");
+    expect(html).toContain("bg-sachi-fill");
+    expect(html).not.toMatch(/\bp-1\.5\b/);
     expect(html).toContain("justify-between");
-    expect(html).toContain("bg-background");
+    expect(html).toContain("bg-sachi-base");
     expect(html).toContain('id="layer-card-root"');
     expect(html).toContain('aria-label="Layer content"');
   });

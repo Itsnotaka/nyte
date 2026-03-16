@@ -52,20 +52,16 @@ export function RepoPickerView({
             <AvatarImage src={installation.account.avatar_url} />
             <AvatarFallback>{installation.account.login.charAt(0).toUpperCase()}</AvatarFallback>
           </Avatar>
-          <h1 className="text-xl font-semibold text-[var(--color-text-primary)]">
-            Select repos to sync
-          </h1>
-          <p className="max-w-sm text-sm text-[var(--color-text-muted)]">
+          <h1 className="text-xl font-semibold text-sachi-fg">Select repos to sync</h1>
+          <p className="max-w-sm text-sm text-sachi-fg-muted">
             Choose the repositories you want to work with in Nyte. You can change this later.
           </p>
         </div>
 
-        <div className="w-full rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-main-bg)]">
+        <div className="w-full rounded-xl border border-sachi-line-subtle bg-sachi-surface">
           <div className="flex items-center justify-between px-4 pt-3 pb-2">
-            <span className="text-sm font-medium text-[var(--color-text-primary)]">
-              Select repositories
-            </span>
-            <span className="text-xs text-[var(--color-text-muted)]">
+            <span className="text-sm font-medium text-sachi-fg">Select repositories</span>
+            <span className="text-xs text-sachi-fg-muted">
               {selected.size} of {repos.length} repos selected
             </span>
           </div>
@@ -83,31 +79,31 @@ export function RepoPickerView({
             {filtered.map((repo) => (
               <label
                 key={repo.id}
-                className="flex cursor-pointer items-center gap-3 px-4 py-2 transition-colors hover:bg-[var(--color-sidebar-link-bg)]"
+                className="flex cursor-pointer items-center gap-3 px-4 py-2 transition-colors hover:bg-sachi-fill"
               >
                 <Checkbox
                   checked={selected.has(repo.id)}
                   onCheckedChange={() => toggleRepo(repo.id)}
                 />
-                <span className="text-sm text-[var(--color-text-secondary)]">{repo.name}</span>
+                <span className="text-sm text-sachi-fg-secondary">{repo.name}</span>
                 {repo.private ? (
-                  <span className="ml-auto text-xs text-[var(--color-text-faint)]">private</span>
+                  <span className="ml-auto text-xs text-sachi-fg-faint">private</span>
                 ) : null}
               </label>
             ))}
             {filtered.length === 0 ? (
-              <p className="px-4 py-4 text-center text-sm text-[var(--color-text-muted)]">
+              <p className="px-4 py-4 text-center text-sm text-sachi-fg-muted">
                 No repositories match your search.
               </p>
             ) : null}
           </div>
 
           {selected.size > 0 ? (
-            <div className="border-t border-[var(--color-border-subtle)] px-4 py-2">
+            <div className="border-t border-sachi-line-subtle px-4 py-2">
               <button
                 type="button"
                 onClick={clearAll}
-                className="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]"
+                className="text-xs text-sachi-fg-muted hover:text-sachi-fg-secondary"
               >
                 Clear all
               </button>

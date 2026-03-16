@@ -172,8 +172,7 @@ export function createContactPill(input: {
   span.dataset.email = input.email;
   span.dataset.display = input.display;
   span.contentEditable = "false";
-  span.className =
-    "mx-0.5 inline-flex items-center rounded-md bg-[var(--color-inset-bg)] px-1.5 py-0.5 text-xs";
+  span.className = "mx-0.5 inline-flex items-center rounded-md bg-sachi-base px-1.5 py-0.5 text-xs";
   span.textContent = `@${input.display}`;
   return span;
 }

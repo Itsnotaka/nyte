@@ -6,7 +6,7 @@ import { type GitHubAppInstallationAuth, type GitHubBranch, GitHubError } from "
 export function listRepositoryBranches(
   auth: GitHubAppInstallationAuth,
   owner: string,
-  repo: string
+  repo: string,
 ): ResultAsync<GitHubBranch[], GitHubError> {
   return withGitHubInstallationClient(auth, async (client) => {
     const branches = await client.paginate(client.rest.repos.listBranches, {
@@ -17,11 +17,7 @@ export function listRepositoryBranches(
     return branches.map((branch) => {
       const sha = branch.commit?.sha;
       if (typeof sha !== "string" || sha.length === 0) {
-        throw new GitHubError(
-          "GitHub branch is missing a commit sha",
-          0,
-          "unknown"
-        );
+        throw new GitHubError("GitHub branch is missing a commit sha", 0, "unknown");
       }
       return {
         name: branch.name,

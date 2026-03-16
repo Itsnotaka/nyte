@@ -1,9 +1,5 @@
 export { withGitHubClient } from "./client.ts";
-export {
-  listUserInstallations,
-  getInstallUrl,
-  getInstallUrlForAccount,
-} from "./installations.ts";
+export { listUserInstallations, getInstallUrl, getInstallUrlForAccount } from "./installations.ts";
 export { listInstallationRepos } from "./repositories.ts";
 export { listRepositoryBranches } from "./branches.ts";
 export {

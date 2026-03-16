@@ -37,8 +37,8 @@ export function ConnectView() {
     <section className="flex h-full items-center justify-center px-4">
       <div className="mx-auto flex w-full max-w-md flex-col items-center gap-4 text-center">
         <div className="flex flex-col items-center gap-2">
-          <h1 className="text-xl font-semibold text-[var(--color-text-primary)]">Connect GitHub</h1>
-          <p className="max-w-sm text-sm text-[var(--color-text-muted)]">
+          <h1 className="text-xl font-semibold text-sachi-fg">Connect GitHub</h1>
+          <p className="max-w-sm text-sm text-sachi-fg-muted">
             Install the Nyte GitHub App on your account to get started. This gives Nyte read access
             to your repositories.
           </p>
@@ -62,7 +62,7 @@ export function ConnectView() {
           </p>
         ) : null}
 
-        <p className="text-xs text-[var(--color-text-faint)]">
+        <p className="text-xs text-sachi-fg-faint">
           {didOpenGithub
             ? "GitHub opened in a new tab. Finish installation there and we'll bring you back automatically."
             : "We'll open GitHub in a new tab so you can finish installation without losing your place."}

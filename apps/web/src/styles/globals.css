@@ -16,9 +16,9 @@ a {
   --sidebar-transition-fast: var(--speed-quickTransition);
   --sidebar-transition-normal: var(--speed-regularTransition);
   --sidebar-ease: var(--ease-out-cubic);
-  --sidebar-rail-indicator-color: var(--color-rail);
-  --sidebar-rail-indicator-active-color: var(--color-icon-active);
-  --sidebar-focus-color: var(--color-focus);
-  --sidebar-collapsed-border-color: var(--color-border-strong);
+  --sidebar-rail-indicator-color: var(--color-sachi-rail);
+  --sidebar-rail-indicator-active-color: var(--color-sachi-accent);
+  --sidebar-focus-color: var(--color-sachi-focus);
+  --sidebar-collapsed-border-color: var(--color-sachi-line);
   --sidebar-collapsed-shadow: 0 14px 32px rgba(7, 9, 14, 0.24), 0 3px 12px rgba(7, 9, 14, 0.18);
 }

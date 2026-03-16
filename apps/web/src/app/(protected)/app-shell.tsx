@@ -42,12 +42,10 @@ function RepoSelector() {
   return (
     <div className="mt-2">
       <DropdownMenu>
-        <DropdownMenuTrigger className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-sm font-medium text-[var(--color-text-primary)] hover:bg-[var(--color-sidebar-link-bg)] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-focus)]">
-          <span className="truncate">
-            {selectedRepo ? selectedRepo.name : "Select repo"}
-          </span>
+        <DropdownMenuTrigger className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-sm font-medium text-sachi-fg hover:bg-sachi-fill focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-sachi-focus">
+          <span className="truncate">{selectedRepo ? selectedRepo.name : "Select repo"}</span>
           <IconChevronDownMedium
-            className="size-4 shrink-0 text-[var(--color-text-faint)]"
+            className="size-4 shrink-0 text-sachi-fg-faint"
             aria-hidden="true"
           />
         </DropdownMenuTrigger>
@@ -62,7 +60,7 @@ function RepoSelector() {
               >
                 <span className="truncate">{repo.name}</span>
                 {selectedRepo?.id === repo.id ? (
-                  <IconCheckmark2Small className="size-4 shrink-0 text-[var(--color-text-muted)]" />
+                  <IconCheckmark2Small className="size-4 shrink-0 text-sachi-fg-muted" />
                 ) : null}
               </DropdownMenuItem>
             ))}
@@ -97,6 +95,17 @@ function useSidebarAnimation() {
   } as React.CSSProperties;
 }
 
+function getPageLabel(pathname: string): string | null {
+  if (pathname === "/") return "Inbox";
+  return null;
+}
+
+function HeaderLabel({ pathname }: { pathname: string }) {
+  const label = getPageLabel(pathname);
+  if (!label) return null;
+  return <span className="ml-3 text-sm font-medium text-sachi-fg">{label}</span>;
+}
+
 export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
   const animationStyle = useSidebarAnimation();
@@ -104,10 +113,10 @@ export function AppShell({ children }: AppShellProps) {
 
   return (
     <SidebarProvider
-      className="h-dvh w-full bg-[var(--color-shell-bg)] text-[var(--color-text-secondary)]"
+      className="h-dvh w-full bg-sachi-shell text-sachi-fg-secondary"
       style={animationStyle}
     >
-      <Sidebar className="bg-[var(--color-sidebar-bg)]">
+      <Sidebar className="bg-sachi-sidebar">
         <SidebarHeader className="px-2.5">
           <RepoSelector />
         </SidebarHeader>
@@ -116,10 +125,10 @@ export function AppShell({ children }: AppShellProps) {
           <nav aria-label="Primary">
             <Link
               href="/"
-              className={`flex rounded-md px-2 py-1.5 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-focus)] ${
+              className={`flex rounded-md px-2 py-1.5 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-sachi-focus ${
                 isHomePage
-                  ? "bg-[var(--color-sidebar-link-bg)] text-[var(--color-text-primary)]"
-                  : "text-[var(--color-text-secondary)] hover:bg-[var(--color-sidebar-link-bg)] hover:text-[var(--color-text-primary)]"
+                  ? "bg-sachi-fill text-sachi-fg"
+                  : "text-sachi-fg-secondary hover:bg-sachi-fill hover:text-sachi-fg"
               }`}
             >
               Home
@@ -130,9 +139,10 @@ export function AppShell({ children }: AppShellProps) {
         <SidebarRail />
       </Sidebar>
 
-      <SidebarInset className="bg-[var(--color-main-bg)]">
-        <header className="flex h-10 shrink-0 items-center border-b border-[var(--color-border-subtle)] bg-[var(--color-main-bg)] px-3">
+      <SidebarInset className="bg-sachi-surface">
+        <header className="flex h-10 shrink-0 items-center border-b border-sachi-line-subtle bg-sachi-surface px-3">
           <SidebarTrigger layout="inline" />
+          <HeaderLabel pathname={pathname} />
         </header>
         <div className="min-h-0 flex-1">{children}</div>
       </SidebarInset>

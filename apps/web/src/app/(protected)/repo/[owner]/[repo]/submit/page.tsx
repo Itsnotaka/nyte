@@ -1,9 +1,5 @@
 import { notFound } from "next/navigation";
-import {
-  createSearchParamsCache,
-  parseAsString,
-  type SearchParams,
-} from "nuqs/server";
+import { createSearchParamsCache, parseAsString, type SearchParams } from "nuqs/server";
 
 import { getRepoSubmitPageData } from "~/lib/github/server";
 
@@ -21,10 +17,7 @@ type SubmitPageProps = {
   searchParams: Promise<SearchParams>;
 };
 
-export default async function SubmitPage({
-  params,
-  searchParams,
-}: SubmitPageProps) {
+export default async function SubmitPage({ params, searchParams }: SubmitPageProps) {
   const { owner, repo } = await params;
   const { branch } = await submitSearchParamsCache.parse(searchParams);
 

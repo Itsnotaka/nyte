@@ -5,12 +5,12 @@ import { type GitHubInstallation } from "./types.ts";
 import type { GitHubError } from "./types.ts";
 
 export function listUserInstallations(
-  userAccessToken: string
+  userAccessToken: string,
 ): ResultAsync<GitHubInstallation[], GitHubError> {
   return withGitHubClient(userAccessToken, async (client) => {
     const installations = await client.paginate(
       client.rest.apps.listInstallationsForAuthenticatedUser,
-      { per_page: 100 }
+      { per_page: 100 },
     );
     return installations.map((installation) => ({
       id: installation.id,
@@ -29,9 +29,6 @@ export function getInstallUrl(appSlug: string): string {
   return `https://github.com/apps/${appSlug}/installations/new`;
 }
 
-export function getInstallUrlForAccount(
-  appSlug: string,
-  accountLogin: string
-): string {
+export function getInstallUrlForAccount(appSlug: string, accountLogin: string): string {
   return `https://github.com/apps/${appSlug}/installations/new/permissions?target_id=${accountLogin}`;
 }

@@ -22,12 +22,8 @@ export function LoginView() {
     <main className="flex min-h-svh items-center justify-center px-4">
       <div className="mx-auto flex w-full max-w-sm flex-col items-center gap-6">
         <div className="flex flex-col items-center gap-2 text-center">
-          <h1 className="text-2xl font-semibold tracking-tight text-[var(--color-text-primary)]">
-            Sign in to Nyte
-          </h1>
-          <p className="text-sm text-[var(--color-text-muted)]">
-            Connect your GitHub account to get started.
-          </p>
+          <h1 className="text-2xl font-semibold tracking-tight text-sachi-fg">Sign in to Nyte</h1>
+          <p className="text-sm text-sachi-fg-muted">Connect your GitHub account to get started.</p>
         </div>
 
         <button
