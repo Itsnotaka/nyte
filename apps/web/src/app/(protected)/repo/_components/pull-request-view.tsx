@@ -12,6 +12,13 @@ import type {
 } from "@sachikit/github";
 import { Badge } from "@sachikit/ui/components/badge";
 import { Button } from "@sachikit/ui/components/button";
+import { ButtonGroup } from "@sachikit/ui/components/button-group";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@sachikit/ui/components/dropdown-menu";
 import {
   LayerCard,
   LayerCardPrimary,
@@ -218,16 +225,32 @@ function ReviewEntry({
   );
 }
 
+type ReviewAction = "APPROVE" | "REQUEST_CHANGES" | "COMMENT";
+
+const REVIEW_ACTION_LABELS: Record<ReviewAction, string> = {
+  APPROVE: "Approve",
+  COMMENT: "Comment",
+  REQUEST_CHANGES: "Request changes",
+};
+
+function canSubmitReview(
+  action: ReviewAction,
+  reviewBody: string,
+  draftCount: number,
+): boolean {
+  if (action === "APPROVE") return true;
+  return reviewBody.trim().length > 0 || draftCount > 0;
+}
+
 export function PullRequestView({ initialData }: PullRequestViewProps) {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const [drafts, setDrafts] = React.useState<DraftComment[]>([]);
   const [reviewBody, setReviewBody] = React.useState("");
   const [commentBody, setCommentBody] = React.useState("");
+  const [reviewAction, setReviewAction] = React.useState<ReviewAction>("COMMENT");
   const reviewBodyId = React.useId();
-  const reviewBodyHelpId = React.useId();
   const commentBodyId = React.useId();
-  const commentBodyHelpId = React.useId();
 
   const queryInput = React.useMemo(
     () => ({
@@ -274,6 +297,9 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
     [pullRequest.number, repository.name, repository.owner.login]
   );
 
+  const isOpen = pullRequest.state === "open" && !pullRequest.merged;
+  const isMerged = pullRequest.merged;
+
   const addComment = useMutation(
     trpc.github.addPullRequestComment.mutationOptions({
       onSuccess: async () => {
@@ -290,6 +316,16 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
       onSuccess: async () => {
         setDrafts([]);
         setReviewBody("");
+        await queryClient.invalidateQueries({
+          queryKey: pullRequestPageQueryKey,
+        });
+      },
+    })
+  );
+
+  const merge = useMutation(
+    trpc.github.mergePullRequest.mutationOptions({
+      onSuccess: async () => {
         await queryClient.invalidateQueries({
           queryKey: pullRequestPageQueryKey,
         });
@@ -332,7 +368,7 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
     setDrafts((current) => current.filter((draft) => draft.id !== id));
   }
 
-  function onSubmitReview(event: "APPROVE" | "REQUEST_CHANGES" | "COMMENT") {
+  function onSubmitReview(event: ReviewAction) {
     const comments = drafts
       .filter((draft) => draft.body.trim().length > 0)
       .map((draft) => ({
@@ -361,20 +397,55 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
     });
   }
 
+  function onMerge() {
+    void merge.mutateAsync({
+      ...pullRequestIdentity,
+      mergeMethod: "squash",
+    });
+  }
+
+  const reviewSubmitDisabled =
+    submitReview.isPending ||
+    !canSubmitReview(reviewAction, reviewBody, drafts.length);
+
   return (
     <InsetView maxWidth="xl">
-      <header className="space-y-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <h1 className="text-lg font-semibold text-sachi-fg">
-            {pullRequest.title}
-          </h1>
-          <Badge variant="outline">#{pullRequest.number}</Badge>
-          {pullRequest.draft ? <Badge variant="outline">draft</Badge> : null}
+      <header className="space-y-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0 space-y-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-lg font-semibold text-sachi-fg">
+                {pullRequest.title}
+              </h1>
+              <Badge variant="outline">#{pullRequest.number}</Badge>
+              {pullRequest.draft ? <Badge variant="outline">draft</Badge> : null}
+              {isMerged ? (
+                <Badge variant="outline">merged</Badge>
+              ) : pullRequest.state === "closed" ? (
+                <Badge variant="outline">closed</Badge>
+              ) : null}
+            </div>
+            <p className="text-sm text-sachi-fg-muted">
+              {pullRequest.head.ref} to {pullRequest.base.ref} · updated{" "}
+              {formatUpdated(pullRequest.updated_at)}
+            </p>
+          </div>
+
+          {isOpen ? (
+            <div className="flex items-center gap-2">
+              {merge.error ? (
+                <p className="text-sm text-red-500">{merge.error.message}</p>
+              ) : null}
+              <Button
+                type="button"
+                disabled={merge.isPending}
+                onClick={onMerge}
+              >
+                {merge.isPending ? "Merging..." : "Squash and merge"}
+              </Button>
+            </div>
+          ) : null}
         </div>
-        <p className="text-sm text-sachi-fg-muted">
-          {pullRequest.head.ref} to {pullRequest.base.ref} · updated{" "}
-          {formatUpdated(pullRequest.updated_at)}
-        </p>
       </header>
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
@@ -388,84 +459,88 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
             />
           </ReviewSurface>
 
-          <ReviewSurface
-            title="Review"
-            description="Submit general feedback or include any pending inline comments."
-            action={
-              drafts.length > 0 ? (
-                <Badge variant="outline">
-                  {drafts.length} pending draft{drafts.length === 1 ? "" : "s"}
-                </Badge>
-              ) : null
-            }
-            contentClassName="gap-4"
-          >
-            <div className="space-y-2">
-              <label
-                htmlFor={reviewBodyId}
-                className="text-sm font-medium text-sachi-fg"
-              >
-                Review summary
-              </label>
+          {isOpen ? (
+            <ReviewSurface
+              title="Review"
+              action={
+                drafts.length > 0 ? (
+                  <Badge variant="outline">
+                    {drafts.length} pending draft{drafts.length === 1 ? "" : "s"}
+                  </Badge>
+                ) : null
+              }
+              contentClassName="gap-3"
+            >
               <Textarea
                 id={reviewBodyId}
                 value={reviewBody}
                 onChange={(event) => setReviewBody(event.target.value)}
                 onKeyDown={(event) => {
-                  if (!isShortcutSubmit(event) || submitReview.isPending) {
+                  if (!isShortcutSubmit(event) || reviewSubmitDisabled) {
                     return;
                   }
-
                   event.preventDefault();
-                  onSubmitReview("COMMENT");
+                  onSubmitReview(reviewAction);
                 }}
-                aria-describedby={reviewBodyHelpId}
                 disabled={submitReview.isPending}
-                placeholder="Summarize the overall feedback you want to send with this review."
-                rows={6}
+                placeholder="Leave a review comment..."
+                rows={3}
               />
-              <p id={reviewBodyHelpId} className="text-sm text-sachi-fg-muted">
-                Choose Comment, Approve, or Request changes below. Inline drafts
-                with text are included with the selected review action. Press
-                Cmd+Enter or Ctrl+Enter to send a comment review quickly.
-              </p>
-            </div>
-            {submitReview.error ? (
-              <p className="text-sm text-red-500">
-                {submitReview.error.message}
-              </p>
-            ) : null}
-            <div className="flex flex-wrap items-center gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                disabled={submitReview.isPending}
-                onClick={() => onSubmitReview("COMMENT")}
-              >
-                Comment
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                disabled={submitReview.isPending}
-                onClick={() => onSubmitReview("APPROVE")}
-              >
-                Approve
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                disabled={submitReview.isPending}
-                onClick={() => onSubmitReview("REQUEST_CHANGES")}
-              >
-                Request changes
-              </Button>
-            </div>
-          </ReviewSurface>
+              {submitReview.error ? (
+                <p className="text-sm text-red-500">
+                  {submitReview.error.message}
+                </p>
+              ) : null}
+              <div className="flex items-center justify-end gap-2">
+                <ButtonGroup>
+                  <Button
+                    type="button"
+                    disabled={reviewSubmitDisabled}
+                    onClick={() => onSubmitReview(reviewAction)}
+                  >
+                    {REVIEW_ACTION_LABELS[reviewAction]}
+                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger
+                      render={
+                        <Button
+                          type="button"
+                          size="icon"
+                          disabled={submitReview.isPending}
+                          aria-label="Choose review action"
+                        />
+                      }
+                    >
+                      <ChevronDownIcon />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" sideOffset={4}>
+                      <DropdownMenuItem onClick={() => setReviewAction("COMMENT")}>
+                        <div>
+                          <p className="text-sm font-medium">Comment</p>
+                          <p className="text-xs text-sachi-fg-muted">General feedback</p>
+                        </div>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setReviewAction("APPROVE")}>
+                        <div>
+                          <p className="text-sm font-medium">Approve</p>
+                          <p className="text-xs text-sachi-fg-muted">Approve this PR</p>
+                        </div>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setReviewAction("REQUEST_CHANGES")}>
+                        <div>
+                          <p className="text-sm font-medium">Request changes</p>
+                          <p className="text-xs text-sachi-fg-muted">Ask for revisions</p>
+                        </div>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </ButtonGroup>
+              </div>
+            </ReviewSurface>
+          ) : null}
 
           <ReviewSurface
             title="Diff"
-            description="Use the gutter plus button on a changed line to start an inline draft. Drafts stay pending until you submit the review."
             action={
               <div className="flex items-center gap-2">
                 <Badge variant="outline">
@@ -502,60 +577,33 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
         </div>
 
         <div className="space-y-4">
-          <ReviewSurface
-            title="Comment"
-            description="Start a general discussion thread on this pull request."
-            contentClassName="gap-0"
-          >
+          <ReviewSurface title="Comment" contentClassName="gap-0">
             <form
-              className="space-y-4"
+              className="space-y-3"
               onSubmit={(event) => {
                 event.preventDefault();
                 if (commentBody.trim().length === 0 || addComment.isPending) {
                   return;
                 }
-
                 onAddComment();
               }}
             >
-              <div className="space-y-2">
-                <label
-                  htmlFor={commentBodyId}
-                  className="text-sm font-medium text-sachi-fg"
-                >
-                  Comment body
-                </label>
-                <Textarea
-                  id={commentBodyId}
-                  value={commentBody}
-                  onChange={(event) => setCommentBody(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (!isShortcutSubmit(event)) {
-                      return;
-                    }
-
-                    event.preventDefault();
-                    if (
-                      commentBody.trim().length === 0 ||
-                      addComment.isPending
-                    ) {
-                      return;
-                    }
-
-                    onAddComment();
-                  }}
-                  aria-describedby={commentBodyHelpId}
-                  disabled={addComment.isPending}
-                  placeholder="Ask a question, leave context, or note follow-up work."
-                  rows={5}
-                />
-                <p
-                  id={commentBodyHelpId}
-                  className="text-sm text-sachi-fg-muted"
-                >
-                  Press Cmd+Enter or Ctrl+Enter to add it quickly.
-                </p>
-              </div>
+              <Textarea
+                id={commentBodyId}
+                value={commentBody}
+                onChange={(event) => setCommentBody(event.target.value)}
+                onKeyDown={(event) => {
+                  if (!isShortcutSubmit(event)) return;
+                  event.preventDefault();
+                  if (commentBody.trim().length === 0 || addComment.isPending) {
+                    return;
+                  }
+                  onAddComment();
+                }}
+                disabled={addComment.isPending}
+                placeholder="Leave a comment..."
+                rows={3}
+              />
               {addComment.error ? (
                 <p className="text-sm text-red-500">
                   {addComment.error.message}
@@ -568,7 +616,7 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
                     commentBody.trim().length === 0 || addComment.isPending
                   }
                 >
-                  Add comment
+                  Comment
                 </Button>
               </div>
             </form>
@@ -577,7 +625,7 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
           <ReviewSurface title="Discussion" contentClassName="gap-3">
             {issueComments.length === 0 ? (
               <p className="text-sm text-sachi-fg-muted">
-                No pull request comments yet.
+                No comments yet.
               </p>
             ) : (
               issueComments.map((comment) => (
@@ -618,6 +666,24 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
         </div>
       </div>
     </InsetView>
+  );
+}
+
+function ChevronDownIcon() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="m6 9 6 6 6-6" />
+    </svg>
   );
 }
 

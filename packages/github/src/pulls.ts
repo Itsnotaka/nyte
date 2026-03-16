@@ -391,6 +391,30 @@ export function listPullRequestReviewComments(
   });
 }
 
+export function mergePullRequest(
+  auth: GitHubAppInstallationAuth,
+  owner: string,
+  repo: string,
+  pullNumber: number,
+  input?: {
+    mergeMethod?: "merge" | "squash" | "rebase";
+    commitTitle?: string;
+    commitMessage?: string;
+  },
+): ResultAsync<{ sha: string; merged: boolean }, GitHubError> {
+  return withGitHubInstallationClient(auth, async (client) => {
+    const response = await client.rest.pulls.merge({
+      owner,
+      repo,
+      pull_number: pullNumber,
+      merge_method: input?.mergeMethod ?? "squash",
+      commit_title: input?.commitTitle,
+      commit_message: input?.commitMessage,
+    });
+    return { sha: response.data.sha, merged: response.data.merged };
+  });
+}
+
 export function submitPullRequestReview(
   auth: GitHubAppInstallationAuth,
   owner: string,
