@@ -4,7 +4,9 @@ const DEFAULT_MOBILE_BREAKPOINT = 768;
 
 const resolveBreakpoint = (breakpointOrResolver?: number | (() => number)) => {
   const resolvedBreakpoint =
-    typeof breakpointOrResolver === "function" ? breakpointOrResolver() : breakpointOrResolver;
+    typeof breakpointOrResolver === "function"
+      ? breakpointOrResolver()
+      : breakpointOrResolver;
 
   if (!Number.isFinite(resolvedBreakpoint)) {
     return DEFAULT_MOBILE_BREAKPOINT;

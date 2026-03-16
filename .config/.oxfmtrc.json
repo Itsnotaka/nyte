@@ -20,7 +20,7 @@
     "order": "asc"
   },
   "sortTailwindcss": {
-    "stylesheet": "./tooling/tailwind/theme.css",
+    "stylesheet": "../tooling/tailwind/theme.css",
     "functions": ["clsx", "cn", "cva"]
   },
   "ignorePatterns": [

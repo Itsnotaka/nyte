@@ -48,8 +48,17 @@ function matchScore(query: string, candidate: string): number {
   return score;
 }
 
-export function useFilteredList<T>(options: UseFilteredListOptions<T>): UseFilteredListResult<T> {
-  const { items, query, maxItems = 12, getLabel, getKeywords, getGroup } = options;
+export function useFilteredList<T>(
+  options: UseFilteredListOptions<T>
+): UseFilteredListResult<T> {
+  const {
+    items,
+    query,
+    maxItems = 12,
+    getLabel,
+    getKeywords,
+    getGroup,
+  } = options;
   const [activeIndex, setActiveIndex] = useState(0);
 
   const filtered = useMemo(() => {
@@ -60,7 +69,7 @@ export function useFilteredList<T>(options: UseFilteredListOptions<T>): UseFilte
         const keywords = (getKeywords?.(item) ?? []).map(normalize);
         const score = Math.max(
           matchScore(normalizedQuery, label),
-          ...keywords.map((keyword) => matchScore(normalizedQuery, keyword)),
+          ...keywords.map((keyword) => matchScore(normalizedQuery, keyword))
         );
         return { item, score };
       })
@@ -90,7 +99,8 @@ export function useFilteredList<T>(options: UseFilteredListOptions<T>): UseFilte
     }));
   }, [filtered, getGroup]);
 
-  const boundedIndex = filtered.length === 0 ? 0 : Math.min(activeIndex, filtered.length - 1);
+  const boundedIndex =
+    filtered.length === 0 ? 0 : Math.min(activeIndex, filtered.length - 1);
   const activeItem = filtered[boundedIndex] ?? null;
 
   function moveActiveIndex(direction: 1 | -1) {

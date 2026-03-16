@@ -191,7 +191,10 @@ export async function getRepoBranches(
 export async function getRepoPullRequests(
   owner: string,
   repo: string
-): Promise<{ repository: GitHubRepository; pullRequests: GitHubPullRequest[] } | null> {
+): Promise<{
+  repository: GitHubRepository;
+  pullRequests: GitHubPullRequest[];
+} | null> {
   const context = await findRepoContext(owner, repo);
   if (!context) {
     return null;
@@ -214,7 +217,10 @@ export async function getBranchPullRequest(
   owner: string,
   repo: string,
   branch: string
-): Promise<{ repository: GitHubRepository; pullRequest: GitHubPullRequest | null } | null> {
+): Promise<{
+  repository: GitHubRepository;
+  pullRequest: GitHubPullRequest | null;
+} | null> {
   const context = await findRepoContext(owner, repo);
   if (!context) {
     return null;

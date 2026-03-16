@@ -35,9 +35,8 @@ export function RepoProvider({
   repos,
   children,
 }: RepoProviderProps) {
-  const [selectedRepo, setSelectedRepo] = React.useState<GitHubRepository | null>(
-    repos[0] ?? null
-  );
+  const [selectedRepo, setSelectedRepo] =
+    React.useState<GitHubRepository | null>(repos[0] ?? null);
 
   const value = React.useMemo(
     () => ({
@@ -49,7 +48,5 @@ export function RepoProvider({
     [installations, repos, selectedRepo]
   );
 
-  return (
-    <RepoContext.Provider value={value}>{children}</RepoContext.Provider>
-  );
+  return <RepoContext.Provider value={value}>{children}</RepoContext.Provider>;
 }

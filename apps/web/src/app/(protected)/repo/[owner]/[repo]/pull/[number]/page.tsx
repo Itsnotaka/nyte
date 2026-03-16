@@ -22,7 +22,9 @@ function parseFiles(diff: string): FileDiffMetadata[] {
   return parsePatchFiles(diff).flatMap((patch) => patch.files);
 }
 
-export default async function PullRequestPage({ params }: PullRequestPageProps) {
+export default async function PullRequestPage({
+  params,
+}: PullRequestPageProps) {
   const { owner, repo, number } = await params;
   const pullNumber = Number(number);
   if (!Number.isInteger(pullNumber) || pullNumber <= 0) {

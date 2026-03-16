@@ -1,5 +1,9 @@
-import { createSearchParamsCache, parseAsString, type SearchParams } from "nuqs/server";
 import { notFound } from "next/navigation";
+import {
+  createSearchParamsCache,
+  parseAsString,
+  type SearchParams,
+} from "nuqs/server";
 
 import {
   getBranchPullRequest,
@@ -38,7 +42,7 @@ export default async function SubmitPage({
   const selectedBranch =
     branch && branches.some((item) => item.name === branch)
       ? branch
-      : branches[0]?.name ?? null;
+      : (branches[0]?.name ?? null);
 
   const [branchData, pullRequestData] = await Promise.all([
     selectedBranch

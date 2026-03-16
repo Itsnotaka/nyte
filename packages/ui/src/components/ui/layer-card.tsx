@@ -38,8 +38,8 @@ function LayerCard({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="layer-card"
       className={cn(
-        "bg-card text-card-foreground ring-foreground/10 flex flex-col gap-1.5 rounded-xl p-1.5 text-sm shadow-xs ring-1",
-        className,
+        "flex flex-col gap-1.5 rounded-xl bg-card p-1.5 text-sm text-card-foreground shadow-xs ring-1 ring-foreground/10",
+        className
       )}
       {...props}
     />
@@ -55,13 +55,16 @@ function LayerCard({ className, ...props }: React.ComponentProps<"div">) {
  * @param props - Standard div props plus className overrides
  * @returns The secondary (header) section element
  */
-function LayerCardSecondary({ className, ...props }: React.ComponentProps<"div">) {
+function LayerCardSecondary({
+  className,
+  ...props
+}: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="layer-card-secondary"
       className={cn(
         "flex items-center justify-between gap-3 px-3.5 pt-2.5 pb-1 text-sm font-medium",
-        className,
+        className
       )}
       {...props}
     />
@@ -77,13 +80,16 @@ function LayerCardSecondary({ className, ...props }: React.ComponentProps<"div">
  * @param props - Standard div props plus className overrides
  * @returns The primary (content) section element
  */
-function LayerCardPrimary({ className, ...props }: React.ComponentProps<"div">) {
+function LayerCardPrimary({
+  className,
+  ...props
+}: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="layer-card-primary"
       className={cn(
-        "bg-background ring-border/60 flex flex-col gap-2 rounded-lg border border-border/60 px-3.5 py-3 shadow-xs ring-1",
-        className,
+        "flex flex-col gap-2 rounded-lg border border-border/60 bg-background px-3.5 py-3 shadow-xs ring-1 ring-border/60",
+        className
       )}
       {...props}
     />

@@ -39,13 +39,14 @@ function RepoSelector() {
   return (
     <div className="mt-2">
       <DropdownMenu>
-        <DropdownMenuTrigger
-          className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-sm font-medium text-[var(--color-text-primary)] hover:bg-[var(--color-sidebar-link-bg)] focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] focus-visible:outline-offset-1"
-        >
+        <DropdownMenuTrigger className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-sm font-medium text-[var(--color-text-primary)] hover:bg-[var(--color-sidebar-link-bg)] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-focus)]">
           <span className="truncate">
             {selectedRepo ? selectedRepo.name : "Select repo"}
           </span>
-          <IconChevronDownMedium className="size-4 shrink-0 text-[var(--color-text-faint)]" aria-hidden="true" />
+          <IconChevronDownMedium
+            className="size-4 shrink-0 text-[var(--color-text-faint)]"
+            aria-hidden="true"
+          />
         </DropdownMenuTrigger>
 
         <DropdownMenuContent align="start" sideOffset={4}>
@@ -77,7 +78,7 @@ export function AppShell({ children }: AppShellProps) {
           <RepoSelector />
         </SidebarHeader>
 
-        <SidebarContent className="px-2.5 pb-3 pt-2" />
+        <SidebarContent className="px-2.5 pt-2 pb-3" />
 
         <SidebarRail />
       </Sidebar>

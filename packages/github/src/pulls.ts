@@ -21,7 +21,9 @@ type PullRequestSummaryResponse = Awaited<
 type PullRequestDetailResponse = Awaited<
   ReturnType<Octokit["rest"]["pulls"]["get"]>
 >["data"];
-type PullRequestResponse = PullRequestSummaryResponse | PullRequestDetailResponse;
+type PullRequestResponse =
+  | PullRequestSummaryResponse
+  | PullRequestDetailResponse;
 type PullRequestFileResponse = Awaited<
   ReturnType<Octokit["rest"]["pulls"]["listFiles"]>
 >["data"][number];
@@ -138,11 +140,7 @@ function toGitHubPullRequestFile(
 ): Result<GitHubPullRequestFile, GitHubError> {
   if (typeof file.sha !== "string" || file.sha.length === 0) {
     return err(
-      new GitHubError(
-        "GitHub pull request file is missing a sha",
-        0,
-        "unknown"
-      )
+      new GitHubError("GitHub pull request file is missing a sha", 0, "unknown")
     );
   }
 
@@ -444,7 +442,9 @@ export function listPullRequestReviews(
       pull_number: pullNumber,
       per_page: 100,
     });
-  }).andThen((reviews) => Result.combine(reviews.map(toGitHubPullRequestReview)));
+  }).andThen((reviews) =>
+    Result.combine(reviews.map(toGitHubPullRequestReview))
+  );
 }
 
 export function listPullRequestReviewComments(

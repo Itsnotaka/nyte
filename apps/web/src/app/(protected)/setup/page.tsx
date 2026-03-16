@@ -1,5 +1,10 @@
-import { createSearchParamsCache, parseAsInteger, parseAsString, type SearchParams } from "nuqs/server";
 import { redirect } from "next/navigation";
+import {
+  createSearchParamsCache,
+  parseAsInteger,
+  parseAsString,
+  type SearchParams,
+} from "nuqs/server";
 
 import { getOnboardingState } from "~/lib/github/server";
 

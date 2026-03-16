@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 
-import { getOnboardingState } from "~/lib/github/server";
+import { getInstallationRepos, getOnboardingState } from "~/lib/github/server";
 
+import { RepoProvider } from "./_components/repo-context";
 import { RepoLanding } from "./_components/repo-landing";
 
 export default async function App() {
@@ -11,5 +12,12 @@ export default async function App() {
     redirect("/setup");
   }
 
-  return <RepoLanding />;
+  const firstInstallation = state.installations[0]!;
+  const repos = await getInstallationRepos(firstInstallation.id);
+
+  return (
+    <RepoProvider installations={state.installations} repos={repos}>
+      <RepoLanding />
+    </RepoProvider>
+  );
 }

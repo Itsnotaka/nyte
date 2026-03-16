@@ -35,7 +35,7 @@ export function RepoLanding() {
 
   return (
     <section className="h-full min-h-0 bg-[var(--color-inset-bg)]">
-      <div className="mx-auto flex h-full w-full max-w-[860px] flex-col gap-4 px-4 pb-6 pt-4 sm:px-6">
+      <div className="mx-auto flex h-full w-full max-w-[860px] flex-col gap-4 px-4 pt-4 pb-6 sm:px-6">
         <header className="flex items-center justify-between gap-4">
           <h1 className="text-lg font-semibold text-[var(--color-text-primary)]">
             Repositories

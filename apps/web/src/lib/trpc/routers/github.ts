@@ -104,7 +104,10 @@ export const githubRouter = createTRPCRouter({
         side: comment.side,
       }));
 
-      if ((!body || body.length === 0) && (!comments || comments.length === 0)) {
+      if (
+        (!body || body.length === 0) &&
+        (!comments || comments.length === 0)
+      ) {
         throw new Error(FAILURES.review);
       }
 
