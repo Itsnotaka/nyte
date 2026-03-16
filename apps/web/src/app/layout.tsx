@@ -2,6 +2,8 @@ import { Inter } from "next/font/google";
 import localFont from "next/font/local";
 
 import "../styles/globals.css";
+import Script from "next/script";
+
 import { Providers } from "~/components/providers";
 
 const inter = Inter({
@@ -41,7 +43,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning className="h-full">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        {process.env.NODE_ENV === "development" && (
+          <Script
+            src="//unpkg.com/react-grab/dist/index.global.js"
+            crossOrigin="anonymous"
+            strategy="beforeInteractive"
+          />
+        )}
+      </head>
       <body
         className={`${inter.variable} ${berkeleyMono.variable} h-full font-sans`}
       >

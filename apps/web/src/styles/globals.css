@@ -1,6 +1,7 @@
-@import "@nyte/tailwind-config/theme";
+@import "@sachikit/tailwind-config/theme";
 
 @source "../../../../packages/ui/src/components/ui/**.{tsx,ts}";
+@source "../../../../node_modules/streamdown/dist/*.js";
 
 * {
   box-sizing: border-box;

@@ -1,29 +1,19 @@
-# @nyte/ui
+# @sachikit/ui
 
-## Purpose
+Publishable Nyte UI component library built with Vite+ and tsdown.
 
-Shared UI primitives and hooks used by Nyte apps.
+## Public API
 
-## Responsibilities
-
-- reusable component primitives under src/components/ui
-- shared hooks under src/hooks
-- shared class/util helpers under src/lib
-
-## Public exports
-
-- `./components/*`
-- `./hooks/*`
-- `./lib/*`
-
-## Dependencies
-
-- React 19 + Base UI + utility/UI ecosystem packages
-
-## Used by
-
-- future app surfaces requiring shared design system primitives
+- `@sachikit/ui`
+- `@sachikit/ui/components/*`
+- `@sachikit/ui/hooks/*`
+- `@sachikit/ui/lib/*`
+- `@sachikit/ui/styles`
 
 ## Local commands
 
-- `pnpm --filter @nyte/ui typecheck`
+```bash
+vp run build
+vp run dev
+vp run typecheck
+```

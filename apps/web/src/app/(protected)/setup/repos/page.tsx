@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-import { getOnboardingState, getInstallationRepos } from "~/lib/github-server";
+import { getOnboardingState, getInstallationRepos } from "~/lib/github/server";
 
 import { RepoPickerView } from "../_components/repo-picker-view";
 
@@ -14,11 +14,5 @@ export default async function ReposPage() {
   const firstInstallation = state.installations[0]!;
   const repos = await getInstallationRepos(firstInstallation.id);
 
-  return (
-    <RepoPickerView
-      installation={firstInstallation}
-      repos={repos}
-      appInstallUrl={state.appInstallUrl}
-    />
-  );
+  return <RepoPickerView installation={firstInstallation} repos={repos} />;
 }

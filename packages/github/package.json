@@ -1,5 +1,5 @@
 {
-  "name": "@nyte/github",
+  "name": "@sachikit/github",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -17,9 +17,14 @@
     "typecheck": "tsgo --noEmit",
     "clean": "rm -rf .turbo .cache node_modules dist"
   },
+  "dependencies": {
+    "@octokit/auth-app": "^8.2.0",
+    "neverthrow": "^8.2.0",
+    "octokit": "^5.0.5"
+  },
   "devDependencies": {
-    "@nyte/tsconfig": "workspace:*",
+    "@sachikit/tsconfig": "workspace:*",
     "@types/node": "^25.5.0",
-    "typescript": "5.9.3"
+    "typescript": "6.0.0-beta"
   }
 }

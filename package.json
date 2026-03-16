@@ -1,10 +1,11 @@
 {
-  "name": "nyte",
+  "name": "sachikit",
   "version": "0.0.1",
   "private": true,
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
+    "db:push": "turbo run db:push --filter=@sachikit/db",
     "lint": "oxlint -c .config/.oxlintrc.json --type-aware --type-check --report-unused-disable-directives",
     "fmt": "oxfmt -c .config/.oxfmtrc.json",
     "knip": "knip -c .config/knip.json",
@@ -14,14 +15,14 @@
     "lint:ws": "pnpx sherif@latest"
   },
   "devDependencies": {
-    "@nyte/tsconfig": "workspace:*",
-    "@typescript/native-preview": "^7.0.0-dev.20260315.1",
-    "knip": "^5.86.0",
-    "oxfmt": "^0.40.0",
-    "oxlint": "^1.55.0",
+    "@sachikit/tsconfig": "workspace:*",
+    "@typescript/native-preview": "^7.0.0-dev.20260316.1",
+    "knip": "^5.87.0",
+    "oxfmt": "^0.41.0",
+    "oxlint": "^1.56.0",
     "oxlint-tsgolint": "^0.17.0",
     "turbo": "^2.8.17",
-    "typescript": "5.9.3"
+    "typescript": "6.0.0-beta"
   },
   "engines": {
     "node": ">=20"

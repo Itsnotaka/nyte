@@ -1,25 +1,26 @@
 "use client";
 
-import type { GitHubInstallation, GitHubRepository } from "@nyte/github";
+import type { GitHubInstallation, GitHubRepository } from "@sachikit/github";
 import {
   Avatar,
   AvatarFallback,
   AvatarImage,
-} from "@nyte/ui/components/avatar";
-import { Button } from "@nyte/ui/components/button";
-import { Checkbox } from "@nyte/ui/components/checkbox";
-import { Input } from "@nyte/ui/components/input";
+} from "@sachikit/ui/components/avatar";
+import { Button } from "@sachikit/ui/components/button";
+import { Checkbox } from "@sachikit/ui/components/checkbox";
+import { Input } from "@sachikit/ui/components/input";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 
-type RepoPickerViewProps = {
+export function RepoPickerView({
+  installation,
+  repos,
+}: {
   installation: GitHubInstallation;
   repos: GitHubRepository[];
-  appInstallUrl: string;
-};
-
-export function RepoPickerView({ installation, repos }: RepoPickerViewProps) {
+}) {
   const router = useRouter();
+  const [isNavigating, startNavigation] = React.useTransition();
   const [search, setSearch] = React.useState("");
   const [selected, setSelected] = React.useState<Set<number>>(new Set());
 
@@ -44,11 +45,9 @@ export function RepoPickerView({ installation, repos }: RepoPickerViewProps) {
   }
 
   function handleContinue() {
-    const selectedRepos = repos.filter((r) => selected.has(r.id));
-    const encoded = encodeURIComponent(
-      JSON.stringify(selectedRepos.map((r) => r.full_name))
-    );
-    router.push(`/?repos=${encoded}`);
+    startNavigation(() => {
+      router.push("/");
+    });
   }
 
   return (
@@ -131,10 +130,10 @@ export function RepoPickerView({ installation, repos }: RepoPickerViewProps) {
 
         <Button
           size="lg"
-          disabled={selected.size === 0}
+          disabled={selected.size === 0 || isNavigating}
           onClick={handleContinue}
         >
-          Continue
+          {isNavigating ? "Continuing..." : "Continue"}
         </Button>
       </div>
     </section>

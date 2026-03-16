@@ -1,19 +1,11 @@
 "use client";
 
-import type { GitHubInstallation, GitHubRepository } from "@nyte/github";
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@nyte/ui/components/avatar";
-import { Badge } from "@nyte/ui/components/badge";
-import { Input } from "@nyte/ui/components/input";
+import { Badge } from "@sachikit/ui/components/badge";
+import { Input } from "@sachikit/ui/components/input";
+import Link from "next/link";
 import * as React from "react";
 
-type RepoLandingProps = {
-  installation: GitHubInstallation;
-  repos: GitHubRepository[];
-};
+import { useRepo } from "./repo-context";
 
 function formatUpdated(dateString: string): string {
   const date = new Date(dateString);
@@ -30,32 +22,24 @@ function formatUpdated(dateString: string): string {
   const diffDays = Math.floor(diffHours / 24);
   if (diffDays < 30) return `${String(diffDays)}d ago`;
 
-  const diffMonths = Math.floor(diffDays / 30);
-  return `${String(diffMonths)}mo ago`;
+  return `${String(Math.floor(diffDays / 30))}mo ago`;
 }
 
-export function RepoLanding({ installation, repos }: RepoLandingProps) {
+export function RepoLanding() {
+  const { repos } = useRepo();
   const [search, setSearch] = React.useState("");
 
-  const filtered = repos.filter((r) =>
-    r.full_name.toLowerCase().includes(search.toLowerCase())
+  const filtered = repos.filter((repo) =>
+    repo.full_name.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
     <section className="h-full min-h-0 bg-[var(--color-inset-bg)]">
-      <div className="mx-auto flex h-full w-full max-w-[860px] flex-col gap-4 px-4 pb-6 pt-4 sm:px-6">
+      <div className="mx-auto flex h-full w-full max-w-[860px] flex-col gap-4 px-4 pt-4 pb-6 sm:px-6">
         <header className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <Avatar size="sm">
-              <AvatarImage src={installation.account.avatar_url} />
-              <AvatarFallback>
-                {installation.account.login.charAt(0).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            <h1 className="text-lg font-semibold text-[var(--color-text-primary)]">
-              {installation.account.login}
-            </h1>
-          </div>
+          <h1 className="text-lg font-semibold text-[var(--color-text-primary)]">
+            Repositories
+          </h1>
           <span className="text-xs text-[var(--color-text-muted)]">
             {repos.length} {repos.length === 1 ? "repository" : "repositories"}
           </span>
@@ -66,15 +50,16 @@ export function RepoLanding({ installation, repos }: RepoLandingProps) {
             type="search"
             placeholder="Search repositories..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(event) => setSearch(event.target.value)}
           />
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto">
           <div className="divide-y divide-[var(--color-border-subtle)] rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-main-bg)]">
             {filtered.map((repo) => (
-              <div
+              <Link
                 key={repo.id}
+                href={`/repo/${repo.owner.login}/${repo.name}/submit`}
                 className="flex items-center justify-between gap-4 px-4 py-3 transition-colors hover:bg-[var(--color-sidebar-link-bg)]"
               >
                 <div className="flex min-w-0 flex-col gap-0.5">
@@ -97,7 +82,7 @@ export function RepoLanding({ installation, repos }: RepoLandingProps) {
                   {repo.language ? <span>{repo.language}</span> : null}
                   <span>{formatUpdated(repo.updated_at)}</span>
                 </div>
-              </div>
+              </Link>
             ))}
 
             {filtered.length === 0 ? (

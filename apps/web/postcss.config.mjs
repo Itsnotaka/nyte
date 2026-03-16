@@ -1,1 +1,1 @@
-export { default } from "@nyte/tailwind-config/postcss-config";
+export { default } from "@sachikit/tailwind-config/postcss-config";

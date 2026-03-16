@@ -35,7 +35,7 @@ const sidebarLayerVariants = cva("absolute overflow-hidden", {
       static:
         "inset-y-0 left-0 z-20 w-[var(--sidebar-desktop-width)] border border-transparent",
       collapsed:
-        "bottom-2 left-[calc((var(--sidebar-desktop-width)+12px)*-1)] top-[37.5px] z-30 w-[var(--sidebar-desktop-width)] rounded-[5px] border border-[var(--sidebar-collapsed-border-color,var(--color-border-strong))] bg-[var(--color-sidebar-bg)] shadow-[var(--sidebar-collapsed-shadow,none)] group-focus-within/sidebar-collapsed:left-2 group-hover/sidebar-collapsed:left-2",
+        "top-[37.5px] bottom-2 left-[calc((var(--sidebar-desktop-width)+12px)*-1)] z-30 w-[var(--sidebar-desktop-width)] rounded-[5px] border border-[var(--sidebar-collapsed-border-color,var(--color-border-strong))] bg-[var(--color-sidebar-bg)] shadow-[var(--sidebar-collapsed-shadow,none)] group-focus-within/sidebar-collapsed:left-2 group-hover/sidebar-collapsed:left-2",
     },
   },
 });
@@ -233,7 +233,7 @@ function SidebarDesktopStatic({
       <div
         data-sidebar-layer
         data-slot="sidebar-container"
-        className={sidebarLayerVariants({ mode: "static" })}
+        className={cn(sidebarLayerVariants({ mode: "static" }), "h-full")}
         style={layerStyle}
       >
         <aside
@@ -279,7 +279,7 @@ function SidebarDesktopCollapsed({
   return (
     <>
       <SidebarSpacer expanded={false} shouldReduceMotion={shouldReduceMotion} />
-      <div className="group/sidebar-collapsed absolute inset-y-0 left-0 z-20 isolate w-5">
+      <div className="group/sidebar-collapsed absolute inset-y-0 left-0 isolate z-20 w-5">
         <div
           aria-hidden="true"
           data-sidebar-hover-overlay
@@ -292,19 +292,19 @@ function SidebarDesktopCollapsed({
           data-sidebar-edge
           aria-label="Open sidebar"
           onClick={toggleSidebar}
-          className="absolute z-20 cursor-pointer border-0 bg-transparent p-0 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--sidebar-focus-color)] group-focus-within/sidebar-collapsed:pointer-events-none group-hover/sidebar-collapsed:pointer-events-none"
+          className="absolute z-20 cursor-pointer border-0 bg-transparent p-0 group-focus-within/sidebar-collapsed:pointer-events-none group-hover/sidebar-collapsed:pointer-events-none focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--sidebar-focus-color)]"
           style={edgeStyle}
         >
           <span
             aria-hidden="true"
-            className="pointer-events-none absolute bottom-[5px] left-1/2 top-5 w-px -translate-x-1/2 rounded-full bg-[var(--sidebar-rail-indicator-color)] opacity-0 transition-[opacity,width,background-color] duration-[var(--sidebar-transition-fast)] ease-[var(--sidebar-ease)] group-hover:w-0.5 group-hover:bg-[var(--sidebar-rail-indicator-active-color)] group-hover:opacity-100 group-focus-visible:w-0.5 group-focus-visible:bg-[var(--sidebar-rail-indicator-active-color)] group-focus-visible:opacity-100"
+            className="pointer-events-none absolute top-5 bottom-[5px] left-1/2 w-px -translate-x-1/2 rounded-full bg-[var(--sidebar-rail-indicator-color)] opacity-0 transition-[opacity,width,background-color] duration-[var(--sidebar-transition-fast)] ease-[var(--sidebar-ease)] group-hover:w-0.5 group-hover:bg-[var(--sidebar-rail-indicator-active-color)] group-hover:opacity-100 group-focus-visible:w-0.5 group-focus-visible:bg-[var(--sidebar-rail-indicator-active-color)] group-focus-visible:opacity-100"
           />
         </button>
 
         <div
           data-sidebar-layer
           data-slot="sidebar-container"
-          className={sidebarLayerVariants({ mode: "collapsed" })}
+          className={cn(sidebarLayerVariants({ mode: "collapsed" }), "h-full")}
           style={previewStyle}
         >
           <aside
@@ -339,7 +339,7 @@ function SidebarMobileDrawer({
       >
         <DrawerContent
           data-slot="sidebar-container"
-          className="gap-0 overflow-hidden border-r border-[var(--sidebar-collapsed-border-color,var(--color-border-strong))] p-0 data-[swipe-direction=right]:w-[var(--sidebar-mobile-width)] data-[swipe-direction=right]:max-w-[var(--sidebar-mobile-width)] data-[swipe-direction=right]:rounded-none data-[swipe-direction=right]:sm:max-w-none"
+          className="h-full gap-0 overflow-hidden border-r border-[var(--sidebar-collapsed-border-color,var(--color-border-strong))] p-0 data-[swipe-direction=right]:w-[var(--sidebar-mobile-width)] data-[swipe-direction=right]:max-w-[var(--sidebar-mobile-width)] data-[swipe-direction=right]:rounded-none data-[swipe-direction=right]:sm:max-w-none"
         >
           <aside
             data-sidebar="sidebar"
@@ -514,12 +514,14 @@ function SidebarContent({ className, ...props }: React.ComponentProps<"div">) {
 
 type SidebarTriggerProps = React.ComponentProps<"button"> & {
   hideWhenExpanded?: boolean;
+  layout?: "floating" | "inline";
 };
 
 function SidebarTrigger({
   className,
   onClick,
   hideWhenExpanded = false,
+  layout = "floating",
   children,
   type,
   ...props
@@ -536,7 +538,10 @@ function SidebarTrigger({
       data-sidebar="trigger"
       data-slot="sidebar-trigger"
       className={cn(
-        "absolute left-3 top-2 z-[2] inline-flex size-6.5 items-center justify-center rounded-[5px] border-0 bg-transparent text-[var(--color-text-muted)] hover:bg-[var(--color-control-bg-hover)] hover:text-[var(--color-text-primary)] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--sidebar-focus-color)]",
+        "inline-flex size-6.5 items-center justify-center rounded-[5px] border-0 bg-transparent text-[var(--color-text-muted)] hover:bg-[var(--color-control-bg-hover)] hover:text-[var(--color-text-primary)] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--sidebar-focus-color)]",
+        layout === "floating"
+          ? "absolute top-2 left-3 z-[2]"
+          : "relative z-[1] shrink-0",
         className
       )}
       onClick={(event) => {
@@ -557,7 +562,51 @@ function SidebarTrigger({
 
 const SidebarRails = SidebarRail;
 
+const insetViewVariants = cva(
+  "mx-auto flex h-full w-full flex-col gap-4 px-4 pt-4 pb-6 sm:px-6",
+  {
+    variants: {
+      maxWidth: {
+        sm: "max-w-[640px]",
+        md: "max-w-[768px]",
+        lg: "max-w-[1024px]",
+        xl: "max-w-[1280px]",
+        "2xl": "max-w-[1536px]",
+        full: "max-w-none",
+      },
+    },
+    defaultVariants: {
+      maxWidth: "xl",
+    },
+  }
+);
+
+type InsetViewProps = React.ComponentProps<"section"> & {
+  maxWidth?: "sm" | "md" | "lg" | "xl" | "2xl" | "full";
+};
+
+function InsetView({
+  className,
+  maxWidth = "xl",
+  children,
+  ...props
+}: InsetViewProps) {
+  return (
+    <section
+      data-slot="inset-view"
+      className={cn(
+        "h-full min-h-0 overflow-auto bg-[var(--color-inset-bg)]",
+        className
+      )}
+      {...props}
+    >
+      <div className={insetViewVariants({ maxWidth })}>{children}</div>
+    </section>
+  );
+}
+
 export {
+  InsetView,
   Sidebar,
   SidebarContent,
   SidebarFooter,

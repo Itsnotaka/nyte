@@ -1,8 +1,38 @@
-import { GitHubError } from "./types.ts";
+import { createAppAuth } from "@octokit/auth-app";
+import { err, ok, ResultAsync } from "neverthrow";
+import type { Result } from "neverthrow";
+import { Octokit } from "octokit";
 
-const GITHUB_API = "https://api.github.com";
+import {
+  GitHubError,
+  type GitHubAccount,
+  type GitHubAppInstallationAuth,
+  type GitHubErrorCode,
+} from "./types.ts";
 
-function errorCodeFromStatus(status: number): GitHubError["code"] {
+const USER_AGENT = "@sachikit/github";
+
+type GitHubRequestFailure = {
+  status?: unknown;
+  response?: {
+    data?: unknown;
+  };
+  message?: unknown;
+};
+
+/**
+ * Shared subset of nested GitHub account objects returned by installation,
+ * repository, pull request, and comment REST responses.
+ */
+type GitHubAccountResponse = {
+  id: number;
+  avatar_url: string;
+  login?: string;
+  slug?: string;
+  type?: string;
+};
+
+function errorCodeFromStatus(status: number): GitHubErrorCode {
   if (status === 401) return "unauthorized";
   if (status === 403) return "forbidden";
   if (status === 404) return "not_found";
@@ -11,31 +41,156 @@ function errorCodeFromStatus(status: number): GitHubError["code"] {
   return "unknown";
 }
 
-export async function githubFetch<T>(
-  path: string,
-  token: string,
-  options?: RequestInit
-): Promise<T> {
-  const url = path.startsWith("http") ? path : `${GITHUB_API}${path}`;
+function isGitHubRequestFailure(error: unknown): error is GitHubRequestFailure {
+  return typeof error === "object" && error !== null;
+}
 
-  const res = await fetch(url, {
-    ...options,
-    headers: {
-      Accept: "application/vnd.github+json",
-      Authorization: `Bearer ${token}`,
-      "X-GitHub-Api-Version": "2022-11-28",
-      ...options?.headers,
-    },
+function messageFromResponseData(data: unknown): string | null {
+  if (typeof data === "string" && data.trim().length > 0) {
+    return data;
+  }
+
+  if (typeof data !== "object" || data === null) {
+    return null;
+  }
+
+  const message = (data as { message?: unknown }).message;
+  return typeof message === "string" && message.trim().length > 0
+    ? message
+    : null;
+}
+
+function errorMessageFromFailure(
+  error: GitHubRequestFailure,
+  status: number
+): string {
+  const responseMessage = messageFromResponseData(error.response?.data);
+  if (responseMessage) {
+    return responseMessage;
+  }
+
+  if (typeof error.message === "string" && error.message.trim().length > 0) {
+    return error.message;
+  }
+
+  return status > 0
+    ? `GitHub API error: ${status}`
+    : "GitHub API request failed";
+}
+
+function accountTypeFromResponse(
+  type: string,
+  accountLabel: string
+): Result<GitHubAccount["type"], GitHubError> {
+  if (type === "User" || type === "Organization") {
+    return ok(type);
+  }
+
+  return err(
+    new GitHubError(
+      `GitHub ${accountLabel} has unsupported account type: ${type}`,
+      0,
+      "unknown"
+    )
+  );
+}
+
+export function createGitHubClient(token: string): Octokit {
+  return new Octokit({
+    auth: token,
+    userAgent: USER_AGENT,
   });
+}
 
-  if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    throw new GitHubError(
-      body || `GitHub API error: ${res.status}`,
-      res.status,
-      errorCodeFromStatus(res.status)
+export function createGitHubInstallationClient(
+  auth: GitHubAppInstallationAuth
+): Octokit {
+  return new Octokit({
+    authStrategy: createAppAuth,
+    auth: {
+      appId: auth.appId,
+      privateKey: auth.privateKey,
+      installationId: auth.installationId,
+    },
+    userAgent: USER_AGENT,
+  });
+}
+
+export function normalizeGitHubError(error: unknown): GitHubError {
+  if (error instanceof GitHubError) {
+    return error;
+  }
+
+  const status =
+    isGitHubRequestFailure(error) && typeof error.status === "number"
+      ? error.status
+      : 0;
+
+  const message = isGitHubRequestFailure(error)
+    ? errorMessageFromFailure(error, status)
+    : error instanceof Error && error.message.trim().length > 0
+      ? error.message
+      : status > 0
+        ? `GitHub API error: ${status}`
+        : "GitHub API request failed";
+
+  return new GitHubError(message, status, errorCodeFromStatus(status));
+}
+
+export function toGitHubAccount(
+  account: GitHubAccountResponse | null,
+  accountLabel: string
+): Result<GitHubAccount, GitHubError> {
+  if (!account) {
+    return err(
+      new GitHubError(
+        `GitHub ${accountLabel} is missing account details`,
+        0,
+        "unknown"
+      )
     );
   }
 
-  return res.json() as Promise<T>;
+  const login = account.login;
+  if (typeof login === "string" && typeof account.type === "string") {
+    return accountTypeFromResponse(account.type, accountLabel).map((type) => ({
+      login,
+      id: account.id,
+      avatar_url: account.avatar_url,
+      type,
+    }));
+  }
+
+  if (typeof account.slug === "string" && account.slug.length > 0) {
+    return ok({
+      login: account.slug,
+      id: account.id,
+      avatar_url: account.avatar_url,
+      type: "Organization",
+    });
+  }
+
+  return err(
+    new GitHubError(
+      `GitHub ${accountLabel} is missing a canonical login`,
+      0,
+      "unknown"
+    )
+  );
+}
+
+export function withGitHubClient<T>(
+  token: string,
+  run: (client: Octokit) => Promise<T>
+): ResultAsync<T, GitHubError> {
+  const client = createGitHubClient(token);
+  return ResultAsync.fromPromise(run(client), normalizeGitHubError);
+}
+
+export function withGitHubInstallationClient<T>(
+  auth: GitHubAppInstallationAuth,
+  run: (client: Octokit) => Promise<T>
+): ResultAsync<T, GitHubError> {
+  const client = createGitHubInstallationClient(auth);
+  return ResultAsync.fromPromise(run(client), normalizeGitHubError);
 }

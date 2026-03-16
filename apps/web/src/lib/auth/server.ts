@@ -1,11 +1,12 @@
 import "server-only";
 import { headers } from "next/headers";
+import { cache } from "react";
 
-import { auth } from "./auth";
+import { auth } from ".";
 
-export async function getSession() {
+export const getSession = cache(async () => {
   return auth.api.getSession({ headers: await headers() });
-}
+});
 
 export async function isAuthenticated() {
   const session = await getSession();

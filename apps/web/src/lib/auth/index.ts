@@ -1,10 +1,16 @@
+import "server-only";
+import { db } from "@sachikit/db";
+import * as authSchema from "@sachikit/db/schema/auth";
 import { betterAuth } from "better-auth";
-import { Pool } from "pg";
+import { drizzleAdapter } from "better-auth/adapters/drizzle";
 
-import { env } from "./server/env";
+import { env } from "../server/env";
 
 export const auth = betterAuth({
-  database: new Pool({ connectionString: env.DATABASE_URL }),
+  database: drizzleAdapter(db, {
+    provider: "pg",
+    schema: authSchema,
+  }),
   baseURL: env.BETTER_AUTH_URL,
   secret: env.BETTER_AUTH_SECRET,
   socialProviders: {

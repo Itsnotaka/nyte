@@ -1,4 +1,4 @@
-import { Skeleton } from "@nyte/ui/components/skeleton";
+import { Skeleton } from "@sachikit/ui/components/skeleton";
 
 export function FeedSkeleton() {
   return (
