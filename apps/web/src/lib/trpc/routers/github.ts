@@ -6,6 +6,7 @@ import {
   getGitHubAppInstallUrl,
   getPullRequestPageData,
   getRepoSubmitPageData,
+  mergeRepoPullRequest,
   resolveGitHubAppSetupRedirect,
   saveBranchPullRequest,
 } from "../../github/server";
@@ -15,6 +16,7 @@ const FAILURES = {
   addComment: "Failed to add pull request comment.",
   getPullRequestPage: "Pull request page data not found.",
   getRepoSubmitPage: "Repository submit page data not found.",
+  merge: "Failed to merge pull request.",
   review: "Failed to submit pull request review.",
   savePullRequest: "Failed to save pull request.",
 } as const;
@@ -109,6 +111,27 @@ export const githubRouter = createTRPCRouter({
         });
       } catch {
         throw new Error(FAILURES.addComment);
+      }
+    }),
+  mergePullRequest: protectedProcedure
+    .input(
+      z.object({
+        mergeMethod: z.enum(["merge", "squash", "rebase"]).optional(),
+        owner: z.string().min(1),
+        pullNumber: z.number().int().positive(),
+        repo: z.string().min(1),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      try {
+        return await mergeRepoPullRequest({
+          mergeMethod: input.mergeMethod,
+          owner: input.owner,
+          pullNumber: input.pullNumber,
+          repo: input.repo,
+        });
+      } catch {
+        throw new Error(FAILURES.merge);
       }
     }),
   submitPullRequestReview: protectedProcedure

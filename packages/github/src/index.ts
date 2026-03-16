@@ -14,6 +14,7 @@ export {
   listPullRequestReviews,
   listRepositoryPullRequests,
   markPullRequestReadyForReview,
+  mergePullRequest,
   submitPullRequestReview,
   updatePullRequest,
 } from "./pulls.ts";

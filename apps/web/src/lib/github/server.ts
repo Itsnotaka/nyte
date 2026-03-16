@@ -14,6 +14,7 @@ import {
   listRepositoryPullRequests,
   listUserInstallations,
   markPullRequestReadyForReview,
+  mergePullRequest,
   submitPullRequestReview,
   withGitHubClient,
   type GitHubAppInstallationAuth,
@@ -404,6 +405,31 @@ export async function addPullRequestReview(input: {
     },
   ).match(
     (review) => review,
+    (error) => {
+      throw error;
+    },
+  );
+}
+
+export async function mergeRepoPullRequest(input: {
+  owner: string;
+  repo: string;
+  pullNumber: number;
+  mergeMethod?: "merge" | "squash" | "rebase";
+}): Promise<{ sha: string; merged: boolean }> {
+  const context = await findRepoContext(input.owner, input.repo);
+  if (!context) {
+    throw new Error("Repository not found.");
+  }
+
+  return mergePullRequest(
+    context.auth,
+    input.owner,
+    context.repository.name,
+    input.pullNumber,
+    { mergeMethod: input.mergeMethod },
+  ).match(
+    (result) => result,
     (error) => {
       throw error;
     },
