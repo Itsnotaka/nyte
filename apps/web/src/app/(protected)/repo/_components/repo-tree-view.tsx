@@ -1,5 +1,9 @@
 "use client";
 
+import {
+  IconFileText,
+  IconFolder1,
+} from "@central-icons-react/round-filled-radius-2-stroke-1.5";
 import type { GitHubTreeEntry } from "@sachikit/github";
 import Link from "next/link";
 import * as React from "react";
@@ -12,24 +16,13 @@ type RepoTreeViewProps = {
   currentPath?: string;
 };
 
-function FolderIcon() {
-  return (
-    <svg className="size-4 shrink-0 text-sachi-accent" viewBox="0 0 16 16" fill="currentColor">
-      <path d="M1 3.5A1.5 1.5 0 012.5 2h3.379a1.5 1.5 0 011.06.44l.94.94a.5.5 0 00.354.12H13.5A1.5 1.5 0 0115 5v7.5a1.5 1.5 0 01-1.5 1.5h-11A1.5 1.5 0 011 12.5v-9z" />
-    </svg>
-  );
-}
-
-function FileIcon() {
-  return (
-    <svg className="size-4 shrink-0 text-sachi-fg-muted" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.2">
-      <path d="M4 1.5h5.5L13 5v9.5a1 1 0 01-1 1H4a1 1 0 01-1-1v-13a1 1 0 011-1z" />
-      <path d="M9 1.5V5.5h4" />
-    </svg>
-  );
-}
-
-export function RepoTreeView({ owner, repo, ref, entries, currentPath }: RepoTreeViewProps) {
+export function RepoTreeView({
+  owner,
+  repo,
+  ref,
+  entries,
+  currentPath,
+}: RepoTreeViewProps) {
   const sorted = React.useMemo(
     () =>
       [...entries].sort((a, b) => {
@@ -37,7 +30,7 @@ export function RepoTreeView({ owner, repo, ref, entries, currentPath }: RepoTre
         if (a.type !== "tree" && b.type === "tree") return 1;
         return a.path.localeCompare(b.path);
       }),
-    [entries],
+    [entries]
   );
 
   const prefix = currentPath ? `${currentPath}/` : "";
@@ -69,8 +62,14 @@ export function RepoTreeView({ owner, repo, ref, entries, currentPath }: RepoTre
             href={href}
             className="flex items-center gap-2 px-3 py-2 text-sm transition-colors hover:bg-sachi-fill"
           >
-            {entry.type === "tree" ? <FolderIcon /> : <FileIcon />}
-            <span className="min-w-0 flex-1 truncate text-sachi-fg">{name}</span>
+            {entry.type === "tree" ? (
+              <IconFolder1 className="size-4 shrink-0 text-sachi-accent" />
+            ) : (
+              <IconFileText className="size-4 shrink-0 text-sachi-fg-muted" />
+            )}
+            <span className="min-w-0 flex-1 truncate text-sachi-fg">
+              {name}
+            </span>
             {entry.type === "blob" && entry.size !== null ? (
               <span className="shrink-0 text-xs text-sachi-fg-faint">
                 {entry.size < 1024

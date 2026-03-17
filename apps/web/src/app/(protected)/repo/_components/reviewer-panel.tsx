@@ -1,7 +1,15 @@
 "use client";
 
+import {
+  IconCrossMedium,
+  IconPlusSmall,
+} from "@central-icons-react/round-filled-radius-2-stroke-1.5";
 import type { GitHubAccount } from "@sachikit/github";
-import { Avatar, AvatarFallback, AvatarImage } from "@sachikit/ui/components/avatar";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@sachikit/ui/components/avatar";
 import { Button } from "@sachikit/ui/components/button";
 import { Input } from "@sachikit/ui/components/input";
 import {
@@ -41,17 +49,21 @@ export function ReviewerPanel({
       onSuccess: async () => {
         setUsername("");
         setOpen(false);
-        await queryClient.invalidateQueries({ queryKey: pullRequestPageQueryKey });
+        await queryClient.invalidateQueries({
+          queryKey: pullRequestPageQueryKey,
+        });
       },
-    }),
+    })
   );
 
   const removeReviewer = useMutation(
     trpc.github.removeReviewer.mutationOptions({
       onSuccess: async () => {
-        await queryClient.invalidateQueries({ queryKey: pullRequestPageQueryKey });
+        await queryClient.invalidateQueries({
+          queryKey: pullRequestPageQueryKey,
+        });
       },
-    }),
+    })
   );
 
   function handleAdd() {
@@ -63,12 +75,14 @@ export function ReviewerPanel({
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-medium text-sachi-fg-muted">Reviewers</span>
+        <span className="text-xs font-medium text-sachi-fg-muted">
+          Reviewers
+        </span>
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger
             render={
               <Button variant="ghost" size="icon-sm" aria-label="Add reviewer">
-                <PlusIcon />
+                <IconPlusSmall />
               </Button>
             }
           />
@@ -94,7 +108,9 @@ export function ReviewerPanel({
               {addReviewer.isPending ? "Adding..." : "Add reviewer"}
             </Button>
             {addReviewer.error ? (
-              <p className="text-xs text-red-500">{addReviewer.error.message}</p>
+              <p className="text-xs text-red-500">
+                {addReviewer.error.message}
+              </p>
             ) : null}
           </PopoverContent>
         </Popover>
@@ -124,31 +140,18 @@ export function ReviewerPanel({
                 aria-label={`Remove ${reviewer.login}`}
                 disabled={removeReviewer.isPending}
                 onClick={() =>
-                  removeReviewer.mutate({ ...identity, reviewer: reviewer.login })
+                  removeReviewer.mutate({
+                    ...identity,
+                    reviewer: reviewer.login,
+                  })
                 }
               >
-                <XIcon />
+                <IconCrossMedium className="size-3" />
               </Button>
             </div>
           ))}
         </div>
       )}
     </div>
-  );
-}
-
-function PlusIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-      <path d="M8 3V13M3 8H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function XIcon() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
-      <path d="M5 5L11 11M11 5L5 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
   );
 }

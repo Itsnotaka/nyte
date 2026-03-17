@@ -2,34 +2,12 @@
 
 import { Badge } from "@sachikit/ui/components/badge";
 import { Input } from "@sachikit/ui/components/input";
-import {
-  differenceInDays,
-  differenceInHours,
-  differenceInMinutes,
-  differenceInMonths,
-} from "date-fns";
 import Link from "next/link";
 import * as React from "react";
 
+import { formatRelativeTime } from "~/lib/time";
+
 import { useRepo } from "./repo-context";
-
-function formatUpdated(dateString: string): string {
-  const date = new Date(dateString);
-  const now = new Date();
-
-  const minutes = differenceInMinutes(now, date);
-  if (minutes < 1) return "just now";
-  if (minutes < 60) return `${minutes}m ago`;
-
-  const hours = differenceInHours(now, date);
-  if (hours < 24) return `${hours}h ago`;
-
-  const days = differenceInDays(now, date);
-  if (days < 30) return `${days}d ago`;
-
-  const months = differenceInMonths(now, date);
-  return `${months}mo ago`;
-}
 
 export function RepoLanding() {
   const { repos } = useRepo();
@@ -84,7 +62,7 @@ export function RepoLanding() {
 
                 <div className="flex shrink-0 items-center gap-4 text-xs text-sachi-fg-faint">
                   {repo.language ? <span>{repo.language}</span> : null}
-                  <span>{formatUpdated(repo.updated_at)}</span>
+                  <span>{formatRelativeTime(repo.updated_at)}</span>
                 </div>
               </Link>
             ))}

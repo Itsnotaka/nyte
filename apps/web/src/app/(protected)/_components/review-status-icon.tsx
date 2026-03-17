@@ -9,11 +9,11 @@ import {
 
 import type { ReviewDecision } from "~/lib/github/server";
 
-interface ReviewStatusIconProps {
+export function ReviewStatusIcon({
+  reviewDecision,
+}: {
   reviewDecision: ReviewDecision;
-}
-
-export function ReviewStatusIcon({ reviewDecision }: ReviewStatusIconProps) {
+}) {
   switch (reviewDecision) {
     case "approved":
       return (

@@ -1,16 +1,20 @@
 "use client";
 
+import { IconChevronDownMedium } from "@central-icons-react/round-filled-radius-2-stroke-1.5";
 import {
-  IconCheckmark2Small,
-  IconChevronDownMedium,
-} from "@central-icons-react/round-filled-radius-2-stroke-1.5";
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@sachikit/ui/components/avatar";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@sachikit/ui/components/dropdown-menu";
+  Popover,
+  PopoverContent,
+  PopoverHeader,
+  PopoverTitle,
+  PopoverTrigger,
+} from "@sachikit/ui/components/popover";
+import { ScrollArea } from "@sachikit/ui/components/scroll-area";
+import { Separator } from "@sachikit/ui/components/separator";
 import {
   Sidebar,
   SidebarContent,
@@ -30,41 +34,114 @@ type AppShellProps = {
   children: React.ReactNode;
 };
 
-function RepoSelector() {
-  const { repos, selectedRepo, setSelectedRepo } = useRepo();
+function SyncedReposSummary() {
+  const { installations, syncedRepos, totalAccessible, totalSynced } =
+    useRepo();
 
-  if (repos.length === 0) {
-    return <div className="mt-2 h-10" />;
+  const displayCount = totalSynced > 0 ? totalSynced : totalAccessible;
+  const label =
+    totalSynced > 0
+      ? `${String(displayCount)} repo${displayCount === 1 ? "" : "s"} synced`
+      : `${String(displayCount)} repo${displayCount === 1 ? "" : "s"}`;
+
+  if (totalAccessible === 0) {
+    return (
+      <div className="mt-2 px-2 py-1.5">
+        <span className="text-xs text-sachi-fg-muted">No repos available</span>
+      </div>
+    );
+  }
+
+  const reposByOwner = new Map<string, typeof syncedRepos>();
+  const targetRepos = totalSynced > 0 ? syncedRepos : [];
+  for (const repo of targetRepos) {
+    const existing = reposByOwner.get(repo.owner.login) ?? [];
+    existing.push(repo);
+    reposByOwner.set(repo.owner.login, existing);
   }
 
   return (
     <div className="mt-2">
-      <DropdownMenu>
-        <DropdownMenuTrigger className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-sm font-medium text-sachi-fg hover:bg-sachi-fill focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-sachi-focus">
-          <span className="truncate">{selectedRepo ? selectedRepo.name : "Select repo"}</span>
+      <Popover>
+        <PopoverTrigger className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-sm font-medium text-sachi-fg hover:bg-sachi-fill focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-sachi-focus">
+          <span className="truncate">{label}</span>
           <IconChevronDownMedium
             className="size-4 shrink-0 text-sachi-fg-faint"
             aria-hidden="true"
           />
-        </DropdownMenuTrigger>
+        </PopoverTrigger>
 
-        <DropdownMenuContent align="start" sideOffset={4}>
-          <DropdownMenuGroup>
-            {repos.map((repo) => (
-              <DropdownMenuItem
-                key={repo.id}
-                onSelect={() => setSelectedRepo(repo)}
-                className="flex items-center justify-between gap-2"
+        <PopoverContent align="start" sideOffset={4} className="w-64 p-0">
+          <PopoverHeader className="px-3 pt-2.5 pb-0">
+            <PopoverTitle className="text-xs text-sachi-fg">
+              Synced repos
+            </PopoverTitle>
+          </PopoverHeader>
+
+          {totalSynced === 0 ? (
+            <div className="px-3 py-4 text-center">
+              <p className="text-xs text-sachi-fg-muted">
+                No repos synced yet. All {String(totalAccessible)} accessible
+                repos are shown.
+              </p>
+              <Link
+                href="/setup/repos"
+                className="mt-2 inline-block text-xs font-medium text-sachi-accent hover:underline"
               >
-                <span className="truncate">{repo.name}</span>
-                {selectedRepo?.id === repo.id ? (
-                  <IconCheckmark2Small className="size-4 shrink-0 text-sachi-fg-muted" />
-                ) : null}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuGroup>
-        </DropdownMenuContent>
-      </DropdownMenu>
+                Edit synced repos
+              </Link>
+            </div>
+          ) : (
+            <ScrollArea className="max-h-64">
+              {installations.map((inst) => {
+                const instRepos = reposByOwner.get(inst.account.login);
+                if (!instRepos || instRepos.length === 0) return null;
+                return (
+                  <div key={inst.id}>
+                    <div className="flex items-center gap-2 px-3 py-2">
+                      <Avatar size="sm">
+                        <AvatarImage
+                          src={inst.account.avatar_url}
+                          alt={inst.account.login}
+                        />
+                        <AvatarFallback>
+                          {inst.account.login.charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-xs font-medium text-sachi-fg">
+                        {inst.account.login}
+                      </span>
+                    </div>
+                    <ul>
+                      {instRepos.map((repo) => (
+                        <li key={repo.id}>
+                          <Link
+                            href={`/repo/${repo.owner.login}/${repo.name}`}
+                            className="block px-3 py-1.5 text-xs text-sachi-fg-secondary transition-colors hover:bg-sachi-fill hover:text-sachi-fg"
+                          >
+                            {repo.name}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                    <Separator />
+                  </div>
+                );
+              })}
+            </ScrollArea>
+          )}
+
+          <Separator />
+          <div className="px-3 py-2">
+            <Link
+              href="/setup/repos"
+              className="text-xs text-sachi-fg-muted transition-colors hover:text-sachi-fg"
+            >
+              Edit synced repos
+            </Link>
+          </div>
+        </PopoverContent>
+      </Popover>
     </div>
   );
 }
@@ -98,10 +175,35 @@ function getPageLabel(pathname: string): string | null {
   return null;
 }
 
-function HeaderLabel({ pathname }: { pathname: string }) {
+function useRouteRepoContext(): { owner: string; repo: string } | null {
+  const pathname = usePathname();
+  const match = pathname.match(/^\/repo\/([^/]+)\/([^/]+)/);
+  if (!match) return null;
+  return { owner: match[1]!, repo: match[2]! };
+}
+
+function HeaderContent() {
+  const pathname = usePathname();
+  const routeRepo = useRouteRepoContext();
   const label = getPageLabel(pathname);
-  if (!label) return null;
-  return <span className="ml-3 text-sm font-medium text-sachi-fg">{label}</span>;
+
+  if (routeRepo) {
+    return (
+      <span className="ml-3 text-sm text-sachi-fg">
+        <span className="text-sachi-fg-muted">{routeRepo.owner}</span>
+        <span className="text-sachi-fg-faint"> / </span>
+        <span className="font-medium">{routeRepo.repo}</span>
+      </span>
+    );
+  }
+
+  if (label) {
+    return (
+      <span className="ml-3 text-sm font-medium text-sachi-fg">{label}</span>
+    );
+  }
+
+  return null;
 }
 
 export function AppShell({ children }: AppShellProps) {
@@ -116,7 +218,7 @@ export function AppShell({ children }: AppShellProps) {
     >
       <Sidebar className="bg-sachi-sidebar">
         <SidebarHeader className="px-2.5">
-          <RepoSelector />
+          <SyncedReposSummary />
         </SidebarHeader>
 
         <SidebarContent className="px-2.5 pt-2 pb-3">
@@ -140,7 +242,7 @@ export function AppShell({ children }: AppShellProps) {
       <SidebarInset className="bg-sachi-surface">
         <header className="flex h-10 shrink-0 items-center border-b border-sachi-line-subtle bg-sachi-surface px-3">
           <SidebarTrigger layout="inline" />
-          <HeaderLabel pathname={pathname} />
+          <HeaderContent />
         </header>
         <div className="min-h-0 flex-1">{children}</div>
       </SidebarInset>

@@ -1,18 +1,23 @@
 import { redirect } from "next/navigation";
 
-import { getOnboardingState, getInstallationRepos } from "~/lib/github/server";
+import { getRepoCatalog, getSyncedRepoCatalog } from "~/lib/github/server";
 
 import { RepoPickerView } from "../_components/repo-picker-view";
 
 export default async function ReposPage() {
-  const state = await getOnboardingState();
+  const catalog = await getRepoCatalog();
 
-  if (state.step !== "has_installations") {
+  if (catalog.installations.length === 0) {
     redirect("/setup");
   }
 
-  const firstInstallation = state.installations[0]!;
-  const repos = await getInstallationRepos(firstInstallation.id);
+  const syncedCatalog = await getSyncedRepoCatalog();
 
-  return <RepoPickerView installation={firstInstallation} repos={repos} />;
+  return (
+    <RepoPickerView
+      installations={catalog.installations}
+      repos={catalog.repos}
+      syncedRepoIds={Array.from(syncedCatalog.syncedRepoIds)}
+    />
+  );
 }

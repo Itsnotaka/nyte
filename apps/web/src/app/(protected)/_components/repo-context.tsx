@@ -6,8 +6,9 @@ import * as React from "react";
 type RepoContextValue = {
   installations: GitHubInstallation[];
   repos: GitHubRepository[];
-  selectedRepo: GitHubRepository | null;
-  setSelectedRepo: (repo: GitHubRepository) => void;
+  syncedRepos: GitHubRepository[];
+  totalAccessible: number;
+  totalSynced: number;
 };
 
 const RepoContext = React.createContext<RepoContextValue | null>(null);
@@ -23,20 +24,29 @@ export function useRepo() {
 type RepoProviderProps = {
   installations: GitHubInstallation[];
   repos: GitHubRepository[];
+  syncedRepos: GitHubRepository[];
+  totalAccessible: number;
+  totalSynced: number;
   children: React.ReactNode;
 };
 
-export function RepoProvider({ installations, repos, children }: RepoProviderProps) {
-  const [selectedRepo, setSelectedRepo] = React.useState<GitHubRepository | null>(repos[0] ?? null);
-
+export function RepoProvider({
+  installations,
+  repos,
+  syncedRepos,
+  totalAccessible,
+  totalSynced,
+  children,
+}: RepoProviderProps) {
   const value = React.useMemo(
     () => ({
       installations,
       repos,
-      selectedRepo,
-      setSelectedRepo,
+      syncedRepos,
+      totalAccessible,
+      totalSynced,
     }),
-    [installations, repos, selectedRepo],
+    [installations, repos, syncedRepos, totalAccessible, totalSynced]
   );
 
   return <RepoContext.Provider value={value}>{children}</RepoContext.Provider>;

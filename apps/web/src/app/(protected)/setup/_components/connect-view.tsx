@@ -8,31 +8,35 @@ import { useTRPC } from "~/lib/trpc/client";
 
 export function ConnectView() {
   const trpc = useTRPC();
-  const [didOpenGithub, setDidOpenGithub] = React.useState(false);
+  const installWindowRef = React.useRef<Window | null>(null);
   const startInstallMutation = useMutation(
-    trpc.github.startInstall.mutationOptions()
+    trpc.github.startInstall.mutationOptions({
+      onError: () => {
+        installWindowRef.current?.close();
+        installWindowRef.current = null;
+      },
+      onSuccess: ({ url }) => {
+        const installWindow = installWindowRef.current;
+        installWindowRef.current = null;
+
+        if (installWindow && !installWindow.closed) {
+          installWindow.location.assign(url);
+          installWindow.focus();
+          return;
+        }
+
+        window.location.assign(url);
+      },
+    })
   );
 
-  async function handleInstall() {
+  function handleInstall() {
     const installWindow = window.open("about:blank", "_blank");
     if (installWindow) {
       installWindow.opener = null;
     }
-
-    try {
-      const { url } = await startInstallMutation.mutateAsync();
-      setDidOpenGithub(true);
-
-      if (installWindow && !installWindow.closed) {
-        installWindow.location.assign(url);
-        installWindow.focus();
-        return;
-      }
-
-      window.location.assign(url);
-    } catch {
-      installWindow?.close();
-    }
+    installWindowRef.current = installWindow;
+    startInstallMutation.mutate();
   }
 
   return (
@@ -51,13 +55,11 @@ export function ConnectView() {
         <Button
           size="lg"
           disabled={startInstallMutation.isPending}
-          onClick={() => void handleInstall()}
+          onClick={handleInstall}
         >
           {startInstallMutation.isPending
             ? "Opening GitHub..."
-            : didOpenGithub
-              ? "Open GitHub again"
-              : "Install the Sachi App on GitHub"}
+            : "Install the Sachi App on GitHub"}
         </Button>
 
         {startInstallMutation.error ? (
@@ -68,9 +70,8 @@ export function ConnectView() {
         ) : null}
 
         <p className="text-xs text-sachi-fg-faint">
-          {didOpenGithub
-            ? "GitHub opened in a new tab. Finish installation there and we'll bring you back automatically."
-            : "We'll open GitHub in a new tab so you can finish installation without losing your place."}
+          We'll open GitHub in a new tab so you can finish installation without
+          losing your place.
         </p>
       </div>
     </section>

@@ -1,5 +1,6 @@
 "use client";
 
+import { IconChevronDownMedium } from "@central-icons-react/round-filled-radius-2-stroke-1.5";
 import { parsePatchFiles } from "@pierre/diffs";
 import type { DiffLineAnnotation, FileDiffMetadata } from "@pierre/diffs/react";
 import { FileDiff } from "@pierre/diffs/react";
@@ -32,16 +33,11 @@ import { cn } from "@sachikit/ui/lib/utils";
 import { useHotkey } from "@tanstack/react-hotkeys";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { inferRouterOutputs } from "@trpc/server";
-import {
-  differenceInDays,
-  differenceInHours,
-  differenceInMinutes,
-  differenceInMonths,
-} from "date-fns";
 import { nanoid } from "nanoid";
 import * as React from "react";
 import { Streamdown } from "streamdown";
 
+import { formatRelativeTime } from "~/lib/time";
 import { useTRPC } from "~/lib/trpc/client";
 import type { AppRouter } from "~/lib/trpc/router";
 
@@ -78,24 +74,6 @@ type AnnotationPayload =
       draft: DraftComment;
     };
 
-function formatUpdated(dateString: string): string {
-  const date = new Date(dateString);
-  const now = new Date();
-
-  const minutes = differenceInMinutes(now, date);
-  if (minutes < 1) return "just now";
-  if (minutes < 60) return `${minutes}m ago`;
-
-  const hours = differenceInHours(now, date);
-  if (hours < 24) return `${hours}h ago`;
-
-  const days = differenceInDays(now, date);
-  if (days < 30) return `${days}d ago`;
-
-  const months = differenceInMonths(now, date);
-  return `${months}mo ago`;
-}
-
 function annotationSide(side: "LEFT" | "RIGHT"): "deletions" | "additions" {
   return side === "LEFT" ? "deletions" : "additions";
 }
@@ -110,6 +88,18 @@ function reviewBadge(review: GitHubPullRequestReview): string {
 function parseFiles(diff: string): FileDiffMetadata[] {
   if (diff.trim().length === 0) return [];
   return parsePatchFiles(diff).flatMap((patch) => patch.files);
+}
+
+function groupByPath<T extends { path: string }>(items: T[]): Map<string, T[]> {
+  return items.reduce((groups, item) => {
+    const group = groups.get(item.path);
+    if (group) {
+      group.push(item);
+    } else {
+      groups.set(item.path, [item]);
+    }
+    return groups;
+  }, new Map<string, T[]>());
 }
 
 type MarkdownContentProps = {
@@ -166,7 +156,6 @@ function MarkdownContent({
 
 type ReviewSurfaceProps = {
   title: string;
-  description?: string;
   action?: React.ReactNode;
   children: React.ReactNode;
   className?: string;
@@ -175,7 +164,6 @@ type ReviewSurfaceProps = {
 
 function ReviewSurface({
   title,
-  description,
   action,
   children,
   className,
@@ -186,51 +174,11 @@ function ReviewSurface({
       <LayerCardSecondary className="items-start">
         <div className="min-w-0 space-y-1">
           <h2 className="text-sm font-semibold text-sachi-fg">{title}</h2>
-          {description ? (
-            <p className="text-sm font-normal text-sachi-fg-muted">
-              {description}
-            </p>
-          ) : null}
         </div>
         {action}
       </LayerCardSecondary>
       <LayerCardPrimary className={contentClassName}>
         {children}
-      </LayerCardPrimary>
-    </LayerCard>
-  );
-}
-
-type ReviewEntryProps = {
-  author: string;
-  body: string | null;
-  repository: GitHubRepository;
-  meta?: React.ReactNode;
-  emptyFallback?: string;
-};
-
-function ReviewEntry({
-  author,
-  body,
-  repository,
-  meta,
-  emptyFallback,
-}: ReviewEntryProps) {
-  return (
-    <LayerCard className="bg-transparent p-0 shadow-none ring-0">
-      <LayerCardSecondary className="rounded-lg bg-sachi-surface px-3 py-2 text-xs font-normal text-sachi-fg-muted ring-1 ring-sachi-line-subtle">
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <span className="font-medium text-sachi-fg-secondary">{author}</span>
-          {meta}
-        </div>
-      </LayerCardSecondary>
-      <LayerCardPrimary className="gap-0">
-        <MarkdownContent
-          className="pull-request-markdown text-sm text-sachi-fg-secondary"
-          content={body}
-          emptyFallback={emptyFallback}
-          repository={repository}
-        />
       </LayerCardPrimary>
     </LayerCard>
   );
@@ -360,6 +308,15 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
   const reviews = pageData.reviews;
   const reviewComments = pageData.reviewComments;
   const files = React.useMemo(() => parseFiles(pageData.diff), [pageData.diff]);
+  const reviewCommentsWithLines = React.useMemo(
+    () => reviewComments.filter((comment) => comment.line !== null),
+    [reviewComments]
+  );
+  const draftsByFile = React.useMemo(() => groupByPath(drafts), [drafts]);
+  const reviewCommentsByFile = React.useMemo(
+    () => groupByPath(reviewCommentsWithLines),
+    [reviewCommentsWithLines]
+  );
 
   const prLabels: GitHubLabel[] = React.useMemo(() => {
     const raw = (pullRequest as Record<string, unknown>).labels;
@@ -679,7 +636,7 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
                 </div>
                 <p className="text-sm text-sachi-fg-muted">
                   {pullRequest.head.ref} to {pullRequest.base.ref} · updated{" "}
-                  {formatUpdated(pullRequest.updated_at)}
+                  {formatRelativeTime(pullRequest.updated_at)}
                 </p>
               </div>
 
@@ -830,7 +787,7 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
                             />
                           }
                         >
-                          <ChevronDownIcon />
+                          <IconChevronDownMedium />
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" sideOffset={4}>
                           <DropdownMenuItem
@@ -893,18 +850,13 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
                     <DiffFile
                       key={`${file.name}:${file.newObjectId ?? file.prevObjectId ?? file.mode ?? "file"}`}
                       diffSettings={diffSettings}
-                      drafts={drafts.filter(
-                        (draft) => draft.path === file.name
-                      )}
+                      drafts={draftsByFile.get(file.name) ?? []}
                       file={file}
                       onAddDraft={addDraft}
                       onDraftChange={updateDraft}
                       onDraftRemove={removeDraft}
                       repository={repository}
-                      reviewComments={reviewComments.filter(
-                        (comment) =>
-                          comment.path === file.name && comment.line !== null
-                      )}
+                      reviewComments={reviewCommentsByFile.get(file.name) ?? []}
                     />
                   ))
                 )}
@@ -997,13 +949,26 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
                   </p>
                 ) : (
                   issueComments.map((comment) => (
-                    <ReviewEntry
+                    <LayerCard
                       key={comment.id}
-                      author={comment.user.login}
-                      body={comment.body}
-                      meta={<span>{formatUpdated(comment.updated_at)}</span>}
-                      repository={repository}
-                    />
+                      className="bg-transparent p-0 shadow-none ring-0"
+                    >
+                      <LayerCardSecondary className="rounded-lg bg-sachi-surface px-3 py-2 text-xs font-normal text-sachi-fg-muted ring-1 ring-sachi-line-subtle">
+                        <div className="flex min-w-0 flex-wrap items-center gap-2">
+                          <span className="font-medium text-sachi-fg-secondary">
+                            {comment.user.login}
+                          </span>
+                          <span>{formatRelativeTime(comment.updated_at)}</span>
+                        </div>
+                      </LayerCardSecondary>
+                      <LayerCardPrimary className="gap-0">
+                        <MarkdownContent
+                          className="pull-request-markdown text-sm text-sachi-fg-secondary"
+                          content={comment.body}
+                          repository={repository}
+                        />
+                      </LayerCardPrimary>
+                    </LayerCard>
                   ))
                 )}
               </ReviewSurface>
@@ -1013,21 +978,32 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
                   <p className="text-sm text-sachi-fg-muted">No reviews yet.</p>
                 ) : (
                   reviews.map((review) => (
-                    <ReviewEntry
+                    <LayerCard
                       key={review.id}
-                      author={review.user.login}
-                      body={review.body}
-                      emptyFallback="No summary."
-                      meta={
-                        <>
+                      className="bg-transparent p-0 shadow-none ring-0"
+                    >
+                      <LayerCardSecondary className="rounded-lg bg-sachi-surface px-3 py-2 text-xs font-normal text-sachi-fg-muted ring-1 ring-sachi-line-subtle">
+                        <div className="flex min-w-0 flex-wrap items-center gap-2">
+                          <span className="font-medium text-sachi-fg-secondary">
+                            {review.user.login}
+                          </span>
                           <Badge variant="outline">{reviewBadge(review)}</Badge>
                           {review.submitted_at ? (
-                            <span>{formatUpdated(review.submitted_at)}</span>
+                            <span>
+                              {formatRelativeTime(review.submitted_at)}
+                            </span>
                           ) : null}
-                        </>
-                      }
-                      repository={repository}
-                    />
+                        </div>
+                      </LayerCardSecondary>
+                      <LayerCardPrimary className="gap-0">
+                        <MarkdownContent
+                          className="pull-request-markdown text-sm text-sachi-fg-secondary"
+                          content={review.body}
+                          emptyFallback="No summary."
+                          repository={repository}
+                        />
+                      </LayerCardPrimary>
+                    </LayerCard>
                   ))
                 )}
               </ReviewSurface>
@@ -1036,24 +1012,6 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
         </InsetView>
       </div>
     </div>
-  );
-}
-
-function ChevronDownIcon() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="m6 9 6 6 6-6" />
-    </svg>
   );
 }
 
@@ -1165,7 +1123,7 @@ function DiffFile({
                     {meta.comment.user.login}
                   </span>
                   <Badge variant="outline">Published</Badge>
-                  <span>{formatUpdated(meta.comment.updated_at)}</span>
+                  <span>{formatRelativeTime(meta.comment.updated_at)}</span>
                 </div>
                 <div className="rounded-lg bg-sachi-base px-3 py-3 ring-1 ring-sachi-line">
                   <MarkdownContent

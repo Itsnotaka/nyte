@@ -1,5 +1,10 @@
 "use client";
 
+import {
+  IconCircle,
+  IconCircleCheck,
+  IconCircleX,
+} from "@central-icons-react/round-filled-radius-2-stroke-1.5";
 import type { GitHubCheckRun } from "@sachikit/github";
 import { Badge } from "@sachikit/ui/components/badge";
 import {
@@ -19,7 +24,10 @@ type ChecksPanelProps = {
   headSha: string;
 };
 
-function formatDuration(startedAt: string | null, completedAt: string | null): string {
+function formatDuration(
+  startedAt: string | null,
+  completedAt: string | null
+): string {
   if (!startedAt || !completedAt) return "";
   const ms = new Date(completedAt).getTime() - new Date(startedAt).getTime();
   if (ms < 1000) return "<1s";
@@ -27,7 +35,9 @@ function formatDuration(startedAt: string | null, completedAt: string | null): s
   if (seconds < 60) return `${String(seconds)}s`;
   const minutes = Math.floor(seconds / 60);
   const remaining = seconds % 60;
-  return remaining > 0 ? `${String(minutes)}m ${String(remaining)}s` : `${String(minutes)}m`;
+  return remaining > 0
+    ? `${String(minutes)}m ${String(remaining)}s`
+    : `${String(minutes)}m`;
 }
 
 function StatusIcon({ run }: { run: GitHubCheckRun }) {
@@ -40,17 +50,7 @@ function StatusIcon({ run }: { run: GitHubCheckRun }) {
   }
 
   if (run.conclusion === "success") {
-    return (
-      <svg className="size-4 text-green-600" viewBox="0 0 16 16" fill="none">
-        <path
-          d="M4 8.5L6.5 11L12 5"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-    );
+    return <IconCircleCheck className="size-4 text-green-600" />;
   }
 
   if (
@@ -58,31 +58,17 @@ function StatusIcon({ run }: { run: GitHubCheckRun }) {
     run.conclusion === "timed_out" ||
     run.conclusion === "action_required"
   ) {
-    return (
-      <svg className="size-4 text-red-500" viewBox="0 0 16 16" fill="none">
-        <path
-          d="M5 5L11 11M11 5L5 11"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-    );
+    return <IconCircleX className="size-4 text-red-500" />;
   }
 
-  return (
-    <span className="flex size-4 items-center justify-center">
-      <span className="size-2 rounded-full bg-sachi-fg-faint" />
-    </span>
-  );
+  return <IconCircle className="size-4 text-sachi-fg-faint" />;
 }
 
 function summaryLabel(
   total: number,
   passing: number,
   failing: number,
-  pending: number,
+  pending: number
 ): string {
   if (total === 0) return "No checks";
   const parts: string[] = [];
@@ -99,15 +85,15 @@ export function ChecksPanel({ owner, repo, headSha }: ChecksPanelProps) {
   const checksQuery = useQuery(
     trpc.github.getCheckRuns.queryOptions(
       { owner, repo, ref: headSha },
-      { staleTime: 60_000 },
-    ),
+      { staleTime: 60_000 }
+    )
   );
 
   const summaryQuery = useQuery(
     trpc.github.getCheckSummary.queryOptions(
       { owner, repo, ref: headSha },
-      { staleTime: 60_000 },
-    ),
+      { staleTime: 60_000 }
+    )
   );
 
   const summary = summaryQuery.data;
@@ -118,8 +104,17 @@ export function ChecksPanel({ owner, repo, headSha }: ChecksPanelProps) {
       <CollapsibleTrigger className="flex w-full items-center justify-between gap-2 rounded-md px-3 py-2 text-left text-sm transition-colors hover:bg-sachi-fill">
         <span className="font-medium text-sachi-fg">Checks</span>
         {summary ? (
-          <Badge variant={summary.conclusion === "failure" ? "destructive" : "outline"}>
-            {summaryLabel(summary.total, summary.passing, summary.failing, summary.pending)}
+          <Badge
+            variant={
+              summary.conclusion === "failure" ? "destructive" : "outline"
+            }
+          >
+            {summaryLabel(
+              summary.total,
+              summary.passing,
+              summary.failing,
+              summary.pending
+            )}
           </Badge>
         ) : (
           <span className="text-xs text-sachi-fg-faint">Loading...</span>
@@ -140,7 +135,7 @@ export function ChecksPanel({ owner, repo, headSha }: ChecksPanelProps) {
                 target="_blank"
                 rel="noopener noreferrer"
                 className={cn(
-                  "flex items-center gap-2 rounded-md px-2 py-1.5 text-xs transition-colors hover:bg-sachi-fill",
+                  "flex items-center gap-2 rounded-md px-2 py-1.5 text-xs transition-colors hover:bg-sachi-fill"
                 )}
               >
                 <StatusIcon run={run} />

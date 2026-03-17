@@ -4,10 +4,9 @@ import {
   IconBlockSortAscending,
   IconBlockSortDescending,
   IconChevronDownMedium,
-  IconFilter1,
-  IconSettingsGear1,
   IconSortArrowUpDown,
 } from "@central-icons-react/round-filled-radius-2-stroke-1.5";
+import { Alert, AlertDescription } from "@sachikit/ui/components/alert";
 import {
   Avatar,
   AvatarFallback,
@@ -18,125 +17,28 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@sachikit/ui/components/collapsible";
-import { Table } from "@sachikit/ui/components/table";
 import {
-  differenceInDays,
-  differenceInHours,
-  differenceInMinutes,
-  differenceInMonths,
-} from "date-fns";
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from "@sachikit/ui/components/empty";
+import { ScrollArea } from "@sachikit/ui/components/scroll-area";
+import { Table } from "@sachikit/ui/components/table";
+import { compareAsc, compareDesc, parseISO } from "date-fns";
 import Link from "next/link";
 import * as React from "react";
 
-import type { InboxData, InboxPullRequest } from "~/lib/github/server";
+import type {
+  InboxData,
+  InboxPullRequest,
+  InboxSection,
+  InboxSectionId,
+} from "~/lib/github/server";
+import { formatRelativeTime } from "~/lib/time";
 
+import { CheckStatusDot } from "./check-status-dot";
 import { ReviewStatusIcon } from "./review-status-icon";
-
-const CheckStatusDot = React.lazy(() =>
-  import("./check-status-dot").then((mod) => ({ default: mod.CheckStatusDot }))
-);
-
-// ---------------------------------------------------------------------------
-// Section types
-// ---------------------------------------------------------------------------
-
-type SectionId =
-  | "needs_review"
-  | "returned"
-  | "approved"
-  | "waiting_reviewers"
-  | "drafts"
-  | "merging"
-  | "waiting_author";
-
-type InboxSection = {
-  id: SectionId;
-  label: string;
-  items: InboxPullRequest[];
-};
-
-// ---------------------------------------------------------------------------
-// Classification
-// ---------------------------------------------------------------------------
-
-function classifyPullRequests(
-  login: string,
-  pullRequests: InboxPullRequest[]
-): InboxSection[] {
-  const needsReview: InboxPullRequest[] = [];
-  const waitingReviewers: InboxPullRequest[] = [];
-  const drafts: InboxPullRequest[] = [];
-  const returned: InboxPullRequest[] = [];
-  const approved: InboxPullRequest[] = [];
-  const merging: InboxPullRequest[] = [];
-  const waitingAuthor: InboxPullRequest[] = [];
-
-  const lower = login.toLowerCase();
-
-  for (const pr of pullRequests) {
-    const isAuthor = pr.user.login.toLowerCase() === lower;
-    const isRequestedReviewer = pr.requested_reviewers.some(
-      (r) => r.login.toLowerCase() === lower
-    );
-
-    if (pr.merged) {
-      merging.push(pr);
-    } else if (isAuthor && pr.draft) {
-      drafts.push(pr);
-    } else if (isAuthor && pr.reviewDecision === "approved") {
-      approved.push(pr);
-    } else if (isAuthor && pr.reviewDecision === "changes_requested") {
-      returned.push(pr);
-    } else if (!isAuthor && isRequestedReviewer) {
-      needsReview.push(pr);
-    } else if (!isAuthor && pr.reviewDecision === "changes_requested") {
-      // This reviewer requested changes and is waiting for the author to address them
-      waitingAuthor.push(pr);
-    } else if (isAuthor) {
-      waitingReviewers.push(pr);
-    }
-  }
-
-  return [
-    { id: "needs_review", label: "Needs your review", items: needsReview },
-    { id: "returned", label: "Returned to you", items: returned },
-    { id: "approved", label: "Approved", items: approved },
-    { id: "merging", label: "Merging and recently merged", items: merging },
-    { id: "waiting_author", label: "Waiting for author", items: waitingAuthor },
-    { id: "drafts", label: "Drafts", items: drafts },
-    {
-      id: "waiting_reviewers",
-      label: "Waiting for reviewers",
-      items: waitingReviewers,
-    },
-  ];
-}
-
-// ---------------------------------------------------------------------------
-// Utilities
-// ---------------------------------------------------------------------------
-
-function formatUpdated(dateString: string): string {
-  const date = new Date(dateString);
-  const now = new Date();
-
-  const minutes = differenceInMinutes(now, date);
-  if (minutes < 1) return "<1m";
-  if (minutes < 60) return `${minutes}m`;
-
-  const hours = differenceInHours(now, date);
-  if (hours < 24) return `${hours}h`;
-
-  const days = differenceInDays(now, date);
-  if (days < 30) return `${days}d`;
-
-  const months = differenceInMonths(now, date);
-  return `${months}mo`;
-}
-
-// ---------------------------------------------------------------------------
-// Sort types
-// ---------------------------------------------------------------------------
 
 type SortField = "title" | "changes" | "updated";
 type SortDirection = "asc" | "desc";
@@ -146,20 +48,23 @@ function sortItems(
   field: SortField,
   direction: SortDirection
 ): InboxPullRequest[] {
-  const sorted = [...items].sort((a, b) => {
+  return [...items].sort((a, b) => {
     let cmp = 0;
     if (field === "title") {
       cmp = a.title.localeCompare(b.title);
     } else if (field === "changes") {
-      const aTotal = (a.additions ?? 0) + (a.deletions ?? 0);
-      const bTotal = (b.additions ?? 0) + (b.deletions ?? 0);
-      cmp = aTotal - bTotal;
+      cmp =
+        (a.additions ?? 0) +
+        (a.deletions ?? 0) -
+        ((b.additions ?? 0) + (b.deletions ?? 0));
     } else {
-      cmp = a.updated_at.localeCompare(b.updated_at);
+      cmp =
+        direction === "asc"
+          ? compareAsc(parseISO(a.updated_at), parseISO(b.updated_at))
+          : compareDesc(parseISO(a.updated_at), parseISO(b.updated_at));
     }
-    return direction === "asc" ? cmp : -cmp;
+    return field === "updated" || direction === "asc" ? cmp : -cmp;
   });
-  return sorted;
 }
 
 function SortIcon({
@@ -173,28 +78,25 @@ function SortIcon({
 }) {
   const cls = `size-3 ${active ? "text-sachi-fg-secondary" : "text-sachi-fg-faint"}`;
   if (active && direction === "asc")
-    return <IconBlockSortAscending className={cls} aria-label={`Sort by ${field} ascending`} />;
+    return (
+      <IconBlockSortAscending
+        className={cls}
+        aria-label={`Sort by ${field} ascending`}
+      />
+    );
   if (active && direction === "desc")
-    return <IconBlockSortDescending className={cls} aria-label={`Sort by ${field} descending`} />;
-  return <IconSortArrowUpDown className={cls} aria-label={`Sort by ${field}`} />;
+    return (
+      <IconBlockSortDescending
+        className={cls}
+        aria-label={`Sort by ${field} descending`}
+      />
+    );
+  return (
+    <IconSortArrowUpDown className={cls} aria-label={`Sort by ${field}`} />
+  );
 }
 
-// ---------------------------------------------------------------------------
-// PR row
-// ---------------------------------------------------------------------------
-
 function PullRequestRow({ pr }: { pr: InboxPullRequest }) {
-  const changesCell =
-    pr.additions != null && pr.deletions != null ? (
-      <span className="text-xs whitespace-nowrap">
-        <span className="text-green-600">+{pr.additions}</span>
-        <span className="text-sachi-fg-faint"> / </span>
-        <span className="text-red-500">-{pr.deletions}</span>
-      </span>
-    ) : (
-      <span className="text-xs text-sachi-fg-faint">—</span>
-    );
-
   return (
     <Table.Row>
       <Table.Cell className="w-full min-w-0">
@@ -232,18 +134,24 @@ function PullRequestRow({ pr }: { pr: InboxPullRequest }) {
         </div>
       </Table.Cell>
 
-      <Table.Cell className="w-28 text-right">{changesCell}</Table.Cell>
+      <Table.Cell className="w-28 text-right">
+        {pr.additions != null && pr.deletions != null ? (
+          <span className="text-xs whitespace-nowrap tabular-nums">
+            <span className="text-green-600">+{pr.additions}</span>
+            <span className="text-sachi-fg-faint"> / </span>
+            <span className="text-red-500">-{pr.deletions}</span>
+          </span>
+        ) : (
+          <span className="text-xs text-sachi-fg-faint">&mdash;</span>
+        )}
+      </Table.Cell>
 
-      <Table.Cell className="w-16 text-right text-xs text-sachi-fg-faint">
-        {formatUpdated(pr.updated_at)}
+      <Table.Cell className="w-24 text-right text-xs whitespace-nowrap text-sachi-fg-faint">
+        {formatRelativeTime(pr.updated_at, { addSuffix: false })}
       </Table.Cell>
     </Table.Row>
   );
 }
-
-// ---------------------------------------------------------------------------
-// Section view
-// ---------------------------------------------------------------------------
 
 function SortableHead({
   field,
@@ -313,28 +221,11 @@ function InboxSectionView({
               className={`size-4 shrink-0 text-sachi-fg-faint transition-transform ${open ? "" : "-rotate-90"}`}
               aria-hidden="true"
             />
-            <span className="font-medium text-sachi-fg-muted">
+            <span className="font-medium text-sachi-fg-muted tabular-nums">
               {section.items.length}
             </span>
             <span className="font-medium text-sachi-fg">{section.label}</span>
           </CollapsibleTrigger>
-
-          <div className="flex items-center gap-1 pr-3">
-            <button
-              type="button"
-              className="flex size-6 items-center justify-center rounded text-sachi-fg-faint transition-colors hover:bg-sachi-fill hover:text-sachi-fg"
-              aria-label="Filter section"
-            >
-              <IconFilter1 className="size-3.5" aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              className="flex size-6 items-center justify-center rounded text-sachi-fg-faint transition-colors hover:bg-sachi-fill hover:text-sachi-fg"
-              aria-label="Section settings"
-            >
-              <IconSettingsGear1 className="size-3.5" aria-hidden="true" />
-            </button>
-          </div>
         </div>
 
         <CollapsibleContent>
@@ -365,7 +256,7 @@ function InboxSectionView({
                     activeField={sortField}
                     direction={sortDirection}
                     onSort={handleSort}
-                    className="w-16 text-right"
+                    className="w-24 text-right"
                   />
                 </Table.Row>
               </Table.Header>
@@ -382,26 +273,105 @@ function InboxSectionView({
   );
 }
 
-// ---------------------------------------------------------------------------
-// Inbox layout
-// ---------------------------------------------------------------------------
+function InboxDiagnosticsBanner({
+  diagnostics,
+}: {
+  diagnostics: InboxData["diagnostics"];
+}) {
+  if (
+    diagnostics.partialFailures.length === 0 &&
+    diagnostics.unclassifiedCount === 0
+  ) {
+    return null;
+  }
+
+  return (
+    <Alert className="rounded-none border-x-0 border-t-0">
+      <AlertDescription>
+        {diagnostics.partialFailures.length > 0 && (
+          <span>
+            Some repositories could not be reached (
+            {diagnostics.partialFailures.length} failed).
+          </span>
+        )}
+        {diagnostics.unclassifiedCount > 0 && (
+          <span>
+            {" "}
+            {diagnostics.unclassifiedCount} pull request
+            {diagnostics.unclassifiedCount === 1 ? "" : "s"} could not be
+            classified.
+          </span>
+        )}
+      </AlertDescription>
+    </Alert>
+  );
+}
+
+function InboxEmptyState({
+  diagnostics,
+}: {
+  diagnostics: InboxData["diagnostics"];
+}) {
+  if (
+    diagnostics.syncedRepoCount === 0 &&
+    diagnostics.accessibleRepoCount > 0
+  ) {
+    return (
+      <Empty className="flex-1">
+        <EmptyHeader>
+          <EmptyTitle>No repos synced yet</EmptyTitle>
+          <EmptyDescription>
+            You have access to {diagnostics.accessibleRepoCount} repositories.
+            Use the sidebar to choose which repos to sync.
+          </EmptyDescription>
+        </EmptyHeader>
+      </Empty>
+    );
+  }
+
+  if (
+    diagnostics.fetchedCount === 0 &&
+    diagnostics.partialFailures.length > 0
+  ) {
+    return (
+      <Empty className="flex-1">
+        <EmptyHeader>
+          <EmptyTitle>Unable to load pull requests</EmptyTitle>
+          <EmptyDescription>
+            All repository fetches failed. Check your GitHub App installation
+            and try again.
+          </EmptyDescription>
+        </EmptyHeader>
+      </Empty>
+    );
+  }
+
+  return (
+    <Empty className="flex-1">
+      <EmptyHeader>
+        <EmptyTitle>No open pull requests</EmptyTitle>
+        <EmptyDescription>
+          There are no open pull requests across your synced repositories right
+          now.
+        </EmptyDescription>
+      </EmptyHeader>
+    </Empty>
+  );
+}
 
 type InboxViewProps = {
   data: InboxData;
 };
 
 export function InboxView({ data }: InboxViewProps) {
-  const sections = React.useMemo(
-    () => classifyPullRequests(data.login, data.pullRequests),
-    [data.login, data.pullRequests]
-  );
+  const { sections, diagnostics } = data;
 
-  const [activeSectionId, setActiveSectionId] = React.useState<SectionId>(
+  const [activeSectionId, setActiveSectionId] = React.useState<InboxSectionId>(
     () => sections.find((s) => s.items.length > 0)?.id ?? sections[0]!.id
   );
 
   const sectionRefs = React.useRef<
-    Map<SectionId, React.RefObject<HTMLDivElement | null>>
+    Map<InboxSectionId, React.RefObject<HTMLDivElement | null>>
   >(
     new Map(
       (
@@ -413,20 +383,21 @@ export function InboxView({ data }: InboxViewProps) {
           "waiting_author",
           "drafts",
           "waiting_reviewers",
-        ] as SectionId[]
+        ] as InboxSectionId[]
       ).map((id) => [id, React.createRef<HTMLDivElement | null>()])
     )
   );
 
-  const handleSidebarClick = (id: SectionId) => {
+  const handleSidebarClick = (id: InboxSectionId) => {
     setActiveSectionId(id);
     const ref = sectionRefs.current.get(id);
     ref?.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
+  const totalItems = sections.reduce((sum, s) => sum + s.items.length, 0);
+
   return (
     <section className="flex h-full min-h-0">
-      {/* Sidebar */}
       <nav className="hidden w-56 shrink-0 border-r border-sachi-line-subtle bg-sachi-sidebar py-3 lg:block">
         <ul className="space-y-0.5 px-2">
           {sections.map((section) => (
@@ -441,7 +412,7 @@ export function InboxView({ data }: InboxViewProps) {
                 }`}
               >
                 <span className="truncate">{section.label}</span>
-                <span className="text-xs text-sachi-fg-faint">
+                <span className="text-xs text-sachi-fg-faint tabular-nums">
                   {section.items.length}
                 </span>
               </button>
@@ -450,18 +421,23 @@ export function InboxView({ data }: InboxViewProps) {
         </ul>
       </nav>
 
-      {/* Main content */}
-      <div className="flex min-w-0 flex-1 flex-col overflow-y-auto bg-sachi-base">
-        <div className="mx-auto w-full max-w-[960px]">
-          {sections.map((section) => (
-            <InboxSectionView
-              key={section.id}
-              section={section}
-              sectionRef={sectionRefs.current.get(section.id)!}
-            />
-          ))}
-        </div>
-      </div>
+      <ScrollArea className="min-w-0 flex-1 bg-sachi-base">
+        <InboxDiagnosticsBanner diagnostics={diagnostics} />
+
+        {totalItems === 0 ? (
+          <InboxEmptyState diagnostics={diagnostics} />
+        ) : (
+          <div className="mx-auto w-full max-w-[960px]">
+            {sections.map((section) => (
+              <InboxSectionView
+                key={section.id}
+                section={section}
+                sectionRef={sectionRefs.current.get(section.id)!}
+              />
+            ))}
+          </div>
+        )}
+      </ScrollArea>
     </section>
   );
 }

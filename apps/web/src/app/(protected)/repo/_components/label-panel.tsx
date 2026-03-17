@@ -1,5 +1,9 @@
 "use client";
 
+import {
+  IconCrossMedium,
+  IconPlusSmall,
+} from "@central-icons-react/round-filled-radius-2-stroke-1.5";
 import type { GitHubLabel } from "@sachikit/github";
 import { Badge } from "@sachikit/ui/components/badge";
 import { Button } from "@sachikit/ui/components/button";
@@ -47,31 +51,35 @@ export function LabelPanel({
   const repoLabelsQuery = useQuery(
     trpc.github.listRepoLabels.queryOptions(
       { owner, repo },
-      { staleTime: 300_000, enabled: open },
-    ),
+      { staleTime: 300_000, enabled: open }
+    )
   );
 
   const addLabel = useMutation(
     trpc.github.addLabels.mutationOptions({
       onSuccess: async () => {
-        await queryClient.invalidateQueries({ queryKey: pullRequestPageQueryKey });
+        await queryClient.invalidateQueries({
+          queryKey: pullRequestPageQueryKey,
+        });
       },
-    }),
+    })
   );
 
   const removeLabelMutation = useMutation(
     trpc.github.removeLabel.mutationOptions({
       onSuccess: async () => {
-        await queryClient.invalidateQueries({ queryKey: pullRequestPageQueryKey });
+        await queryClient.invalidateQueries({
+          queryKey: pullRequestPageQueryKey,
+        });
       },
-    }),
+    })
   );
 
   const currentNames = new Set(currentLabels.map((label) => label.name));
   const available = (repoLabelsQuery.data ?? []).filter(
     (label) =>
       !currentNames.has(label.name) &&
-      label.name.toLowerCase().includes(search.toLowerCase()),
+      label.name.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -82,7 +90,7 @@ export function LabelPanel({
           <PopoverTrigger
             render={
               <Button variant="ghost" size="icon-sm" aria-label="Add label">
-                <PlusIcon />
+                <IconPlusSmall />
               </Button>
             }
           />
@@ -113,7 +121,9 @@ export function LabelPanel({
                       className="size-3 shrink-0 rounded-full"
                       style={{ backgroundColor: `#${label.color}` }}
                     />
-                    <span className="truncate text-sachi-fg-secondary">{label.name}</span>
+                    <span className="truncate text-sachi-fg-secondary">
+                      {label.name}
+                    </span>
                   </button>
                 ))
               )}
@@ -144,28 +154,12 @@ export function LabelPanel({
                 }
                 aria-label={`Remove ${label.name}`}
               >
-                <XSmallIcon />
+                <IconCrossMedium className="size-2.5" />
               </button>
             </Badge>
           ))}
         </div>
       )}
     </div>
-  );
-}
-
-function PlusIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-      <path d="M8 3V13M3 8H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function XSmallIcon() {
-  return (
-    <svg width="10" height="10" viewBox="0 0 16 16" fill="none">
-      <path d="M5 5L11 11M11 5L5 11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-    </svg>
   );
 }

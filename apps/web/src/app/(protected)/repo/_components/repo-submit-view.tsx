@@ -18,18 +18,13 @@ import {
 import { InsetView } from "@sachikit/ui/components/sidebar";
 import { Textarea } from "@sachikit/ui/components/textarea";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  differenceInDays,
-  differenceInHours,
-  differenceInMinutes,
-  differenceInMonths,
-} from "date-fns";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { parseAsString, useQueryState } from "nuqs";
 import * as React from "react";
 
 import type { RepoSubmitPageData } from "~/lib/github/server";
+import { formatRelativeTime } from "~/lib/time";
 import { useTRPC } from "~/lib/trpc/client";
 
 type RepoSubmitViewProps = {
@@ -42,33 +37,6 @@ function branchTitle(branch: string): string {
     .replace(/\s+/g, " ")
     .trim()
     .replace(/\b\w/g, (char) => char.toUpperCase());
-}
-
-function formatUpdated(dateString: string): string {
-  const date = new Date(dateString);
-  const now = new Date();
-
-  const minutes = differenceInMinutes(now, date);
-  if (minutes < 1) return "just now";
-  if (minutes < 60) return `${minutes}m ago`;
-
-  const hours = differenceInHours(now, date);
-  if (hours < 24) return `${hours}h ago`;
-
-  const days = differenceInDays(now, date);
-  if (days < 30) return `${days}d ago`;
-
-  const months = differenceInMonths(now, date);
-  return `${months}mo ago`;
-}
-
-function getDraftValues(data: RepoSubmitPageData) {
-  return {
-    body: data.existingPullRequest?.body ?? "",
-    title:
-      data.existingPullRequest?.title ??
-      (data.selectedBranch ? branchTitle(data.selectedBranch) : ""),
-  };
 }
 
 export function RepoSubmitView({ initialData }: RepoSubmitViewProps) {
@@ -112,7 +80,15 @@ export function RepoSubmitView({ initialData }: RepoSubmitViewProps) {
     () => branches.filter((item) => item.name !== repository.default_branch),
     [branches, repository.default_branch]
   );
-  const branchValues = React.useMemo(() => getDraftValues(data), [data]);
+  const branchValues = React.useMemo(
+    () => ({
+      body: data.existingPullRequest?.body ?? "",
+      title:
+        data.existingPullRequest?.title ??
+        (data.selectedBranch ? branchTitle(data.selectedBranch) : ""),
+    }),
+    [data]
+  );
   const [title, setTitle] = React.useState(branchValues.title);
   const [body, setBody] = React.useState(branchValues.body);
   const lastSelectedBranchRef = React.useRef(selectedBranch);
@@ -248,7 +224,7 @@ export function RepoSubmitView({ initialData }: RepoSubmitViewProps) {
                 </Badge>
                 <span>PR #{existingPullRequest.number}</span>
                 <span>
-                  updated {formatUpdated(existingPullRequest.updated_at)}
+                  updated {formatRelativeTime(existingPullRequest.updated_at)}
                 </span>
               </div>
             ) : null}
