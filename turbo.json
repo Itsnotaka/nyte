@@ -10,7 +10,9 @@
     "GITHUB_CLIENT_SECRET",
     "GITHUB_APP_ID",
     "GITHUB_APP_PRIVATE_KEY",
-    "GITHUB_APP_SLUG"
+    "GITHUB_APP_SLUG",
+    "CENTRAL_LICENSE_KEY",
+    "BETTER_AUTH_PRODUCTION_URL"
   ],
   "tasks": {
     "transit": {
@@ -23,13 +25,13 @@
     "build": {
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "outputs": ["dist/**", ".next/**"]
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
     },
     "typecheck": {
       "dependsOn": ["transit"],
       "outputs": [".cache/tsbuildinfo.json"]
     },
-    "db:push": {
+    "push": {
       "cache": false,
       "env": ["DATABASE_URL"]
     },
