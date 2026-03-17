@@ -10,6 +10,7 @@ import {
   resolveGitHubAppSetupRedirect,
   saveBranchPullRequest,
 } from "../../github/server";
+import { log } from "../../evlog";
 import { createTRPCRouter, protectedProcedure } from "../server";
 
 const FAILURES = {
@@ -20,6 +21,64 @@ const FAILURES = {
   review: "Failed to submit pull request review.",
   savePullRequest: "Failed to save pull request.",
 } as const;
+
+function toLoggableError(error: unknown): Error {
+  if (error instanceof Error) {
+    return error;
+  }
+
+  if (typeof error === "string" && error.trim().length > 0) {
+    return new Error(error);
+  }
+
+  return new Error("Unknown GitHub tRPC mutation failure");
+}
+
+function getErrorDetails(error: unknown): Record<string, unknown> {
+  if (error instanceof Error) {
+    const details: Record<string, unknown> = {
+      name: error.name,
+      message: error.message,
+    };
+
+    if ("status" in error && typeof error.status === "number") {
+      details.status = error.status;
+    }
+
+    if ("code" in error && typeof error.code === "string") {
+      details.code = error.code;
+    }
+
+    return details;
+  }
+
+  if (typeof error === "string" && error.trim().length > 0) {
+    return { message: error };
+  }
+
+  return { message: "Unknown non-Error throw" };
+}
+
+function logGitHubMutationFailure(
+  mutation: string,
+  input: Record<string, unknown>,
+  error: unknown,
+) {
+  log.error(toLoggableError(error), {
+    area: "trpc.github",
+    mutation,
+    input,
+    failure: getErrorDetails(error),
+  });
+}
+
+function throwMutationFailure(message: string, error: unknown): never {
+  if (error instanceof Error) {
+    throw new Error(message, { cause: error });
+  }
+
+  throw new Error(message);
+}
 
 export const githubRouter = createTRPCRouter({
   startInstall: protectedProcedure.mutation(() => {
@@ -88,8 +147,20 @@ export const githubRouter = createTRPCRouter({
           repo: input.repo,
           title: input.title,
         });
-      } catch {
-        throw new Error(FAILURES.savePullRequest);
+      } catch (error) {
+        logGitHubMutationFailure(
+          "savePullRequest",
+          {
+            bodyLength: input.body.length,
+            draft: input.draft,
+            head: input.head,
+            owner: input.owner,
+            repo: input.repo,
+            titleLength: input.title.length,
+          },
+          error,
+        );
+        throwMutationFailure(FAILURES.savePullRequest, error);
       }
     }),
   addPullRequestComment: protectedProcedure
@@ -109,8 +180,18 @@ export const githubRouter = createTRPCRouter({
           pullNumber: input.pullNumber,
           repo: input.repo,
         });
-      } catch {
-        throw new Error(FAILURES.addComment);
+      } catch (error) {
+        logGitHubMutationFailure(
+          "addPullRequestComment",
+          {
+            bodyLength: input.body.length,
+            owner: input.owner,
+            pullNumber: input.pullNumber,
+            repo: input.repo,
+          },
+          error,
+        );
+        throwMutationFailure(FAILURES.addComment, error);
       }
     }),
   mergePullRequest: protectedProcedure
@@ -130,8 +211,18 @@ export const githubRouter = createTRPCRouter({
           pullNumber: input.pullNumber,
           repo: input.repo,
         });
-      } catch {
-        throw new Error(FAILURES.merge);
+      } catch (error) {
+        logGitHubMutationFailure(
+          "mergePullRequest",
+          {
+            ...(input.mergeMethod ? { mergeMethod: input.mergeMethod } : {}),
+            owner: input.owner,
+            pullNumber: input.pullNumber,
+            repo: input.repo,
+          },
+          error,
+        );
+        throwMutationFailure(FAILURES.merge, error);
       }
     }),
   submitPullRequestReview: protectedProcedure
@@ -176,8 +267,20 @@ export const githubRouter = createTRPCRouter({
           pullNumber: input.pullNumber,
           repo: input.repo,
         });
-      } catch {
-        throw new Error(FAILURES.review);
+      } catch (error) {
+        logGitHubMutationFailure(
+          "submitPullRequestReview",
+          {
+            bodyLength: body?.length ?? 0,
+            commentCount: comments?.length ?? 0,
+            event: input.event,
+            owner: input.owner,
+            pullNumber: input.pullNumber,
+            repo: input.repo,
+          },
+          error,
+        );
+        throwMutationFailure(FAILURES.review, error);
       }
     }),
 });
