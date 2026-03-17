@@ -39,7 +39,6 @@ import {
   type GitHubIssueComment,
   type GitHubLabel,
   type GitHubPullRequest,
-  type GitHubPullRequestFile,
   type GitHubPullRequestReview,
   type GitHubPullRequestReviewComment,
   type GitHubRepository,

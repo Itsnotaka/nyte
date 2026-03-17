@@ -1,7 +1,6 @@
 "use client";
 
 import type { GitHubCheckSummary } from "@sachikit/github";
-import { Badge } from "@sachikit/ui/components/badge";
 import { Button } from "@sachikit/ui/components/button";
 import {
   Dialog,

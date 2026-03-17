@@ -179,40 +179,4 @@ export function ChecksPanel({ owner, repo, headSha }: ChecksPanelProps) {
   );
 }
 
-// Compact badge for use in inbox rows
-export function CheckStatusDot({
-  owner,
-  repo,
-  headSha,
-}: {
-  owner: string;
-  repo: string;
-  headSha: string;
-}) {
-  const trpc = useTRPC();
-  const summaryQuery = useQuery(
-    trpc.github.getCheckSummary.queryOptions(
-      { owner, repo, ref: headSha },
-      { staleTime: 60_000 },
-    ),
-  );
-
-  const summary = summaryQuery.data;
-  if (!summary || summary.total === 0) return null;
-
-  const color =
-    summary.conclusion === "success"
-      ? "bg-green-500"
-      : summary.conclusion === "failure"
-        ? "bg-red-500"
-        : summary.conclusion === "pending"
-          ? "bg-amber-400"
-          : "bg-sachi-fg-faint";
-
-  return (
-    <span
-      className={cn("inline-block size-2 shrink-0 rounded-full", color)}
-      title={summaryLabel(summary.total, summary.passing, summary.failing, summary.pending)}
-    />
-  );
-}
+// CheckStatusDot is in ~/app/(protected)/_components/check-status-dot.tsx

@@ -35,8 +35,6 @@ function extensionFromPath(path: string): string {
 
 export function FileContentView({
   file,
-  owner,
-  repo,
 }: FileContentViewProps) {
   const content = decodeContent(file);
   const lines = content.split("\n");
