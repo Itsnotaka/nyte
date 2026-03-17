@@ -25,6 +25,11 @@
 - Prefer flat component layouts over nested compound components (e.g., avoid
   wrapping each diff file in a LayerCard inside another LayerCard); use plain
   divs with subtle separators when nesting adds no value.
+- Use `date-fns` for date calculations and formatting instead of native Date
+  arithmetic.
+- Use `@central-icons-react` for icon components instead of other icon
+  libraries.
+- Never use GraphQL; prefer tRPC + Octokit REST for all GitHub data fetching.
 
 ## Learned Workspace Facts
 
@@ -56,6 +61,9 @@
   layered card pattern.
 - Pull request markdown is rendered by `Streamdown` with explicit Tailwind
   arbitrary selectors for list styling (not `@tailwindcss/typography`).
+- Client components must not import from the `@sachikit/db` barrel; use sub-path
+  imports like `@sachikit/db/schema/settings` to avoid pulling in the db client
+  that requires `DATABASE_URL`.
 
 <!--VITE PLUS START-->
 
@@ -163,7 +171,7 @@ documentation, features, and bugs.
 
 ### Architecture
 
-Nyte is a pnpm monorepo with a single Next.js 16 full-stack app (`apps/web`)
+Sachi is a pnpm monorepo with a single Next.js 16 full-stack app (`apps/web`)
 and internal packages (`packages/db`, `packages/github`, `packages/ui`,
 `tooling/tailwind`, `tooling/typescript`). There are no Docker services, message
 queues, or local databases -- the app connects to **Neon Postgres** (remote) and
@@ -198,13 +206,13 @@ secrets; the update script writes them to `.env.local` on startup.
 - pnpm v10 ignores postinstall scripts by default. `pnpm rebuild` after install
   ensures native addons (`esbuild`, `sharp`, `@parcel/watcher`) are built.
 - The `@sachikit/ui` package exports point `import` conditions to `dist/` files.
-  Tests and the Next.js dev server will fail with "Cannot find package" errors if
-  the UI package has never been built. Run `vp run build` in `packages/ui` once
-  after a fresh install.
-- `BETTER_AUTH_URL` must match the actual dev server origin (including port).
-  If port 3000 is occupied and Next.js falls back to 3001, the OAuth callback
-  will silently fail. Kill the conflicting process and ensure `next dev` binds
-  to the port in `BETTER_AUTH_URL`.
+  Tests and the Next.js dev server will fail with "Cannot find package" errors
+  if the UI package has never been built. Run `vp run build` in `packages/ui`
+  once after a fresh install.
+- `BETTER_AUTH_URL` must match the actual dev server origin (including port). If
+  port 3000 is occupied and Next.js falls back to 3001, the OAuth callback will
+  silently fail. Kill the conflicting process and ensure `next dev` binds to the
+  port in `BETTER_AUTH_URL`.
 - After killing the dev server, Next.js may leave a stale lock at
   `apps/web/.next/dev/lock`. Remove it (`rm apps/web/.next/dev/lock`) before
   restarting.

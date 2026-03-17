@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Primary Nyte product surface: auth-first workspace UI with GitHub integration.
+Primary Sachi product surface: auth-first workspace UI with GitHub integration.
 
 ## Responsibilities
 
@@ -37,8 +37,8 @@ are shareable and bookmarkable.
 
 Examples:
 
-- `/submit/Itsnotaka/nyte/5`
-- `/pr/Itsnotaka/nyte/42`
+- `/submit/Itsnotaka/Sachi/5`
+- `/pr/Itsnotaka/Sachi/42`
 
 ### Filtered list routes (query params)
 
@@ -51,8 +51,8 @@ Routes that show filtered collections use flat query params for shareability.
 
 Examples:
 
-- `/merges?org=Itsnotaka&repo=nyte`
-- `/pulls?org=Itsnotaka&repo=nyte`
+- `/merges?org=Itsnotaka&repo=Sachi`
+- `/pulls?org=Itsnotaka&repo=Sachi`
 
 ### Auth and setup
 

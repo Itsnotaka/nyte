@@ -2,24 +2,104 @@
 
 import * as React from "react";
 
+import { Checkbox } from "./checkbox";
 import { cn } from "../../lib/utils";
 
-function Table({ className, ...props }: React.ComponentProps<"table">) {
+/**
+ * Table Component
+ *
+ * A table component for displaying tabular data with support for selection,
+ * row variants, and column sizing. Based on Cloudflare Kumo design patterns.
+ *
+ * @example
+ * ```tsx
+ * <Table>
+ *   <Table.Header>
+ *     <Table.Row>
+ *       <Table.Head>Subject</Table.Head>
+ *       <Table.Head>From</Table.Head>
+ *       <Table.Head>Date</Table.Head>
+ *     </Table.Row>
+ *   </Table.Header>
+ *   <Table.Body>
+ *     <Table.Row>
+ *       <Table.Cell>Kumo v1.0.0 released</Table.Cell>
+ *       <Table.Cell>Visal In</Table.Cell>
+ *       <Table.Cell>5 seconds ago</Table.Cell>
+ *     </Table.Row>
+ *   </Table.Body>
+ * </Table>
+ * ```
+ */
+
+/**
+ * Props for the root Table component.
+ */
+interface TableProps extends React.ComponentProps<"table"> {
+  /** Table layout algorithm - auto or fixed */
+  layout?: "auto" | "fixed";
+  /** Visual variant for the table */
+  variant?: "default" | "selected";
+}
+
+/**
+ * Root table component. Renders a semantic `<table>` element.
+ *
+ * @param props - Table props including layout and variant options
+ * @returns The table element
+ */
+function Table({ className, layout = "auto", variant, ...props }: TableProps) {
   return (
-    <div data-slot="table-container" className="relative w-full overflow-x-auto">
-      <table
-        data-slot="table"
-        className={cn("w-full caption-bottom text-sm", className)}
-        {...props}
-      />
-    </div>
+    <table
+      data-slot="table"
+      data-layout={layout}
+      data-variant={variant}
+      className={cn(
+        "w-full caption-bottom text-sm",
+        layout === "fixed" && "table-fixed",
+        className,
+      )}
+      {...props}
+    />
   );
 }
 
-function TableHeader({ className, ...props }: React.ComponentProps<"thead">) {
-  return <thead data-slot="table-header" className={cn("[&_tr]:border-b", className)} {...props} />;
+/**
+ * Props for Table.Header component.
+ */
+interface TableHeaderProps extends React.ComponentProps<"thead"> {
+  /** Compact header variant for denser spacing */
+  variant?: "default" | "compact";
 }
 
+/**
+ * Table header section. Renders `<thead>`.
+ *
+ * @param props - Header props including variant for compact style
+ * @returns The thead element
+ */
+function TableHeader({ className, variant = "default", ...props }: TableHeaderProps) {
+  return (
+    <thead
+      data-slot="table-header"
+      data-variant={variant}
+      className={cn(
+        "border-b border-sachi-line",
+        variant === "compact" && "[&_tr]:h-8",
+        variant === "default" && "[&_tr]:h-10",
+        className,
+      )}
+      {...props}
+    />
+  );
+}
+
+/**
+ * Table body section. Renders `<tbody>`.
+ *
+ * @param props - Standard tbody props
+ * @returns The tbody element
+ */
 function TableBody({ className, ...props }: React.ComponentProps<"tbody">) {
   return (
     <tbody
@@ -30,22 +110,29 @@ function TableBody({ className, ...props }: React.ComponentProps<"tbody">) {
   );
 }
 
-function TableFooter({ className, ...props }: React.ComponentProps<"tfoot">) {
-  return (
-    <tfoot
-      data-slot="table-footer"
-      className={cn("border-t bg-muted/50 font-medium [&>tr]:last:border-b-0", className)}
-      {...props}
-    />
-  );
+/**
+ * Props for Table.Row component.
+ */
+interface TableRowProps extends React.ComponentProps<"tr"> {
+  /** Visual variant - selected highlights the row */
+  variant?: "default" | "selected";
 }
 
-function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
+/**
+ * Table row. Supports variant="selected" for highlighting.
+ *
+ * @param props - Row props including variant for selection state
+ * @returns The tr element
+ */
+function TableRow({ className, variant = "default", ...props }: TableRowProps) {
   return (
     <tr
       data-slot="table-row"
+      data-variant={variant}
       className={cn(
-        "border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted",
+        "border-b border-sachi-line-subtle transition-colors",
+        variant === "selected" && "bg-sachi-fill",
+        variant === "default" && "hover:bg-sachi-fill-hover",
         className,
       )}
       {...props}
@@ -53,12 +140,19 @@ function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
   );
 }
 
+/**
+ * Header cell. Renders `<th>`.
+ *
+ * @param props - Standard th props
+ * @returns The th element
+ */
 function TableHead({ className, ...props }: React.ComponentProps<"th">) {
   return (
     <th
       data-slot="table-head"
       className={cn(
-        "h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0",
+        "px-3 text-left align-middle font-medium text-sachi-fg-secondary whitespace-nowrap",
+        "[&:has([role=checkbox])]:pr-0 [&:has([role=checkbox])]:pl-3 [&:has([role=checkbox])]:w-10",
         className,
       )}
       {...props}
@@ -66,24 +160,183 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
   );
 }
 
+/**
+ * Body cell. Renders `<td>`.
+ *
+ * @param props - Standard td props
+ * @returns The td element
+ */
 function TableCell({ className, ...props }: React.ComponentProps<"td">) {
   return (
     <td
       data-slot="table-cell"
-      className={cn("p-2 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0", className)}
+      className={cn(
+        "px-3 py-2.5 align-middle text-sachi-fg whitespace-nowrap",
+        "[&:has([role=checkbox])]:pr-0 [&:has([role=checkbox])]:pl-3 [&:has([role=checkbox])]:w-10",
+        className,
+      )}
       {...props}
     />
   );
 }
 
-function TableCaption({ className, ...props }: React.ComponentProps<"caption">) {
+/**
+ * Props for Table.CheckHead component.
+ */
+interface TableCheckHeadProps extends Omit<React.ComponentProps<"th">, "onChange"> {
+  /** Whether the checkbox is checked */
+  checked?: boolean;
+  /** Whether the checkbox is in indeterminate state */
+  indeterminate?: boolean;
+  /** Callback when checkbox state changes */
+  onChange?: (checked: boolean) => void;
+  /** Accessible label for the checkbox */
+  "aria-label"?: string;
+}
+
+/**
+ * Header cell with checkbox for "select all" functionality.
+ *
+ * @param props - Checkbox head props
+ * @returns The th element containing a checkbox
+ */
+function TableCheckHead({
+  className,
+  checked,
+  indeterminate,
+  onChange,
+  "aria-label": ariaLabel = "Select all rows",
+  ...props
+}: TableCheckHeadProps) {
   return (
-    <caption
-      data-slot="table-caption"
-      className={cn("mt-4 text-sm text-muted-foreground", className)}
+    <th
+      data-slot="table-check-head"
+      className={cn(
+        "w-10 px-3 py-2 text-left align-middle",
+        className,
+      )}
+      {...props}
+    >
+      <Checkbox
+        checked={indeterminate ? "indeterminate" : checked}
+        onCheckedChange={onChange}
+        aria-label={ariaLabel}
+      />
+    </th>
+  );
+}
+
+/**
+ * Props for Table.CheckCell component.
+ */
+interface TableCheckCellProps extends Omit<React.ComponentProps<"td">, "onChange"> {
+  /** Whether the checkbox is checked */
+  checked?: boolean;
+  /** Callback when checkbox state changes */
+  onChange?: (checked: boolean) => void;
+  /** Accessible label for the checkbox */
+  "aria-label"?: string;
+}
+
+/**
+ * Body cell with checkbox for row selection.
+ *
+ * @param props - Checkbox cell props
+ * @returns The td element containing a checkbox
+ */
+function TableCheckCell({
+  className,
+  checked,
+  onChange,
+  "aria-label": ariaLabel = "Select row",
+  ...props
+}: TableCheckCellProps) {
+  return (
+    <td
+      data-slot="table-check-cell"
+      className={cn(
+        "w-10 px-3 py-2 align-middle",
+        className,
+      )}
+      {...props}
+    >
+      <Checkbox
+        checked={checked}
+        onCheckedChange={onChange}
+        aria-label={ariaLabel}
+      />
+    </td>
+  );
+}
+
+/**
+ * Props for Table.ResizeHandle component.
+ */
+interface TableResizeHandleProps extends React.ComponentProps<"div"> {
+  /** Mouse down handler for resize start */
+  onMouseDown?: (e: React.MouseEvent) => void;
+  /** Touch start handler for resize start */
+  onTouchStart?: (e: React.TouchEvent) => void;
+}
+
+/**
+ * Draggable handle for column resizing.
+ * Use with TanStack Table or custom resize logic.
+ *
+ * @param props - Resize handle props
+ * @returns The resize handle div element
+ */
+function TableResizeHandle({
+  className,
+  onMouseDown,
+  onTouchStart,
+  ...props
+}: TableResizeHandleProps) {
+  return (
+    <div
+      data-slot="table-resize-handle"
+      role="separator"
+      aria-orientation="vertical"
+      className={cn(
+        "absolute right-0 top-0 h-full w-1 cursor-col-resize touch-none",
+        "hover:bg-sachi-accent/20 active:bg-sachi-accent/40",
+        className,
+      )}
+      onMouseDown={onMouseDown}
+      onTouchStart={onTouchStart}
       {...props}
     />
   );
 }
 
-export { Table, TableHeader, TableBody, TableFooter, TableHead, TableRow, TableCell, TableCaption };
+/**
+ * Assign subcomponents to Table for compound component pattern.
+ */
+Table.Header = TableHeader;
+Table.Body = TableBody;
+Table.Row = TableRow;
+Table.Head = TableHead;
+Table.Cell = TableCell;
+Table.CheckHead = TableCheckHead;
+Table.CheckCell = TableCheckCell;
+Table.ResizeHandle = TableResizeHandle;
+
+export {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+  TableCheckHead,
+  TableCheckCell,
+  TableResizeHandle,
+};
+export type {
+  TableProps,
+  TableHeaderProps,
+  TableRowProps,
+  TableCheckHeadProps,
+  TableCheckCellProps,
+  TableResizeHandleProps,
+};

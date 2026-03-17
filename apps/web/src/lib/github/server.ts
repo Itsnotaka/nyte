@@ -100,9 +100,11 @@ async function getGitHubAccessToken(): Promise<Result<string, TokenError>> {
   const h = await headers();
   return ResultAsync.fromPromise(
     auth.api.getAccessToken({ body: { providerId: "github" }, headers: h }),
-    (): TokenError => "token_unavailable",
+    (): TokenError => "token_unavailable"
   ).andThen((result) =>
-    result?.accessToken ? ok(result.accessToken) : err<string, TokenError>("token_unavailable"),
+    result?.accessToken
+      ? ok(result.accessToken)
+      : err<string, TokenError>("token_unavailable")
   );
 }
 
@@ -144,17 +146,19 @@ export const getOnboardingState = cache(async (): Promise<OnboardingState> => {
   return listUserInstallations(tokenResult.value).match(
     (installations): OnboardingState => {
       const appInstallations = installations.filter(
-        (installation) => installation.app_slug === env.GITHUB_APP_SLUG,
+        (installation) => installation.app_slug === env.GITHUB_APP_SLUG
       );
       return appInstallations.length === 0
         ? { step: "no_installation" }
         : { step: "has_installations", installations: appInstallations };
     },
-    (): OnboardingState => ({ step: "no_github_token" }),
+    (): OnboardingState => ({ step: "no_github_token" })
   );
 });
 
-export async function getInstallationRepos(installationId: number): Promise<GitHubRepository[]> {
+export async function getInstallationRepos(
+  installationId: number
+): Promise<GitHubRepository[]> {
   const session = await getSession();
   if (!session) return [];
 
@@ -176,7 +180,7 @@ export const findRepoContext = cache(
       const repository = repos.find(
         (candidate) =>
           candidate.owner.login.toLowerCase() === owner.toLowerCase() &&
-          candidate.name.toLowerCase() === repo.toLowerCase(),
+          candidate.name.toLowerCase() === repo.toLowerCase()
       );
 
       if (repository) {
@@ -189,13 +193,13 @@ export const findRepoContext = cache(
     }
 
     return null;
-  },
+  }
 );
 
 export async function getRepoSubmitPageData(
   owner: string,
   repo: string,
-  branch: string | null,
+  branch: string | null
 ): Promise<RepoSubmitPageData | null> {
   const context = await findRepoContext(owner, repo);
   if (!context) {
@@ -205,11 +209,11 @@ export async function getRepoSubmitPageData(
   const branches = await listRepositoryBranches(
     context.auth,
     owner,
-    context.repository.name,
+    context.repository.name
   ).unwrapOr([]);
 
   const selectableBranches = branches.filter(
-    (candidate) => candidate.name !== context.repository.default_branch,
+    (candidate) => candidate.name !== context.repository.default_branch
   );
   const selectedBranch =
     branch && selectableBranches.some((candidate) => candidate.name === branch)
@@ -218,13 +222,24 @@ export async function getRepoSubmitPageData(
 
   const [existingPullRequest, openPullRequests] = await Promise.all([
     selectedBranch
-      ? findPullRequestByHead(context.auth, owner, context.repository.name, selectedBranch, {
-          base: context.repository.default_branch,
-          headOwner: context.repository.owner.login,
-          state: "all",
-        }).unwrapOr(null)
+      ? findPullRequestByHead(
+          context.auth,
+          owner,
+          context.repository.name,
+          selectedBranch,
+          {
+            base: context.repository.default_branch,
+            headOwner: context.repository.owner.login,
+            state: "all",
+          }
+        ).unwrapOr(null)
       : Promise.resolve(null),
-    listRepositoryPullRequests(context.auth, owner, context.repository.name, "open").unwrapOr([]),
+    listRepositoryPullRequests(
+      context.auth,
+      owner,
+      context.repository.name,
+      "open"
+    ).unwrapOr([]),
   ]);
 
   return {
@@ -258,26 +273,31 @@ export async function saveBranchPullRequest(input: {
       base: context.repository.default_branch,
       headOwner: context.repository.owner.login,
       state: "all",
-    },
+    }
   ).match(
     (pullRequest) => pullRequest,
     (error) => {
       throw error;
-    },
+    }
   );
 
   if (!existing) {
-    return createPullRequest(context.auth, input.owner, context.repository.name, {
-      base: context.repository.default_branch,
-      body: input.body,
-      draft: input.draft,
-      head: input.head,
-      title: input.title,
-    }).match(
+    return createPullRequest(
+      context.auth,
+      input.owner,
+      context.repository.name,
+      {
+        base: context.repository.default_branch,
+        body: input.body,
+        draft: input.draft,
+        head: input.head,
+        title: input.title,
+      }
+    ).match(
       (pullRequest) => pullRequest,
       (error) => {
         throw error;
-      },
+      }
     );
   }
 
@@ -293,12 +313,12 @@ export async function saveBranchPullRequest(input: {
     {
       body: input.body,
       title: input.title,
-    },
+    }
   ).match(
     (pullRequest) => pullRequest,
     (error) => {
       throw error;
-    },
+    }
   );
 
   if (input.draft || !updated.draft) {
@@ -309,19 +329,19 @@ export async function saveBranchPullRequest(input: {
     context.auth,
     input.owner,
     context.repository.name,
-    updated.number,
+    updated.number
   ).match(
     (pullRequest) => pullRequest,
     (error) => {
       throw error;
-    },
+    }
   );
 }
 
 export async function getPullRequestPageData(
   owner: string,
   repo: string,
-  pullNumber: number,
+  pullNumber: number
 ): Promise<PullRequestPageData | null> {
   const context = await findRepoContext(owner, repo);
   if (!context) {
@@ -332,21 +352,36 @@ export async function getPullRequestPageData(
     context.auth,
     owner,
     context.repository.name,
-    pullNumber,
+    pullNumber
   ).unwrapOr(null);
   if (!pullRequest) {
     return null;
   }
 
   const [diff, issueComments, reviews, reviewComments] = await Promise.all([
-    getPullRequestDiff(context.auth, owner, context.repository.name, pullNumber).unwrapOr(""),
-    listIssueComments(context.auth, owner, context.repository.name, pullNumber).unwrapOr([]),
-    listPullRequestReviews(context.auth, owner, context.repository.name, pullNumber).unwrapOr([]),
+    getPullRequestDiff(
+      context.auth,
+      owner,
+      context.repository.name,
+      pullNumber
+    ).unwrapOr(""),
+    listIssueComments(
+      context.auth,
+      owner,
+      context.repository.name,
+      pullNumber
+    ).unwrapOr([]),
+    listPullRequestReviews(
+      context.auth,
+      owner,
+      context.repository.name,
+      pullNumber
+    ).unwrapOr([]),
     listPullRequestReviewComments(
       context.auth,
       owner,
       context.repository.name,
-      pullNumber,
+      pullNumber
     ).unwrapOr([]),
   ]);
 
@@ -376,12 +411,12 @@ export async function addPullRequestComment(input: {
     input.owner,
     context.repository.name,
     input.pullNumber,
-    input.body,
+    input.body
   ).match(
     (comment) => comment,
     (error) => {
       throw error;
-    },
+    }
   );
 }
 
@@ -402,12 +437,12 @@ export async function addPullRequestReview(input: {
     context.auth,
     input.owner,
     context.repository.name,
-    input.pullNumber,
+    input.pullNumber
   ).match(
     (result) => result,
     (error) => {
       throw error;
-    },
+    }
   );
 
   return submitPullRequestReview(
@@ -420,12 +455,12 @@ export async function addPullRequestReview(input: {
       comments: input.comments,
       commitId: pullRequest.head.sha,
       event: input.event,
-    },
+    }
   ).match(
     (review) => review,
     (error) => {
       throw error;
-    },
+    }
   );
 }
 
@@ -451,12 +486,12 @@ export async function mergeRepoPullRequest(input: {
       mergeMethod: input.mergeMethod,
       commitTitle: input.commitTitle,
       commitMessage: input.commitMessage,
-    },
+    }
   ).match(
     (result) => result,
     (error) => {
       throw error;
-    },
+    }
   );
 }
 
@@ -465,7 +500,7 @@ export async function getPullRequestFileList(
   repo: string,
   pullNumber: number,
   page = 1,
-  perPage = 30,
+  perPage = 30
 ): Promise<PaginatedFiles | null> {
   const context = await findRepoContext(owner, repo);
   if (!context) return null;
@@ -476,30 +511,40 @@ export async function getPullRequestFileList(
     context.repository.name,
     pullNumber,
     page,
-    perPage,
+    perPage
   ).unwrapOr(null);
 }
 
 export async function getCheckRunsForPR(
   owner: string,
   repo: string,
-  ref: string,
+  ref: string
 ): Promise<GitHubCheckRun[]> {
   const context = await findRepoContext(owner, repo);
   if (!context) return [];
 
-  return listCheckRunsForRef(context.auth, owner, context.repository.name, ref).unwrapOr([]);
+  return listCheckRunsForRef(
+    context.auth,
+    owner,
+    context.repository.name,
+    ref
+  ).unwrapOr([]);
 }
 
 export async function getCheckSummaryForPR(
   owner: string,
   repo: string,
-  ref: string,
+  ref: string
 ): Promise<GitHubCheckSummary | null> {
   const context = await findRepoContext(owner, repo);
   if (!context) return null;
 
-  return getCheckSummaryForRef(context.auth, owner, context.repository.name, ref).unwrapOr(null);
+  return getCheckSummaryForRef(
+    context.auth,
+    owner,
+    context.repository.name,
+    ref
+  ).unwrapOr(null);
 }
 
 export async function updateRepoPullRequest(input: {
@@ -517,10 +562,12 @@ export async function updateRepoPullRequest(input: {
     input.owner,
     context.repository.name,
     input.pullNumber,
-    { title: input.title, body: input.body },
+    { title: input.title, body: input.body }
   ).match(
     (pr) => pr,
-    (error) => { throw error; },
+    (error) => {
+      throw error;
+    }
   );
 }
 
@@ -538,10 +585,12 @@ export async function requestPullRequestReviewers(input: {
     input.owner,
     context.repository.name,
     input.pullNumber,
-    input.reviewers,
+    input.reviewers
   ).match(
     (pr) => pr,
-    (error) => { throw error; },
+    (error) => {
+      throw error;
+    }
   );
 }
 
@@ -559,21 +608,25 @@ export async function removePullRequestReviewer(input: {
     input.owner,
     context.repository.name,
     input.pullNumber,
-    [input.reviewer],
+    [input.reviewer]
   ).match(
     (pr) => pr,
-    (error) => { throw error; },
+    (error) => {
+      throw error;
+    }
   );
 }
 
 export async function getRepoLabels(
   owner: string,
-  repo: string,
+  repo: string
 ): Promise<GitHubLabel[]> {
   const context = await findRepoContext(owner, repo);
   if (!context) return [];
 
-  return listRepoLabels(context.auth, owner, context.repository.name).unwrapOr([]);
+  return listRepoLabels(context.auth, owner, context.repository.name).unwrapOr(
+    []
+  );
 }
 
 export async function addPullRequestLabels(input: {
@@ -590,10 +643,12 @@ export async function addPullRequestLabels(input: {
     input.owner,
     context.repository.name,
     input.pullNumber,
-    input.labels,
+    input.labels
   ).match(
     (labels) => labels,
-    (error) => { throw error; },
+    (error) => {
+      throw error;
+    }
   );
 }
 
@@ -611,10 +666,12 @@ export async function removePullRequestLabel(input: {
     input.owner,
     context.repository.name,
     input.pullNumber,
-    input.label,
+    input.label
   ).match(
     () => {},
-    (error) => { throw error; },
+    (error) => {
+      throw error;
+    }
   );
 }
 
@@ -630,10 +687,12 @@ export async function convertPullRequestToReady(input: {
     context.auth,
     input.owner,
     context.repository.name,
-    input.pullNumber,
+    input.pullNumber
   ).match(
     (pr) => pr,
-    (error) => { throw error; },
+    (error) => {
+      throw error;
+    }
   );
 }
 
@@ -641,7 +700,7 @@ export async function getRepoTree(
   owner: string,
   repo: string,
   ref: string,
-  path?: string,
+  path?: string
 ): Promise<GitHubTree | null> {
   const context = await findRepoContext(owner, repo);
   if (!context) return null;
@@ -651,7 +710,7 @@ export async function getRepoTree(
     context.auth,
     owner,
     context.repository.name,
-    treeSha,
+    treeSha
   ).unwrapOr(null);
 }
 
@@ -659,7 +718,7 @@ export async function getRepoFileContent(
   owner: string,
   repo: string,
   path: string,
-  ref?: string,
+  ref?: string
 ): Promise<GitHubFileContent | null> {
   const context = await findRepoContext(owner, repo);
   if (!context) return null;
@@ -669,14 +728,14 @@ export async function getRepoFileContent(
     owner,
     context.repository.name,
     path,
-    ref,
+    ref
   ).unwrapOr(null);
 }
 
 export async function getRepoCommits(
   owner: string,
   repo: string,
-  options?: { path?: string; sha?: string },
+  options?: { path?: string; sha?: string }
 ): Promise<GitHubCommitSummary[]> {
   const context = await findRepoContext(owner, repo);
   if (!context) return [];
@@ -685,13 +744,13 @@ export async function getRepoCommits(
     context.auth,
     owner,
     context.repository.name,
-    options,
+    options
   ).unwrapOr([]);
 }
 
 export async function getRepoBranches(
   owner: string,
-  repo: string,
+  repo: string
 ): Promise<GitHubBranch[]> {
   const context = await findRepoContext(owner, repo);
   if (!context) return [];
@@ -699,7 +758,7 @@ export async function getRepoBranches(
   return listRepositoryBranches(
     context.auth,
     owner,
-    context.repository.name,
+    context.repository.name
   ).unwrapOr([]);
 }
 
@@ -713,16 +772,56 @@ const getAuthenticatedGitHubLogin = cache(async (): Promise<string | null> => {
   }).unwrapOr(null);
 });
 
+export type ReviewDecision =
+  | "approved"
+  | "changes_requested"
+  | "review_required"
+  | "none";
+
 export type InboxPullRequest = GitHubPullRequest & {
   repoFullName: string;
   repoOwner: string;
   repoName: string;
+  reviewDecision: ReviewDecision;
 };
 
 export type InboxData = {
   login: string;
   pullRequests: InboxPullRequest[];
 };
+
+function computeReviewDecision(
+  reviews: GitHubPullRequestReview[],
+  requestedReviewerCount: number
+): ReviewDecision {
+  if (reviews.length === 0) {
+    return requestedReviewerCount > 0 ? "review_required" : "none";
+  }
+
+  // Keep only the latest review per reviewer (GitHub does the same for its own UI)
+  const latestByUser = new Map<string, GitHubPullRequestReview>();
+  for (const review of reviews) {
+    // Skip comments-only reviews — they don't change the decision
+    if (review.state === "COMMENTED") continue;
+    const existing = latestByUser.get(review.user.login);
+    if (
+      !existing ||
+      (review.submitted_at ?? "") > (existing.submitted_at ?? "")
+    ) {
+      latestByUser.set(review.user.login, review);
+    }
+  }
+
+  if (latestByUser.size === 0) {
+    return requestedReviewerCount > 0 ? "review_required" : "none";
+  }
+
+  const states = Array.from(latestByUser.values()).map((r) => r.state);
+
+  if (states.some((s) => s === "CHANGES_REQUESTED")) return "changes_requested";
+  if (states.every((s) => s === "APPROVED")) return "approved";
+  return "review_required";
+}
 
 export async function getInboxData(): Promise<InboxData | null> {
   const state = await getOnboardingState();
@@ -739,27 +838,60 @@ export async function getInboxData(): Promise<InboxData | null> {
 
     const repoPRResults = await Promise.all(
       repos.map((repo) =>
-        listRepositoryPullRequests(installationAuth, repo.owner.login, repo.name, "open").unwrapOr(
-          [],
-        ),
-      ),
+        listRepositoryPullRequests(
+          installationAuth,
+          repo.owner.login,
+          repo.name,
+          "open"
+        ).unwrapOr([])
+      )
     );
 
     for (let i = 0; i < repos.length; i++) {
       const repo = repos[i]!;
       const prs = repoPRResults[i]!;
-      for (const pr of prs) {
-        allPullRequests.push({
-          ...pr,
-          repoFullName: repo.full_name,
-          repoOwner: repo.owner.login,
-          repoName: repo.name,
-        });
-      }
+
+      // Batch-fetch detail + reviews for all PRs in this repo in parallel
+      const enriched = await Promise.all(
+        prs.map(async (pr) => {
+          const [detail, reviews] = await Promise.all([
+            getPullRequest(
+              installationAuth,
+              repo.owner.login,
+              repo.name,
+              pr.number
+            ).unwrapOr(pr),
+            listPullRequestReviews(
+              installationAuth,
+              repo.owner.login,
+              repo.name,
+              pr.number
+            ).unwrapOr([]),
+          ]);
+
+          const reviewDecision = computeReviewDecision(
+            reviews,
+            detail.requested_reviewers.length
+          );
+
+          return {
+            ...detail,
+            repoFullName: repo.full_name,
+            repoOwner: repo.owner.login,
+            repoName: repo.name,
+            reviewDecision,
+          } satisfies InboxPullRequest;
+        })
+      );
+
+      allPullRequests.push(...enriched);
     }
   }
 
-  log.info("inbox", `Fetched ${String(allPullRequests.length)} open PRs for ${ghLogin}`);
+  log.info(
+    "inbox",
+    `Fetched ${String(allPullRequests.length)} open PRs for ${ghLogin}`
+  );
 
   return { login: ghLogin, pullRequests: allPullRequests };
 }

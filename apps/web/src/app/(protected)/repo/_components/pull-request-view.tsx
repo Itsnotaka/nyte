@@ -32,6 +32,12 @@ import { cn } from "@sachikit/ui/lib/utils";
 import { useHotkey } from "@tanstack/react-hotkeys";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { inferRouterOutputs } from "@trpc/server";
+import {
+  differenceInDays,
+  differenceInHours,
+  differenceInMinutes,
+  differenceInMonths,
+} from "date-fns";
 import { nanoid } from "nanoid";
 import * as React from "react";
 import { Streamdown } from "streamdown";
@@ -74,20 +80,20 @@ type AnnotationPayload =
 
 function formatUpdated(dateString: string): string {
   const date = new Date(dateString);
-  const now = Date.now();
-  const diffMs = now - date.getTime();
-  const diffMinutes = Math.floor(diffMs / 60000);
+  const now = new Date();
 
-  if (diffMinutes < 1) return "just now";
-  if (diffMinutes < 60) return `${String(diffMinutes)}m ago`;
+  const minutes = differenceInMinutes(now, date);
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes}m ago`;
 
-  const diffHours = Math.floor(diffMinutes / 60);
-  if (diffHours < 24) return `${String(diffHours)}h ago`;
+  const hours = differenceInHours(now, date);
+  if (hours < 24) return `${hours}h ago`;
 
-  const diffDays = Math.floor(diffHours / 24);
-  if (diffDays < 30) return `${String(diffDays)}d ago`;
+  const days = differenceInDays(now, date);
+  if (days < 30) return `${days}d ago`;
 
-  return `${String(Math.floor(diffDays / 30))}mo ago`;
+  const months = differenceInMonths(now, date);
+  return `${months}mo ago`;
 }
 
 function annotationSide(side: "LEFT" | "RIGHT"): "deletions" | "additions" {
@@ -147,7 +153,7 @@ function MarkdownContent({
       className={cn(
         "[&_ol]:list-decimal [&_ol]:pl-4 [&_ul]:list-disc [&_ul]:pl-4",
         "[&_p]:mb-2 [&_p]:last:mb-0",
-        className,
+        className
       )}
       linkSafety={{ enabled: false }}
       mode="static"
@@ -241,7 +247,7 @@ const REVIEW_ACTION_LABELS: Record<ReviewAction, string> = {
 function canSubmitReview(
   action: ReviewAction,
   reviewBody: string,
-  draftCount: number,
+  draftCount: number
 ): boolean {
   if (action === "APPROVE") return true;
   return reviewBody.trim().length > 0 || draftCount > 0;
@@ -309,7 +315,8 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
   const [drafts, setDrafts] = React.useState<DraftComment[]>([]);
   const [reviewBody, setReviewBody] = React.useState("");
   const [commentBody, setCommentBody] = React.useState("");
-  const [reviewAction, setReviewAction] = React.useState<ReviewAction>("COMMENT");
+  const [reviewAction, setReviewAction] =
+    React.useState<ReviewAction>("COMMENT");
   const [sidebarOpen, setSidebarOpen] = React.useState(true);
   const [activeFile, setActiveFile] = React.useState<string | null>(null);
   const [editingDescription, setEditingDescription] = React.useState(false);
@@ -328,7 +335,7 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
       initialData.pullRequest.number,
       initialData.repository.name,
       initialData.repository.owner.login,
-    ],
+    ]
   );
 
   const pullRequestPageQueryKey =
@@ -337,11 +344,11 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
     trpc.github.getPullRequestPage.queryOptions(queryInput, {
       initialData,
       staleTime: 0,
-    }),
+    })
   );
 
   const diffSettingsQuery = useQuery(
-    trpc.settings.getDiffSettings.queryOptions(),
+    trpc.settings.getDiffSettings.queryOptions()
   );
   const diffSettings: DiffSettingsJson =
     diffSettingsQuery.data ?? DIFF_SETTINGS_DEFAULTS;
@@ -359,53 +366,46 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
     if (!Array.isArray(raw)) return [];
     return raw.flatMap((label: unknown) => {
       if (typeof label !== "object" || label === null) return [];
-      const l = label as { id?: number; name?: string; color?: string; description?: string | null };
+      const l = label as {
+        id?: number;
+        name?: string;
+        color?: string;
+        description?: string | null;
+      };
       if (!l.id || !l.name || !l.color) return [];
-      return [{ id: l.id, name: l.name, color: l.color, description: l.description ?? null }];
+      return [
+        {
+          id: l.id,
+          name: l.name,
+          color: l.color,
+          description: l.description ?? null,
+        },
+      ];
     });
   }, [pullRequest]);
 
   const viewedFilesQuery = useQuery(
     trpc.settings.getViewedFiles.queryOptions(
       { prId: pullRequest.id },
-      { staleTime: 0 },
-    ),
+      { staleTime: 0 }
+    )
   );
   const viewedFiles = React.useMemo(
     () => new Set(viewedFilesQuery.data ?? []),
-    [viewedFilesQuery.data],
+    [viewedFilesQuery.data]
   );
-  const viewedFilesQueryKey = trpc.settings.getViewedFiles.queryKey({ prId: pullRequest.id });
+  const viewedFilesQueryKey = trpc.settings.getViewedFiles.queryKey({
+    prId: pullRequest.id,
+  });
 
   const markViewed = useMutation(
     trpc.settings.markFileViewed.mutationOptions({
       onMutate: async (variables) => {
         await queryClient.cancelQueries({ queryKey: viewedFilesQueryKey });
         const previous = queryClient.getQueryData(viewedFilesQueryKey);
-        queryClient.setQueryData(viewedFilesQueryKey, (old: string[] | undefined) => [
-          ...(old ?? []),
-          variables.filePath,
-        ]);
-        return { previous };
-      },
-      onError: (_err, _vars, context) => {
-        if (context?.previous !== undefined) {
-          queryClient.setQueryData(viewedFilesQueryKey, context.previous);
-        }
-      },
-      onSettled: () => {
-        void queryClient.invalidateQueries({ queryKey: viewedFilesQueryKey });
-      },
-    }),
-  );
-
-  const markUnviewed = useMutation(
-    trpc.settings.markFileUnviewed.mutationOptions({
-      onMutate: async (variables) => {
-        await queryClient.cancelQueries({ queryKey: viewedFilesQueryKey });
-        const previous = queryClient.getQueryData(viewedFilesQueryKey);
-        queryClient.setQueryData(viewedFilesQueryKey, (old: string[] | undefined) =>
-          (old ?? []).filter((f) => f !== variables.filePath),
+        queryClient.setQueryData(
+          viewedFilesQueryKey,
+          (old: string[] | undefined) => [...(old ?? []), variables.filePath]
         );
         return { previous };
       },
@@ -417,7 +417,30 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
       onSettled: () => {
         void queryClient.invalidateQueries({ queryKey: viewedFilesQueryKey });
       },
-    }),
+    })
+  );
+
+  const markUnviewed = useMutation(
+    trpc.settings.markFileUnviewed.mutationOptions({
+      onMutate: async (variables) => {
+        await queryClient.cancelQueries({ queryKey: viewedFilesQueryKey });
+        const previous = queryClient.getQueryData(viewedFilesQueryKey);
+        queryClient.setQueryData(
+          viewedFilesQueryKey,
+          (old: string[] | undefined) =>
+            (old ?? []).filter((f) => f !== variables.filePath)
+        );
+        return { previous };
+      },
+      onError: (_err, _vars, context) => {
+        if (context?.previous !== undefined) {
+          queryClient.setQueryData(viewedFilesQueryKey, context.previous);
+        }
+      },
+      onSettled: () => {
+        void queryClient.invalidateQueries({ queryKey: viewedFilesQueryKey });
+      },
+    })
   );
 
   function handleToggleViewed(filename: string, viewed: boolean) {
@@ -431,7 +454,7 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
   function handleFileSelect(filename: string) {
     setActiveFile(filename);
     const element = diffAreaRef.current?.querySelector(
-      `[data-file-name="${CSS.escape(filename)}"]`,
+      `[data-file-name="${CSS.escape(filename)}"]`
     );
     if (element) {
       element.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -446,7 +469,7 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
       pullNumber: pullRequest.number,
       repo: repository.name,
     }),
-    [pullRequest.number, repository.name, repository.owner.login],
+    [pullRequest.number, repository.name, repository.owner.login]
   );
 
   const isOpen = pullRequest.state === "open" && !pullRequest.merged;
@@ -460,7 +483,7 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
           queryKey: pullRequestPageQueryKey,
         });
       },
-    }),
+    })
   );
 
   const submitReview = useMutation(
@@ -472,7 +495,7 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
           queryKey: pullRequestPageQueryKey,
         });
       },
-    }),
+    })
   );
 
   const merge = useMutation(
@@ -482,7 +505,7 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
           queryKey: pullRequestPageQueryKey,
         });
       },
-    }),
+    })
   );
 
   const updatePR = useMutation(
@@ -493,7 +516,7 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
           queryKey: pullRequestPageQueryKey,
         });
       },
-    }),
+    })
   );
 
   const convertToReady = useMutation(
@@ -503,7 +526,7 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
           queryKey: pullRequestPageQueryKey,
         });
       },
-    }),
+    })
   );
 
   function addDraft(path: string, lineNumber: number, side: "LEFT" | "RIGHT") {
@@ -512,19 +535,16 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
         (draft) =>
           draft.path === path &&
           draft.lineNumber === lineNumber &&
-          draft.side === side,
+          draft.side === side
       );
       if (exists) return current;
-      return [
-        ...current,
-        { body: "", id: nanoid(), lineNumber, path, side },
-      ];
+      return [...current, { body: "", id: nanoid(), lineNumber, path, side }];
     });
   }
 
   function updateDraft(id: string, body: string) {
     setDrafts((current) =>
-      current.map((draft) => (draft.id === id ? { ...draft, body } : draft)),
+      current.map((draft) => (draft.id === id ? { ...draft, body } : draft))
     );
   }
 
@@ -615,7 +635,7 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
           status: file.type ?? "modified",
         };
       }),
-    [files],
+    [files]
   );
 
   return (
@@ -648,7 +668,9 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
                     </h1>
                   )}
                   <Badge variant="outline">#{pullRequest.number}</Badge>
-                  {pullRequest.draft ? <Badge variant="outline">draft</Badge> : null}
+                  {pullRequest.draft ? (
+                    <Badge variant="outline">draft</Badge>
+                  ) : null}
                   {isMerged ? (
                     <Badge variant="outline">merged</Badge>
                   ) : pullRequest.state === "closed" ? (
@@ -670,11 +692,15 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
                       disabled={convertToReady.isPending}
                       onClick={() => convertToReady.mutate(pullRequestIdentity)}
                     >
-                      {convertToReady.isPending ? "Publishing..." : "Ready for review"}
+                      {convertToReady.isPending
+                        ? "Publishing..."
+                        : "Ready for review"}
                     </Button>
                   ) : null}
                   {merge.error ? (
-                    <p className="text-sm text-red-500">{merge.error.message}</p>
+                    <p className="text-sm text-red-500">
+                      {merge.error.message}
+                    </p>
                   ) : null}
                   <MergeModal
                     pullTitle={pullRequest.title}
@@ -758,7 +784,8 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
                   action={
                     drafts.length > 0 ? (
                       <Badge variant="outline">
-                        {drafts.length} pending draft{drafts.length === 1 ? "" : "s"}
+                        {drafts.length} pending draft
+                        {drafts.length === 1 ? "" : "s"}
                       </Badge>
                     ) : null
                   }
@@ -769,7 +796,8 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
                     value={reviewBody}
                     onChange={(event) => setReviewBody(event.target.value)}
                     onKeyDown={(event) => {
-                      if (!isShortcutSubmit(event) || reviewSubmitDisabled) return;
+                      if (!isShortcutSubmit(event) || reviewSubmitDisabled)
+                        return;
                       event.preventDefault();
                       onSubmitReview(reviewAction);
                     }}
@@ -805,22 +833,36 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
                           <ChevronDownIcon />
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" sideOffset={4}>
-                          <DropdownMenuItem onClick={() => setReviewAction("COMMENT")}>
+                          <DropdownMenuItem
+                            onClick={() => setReviewAction("COMMENT")}
+                          >
                             <div>
                               <p className="text-sm font-medium">Comment</p>
-                              <p className="text-xs text-sachi-fg-muted">General feedback</p>
+                              <p className="text-xs text-sachi-fg-muted">
+                                General feedback
+                              </p>
                             </div>
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => setReviewAction("APPROVE")}>
+                          <DropdownMenuItem
+                            onClick={() => setReviewAction("APPROVE")}
+                          >
                             <div>
                               <p className="text-sm font-medium">Approve</p>
-                              <p className="text-xs text-sachi-fg-muted">Approve this PR</p>
+                              <p className="text-xs text-sachi-fg-muted">
+                                Approve this PR
+                              </p>
                             </div>
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => setReviewAction("REQUEST_CHANGES")}>
+                          <DropdownMenuItem
+                            onClick={() => setReviewAction("REQUEST_CHANGES")}
+                          >
                             <div>
-                              <p className="text-sm font-medium">Request changes</p>
-                              <p className="text-xs text-sachi-fg-muted">Ask for revisions</p>
+                              <p className="text-sm font-medium">
+                                Request changes
+                              </p>
+                              <p className="text-xs text-sachi-fg-muted">
+                                Ask for revisions
+                              </p>
                             </div>
                           </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -851,7 +893,9 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
                     <DiffFile
                       key={`${file.name}:${file.newObjectId ?? file.prevObjectId ?? file.mode ?? "file"}`}
                       diffSettings={diffSettings}
-                      drafts={drafts.filter((draft) => draft.path === file.name)}
+                      drafts={drafts.filter(
+                        (draft) => draft.path === file.name
+                      )}
                       file={file}
                       onAddDraft={addDraft}
                       onDraftChange={updateDraft}
@@ -859,7 +903,7 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
                       repository={repository}
                       reviewComments={reviewComments.filter(
                         (comment) =>
-                          comment.path === file.name && comment.line !== null,
+                          comment.path === file.name && comment.line !== null
                       )}
                     />
                   ))
@@ -905,7 +949,8 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
                   className="space-y-3"
                   onSubmit={(event) => {
                     event.preventDefault();
-                    if (commentBody.trim().length === 0 || addComment.isPending) return;
+                    if (commentBody.trim().length === 0 || addComment.isPending)
+                      return;
                     onAddComment();
                   }}
                 >
@@ -916,7 +961,11 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
                     onKeyDown={(event) => {
                       if (!isShortcutSubmit(event)) return;
                       event.preventDefault();
-                      if (commentBody.trim().length === 0 || addComment.isPending) return;
+                      if (
+                        commentBody.trim().length === 0 ||
+                        addComment.isPending
+                      )
+                        return;
                       onAddComment();
                     }}
                     disabled={addComment.isPending}
@@ -1017,7 +1066,7 @@ type DiffFileProps = {
   onAddDraft: (
     path: string,
     lineNumber: number,
-    side: "LEFT" | "RIGHT",
+    side: "LEFT" | "RIGHT"
   ) => void;
   onDraftChange: (id: string, body: string) => void;
   onDraftRemove: (id: string) => void;
@@ -1058,7 +1107,7 @@ function DiffFile({
         lineNumber: draft.lineNumber,
         metadata: { draft, kind: "draft" as const },
         side: annotationSide(draft.side),
-      }),
+      })
     );
 
     return [...existing, ...pending];

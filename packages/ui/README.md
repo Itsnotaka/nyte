@@ -1,6 +1,6 @@
 # @sachikit/ui
 
-Publishable Nyte UI component library built with Vite+ and tsdown.
+Publishable Sachi UI component library built with Vite+ and tsdown.
 
 ## Public API
 

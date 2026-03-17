@@ -83,6 +83,9 @@ importers:
       better-auth:
         specifier: ^1.5.5
         version: 1.5.5(@prisma/client@7.5.0(typescript@6.0.0-beta))(drizzle-kit@0.31.9)(drizzle-orm@0.45.1(@neondatabase/serverless@1.0.2)(@opentelemetry/api@1.9.0)(@prisma/client@7.5.0(typescript@6.0.0-beta))(@types/pg@8.18.0)(kysely@0.28.11)(pg@8.20.0))(mongodb@7.1.0)(next@16.1.6(@opentelemetry/api@1.9.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(sass@1.98.0))(pg@8.20.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(vitest@4.1.0(@opentelemetry/api@1.9.0)(@types/node@25.5.0)(msw@2.12.10(@types/node@25.5.0)(typescript@6.0.0-beta))(vite@7.3.1(@types/node@25.5.0)(jiti@2.6.1)(lightningcss@1.31.1)(sass@1.98.0)(yaml@2.8.2)))
+      date-fns:
+        specifier: ^4.1.0
+        version: 4.1.0
       dialkit:
         specifier: ^1.1.0
         version: 1.1.0(motion@12.37.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)

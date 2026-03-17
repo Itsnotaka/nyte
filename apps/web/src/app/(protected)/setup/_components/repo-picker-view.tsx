@@ -1,7 +1,11 @@
 "use client";
 
 import type { GitHubInstallation, GitHubRepository } from "@sachikit/github";
-import { Avatar, AvatarFallback, AvatarImage } from "@sachikit/ui/components/avatar";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@sachikit/ui/components/avatar";
 import { Button } from "@sachikit/ui/components/button";
 import { Checkbox } from "@sachikit/ui/components/checkbox";
 import { Input } from "@sachikit/ui/components/input";
@@ -20,7 +24,9 @@ export function RepoPickerView({
   const [search, setSearch] = React.useState("");
   const [selected, setSelected] = React.useState<Set<number>>(new Set());
 
-  const filtered = repos.filter((r) => r.name.toLowerCase().includes(search.toLowerCase()));
+  const filtered = repos.filter((r) =>
+    r.name.toLowerCase().includes(search.toLowerCase())
+  );
 
   function toggleRepo(repoId: number) {
     setSelected((prev) => {
@@ -50,17 +56,24 @@ export function RepoPickerView({
         <div className="flex flex-col items-center gap-2 text-center">
           <Avatar size="lg">
             <AvatarImage src={installation.account.avatar_url} />
-            <AvatarFallback>{installation.account.login.charAt(0).toUpperCase()}</AvatarFallback>
+            <AvatarFallback>
+              {installation.account.login.charAt(0).toUpperCase()}
+            </AvatarFallback>
           </Avatar>
-          <h1 className="text-xl font-semibold text-sachi-fg">Select repos to sync</h1>
+          <h1 className="text-xl font-semibold text-sachi-fg">
+            Select repos to sync
+          </h1>
           <p className="max-w-sm text-sm text-sachi-fg-muted">
-            Choose the repositories you want to work with in Nyte. You can change this later.
+            Choose the repositories you want to work with in Sachi. You can
+            change this later.
           </p>
         </div>
 
         <div className="w-full rounded-xl border border-sachi-line-subtle bg-sachi-surface">
           <div className="flex items-center justify-between px-4 pt-3 pb-2">
-            <span className="text-sm font-medium text-sachi-fg">Select repositories</span>
+            <span className="text-sm font-medium text-sachi-fg">
+              Select repositories
+            </span>
             <span className="text-xs text-sachi-fg-muted">
               {selected.size} of {repos.length} repos selected
             </span>
@@ -85,9 +98,13 @@ export function RepoPickerView({
                   checked={selected.has(repo.id)}
                   onCheckedChange={() => toggleRepo(repo.id)}
                 />
-                <span className="text-sm text-sachi-fg-secondary">{repo.name}</span>
+                <span className="text-sm text-sachi-fg-secondary">
+                  {repo.name}
+                </span>
                 {repo.private ? (
-                  <span className="ml-auto text-xs text-sachi-fg-faint">private</span>
+                  <span className="ml-auto text-xs text-sachi-fg-faint">
+                    private
+                  </span>
                 ) : null}
               </label>
             ))}
@@ -111,7 +128,11 @@ export function RepoPickerView({
           ) : null}
         </div>
 
-        <Button size="lg" disabled={selected.size === 0 || isNavigating} onClick={handleContinue}>
+        <Button
+          size="lg"
+          disabled={selected.size === 0 || isNavigating}
+          onClick={handleContinue}
+        >
           {isNavigating ? "Continuing..." : "Continue"}
         </Button>
       </div>

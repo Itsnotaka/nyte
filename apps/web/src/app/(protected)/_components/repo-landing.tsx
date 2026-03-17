@@ -2,6 +2,12 @@
 
 import { Badge } from "@sachikit/ui/components/badge";
 import { Input } from "@sachikit/ui/components/input";
+import {
+  differenceInDays,
+  differenceInHours,
+  differenceInMinutes,
+  differenceInMonths,
+} from "date-fns";
 import Link from "next/link";
 import * as React from "react";
 
@@ -10,19 +16,19 @@ import { useRepo } from "./repo-context";
 function formatUpdated(dateString: string): string {
   const date = new Date(dateString);
   const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMinutes = Math.floor(diffMs / 60000);
 
-  if (diffMinutes < 1) return "just now";
-  if (diffMinutes < 60) return `${String(diffMinutes)}m ago`;
+  const minutes = differenceInMinutes(now, date);
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes}m ago`;
 
-  const diffHours = Math.floor(diffMinutes / 60);
-  if (diffHours < 24) return `${String(diffHours)}h ago`;
+  const hours = differenceInHours(now, date);
+  if (hours < 24) return `${hours}h ago`;
 
-  const diffDays = Math.floor(diffHours / 24);
-  if (diffDays < 30) return `${String(diffDays)}d ago`;
+  const days = differenceInDays(now, date);
+  if (days < 30) return `${days}d ago`;
 
-  return `${String(Math.floor(diffDays / 30))}mo ago`;
+  const months = differenceInMonths(now, date);
+  return `${months}mo ago`;
 }
 
 export function RepoLanding() {
@@ -30,7 +36,7 @@ export function RepoLanding() {
   const [search, setSearch] = React.useState("");
 
   const filtered = repos.filter((repo) =>
-    repo.full_name.toLowerCase().includes(search.toLowerCase()),
+    repo.full_name.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -62,13 +68,17 @@ export function RepoLanding() {
               >
                 <div className="flex min-w-0 flex-col gap-0.5">
                   <div className="flex items-center gap-2">
-                    <span className="truncate text-sm font-medium text-sachi-fg">{repo.name}</span>
+                    <span className="truncate text-sm font-medium text-sachi-fg">
+                      {repo.name}
+                    </span>
                     <Badge variant="outline" className="text-[10px]">
                       {repo.private ? "private" : "public"}
                     </Badge>
                   </div>
                   {repo.description ? (
-                    <p className="truncate text-xs text-sachi-fg-muted">{repo.description}</p>
+                    <p className="truncate text-xs text-sachi-fg-muted">
+                      {repo.description}
+                    </p>
                   ) : null}
                 </div>
 

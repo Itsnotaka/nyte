@@ -11,10 +11,19 @@ import {
   CardTitle,
 } from "@sachikit/ui/components/card";
 import { Input } from "@sachikit/ui/components/input";
-import { NativeSelect, NativeSelectOption } from "@sachikit/ui/components/native-select";
+import {
+  NativeSelect,
+  NativeSelectOption,
+} from "@sachikit/ui/components/native-select";
 import { InsetView } from "@sachikit/ui/components/sidebar";
 import { Textarea } from "@sachikit/ui/components/textarea";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  differenceInDays,
+  differenceInHours,
+  differenceInMinutes,
+  differenceInMonths,
+} from "date-fns";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { parseAsString, useQueryState } from "nuqs";
@@ -37,20 +46,20 @@ function branchTitle(branch: string): string {
 
 function formatUpdated(dateString: string): string {
   const date = new Date(dateString);
-  const now = Date.now();
-  const diffMs = now - date.getTime();
-  const diffMinutes = Math.floor(diffMs / 60000);
+  const now = new Date();
 
-  if (diffMinutes < 1) return "just now";
-  if (diffMinutes < 60) return `${String(diffMinutes)}m ago`;
+  const minutes = differenceInMinutes(now, date);
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes}m ago`;
 
-  const diffHours = Math.floor(diffMinutes / 60);
-  if (diffHours < 24) return `${String(diffHours)}h ago`;
+  const hours = differenceInHours(now, date);
+  if (hours < 24) return `${hours}h ago`;
 
-  const diffDays = Math.floor(diffHours / 24);
-  if (diffDays < 30) return `${String(diffDays)}d ago`;
+  const days = differenceInDays(now, date);
+  if (days < 30) return `${days}d ago`;
 
-  return `${String(Math.floor(diffDays / 30))}mo ago`;
+  const months = differenceInMonths(now, date);
+  return `${months}mo ago`;
 }
 
 function getDraftValues(data: RepoSubmitPageData) {
@@ -75,7 +84,7 @@ export function RepoSubmitView({ initialData }: RepoSubmitViewProps) {
       owner: initialData.repository.owner.login,
       repo: initialData.repository.name,
     }),
-    [branch, initialData.repository.name, initialData.repository.owner.login],
+    [branch, initialData.repository.name, initialData.repository.owner.login]
   );
   const initialQueryData =
     shouldUseInitialDataRef.current && branch === initialBranchRef.current
@@ -89,13 +98,19 @@ export function RepoSubmitView({ initialData }: RepoSubmitViewProps) {
       initialData: initialQueryData,
       placeholderData: (previousData) => previousData,
       staleTime: 0,
-    }),
+    })
   );
   const data = repoSubmitPage.data ?? initialData;
-  const { repository, branches, existingPullRequest, openPullRequests, selectedBranch } = data;
+  const {
+    repository,
+    branches,
+    existingPullRequest,
+    openPullRequests,
+    selectedBranch,
+  } = data;
   const selectable = React.useMemo(
     () => branches.filter((item) => item.name !== repository.default_branch),
-    [branches, repository.default_branch],
+    [branches, repository.default_branch]
   );
   const branchValues = React.useMemo(() => getDraftValues(data), [data]);
   const [title, setTitle] = React.useState(branchValues.title);
@@ -106,7 +121,8 @@ export function RepoSubmitView({ initialData }: RepoSubmitViewProps) {
     (existingPullRequest.state === "closed" || existingPullRequest.merged);
   const isBranchTransitionPending =
     repoSubmitPage.isFetching && branch != null && branch !== selectedBranch;
-  const isFormDisabled = !selectedBranch || hasClosedPullRequest || isBranchTransitionPending;
+  const isFormDisabled =
+    !selectedBranch || hasClosedPullRequest || isBranchTransitionPending;
 
   React.useEffect(() => {
     if (lastSelectedBranchRef.current === selectedBranch) {
@@ -125,10 +141,10 @@ export function RepoSubmitView({ initialData }: RepoSubmitViewProps) {
           queryKey: trpc.github.getRepoSubmitPage.queryKey(queryInput),
         });
         router.push(
-          `/repo/${repository.owner.login}/${repository.name}/pull/${String(pullRequest.number)}`,
+          `/repo/${repository.owner.login}/${repository.name}/pull/${String(pullRequest.number)}`
         );
       },
-    }),
+    })
   );
 
   function onBranchChange(event: React.ChangeEvent<HTMLSelectElement>) {
@@ -152,7 +168,9 @@ export function RepoSubmitView({ initialData }: RepoSubmitViewProps) {
     <InsetView maxWidth="lg">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div className="space-y-1">
-          <h1 className="text-lg font-semibold text-sachi-fg">Submit pull request</h1>
+          <h1 className="text-lg font-semibold text-sachi-fg">
+            Submit pull request
+          </h1>
           <p className="text-sm text-sachi-fg-muted">
             {repository.full_name} to `{repository.default_branch}`
           </p>
@@ -178,7 +196,9 @@ export function RepoSubmitView({ initialData }: RepoSubmitViewProps) {
           <CardContent className="space-y-4">
             {selectable.length > 0 ? (
               <div className="space-y-2">
-                <label className="text-sm font-medium text-sachi-fg">Head branch</label>
+                <label className="text-sm font-medium text-sachi-fg">
+                  Head branch
+                </label>
                 <NativeSelect
                   value={branch ?? selectedBranch ?? ""}
                   onChange={onBranchChange}
@@ -192,7 +212,9 @@ export function RepoSubmitView({ initialData }: RepoSubmitViewProps) {
                 </NativeSelect>
               </div>
             ) : (
-              <p className="text-sm text-sachi-fg-muted">No submit-ready branches found yet.</p>
+              <p className="text-sm text-sachi-fg-muted">
+                No submit-ready branches found yet.
+              </p>
             )}
 
             <div className="space-y-2">
@@ -206,7 +228,9 @@ export function RepoSubmitView({ initialData }: RepoSubmitViewProps) {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-sachi-fg">Description</label>
+              <label className="text-sm font-medium text-sachi-fg">
+                Description
+              </label>
               <Textarea
                 value={body}
                 onChange={(event) => setBody(event.target.value)}
@@ -218,36 +242,52 @@ export function RepoSubmitView({ initialData }: RepoSubmitViewProps) {
             {existingPullRequest ? (
               <div className="flex flex-wrap items-center gap-2 text-sm text-sachi-fg-muted">
                 <Badge variant="outline">
-                  {existingPullRequest.draft ? "draft" : existingPullRequest.state}
+                  {existingPullRequest.draft
+                    ? "draft"
+                    : existingPullRequest.state}
                 </Badge>
                 <span>PR #{existingPullRequest.number}</span>
-                <span>updated {formatUpdated(existingPullRequest.updated_at)}</span>
+                <span>
+                  updated {formatUpdated(existingPullRequest.updated_at)}
+                </span>
               </div>
             ) : null}
 
             {savePullRequest.error ? (
-              <p className="text-sm text-red-500">{savePullRequest.error.message}</p>
+              <p className="text-sm text-red-500">
+                {savePullRequest.error.message}
+              </p>
             ) : null}
 
             {hasClosedPullRequest ? (
               <p className="text-sm text-sachi-fg-muted">
-                This branch already has a closed pull request. Reopen or review the existing PR
-                instead of creating a new one.
+                This branch already has a closed pull request. Reopen or review
+                the existing PR instead of creating a new one.
               </p>
             ) : null}
           </CardContent>
           <CardFooter className="justify-between gap-3">
-            <span className="text-xs text-sachi-fg-muted">Base: `{repository.default_branch}`</span>
+            <span className="text-xs text-sachi-fg-muted">
+              Base: `{repository.default_branch}`
+            </span>
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
-                disabled={isFormDisabled || title.trim().length === 0 || savePullRequest.isPending}
+                disabled={
+                  isFormDisabled ||
+                  title.trim().length === 0 ||
+                  savePullRequest.isPending
+                }
                 onClick={() => onSave(true)}
               >
                 {existingPullRequest?.draft ? "Update draft" : "Save draft"}
               </Button>
               <Button
-                disabled={isFormDisabled || title.trim().length === 0 || savePullRequest.isPending}
+                disabled={
+                  isFormDisabled ||
+                  title.trim().length === 0 ||
+                  savePullRequest.isPending
+                }
                 onClick={() => onSave(false)}
               >
                 {existingPullRequest?.draft
@@ -267,7 +307,9 @@ export function RepoSubmitView({ initialData }: RepoSubmitViewProps) {
           </CardHeader>
           <CardContent className="space-y-3">
             {openPullRequests.length === 0 ? (
-              <p className="text-sm text-sachi-fg-muted">No open pull requests.</p>
+              <p className="text-sm text-sachi-fg-muted">
+                No open pull requests.
+              </p>
             ) : (
               openPullRequests.map((pullRequest) => (
                 <Link
@@ -276,8 +318,12 @@ export function RepoSubmitView({ initialData }: RepoSubmitViewProps) {
                   className="block rounded-lg border border-sachi-line-subtle p-3 text-sm hover:bg-sachi-fill"
                 >
                   <div className="flex items-center gap-2">
-                    <span className="font-medium text-sachi-fg">{pullRequest.title}</span>
-                    {pullRequest.draft ? <Badge variant="outline">draft</Badge> : null}
+                    <span className="font-medium text-sachi-fg">
+                      {pullRequest.title}
+                    </span>
+                    {pullRequest.draft ? (
+                      <Badge variant="outline">draft</Badge>
+                    ) : null}
                   </div>
                   <p className="mt-1 text-sachi-fg-muted">
                     {pullRequest.head.ref} to {pullRequest.base.ref}

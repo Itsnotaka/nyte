@@ -1,28 +1,110 @@
 "use client";
 
+import * as React from "react";
+
 import { Checkbox as CheckboxPrimitive } from "@base-ui/react/checkbox";
-import { IconCheckmark1 } from "@central-icons-react/round-filled-radius-2-stroke-1.5";
+import { IconCheckmark1, IconMinusSmall } from "@central-icons-react/round-filled-radius-2-stroke-1.5";
 
 import { cn } from "../../lib/utils";
 
-function Checkbox({ className, ...props }: CheckboxPrimitive.Root.Props) {
+/**
+ * Checkbox Component
+ *
+ * A checkbox component with support for checked, unchecked, and indeterminate
+ * states. Based on Cloudflare Kumo design patterns using sachi tokens.
+ *
+ * @example
+ * ```tsx
+ * // Basic usage
+ * <Checkbox checked={isChecked} onCheckedChange={setIsChecked} />
+ *
+ * // With aria-label for accessibility
+ * <Checkbox aria-label="Select all items" />
+ *
+ * // Indeterminate state (for "select all" with partial selection)
+ * <Checkbox checked="indeterminate" />
+ *
+ * // Error variant
+ * <Checkbox variant="error" />
+ * ```
+ */
+
+/**
+ * Visual variant definitions for checkbox.
+ */
+export const CHECKBOX_VARIANTS = {
+  variant: {
+    default: {
+      classes: "ring-sachi-line hover:ring-sachi-focus focus-visible:ring-sachi-focus",
+      description: "Default checkbox appearance",
+    },
+    error: {
+      classes: "ring-destructive hover:ring-destructive focus-visible:ring-destructive",
+      description: "Error state for validation failures",
+    },
+  },
+} as const;
+
+export type CheckboxVariant = keyof typeof CHECKBOX_VARIANTS.variant;
+
+/**
+ * Props for the Checkbox component.
+ */
+export interface CheckboxProps extends Omit<React.ComponentProps<typeof CheckboxPrimitive.Root>, "onChange"> {
+  /** Visual variant - "default" or "error" for validation failures */
+  variant?: CheckboxVariant;
+}
+
+/**
+ * Checkbox component with sachi styling.
+ *
+ * Supports checked, unchecked, and indeterminate states. Uses ring-based
+ * styling with sachi design tokens.
+ *
+ * @param props - Checkbox props including variant
+ * @returns The checkbox component
+ */
+function Checkbox({ className, variant = "default", ...props }: CheckboxProps) {
+  const variantClasses = CHECKBOX_VARIANTS.variant[variant].classes;
+
   return (
     <CheckboxPrimitive.Root
       data-slot="checkbox"
+      data-variant={variant}
       className={cn(
-        "peer relative flex size-4 shrink-0 items-center justify-center rounded-[4px] border border-input transition-colors outline-none group-has-disabled/field:opacity-50 after:absolute after:-inset-x-3 after:-inset-y-2 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 aria-invalid:aria-checked:border-primary dark:bg-input/30 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 data-checked:border-primary data-checked:bg-primary data-checked:text-primary-foreground dark:data-checked:bg-primary",
+        // Base styles
+        "relative flex size-4 shrink-0 items-center justify-center rounded-sm",
+        "bg-sachi-base ring-1",
+        // Variant styles
+        variantClasses,
+        // Checked/Indeterminate states - use sachi accent colors
+        "data-[checked]:bg-sachi-accent data-[checked]:ring-sachi-accent",
+        "data-[indeterminate]:bg-sachi-accent data-[indeterminate]:ring-sachi-accent",
+        // Disabled state
+        "disabled:cursor-not-allowed disabled:opacity-50",
+        // Touch target expansion (invisible hit area)
+        "after:absolute after:-inset-x-3 after:-inset-y-2",
         className,
       )}
       {...props}
     >
       <CheckboxPrimitive.Indicator
         data-slot="checkbox-indicator"
-        className="grid place-content-center text-current transition-none [&>svg]:size-3.5"
-      >
-        <IconCheckmark1 />
-      </CheckboxPrimitive.Indicator>
+        keepMounted
+        className="flex items-center justify-center text-sachi-fg data-[unchecked]:invisible"
+        render={(renderProps, state) => (
+          <span {...renderProps}>
+            {state.indeterminate ? (
+              <IconMinusSmall className="size-3.5" />
+            ) : (
+              <IconCheckmark1 className="size-3.5" />
+            )}
+          </span>
+        )}
+      />
     </CheckboxPrimitive.Root>
   );
 }
 
 export { Checkbox };
+export type { CheckboxPrimitive };
