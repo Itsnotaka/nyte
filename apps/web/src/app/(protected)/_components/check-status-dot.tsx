@@ -41,11 +41,11 @@ export function CheckStatusDot({
 
   const color =
     summary.conclusion === "success"
-      ? "bg-green-500"
+      ? "bg-green-600"
       : summary.conclusion === "failure"
-        ? "bg-red-500"
+        ? "bg-destructive"
         : summary.conclusion === "pending"
-          ? "bg-amber-400"
+          ? "bg-amber-500"
           : "bg-sachi-fg-faint";
 
   return (

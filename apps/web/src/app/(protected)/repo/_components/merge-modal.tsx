@@ -71,7 +71,7 @@ function CheckWarning({ summary }: { summary: GitHubCheckSummary | null | undefi
 
   if (summary.conclusion === "failure") {
     return (
-      <div className="rounded-md bg-red-50 px-3 py-2 text-xs text-red-700 ring-1 ring-red-200 dark:bg-red-950/30 dark:text-red-400 dark:ring-red-900/50">
+      <div className="rounded-md bg-destructive/10 px-3 py-2 text-xs text-destructive ring-1 ring-destructive/20">
         {String(summary.failing)} check{summary.failing === 1 ? "" : "s"} failing.
         Merging is not recommended.
       </div>
@@ -80,7 +80,7 @@ function CheckWarning({ summary }: { summary: GitHubCheckSummary | null | undefi
 
   if (summary.conclusion === "pending") {
     return (
-      <div className="rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-700 ring-1 ring-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:ring-amber-900/50">
+      <div className="rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground ring-1 ring-border">
         {String(summary.pending)} check{summary.pending === 1 ? "" : "s"} still running.
       </div>
     );

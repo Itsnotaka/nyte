@@ -674,7 +674,7 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
                     </Button>
                   ) : null}
                   {merge.error ? (
-                    <p className="text-sm text-red-500">{merge.error.message}</p>
+                    <p className="text-sm text-destructive">{merge.error.message}</p>
                   ) : null}
                   <MergeModal
                     pullTitle={pullRequest.title}
@@ -778,7 +778,7 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
                     rows={3}
                   />
                   {submitReview.error ? (
-                    <p className="text-sm text-red-500">
+                    <p className="text-sm text-destructive">
                       {submitReview.error.message}
                     </p>
                   ) : null}
@@ -924,7 +924,7 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
                     rows={3}
                   />
                   {addComment.error ? (
-                    <p className="text-sm text-red-500">
+                    <p className="text-sm text-destructive">
                       {addComment.error.message}
                     </p>
                   ) : null}
