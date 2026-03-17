@@ -9,7 +9,7 @@ function summaryLabel(
   total: number,
   passing: number,
   failing: number,
-  pending: number,
+  pending: number
 ): string {
   if (total === 0) return "No checks";
   const parts: string[] = [];
@@ -32,8 +32,8 @@ export function CheckStatusDot({
   const summaryQuery = useQuery(
     trpc.github.getCheckSummary.queryOptions(
       { owner, repo, ref: headSha },
-      { staleTime: 60_000 },
-    ),
+      { staleTime: 60_000 }
+    )
   );
 
   const summary = summaryQuery.data;
@@ -41,17 +41,22 @@ export function CheckStatusDot({
 
   const color =
     summary.conclusion === "success"
-      ? "bg-green-600"
+      ? "bg-green-500"
       : summary.conclusion === "failure"
-        ? "bg-destructive"
+        ? "bg-red-500"
         : summary.conclusion === "pending"
-          ? "bg-amber-500"
+          ? "bg-amber-400"
           : "bg-sachi-fg-faint";
 
   return (
     <span
       className={cn("inline-block size-2 shrink-0 rounded-full", color)}
-      title={summaryLabel(summary.total, summary.passing, summary.failing, summary.pending)}
+      title={summaryLabel(
+        summary.total,
+        summary.passing,
+        summary.failing,
+        summary.pending
+      )}
     />
   );
 }

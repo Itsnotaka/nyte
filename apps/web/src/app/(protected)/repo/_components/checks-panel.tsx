@@ -34,7 +34,7 @@ function StatusIcon({ run }: { run: GitHubCheckRun }) {
   if (run.status !== "completed") {
     return (
       <span className="flex size-4 items-center justify-center">
-        <span className="size-2 animate-pulse rounded-full bg-amber-500" />
+        <span className="size-2 animate-pulse rounded-full bg-amber-400" />
       </span>
     );
   }
@@ -59,7 +59,7 @@ function StatusIcon({ run }: { run: GitHubCheckRun }) {
     run.conclusion === "action_required"
   ) {
     return (
-      <svg className="size-4 text-destructive" viewBox="0 0 16 16" fill="none">
+      <svg className="size-4 text-red-500" viewBox="0 0 16 16" fill="none">
         <path
           d="M5 5L11 11M11 5L5 11"
           stroke="currentColor"

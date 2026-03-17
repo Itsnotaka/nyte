@@ -1,16 +1,16 @@
 {
   "name": "@sachikit/ui",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "private": false,
   "description": "Shared Sachikit UI components, hooks, and styling primitives.",
-  "homepage": "https://github.com/Itsnotaka/nyte#readme",
+  "homepage": "https://github.com/Itsnotaka/Sachi#readme",
   "bugs": {
-    "url": "https://github.com/Itsnotaka/nyte/issues"
+    "url": "https://github.com/Itsnotaka/Sachi/issues"
   },
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Itsnotaka/nyte.git",
+    "url": "git+https://github.com/Itsnotaka/Sachi.git",
     "directory": "packages/ui"
   },
   "files": [
