@@ -3,10 +3,14 @@
   "ui": "stream",
   "globalDependencies": ["apps/web/.env*"],
   "globalEnv": [
-    "NEXT_PUBLIC_SERVER_URL",
-    "OPENCODE_API_KEY",
-    "PI_RUNTIME_MODEL",
-    "CENTRAL_LICENSE_KEY"
+    "BETTER_AUTH_SECRET",
+    "BETTER_AUTH_URL",
+    "DATABASE_URL",
+    "GITHUB_CLIENT_ID",
+    "GITHUB_CLIENT_SECRET",
+    "GITHUB_APP_ID",
+    "GITHUB_APP_PRIVATE_KEY",
+    "GITHUB_APP_SLUG"
   ],
   "tasks": {
     "transit": {
