@@ -24,20 +24,18 @@ import { useDialKit } from "dialkit";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { useRepoOptional } from "./_components/repo-context";
+import { useRepo } from "./_components/repo-context";
 
 type AppShellProps = {
   children: React.ReactNode;
 };
 
 function RepoSelector() {
-  const repoCtx = useRepoOptional();
+  const { repos, selectedRepo, setSelectedRepo } = useRepo();
 
-  if (!repoCtx) {
+  if (repos.length === 0) {
     return <div className="mt-2 h-10" />;
   }
-
-  const { repos, selectedRepo, setSelectedRepo } = repoCtx;
 
   return (
     <div className="mt-2">

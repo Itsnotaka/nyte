@@ -11,6 +11,10 @@ import * as React from "react";
 
 import type { InboxData, InboxPullRequest } from "~/lib/github/server";
 
+const CheckStatusDot = React.lazy(() =>
+  import("./check-status-dot").then((mod) => ({ default: mod.CheckStatusDot })),
+);
+
 type SectionId =
   | "needs_review"
   | "returned"
@@ -137,6 +141,13 @@ function PullRequestRow({ pr }: { pr: InboxPullRequest }) {
       </div>
 
       <div className="flex shrink-0 items-center gap-4">
+        <React.Suspense fallback={null}>
+          <CheckStatusDot
+            owner={pr.repoOwner}
+            repo={pr.repoName}
+            headSha={pr.head.sha}
+          />
+        </React.Suspense>
         {formatChanges(pr.additions, pr.deletions)}
         <span className="w-8 text-right text-xs text-sachi-fg-faint">
           {formatUpdated(pr.updated_at)}

@@ -1,33 +1,51 @@
 import "server-only";
 import {
+  addLabels,
   createIssueComment,
   createPullRequest,
   findPullRequestByHead,
+  getCheckSummaryForRef,
+  getFileContent,
   getInstallUrl,
   getPullRequest,
   getPullRequestDiff,
+  getRepositoryTree,
+  listCheckRunsForRef,
+  listCommits,
   listInstallationRepos,
   listIssueComments,
+  listPullRequestFilesPaginated,
   listPullRequestReviewComments,
   listPullRequestReviews,
+  listRepoLabels,
   listRepositoryBranches,
   listRepositoryPullRequests,
   listUserInstallations,
   markPullRequestReadyForReview,
   mergePullRequest,
+  removeLabel,
+  removeReviewers,
+  requestReviewers,
   submitPullRequestReview,
+  updatePullRequest,
   withGitHubClient,
   type GitHubAppInstallationAuth,
   type GitHubBranch,
+  type GitHubCheckRun,
+  type GitHubCheckSummary,
+  type GitHubCommitSummary,
+  type GitHubFileContent,
   type GitHubInstallation,
   type GitHubIssueComment,
+  type GitHubLabel,
   type GitHubPullRequest,
   type GitHubPullRequestReview,
   type GitHubPullRequestReviewComment,
   type GitHubRepository,
   type GitHubReviewCommentDraft,
   type GitHubReviewEvent,
-  updatePullRequest,
+  type GitHubTree,
+  type PaginatedFiles,
 } from "@sachikit/github";
 import { err, ok, ResultAsync } from "neverthrow";
 import type { Result } from "neverthrow";
@@ -416,6 +434,8 @@ export async function mergeRepoPullRequest(input: {
   repo: string;
   pullNumber: number;
   mergeMethod?: "merge" | "squash" | "rebase";
+  commitTitle?: string;
+  commitMessage?: string;
 }): Promise<{ sha: string; merged: boolean }> {
   const context = await findRepoContext(input.owner, input.repo);
   if (!context) {
@@ -427,13 +447,260 @@ export async function mergeRepoPullRequest(input: {
     input.owner,
     context.repository.name,
     input.pullNumber,
-    { mergeMethod: input.mergeMethod },
+    {
+      mergeMethod: input.mergeMethod,
+      commitTitle: input.commitTitle,
+      commitMessage: input.commitMessage,
+    },
   ).match(
     (result) => result,
     (error) => {
       throw error;
     },
   );
+}
+
+export async function getPullRequestFileList(
+  owner: string,
+  repo: string,
+  pullNumber: number,
+  page = 1,
+  perPage = 30,
+): Promise<PaginatedFiles | null> {
+  const context = await findRepoContext(owner, repo);
+  if (!context) return null;
+
+  return listPullRequestFilesPaginated(
+    context.auth,
+    owner,
+    context.repository.name,
+    pullNumber,
+    page,
+    perPage,
+  ).unwrapOr(null);
+}
+
+export async function getCheckRunsForPR(
+  owner: string,
+  repo: string,
+  ref: string,
+): Promise<GitHubCheckRun[]> {
+  const context = await findRepoContext(owner, repo);
+  if (!context) return [];
+
+  return listCheckRunsForRef(context.auth, owner, context.repository.name, ref).unwrapOr([]);
+}
+
+export async function getCheckSummaryForPR(
+  owner: string,
+  repo: string,
+  ref: string,
+): Promise<GitHubCheckSummary | null> {
+  const context = await findRepoContext(owner, repo);
+  if (!context) return null;
+
+  return getCheckSummaryForRef(context.auth, owner, context.repository.name, ref).unwrapOr(null);
+}
+
+export async function updateRepoPullRequest(input: {
+  owner: string;
+  repo: string;
+  pullNumber: number;
+  title: string;
+  body: string;
+}): Promise<GitHubPullRequest> {
+  const context = await findRepoContext(input.owner, input.repo);
+  if (!context) throw new Error("Repository not found.");
+
+  return updatePullRequest(
+    context.auth,
+    input.owner,
+    context.repository.name,
+    input.pullNumber,
+    { title: input.title, body: input.body },
+  ).match(
+    (pr) => pr,
+    (error) => { throw error; },
+  );
+}
+
+export async function requestPullRequestReviewers(input: {
+  owner: string;
+  repo: string;
+  pullNumber: number;
+  reviewers: string[];
+}): Promise<GitHubPullRequest> {
+  const context = await findRepoContext(input.owner, input.repo);
+  if (!context) throw new Error("Repository not found.");
+
+  return requestReviewers(
+    context.auth,
+    input.owner,
+    context.repository.name,
+    input.pullNumber,
+    input.reviewers,
+  ).match(
+    (pr) => pr,
+    (error) => { throw error; },
+  );
+}
+
+export async function removePullRequestReviewer(input: {
+  owner: string;
+  repo: string;
+  pullNumber: number;
+  reviewer: string;
+}): Promise<GitHubPullRequest> {
+  const context = await findRepoContext(input.owner, input.repo);
+  if (!context) throw new Error("Repository not found.");
+
+  return removeReviewers(
+    context.auth,
+    input.owner,
+    context.repository.name,
+    input.pullNumber,
+    [input.reviewer],
+  ).match(
+    (pr) => pr,
+    (error) => { throw error; },
+  );
+}
+
+export async function getRepoLabels(
+  owner: string,
+  repo: string,
+): Promise<GitHubLabel[]> {
+  const context = await findRepoContext(owner, repo);
+  if (!context) return [];
+
+  return listRepoLabels(context.auth, owner, context.repository.name).unwrapOr([]);
+}
+
+export async function addPullRequestLabels(input: {
+  owner: string;
+  repo: string;
+  pullNumber: number;
+  labels: string[];
+}): Promise<GitHubLabel[]> {
+  const context = await findRepoContext(input.owner, input.repo);
+  if (!context) throw new Error("Repository not found.");
+
+  return addLabels(
+    context.auth,
+    input.owner,
+    context.repository.name,
+    input.pullNumber,
+    input.labels,
+  ).match(
+    (labels) => labels,
+    (error) => { throw error; },
+  );
+}
+
+export async function removePullRequestLabel(input: {
+  owner: string;
+  repo: string;
+  pullNumber: number;
+  label: string;
+}): Promise<void> {
+  const context = await findRepoContext(input.owner, input.repo);
+  if (!context) throw new Error("Repository not found.");
+
+  return removeLabel(
+    context.auth,
+    input.owner,
+    context.repository.name,
+    input.pullNumber,
+    input.label,
+  ).match(
+    () => {},
+    (error) => { throw error; },
+  );
+}
+
+export async function convertPullRequestToReady(input: {
+  owner: string;
+  repo: string;
+  pullNumber: number;
+}): Promise<GitHubPullRequest> {
+  const context = await findRepoContext(input.owner, input.repo);
+  if (!context) throw new Error("Repository not found.");
+
+  return markPullRequestReadyForReview(
+    context.auth,
+    input.owner,
+    context.repository.name,
+    input.pullNumber,
+  ).match(
+    (pr) => pr,
+    (error) => { throw error; },
+  );
+}
+
+export async function getRepoTree(
+  owner: string,
+  repo: string,
+  ref: string,
+  path?: string,
+): Promise<GitHubTree | null> {
+  const context = await findRepoContext(owner, repo);
+  if (!context) return null;
+
+  const treeSha = path ? `${ref}:${path}` : ref;
+  return getRepositoryTree(
+    context.auth,
+    owner,
+    context.repository.name,
+    treeSha,
+  ).unwrapOr(null);
+}
+
+export async function getRepoFileContent(
+  owner: string,
+  repo: string,
+  path: string,
+  ref?: string,
+): Promise<GitHubFileContent | null> {
+  const context = await findRepoContext(owner, repo);
+  if (!context) return null;
+
+  return getFileContent(
+    context.auth,
+    owner,
+    context.repository.name,
+    path,
+    ref,
+  ).unwrapOr(null);
+}
+
+export async function getRepoCommits(
+  owner: string,
+  repo: string,
+  options?: { path?: string; sha?: string },
+): Promise<GitHubCommitSummary[]> {
+  const context = await findRepoContext(owner, repo);
+  if (!context) return [];
+
+  return listCommits(
+    context.auth,
+    owner,
+    context.repository.name,
+    options,
+  ).unwrapOr([]);
+}
+
+export async function getRepoBranches(
+  owner: string,
+  repo: string,
+): Promise<GitHubBranch[]> {
+  const context = await findRepoContext(owner, repo);
+  if (!context) return [];
+
+  return listRepositoryBranches(
+    context.auth,
+    owner,
+    context.repository.name,
+  ).unwrapOr([]);
 }
 
 const getAuthenticatedGitHubLogin = cache(async (): Promise<string | null> => {

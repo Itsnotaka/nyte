@@ -2,24 +2,45 @@ import { z } from "zod";
 
 import {
   addPullRequestComment,
+  addPullRequestLabels,
   addPullRequestReview,
+  convertPullRequestToReady,
+  getCheckRunsForPR,
+  getCheckSummaryForPR,
   getGitHubAppInstallUrl,
+  getPullRequestFileList,
   getPullRequestPageData,
+  getRepoBranches,
+  getRepoCommits,
+  getRepoFileContent,
+  getRepoLabels,
   getRepoSubmitPageData,
+  getRepoTree,
   mergeRepoPullRequest,
+  removePullRequestLabel,
+  removePullRequestReviewer,
+  requestPullRequestReviewers,
   resolveGitHubAppSetupRedirect,
   saveBranchPullRequest,
+  updateRepoPullRequest,
 } from "../../github/server";
 import { log } from "../../evlog";
 import { createTRPCRouter, protectedProcedure } from "../server";
 
 const FAILURES = {
   addComment: "Failed to add pull request comment.",
+  addLabels: "Failed to add labels.",
+  convertToReady: "Failed to mark PR as ready for review.",
+  fileContent: "File content not found.",
   getPullRequestPage: "Pull request page data not found.",
   getRepoSubmitPage: "Repository submit page data not found.",
   merge: "Failed to merge pull request.",
+  removeLabel: "Failed to remove label.",
+  removeReviewer: "Failed to remove reviewer.",
+  requestReviewers: "Failed to request reviewers.",
   review: "Failed to submit pull request review.",
   savePullRequest: "Failed to save pull request.",
+  updatePullRequest: "Failed to update pull request.",
 } as const;
 
 function getErrorDetails(error: unknown): Record<string, unknown> {
@@ -187,6 +208,8 @@ export const githubRouter = createTRPCRouter({
   mergePullRequest: protectedProcedure
     .input(
       z.object({
+        commitMessage: z.string().optional(),
+        commitTitle: z.string().optional(),
         mergeMethod: z.enum(["merge", "squash", "rebase"]).optional(),
         owner: z.string().min(1),
         pullNumber: z.number().int().positive(),
@@ -196,6 +219,8 @@ export const githubRouter = createTRPCRouter({
     .mutation(async ({ input }) => {
       try {
         return await mergeRepoPullRequest({
+          commitMessage: input.commitMessage,
+          commitTitle: input.commitTitle,
           mergeMethod: input.mergeMethod,
           owner: input.owner,
           pullNumber: input.pullNumber,
@@ -272,5 +297,226 @@ export const githubRouter = createTRPCRouter({
         );
         throwMutationFailure(FAILURES.review, error);
       }
+    }),
+
+  getPullRequestFiles: protectedProcedure
+    .input(
+      z.object({
+        owner: z.string().min(1),
+        repo: z.string().min(1),
+        pullNumber: z.number().int().positive(),
+        page: z.number().int().positive().optional(),
+        perPage: z.number().int().min(1).max(100).optional(),
+      }),
+    )
+    .query(async ({ input }) => {
+      const data = await getPullRequestFileList(
+        input.owner,
+        input.repo,
+        input.pullNumber,
+        input.page,
+        input.perPage,
+      );
+      return data ?? { files: [], totalCount: 0 };
+    }),
+
+  getCheckRuns: protectedProcedure
+    .input(
+      z.object({
+        owner: z.string().min(1),
+        repo: z.string().min(1),
+        ref: z.string().min(1),
+      }),
+    )
+    .query(async ({ input }) => {
+      return getCheckRunsForPR(input.owner, input.repo, input.ref);
+    }),
+
+  getCheckSummary: protectedProcedure
+    .input(
+      z.object({
+        owner: z.string().min(1),
+        repo: z.string().min(1),
+        ref: z.string().min(1),
+      }),
+    )
+    .query(async ({ input }) => {
+      return getCheckSummaryForPR(input.owner, input.repo, input.ref);
+    }),
+
+  updatePullRequest: protectedProcedure
+    .input(
+      z.object({
+        body: z.string(),
+        owner: z.string().min(1),
+        pullNumber: z.number().int().positive(),
+        repo: z.string().min(1),
+        title: z.string().min(1),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      try {
+        return await updateRepoPullRequest(input);
+      } catch (error) {
+        logGitHubMutationFailure("updatePullRequest", { owner: input.owner, repo: input.repo, pullNumber: input.pullNumber }, error);
+        throwMutationFailure(FAILURES.updatePullRequest, error);
+      }
+    }),
+
+  requestReviewers: protectedProcedure
+    .input(
+      z.object({
+        owner: z.string().min(1),
+        pullNumber: z.number().int().positive(),
+        repo: z.string().min(1),
+        reviewers: z.array(z.string().min(1)).min(1),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      try {
+        return await requestPullRequestReviewers(input);
+      } catch (error) {
+        logGitHubMutationFailure("requestReviewers", { owner: input.owner, repo: input.repo, pullNumber: input.pullNumber }, error);
+        throwMutationFailure(FAILURES.requestReviewers, error);
+      }
+    }),
+
+  removeReviewer: protectedProcedure
+    .input(
+      z.object({
+        owner: z.string().min(1),
+        pullNumber: z.number().int().positive(),
+        repo: z.string().min(1),
+        reviewer: z.string().min(1),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      try {
+        return await removePullRequestReviewer(input);
+      } catch (error) {
+        logGitHubMutationFailure("removeReviewer", { owner: input.owner, repo: input.repo, pullNumber: input.pullNumber }, error);
+        throwMutationFailure(FAILURES.removeReviewer, error);
+      }
+    }),
+
+  listRepoLabels: protectedProcedure
+    .input(
+      z.object({
+        owner: z.string().min(1),
+        repo: z.string().min(1),
+      }),
+    )
+    .query(async ({ input }) => {
+      return getRepoLabels(input.owner, input.repo);
+    }),
+
+  addLabels: protectedProcedure
+    .input(
+      z.object({
+        labels: z.array(z.string().min(1)).min(1),
+        owner: z.string().min(1),
+        pullNumber: z.number().int().positive(),
+        repo: z.string().min(1),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      try {
+        return await addPullRequestLabels(input);
+      } catch (error) {
+        logGitHubMutationFailure("addLabels", { owner: input.owner, repo: input.repo, pullNumber: input.pullNumber }, error);
+        throwMutationFailure(FAILURES.addLabels, error);
+      }
+    }),
+
+  removeLabel: protectedProcedure
+    .input(
+      z.object({
+        label: z.string().min(1),
+        owner: z.string().min(1),
+        pullNumber: z.number().int().positive(),
+        repo: z.string().min(1),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      try {
+        return await removePullRequestLabel(input);
+      } catch (error) {
+        logGitHubMutationFailure("removeLabel", { owner: input.owner, repo: input.repo, pullNumber: input.pullNumber }, error);
+        throwMutationFailure(FAILURES.removeLabel, error);
+      }
+    }),
+
+  convertToReady: protectedProcedure
+    .input(
+      z.object({
+        owner: z.string().min(1),
+        pullNumber: z.number().int().positive(),
+        repo: z.string().min(1),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      try {
+        return await convertPullRequestToReady(input);
+      } catch (error) {
+        logGitHubMutationFailure("convertToReady", { owner: input.owner, repo: input.repo, pullNumber: input.pullNumber }, error);
+        throwMutationFailure(FAILURES.convertToReady, error);
+      }
+    }),
+
+  getRepoTree: protectedProcedure
+    .input(
+      z.object({
+        owner: z.string().min(1),
+        path: z.string().optional(),
+        ref: z.string().min(1),
+        repo: z.string().min(1),
+      }),
+    )
+    .query(async ({ input }) => {
+      return getRepoTree(input.owner, input.repo, input.ref, input.path);
+    }),
+
+  getFileContent: protectedProcedure
+    .input(
+      z.object({
+        owner: z.string().min(1),
+        path: z.string().min(1),
+        ref: z.string().optional(),
+        repo: z.string().min(1),
+      }),
+    )
+    .query(async ({ input }) => {
+      const data = await getRepoFileContent(input.owner, input.repo, input.path, input.ref);
+      if (!data) {
+        throw new Error(FAILURES.fileContent);
+      }
+      return data;
+    }),
+
+  getFileCommits: protectedProcedure
+    .input(
+      z.object({
+        owner: z.string().min(1),
+        path: z.string().optional(),
+        ref: z.string().optional(),
+        repo: z.string().min(1),
+      }),
+    )
+    .query(async ({ input }) => {
+      return getRepoCommits(input.owner, input.repo, {
+        path: input.path,
+        sha: input.ref,
+      });
+    }),
+
+  getRepoBranches: protectedProcedure
+    .input(
+      z.object({
+        owner: z.string().min(1),
+        repo: z.string().min(1),
+      }),
+    )
+    .query(async ({ input }) => {
+      return getRepoBranches(input.owner, input.repo);
     }),
 });
