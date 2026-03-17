@@ -33,7 +33,6 @@ import type {
   InboxData,
   InboxPullRequest,
   InboxSection,
-  InboxSectionId,
 } from "~/lib/github/server";
 import { formatRelativeTime } from "~/lib/time";
 
@@ -186,13 +185,7 @@ function SortableHead({
   );
 }
 
-function InboxSectionView({
-  section,
-  sectionRef,
-}: {
-  section: InboxSection;
-  sectionRef: React.RefObject<HTMLDivElement | null>;
-}) {
+function InboxSectionView({ section }: { section: InboxSection }) {
   const [open, setOpen] = React.useState(section.items.length > 0);
   const [sortField, setSortField] = React.useState<SortField>("updated");
   const [sortDirection, setSortDirection] =
@@ -213,7 +206,7 @@ function InboxSectionView({
   );
 
   return (
-    <div ref={sectionRef}>
+    <div>
       <Collapsible open={open} onOpenChange={setOpen}>
         <div className="flex items-center border-b border-sachi-line-subtle">
           <CollapsibleTrigger className="flex flex-1 items-center gap-2 px-4 py-2.5 text-left text-sm transition-colors hover:bg-sachi-fill">
@@ -365,79 +358,21 @@ type InboxViewProps = {
 
 export function InboxView({ data }: InboxViewProps) {
   const { sections, diagnostics } = data;
-
-  const [activeSectionId, setActiveSectionId] = React.useState<InboxSectionId>(
-    () => sections.find((s) => s.items.length > 0)?.id ?? sections[0]!.id
-  );
-
-  const sectionRefs = React.useRef<
-    Map<InboxSectionId, React.RefObject<HTMLDivElement | null>>
-  >(
-    new Map(
-      (
-        [
-          "needs_review",
-          "returned",
-          "approved",
-          "merging",
-          "waiting_author",
-          "drafts",
-          "waiting_reviewers",
-        ] as InboxSectionId[]
-      ).map((id) => [id, React.createRef<HTMLDivElement | null>()])
-    )
-  );
-
-  const handleSidebarClick = (id: InboxSectionId) => {
-    setActiveSectionId(id);
-    const ref = sectionRefs.current.get(id);
-    ref?.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
-
   const totalItems = sections.reduce((sum, s) => sum + s.items.length, 0);
 
   return (
-    <section className="flex h-full min-h-0">
-      <nav className="hidden w-56 shrink-0 border-r border-sachi-line-subtle bg-sachi-sidebar py-3 lg:block">
-        <ul className="space-y-0.5 px-2">
+    <ScrollArea className="h-full min-h-0 bg-sachi-base">
+      <InboxDiagnosticsBanner diagnostics={diagnostics} />
+
+      {totalItems === 0 ? (
+        <InboxEmptyState diagnostics={diagnostics} />
+      ) : (
+        <div className="mx-auto w-full max-w-[960px]">
           {sections.map((section) => (
-            <li key={section.id}>
-              <button
-                type="button"
-                onClick={() => handleSidebarClick(section.id)}
-                className={`flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-sm transition-colors hover:bg-sachi-fill ${
-                  activeSectionId === section.id
-                    ? "bg-sachi-fill text-sachi-fg"
-                    : "text-sachi-fg-secondary"
-                }`}
-              >
-                <span className="truncate">{section.label}</span>
-                <span className="text-xs text-sachi-fg-faint tabular-nums">
-                  {section.items.length}
-                </span>
-              </button>
-            </li>
+            <InboxSectionView key={section.id} section={section} />
           ))}
-        </ul>
-      </nav>
-
-      <ScrollArea className="min-w-0 flex-1 bg-sachi-base">
-        <InboxDiagnosticsBanner diagnostics={diagnostics} />
-
-        {totalItems === 0 ? (
-          <InboxEmptyState diagnostics={diagnostics} />
-        ) : (
-          <div className="mx-auto w-full max-w-[960px]">
-            {sections.map((section) => (
-              <InboxSectionView
-                key={section.id}
-                section={section}
-                sectionRef={sectionRefs.current.get(section.id)!}
-              />
-            ))}
-          </div>
-        )}
-      </ScrollArea>
-    </section>
+        </div>
+      )}
+    </ScrollArea>
   );
 }

@@ -23,10 +23,16 @@ import {
 type PullRequestSummaryResponse = Awaited<
   ReturnType<Octokit["rest"]["pulls"]["list"]>
 >["data"][number];
-type PullRequestDetailResponse = Awaited<ReturnType<Octokit["rest"]["pulls"]["get"]>>["data"];
-type PullRequestResponse = PullRequestSummaryResponse | PullRequestDetailResponse;
+type PullRequestDetailResponse = Awaited<
+  ReturnType<Octokit["rest"]["pulls"]["get"]>
+>["data"];
+type PullRequestResponse =
+  | PullRequestSummaryResponse
+  | PullRequestDetailResponse;
 
-function isDetailedPullRequest(pull: PullRequestResponse): pull is PullRequestDetailResponse {
+function isDetailedPullRequest(
+  pull: PullRequestResponse
+): pull is PullRequestDetailResponse {
   return (
     "comments" in pull &&
     "review_comments" in pull &&
@@ -38,14 +44,19 @@ function isDetailedPullRequest(pull: PullRequestResponse): pull is PullRequestDe
 }
 
 function filterRequestedReviewers(
-  pull: PullRequestResponse,
+  pull: PullRequestResponse
 ): GitHubPullRequest["requested_reviewers"] {
   if (!Array.isArray(pull.requested_reviewers)) return [];
 
   return pull.requested_reviewers.flatMap((reviewer) => {
     if (!reviewer || !("login" in reviewer)) return [];
     try {
-      return [accountFromResponse(reviewer as GitHubAccountResponse, "requested reviewer")];
+      return [
+        accountFromResponse(
+          reviewer as GitHubAccountResponse,
+          "requested reviewer"
+        ),
+      ];
     } catch {
       return [];
     }
@@ -66,6 +77,10 @@ function mapPullRequest(pull: PullRequestResponse): GitHubPullRequest {
     state,
     draft: pull.draft === true,
     merged: pull.merged_at !== null,
+    auto_merge_enabled:
+      "auto_merge" in pull &&
+      typeof pull.auto_merge === "object" &&
+      pull.auto_merge !== null,
     // pulls.list returns "Pull Request Simple" items, which omit these counts.
     comments: detailed ? pull.comments : null,
     review_comments: detailed ? pull.review_comments : null,
@@ -83,10 +98,16 @@ function mapPullRequest(pull: PullRequestResponse): GitHubPullRequest {
 }
 
 function mapPullRequestFile(
-  file: Awaited<ReturnType<Octokit["rest"]["pulls"]["listFiles"]>>["data"][number],
+  file: Awaited<
+    ReturnType<Octokit["rest"]["pulls"]["listFiles"]>
+  >["data"][number]
 ): GitHubPullRequestFile {
   if (typeof file.sha !== "string" || file.sha.length === 0) {
-    throw new GitHubError("GitHub pull request file is missing a sha", 0, "unknown");
+    throw new GitHubError(
+      "GitHub pull request file is missing a sha",
+      0,
+      "unknown"
+    );
   }
 
   return {
@@ -104,7 +125,9 @@ function mapPullRequestFile(
 }
 
 function mapIssueComment(
-  comment: Awaited<ReturnType<Octokit["rest"]["issues"]["listComments"]>>["data"][number],
+  comment: Awaited<
+    ReturnType<Octokit["rest"]["issues"]["listComments"]>
+  >["data"][number]
 ): GitHubIssueComment {
   return {
     id: comment.id,
@@ -117,7 +140,9 @@ function mapIssueComment(
 }
 
 function mapReview(
-  review: Awaited<ReturnType<Octokit["rest"]["pulls"]["listReviews"]>>["data"][number],
+  review: Awaited<
+    ReturnType<Octokit["rest"]["pulls"]["listReviews"]>
+  >["data"][number]
 ): GitHubPullRequestReview {
   return {
     id: review.id,
@@ -130,13 +155,17 @@ function mapReview(
   };
 }
 
-function parseSide(side: string | null | undefined): GitHubPullRequestReviewComment["side"] {
+function parseSide(
+  side: string | null | undefined
+): GitHubPullRequestReviewComment["side"] {
   if (side === "LEFT" || side === "RIGHT") return side;
   return null;
 }
 
 function mapReviewComment(
-  comment: Awaited<ReturnType<Octokit["rest"]["pulls"]["listReviewComments"]>>["data"][number],
+  comment: Awaited<
+    ReturnType<Octokit["rest"]["pulls"]["listReviewComments"]>
+  >["data"][number]
 ): GitHubPullRequestReviewComment {
   return {
     id: comment.id,
@@ -160,7 +189,7 @@ export function listRepositoryPullRequests(
   auth: GitHubAppInstallationAuth,
   owner: string,
   repo: string,
-  state: "open" | "closed" | "all" = "open",
+  state: "open" | "closed" | "all" = "open"
 ): ResultAsync<GitHubPullRequest[], GitHubError> {
   return withGitHubInstallationClient(auth, async (client) => {
     const pulls = await client.paginate(client.rest.pulls.list, {
@@ -173,6 +202,25 @@ export function listRepositoryPullRequests(
   });
 }
 
+export function listRecentPullRequests(
+  auth: GitHubAppInstallationAuth,
+  owner: string,
+  repo: string,
+  options?: { perPage?: number }
+): ResultAsync<GitHubPullRequest[], GitHubError> {
+  return withGitHubInstallationClient(auth, async (client) => {
+    const response = await client.rest.pulls.list({
+      owner,
+      repo,
+      state: "all",
+      sort: "updated",
+      direction: "desc",
+      per_page: options?.perPage ?? 100,
+    });
+    return response.data.map(mapPullRequest);
+  });
+}
+
 export function findPullRequestByHead(
   auth: GitHubAppInstallationAuth,
   owner: string,
@@ -182,7 +230,7 @@ export function findPullRequestByHead(
     headOwner?: string;
     state?: "open" | "closed" | "all";
     base?: string;
-  },
+  }
 ): ResultAsync<GitHubPullRequest | null, GitHubError> {
   const headOwner = options?.headOwner ?? owner;
   const state = options?.state ?? "open";
@@ -197,7 +245,9 @@ export function findPullRequestByHead(
     });
 
     const match =
-      options?.base == null ? pulls[0] : pulls.find((pull) => pull.base.ref === options.base);
+      options?.base == null
+        ? pulls[0]
+        : pulls.find((pull) => pull.base.ref === options.base);
 
     return match == null ? null : mapPullRequest(match);
   });
@@ -207,7 +257,7 @@ export function getPullRequest(
   auth: GitHubAppInstallationAuth,
   owner: string,
   repo: string,
-  pullNumber: number,
+  pullNumber: number
 ): ResultAsync<GitHubPullRequest, GitHubError> {
   return withGitHubInstallationClient(auth, async (client) => {
     const response = await client.rest.pulls.get({
@@ -229,7 +279,7 @@ export function createPullRequest(
     head: string;
     base: string;
     draft: boolean;
-  },
+  }
 ): ResultAsync<GitHubPullRequest, GitHubError> {
   return withGitHubInstallationClient(auth, async (client) => {
     const response = await client.rest.pulls.create({
@@ -253,7 +303,7 @@ export function updatePullRequest(
   input: {
     title: string;
     body: string;
-  },
+  }
 ): ResultAsync<GitHubPullRequest, GitHubError> {
   return withGitHubInstallationClient(auth, async (client) => {
     const response = await client.rest.pulls.update({
@@ -271,7 +321,7 @@ export function markPullRequestReadyForReview(
   auth: GitHubAppInstallationAuth,
   owner: string,
   repo: string,
-  pullNumber: number,
+  pullNumber: number
 ): ResultAsync<GitHubPullRequest, GitHubError> {
   return withGitHubInstallationClient(auth, async (client) => {
     const response = await client.request(
@@ -280,7 +330,7 @@ export function markPullRequestReadyForReview(
         owner,
         repo,
         pull_number: pullNumber,
-      },
+      }
     );
     return mapPullRequest(response.data as PullRequestDetailResponse);
   });
@@ -290,7 +340,7 @@ export function listPullRequestFiles(
   auth: GitHubAppInstallationAuth,
   owner: string,
   repo: string,
-  pullNumber: number,
+  pullNumber: number
 ): ResultAsync<GitHubPullRequestFile[], GitHubError> {
   return withGitHubInstallationClient(auth, async (client) => {
     const files = await client.paginate(client.rest.pulls.listFiles, {
@@ -307,7 +357,7 @@ export function getPullRequestDiff(
   auth: GitHubAppInstallationAuth,
   owner: string,
   repo: string,
-  pullNumber: number,
+  pullNumber: number
 ): ResultAsync<string, GitHubError> {
   return withGitHubInstallationClient(auth, async (client) => {
     const response = await client.rest.pulls.get({
@@ -319,7 +369,13 @@ export function getPullRequestDiff(
     return response.data;
   }).andThen((data) => {
     if (typeof data === "string") return ok(data);
-    return err(new GitHubError("GitHub pull request diff response was not a string", 0, "unknown"));
+    return err(
+      new GitHubError(
+        "GitHub pull request diff response was not a string",
+        0,
+        "unknown"
+      )
+    );
   });
 }
 
@@ -327,7 +383,7 @@ export function listIssueComments(
   auth: GitHubAppInstallationAuth,
   owner: string,
   repo: string,
-  issueNumber: number,
+  issueNumber: number
 ): ResultAsync<GitHubIssueComment[], GitHubError> {
   return withGitHubInstallationClient(auth, async (client) => {
     const comments = await client.paginate(client.rest.issues.listComments, {
@@ -345,7 +401,7 @@ export function createIssueComment(
   owner: string,
   repo: string,
   issueNumber: number,
-  body: string,
+  body: string
 ): ResultAsync<GitHubIssueComment, GitHubError> {
   return withGitHubInstallationClient(auth, async (client) => {
     const response = await client.rest.issues.createComment({
@@ -362,7 +418,7 @@ export function listPullRequestReviews(
   auth: GitHubAppInstallationAuth,
   owner: string,
   repo: string,
-  pullNumber: number,
+  pullNumber: number
 ): ResultAsync<GitHubPullRequestReview[], GitHubError> {
   return withGitHubInstallationClient(auth, async (client) => {
     const reviews = await client.paginate(client.rest.pulls.listReviews, {
@@ -379,15 +435,18 @@ export function listPullRequestReviewComments(
   auth: GitHubAppInstallationAuth,
   owner: string,
   repo: string,
-  pullNumber: number,
+  pullNumber: number
 ): ResultAsync<GitHubPullRequestReviewComment[], GitHubError> {
   return withGitHubInstallationClient(auth, async (client) => {
-    const comments = await client.paginate(client.rest.pulls.listReviewComments, {
-      owner,
-      repo,
-      pull_number: pullNumber,
-      per_page: 100,
-    });
+    const comments = await client.paginate(
+      client.rest.pulls.listReviewComments,
+      {
+        owner,
+        repo,
+        pull_number: pullNumber,
+        per_page: 100,
+      }
+    );
     return comments.map(mapReviewComment);
   });
 }
@@ -401,7 +460,7 @@ export function mergePullRequest(
     mergeMethod?: "merge" | "squash" | "rebase";
     commitTitle?: string;
     commitMessage?: string;
-  },
+  }
 ): ResultAsync<{ sha: string; merged: boolean }, GitHubError> {
   return withGitHubInstallationClient(auth, async (client) => {
     const response = await client.rest.pulls.merge({
@@ -426,7 +485,7 @@ export function submitPullRequestReview(
     body?: string;
     commitId?: string;
     comments?: GitHubReviewCommentDraft[];
-  },
+  }
 ): ResultAsync<GitHubPullRequestReview, GitHubError> {
   return withGitHubInstallationClient(auth, async (client) => {
     const response = await client.rest.pulls.createReview({
@@ -458,7 +517,7 @@ export function listPullRequestFilesPaginated(
   repo: string,
   pullNumber: number,
   page = 1,
-  perPage = 30,
+  perPage = 30
 ): ResultAsync<PaginatedFiles, GitHubError> {
   return withGitHubInstallationClient(auth, async (client) => {
     const response = await client.rest.pulls.listFiles({
@@ -480,7 +539,7 @@ export function requestReviewers(
   owner: string,
   repo: string,
   pullNumber: number,
-  reviewers: string[],
+  reviewers: string[]
 ): ResultAsync<GitHubPullRequest, GitHubError> {
   return withGitHubInstallationClient(auth, async (client) => {
     const response = await client.rest.pulls.requestReviewers({
@@ -498,7 +557,7 @@ export function removeReviewers(
   owner: string,
   repo: string,
   pullNumber: number,
-  reviewers: string[],
+  reviewers: string[]
 ): ResultAsync<GitHubPullRequest, GitHubError> {
   return withGitHubInstallationClient(auth, async (client) => {
     const response = await client.rest.pulls.removeRequestedReviewers({
@@ -512,7 +571,9 @@ export function removeReviewers(
 }
 
 function mapLabel(
-  label: Awaited<ReturnType<Octokit["rest"]["issues"]["listLabelsForRepo"]>>["data"][number],
+  label: Awaited<
+    ReturnType<Octokit["rest"]["issues"]["listLabelsForRepo"]>
+  >["data"][number]
 ): GitHubLabel {
   return {
     id: label.id,
@@ -525,7 +586,7 @@ function mapLabel(
 export function listRepoLabels(
   auth: GitHubAppInstallationAuth,
   owner: string,
-  repo: string,
+  repo: string
 ): ResultAsync<GitHubLabel[], GitHubError> {
   return withGitHubInstallationClient(auth, async (client) => {
     const labels = await client.paginate(client.rest.issues.listLabelsForRepo, {
@@ -542,7 +603,7 @@ export function addLabels(
   owner: string,
   repo: string,
   issueNumber: number,
-  labels: string[],
+  labels: string[]
 ): ResultAsync<GitHubLabel[], GitHubError> {
   return withGitHubInstallationClient(auth, async (client) => {
     const response = await client.rest.issues.addLabels({
@@ -560,7 +621,7 @@ export function removeLabel(
   owner: string,
   repo: string,
   issueNumber: number,
-  name: string,
+  name: string
 ): ResultAsync<void, GitHubError> {
   return withGitHubInstallationClient(auth, async (client) => {
     await client.rest.issues.removeLabel({

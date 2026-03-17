@@ -79,8 +79,7 @@ export function RepoPickerView({
   const saveMutation = useMutation(
     trpc.repoSync.updateSyncedRepos.mutationOptions({
       onSuccess: () => {
-        router.push("/");
-        router.refresh();
+        router.replace("/");
       },
     })
   );
@@ -92,9 +91,12 @@ export function RepoPickerView({
         const inst = installations.find(
           (i) => i.account.login.toLowerCase() === r.owner.login.toLowerCase()
         );
+        if (!inst) {
+          throw new Error(`No installation found for owner: ${r.owner.login}`);
+        }
         return {
           githubRepoId: r.id,
-          installationId: inst?.id ?? installations[0]!.id,
+          installationId: inst.id,
           ownerLogin: r.owner.login,
           repoName: r.name,
           repoFullName: r.full_name,

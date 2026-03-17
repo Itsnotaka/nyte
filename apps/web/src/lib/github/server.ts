@@ -4,6 +4,9 @@ import {
   addLabels,
   createIssueComment,
   createPullRequest,
+  buildPullRequestReviewSignals,
+  classifyPullRequests,
+  computeReviewDecision,
   findPullRequestByHead,
   getCheckSummaryForRef,
   getFileContent,
@@ -18,6 +21,7 @@ import {
   listPullRequestFilesPaginated,
   listPullRequestReviewComments,
   listPullRequestReviews,
+  listRecentPullRequests,
   listRepoLabels,
   listRepositoryBranches,
   listRepositoryPullRequests,
@@ -46,8 +50,12 @@ import {
   type GitHubReviewCommentDraft,
   type GitHubReviewEvent,
   type GitHubTree,
+  type ClassifiedInboxPullRequest,
+  type InboxPullRequest,
+  type InboxSection,
   type PaginatedFiles,
 } from "@sachikit/github";
+import { subDays } from "date-fns";
 import { eq } from "drizzle-orm";
 import { err, ok, ResultAsync } from "neverthrow";
 import type { Result } from "neverthrow";
@@ -246,10 +254,9 @@ export async function getSyncedRepoCatalog(): Promise<SyncedRepoCatalog> {
     syncedRepoIds = new Set(rows.map((r) => r.githubRepoId));
   }
 
-  const syncedEntries =
-    syncedRepoIds.size > 0
-      ? catalog.entries.filter((e) => syncedRepoIds.has(e.repository.id))
-      : catalog.entries;
+  const syncedEntries = catalog.entries.filter((e) =>
+    syncedRepoIds.has(e.repository.id)
+  );
 
   return {
     ...catalog,
@@ -268,6 +275,8 @@ export const findRepoContext = cache(
       return null;
     }
 
+    const syncedCatalog = await getSyncedRepoCatalog();
+
     for (const installation of state.installations) {
       const repos = await getInstallationRepos(installation.id);
       const repository = repos.find(
@@ -277,6 +286,10 @@ export const findRepoContext = cache(
       );
 
       if (repository) {
+        const isSynced = syncedCatalog.syncedRepoIds.has(repository.id);
+        if (!isSynced) {
+          return null;
+        }
         return {
           installation,
           repository,
@@ -803,33 +816,12 @@ const getAuthenticatedGitHubLogin = cache(async (): Promise<string | null> => {
   }).unwrapOr(null);
 });
 
-export type ReviewDecision =
-  | "approved"
-  | "changes_requested"
-  | "review_required"
-  | "none";
-
-export type InboxPullRequest = GitHubPullRequest & {
-  repoFullName: string;
-  repoOwner: string;
-  repoName: string;
-  reviewDecision: ReviewDecision;
-};
-
-export type InboxSection = {
-  id: InboxSectionId;
-  label: string;
-  items: InboxPullRequest[];
-};
-
-export type InboxSectionId =
-  | "needs_review"
-  | "returned"
-  | "approved"
-  | "merging"
-  | "waiting_author"
-  | "drafts"
-  | "waiting_reviewers";
+export type {
+  InboxPullRequest,
+  InboxSection,
+  InboxSectionId,
+  ReviewDecision,
+} from "@sachikit/github";
 
 export type InboxData = {
   login: string;
@@ -847,116 +839,30 @@ export type InboxDiagnostics = {
   accessibleRepoCount: number;
 };
 
-function computeReviewDecision(
-  reviews: GitHubPullRequestReview[],
-  requestedReviewerCount: number
-): ReviewDecision {
-  if (reviews.length === 0) {
-    return requestedReviewerCount > 0 ? "review_required" : "none";
-  }
-
-  const latestByUser = new Map<string, GitHubPullRequestReview>();
-  for (const review of reviews) {
-    if (review.state === "COMMENTED") continue;
-    const existing = latestByUser.get(review.user.login);
-    if (
-      !existing ||
-      (review.submitted_at ?? "") > (existing.submitted_at ?? "")
-    ) {
-      latestByUser.set(review.user.login, review);
-    }
-  }
-
-  if (latestByUser.size === 0) {
-    return requestedReviewerCount > 0 ? "review_required" : "none";
-  }
-
-  const states = Array.from(latestByUser.values()).map((r) => r.state);
-
-  if (states.some((s) => s === "CHANGES_REQUESTED")) return "changes_requested";
-  if (states.every((s) => s === "APPROVED")) return "approved";
-  return "review_required";
-}
-
-export function classifyPullRequests(
-  login: string,
-  pullRequests: InboxPullRequest[]
-): { sections: InboxSection[]; unclassifiedCount: number } {
-  const needsReview: InboxPullRequest[] = [];
-  const waitingReviewers: InboxPullRequest[] = [];
-  const drafts: InboxPullRequest[] = [];
-  const returned: InboxPullRequest[] = [];
-  const approved: InboxPullRequest[] = [];
-  const merging: InboxPullRequest[] = [];
-  const waitingAuthor: InboxPullRequest[] = [];
-
-  const lower = login.toLowerCase();
-  let unclassifiedCount = 0;
-
-  for (const pr of pullRequests) {
-    const isAuthor = pr.user.login.toLowerCase() === lower;
-    const isRequestedReviewer = pr.requested_reviewers.some(
-      (r) => r.login.toLowerCase() === lower
-    );
-
-    if (pr.merged) {
-      merging.push(pr);
-    } else if (isAuthor && pr.draft) {
-      drafts.push(pr);
-    } else if (isAuthor && pr.reviewDecision === "approved") {
-      approved.push(pr);
-    } else if (isAuthor && pr.reviewDecision === "changes_requested") {
-      returned.push(pr);
-    } else if (!isAuthor && isRequestedReviewer) {
-      needsReview.push(pr);
-    } else if (!isAuthor && pr.reviewDecision === "changes_requested") {
-      waitingAuthor.push(pr);
-    } else if (isAuthor) {
-      waitingReviewers.push(pr);
-    } else if (
-      !isAuthor &&
-      (pr.reviewDecision === "review_required" || pr.reviewDecision === "none")
-    ) {
-      needsReview.push(pr);
-    } else {
-      unclassifiedCount++;
-    }
-  }
-
-  return {
-    sections: [
-      { id: "needs_review", label: "Needs your review", items: needsReview },
-      { id: "returned", label: "Returned to you", items: returned },
-      { id: "approved", label: "Approved", items: approved },
-      { id: "merging", label: "Merging and recently merged", items: merging },
-      {
-        id: "waiting_author",
-        label: "Waiting for author",
-        items: waitingAuthor,
-      },
-      { id: "drafts", label: "Drafts", items: drafts },
-      {
-        id: "waiting_reviewers",
-        label: "Waiting for reviewers",
-        items: waitingReviewers,
-      },
-    ],
-    unclassifiedCount,
-  };
-}
-
 export async function getInboxData(): Promise<InboxData | null> {
   const state = await getOnboardingState();
-  if (state.step !== "has_installations") return null;
+  if (state.step !== "has_installations") {
+    log.info("inbox", "No installations, skipping inbox fetch");
+    return null;
+  }
 
   const ghLogin = await getAuthenticatedGitHubLogin();
-  if (!ghLogin) return null;
+  if (!ghLogin) {
+    log.info("inbox", "No GitHub login found, skipping inbox fetch");
+    return null;
+  }
 
   const syncedCatalog = await getSyncedRepoCatalog();
   const targetEntries = syncedCatalog.syncedEntries;
 
-  const allPullRequests: InboxPullRequest[] = [];
+  log.info(
+    "inbox",
+    `Fetching inbox for ${ghLogin}: ${targetEntries.length} synced repos, ${syncedCatalog.totalAccessible} accessible`
+  );
+
+  const allPullRequests: ClassifiedInboxPullRequest[] = [];
   const partialFailures: string[] = [];
+  const recentCutoff = subDays(new Date(), 7).toISOString();
 
   const byInstallation = new Map<number, RepoCatalogEntry[]>();
   for (const entry of targetEntries) {
@@ -970,73 +876,124 @@ export async function getInboxData(): Promise<InboxData | null> {
 
     const repoPRResults = await Promise.all(
       entries.map((entry) =>
-        listRepositoryPullRequests(
+        listRecentPullRequests(
           installationAuth,
           entry.repository.owner.login,
-          entry.repository.name,
-          "open"
+          entry.repository.name
         ).match(
-          (prs) => ({ ok: true as const, prs }),
+          (prs) => {
+            log.info(
+              "inbox",
+              `Fetched ${prs.length} PRs from ${entry.repository.full_name}`
+            );
+            return { ok: true as const, prs, entry };
+          },
           (error) => {
-            const message = error instanceof Error ? error.message : JSON.stringify(error);
+            const message =
+              error instanceof Error ? error.message : JSON.stringify(error);
+            log.info(
+              "inbox",
+              `Failed to fetch PRs from ${entry.repository.full_name}: ${message}`
+            );
             partialFailures.push(
               `Failed to list PRs for ${entry.repository.full_name}: ${message}`
             );
-            return { ok: false as const, prs: [] as GitHubPullRequest[] };
+            return {
+              ok: false as const,
+              prs: [] as GitHubPullRequest[],
+              entry,
+            };
           }
         )
       )
     );
 
-    for (let i = 0; i < entries.length; i++) {
-      const entry = entries[i]!;
-      const result = repoPRResults[i]!;
+    for (const result of repoPRResults) {
+      const { entry, prs } = result;
 
-      const enriched = await Promise.all(
-        result.prs.map(async (pr) => {
-          const [detail, reviews] = await Promise.all([
-            getPullRequest(
-              installationAuth,
-              entry.repository.owner.login,
-              entry.repository.name,
-              pr.number
-            ).unwrapOr(pr),
-            listPullRequestReviews(
-              installationAuth,
-              entry.repository.owner.login,
-              entry.repository.name,
-              pr.number
-            ).unwrapOr([]),
-          ]);
-
-          const reviewDecision = computeReviewDecision(
-            reviews,
-            detail.requested_reviewers.length
-          );
-
-          return {
-            ...detail,
-            repoFullName: entry.repository.full_name,
-            repoOwner: entry.repository.owner.login,
-            repoName: entry.repository.name,
-            reviewDecision,
-          } satisfies InboxPullRequest;
-        })
+      // Keep all open PRs; for closed/merged, only keep recently updated ones
+      const relevantPRs = prs.filter(
+        (pr) => pr.state === "open" || pr.updated_at >= recentCutoff
       );
 
-      allPullRequests.push(...enriched);
+      const openPRs = relevantPRs.filter(
+        (pr) => pr.state === "open" && !pr.merged
+      );
+      const closedPRs = relevantPRs.filter(
+        (pr) => pr.state !== "open" || pr.merged
+      );
+
+      const reviewResults = await Promise.all(
+        openPRs.map((pr) =>
+          listPullRequestReviews(
+            installationAuth,
+            entry.repository.owner.login,
+            entry.repository.name,
+            pr.number
+          ).match(
+            (r) => r,
+            (reviewErr) => {
+              log.info(
+                "inbox",
+                `Failed to get reviews for ${entry.repository.full_name}#${pr.number}: ${reviewErr.message}`
+              );
+              return [] as GitHubPullRequestReview[];
+            }
+          )
+        )
+      );
+
+      for (let i = 0; i < openPRs.length; i++) {
+        const pr = openPRs[i]!;
+        const reviews = reviewResults[i]!;
+        const reviewSignals = buildPullRequestReviewSignals(pr, reviews);
+        const reviewDecision = computeReviewDecision(reviewSignals);
+        allPullRequests.push({
+          ...pr,
+          auto_merge_enabled: pr.auto_merge_enabled,
+          repoFullName: entry.repository.full_name,
+          repoOwner: entry.repository.owner.login,
+          repoName: entry.repository.name,
+          reviewDecision,
+          reviewSignals,
+        });
+      }
+
+      for (const pr of closedPRs) {
+        const reviewSignals = buildPullRequestReviewSignals(pr, []);
+        allPullRequests.push({
+          ...pr,
+          auto_merge_enabled: pr.auto_merge_enabled,
+          repoFullName: entry.repository.full_name,
+          repoOwner: entry.repository.owner.login,
+          repoName: entry.repository.name,
+          reviewDecision: computeReviewDecision(reviewSignals),
+          reviewSignals,
+        });
+      }
     }
   }
 
   const { sections, unclassifiedCount } = classifyPullRequests(
     ghLogin,
-    allPullRequests
+    allPullRequests,
+    { recentlyMergedSince: recentCutoff }
   );
   const classifiedCount = sections.reduce((sum, s) => sum + s.items.length, 0);
 
+  // Log section breakdown
+  for (const section of sections) {
+    if (section.items.length > 0) {
+      log.info(
+        "inbox",
+        `Section "${section.label}": ${section.items.length} PRs`
+      );
+    }
+  }
+
   log.info(
     "inbox",
-    `Fetched ${String(allPullRequests.length)} open PRs for ${ghLogin} across ${String(targetEntries.length)} repos (${String(classifiedCount)} classified, ${String(unclassifiedCount)} unclassified)`
+    `Complete: ${allPullRequests.length} PRs fetched, ${classifiedCount} classified, ${unclassifiedCount} unclassified`
   );
 
   if (partialFailures.length > 0) {

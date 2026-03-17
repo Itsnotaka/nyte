@@ -63,7 +63,7 @@ export default function RootLayout({
           {children}
           <ReactQueryDevtools />
         </Providers>
-        <DialRoot />
+        {process.env.NODE_ENV === "development" && <DialRoot />}
       </body>
     </html>
   );

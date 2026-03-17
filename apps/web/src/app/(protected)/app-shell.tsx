@@ -2,19 +2,10 @@
 
 import { IconChevronDownMedium } from "@central-icons-react/round-filled-radius-2-stroke-1.5";
 import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@sachikit/ui/components/avatar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverHeader,
-  PopoverTitle,
-  PopoverTrigger,
-} from "@sachikit/ui/components/popover";
-import { ScrollArea } from "@sachikit/ui/components/scroll-area";
-import { Separator } from "@sachikit/ui/components/separator";
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@sachikit/ui/components/collapsible";
 import {
   Sidebar,
   SidebarContent,
@@ -27,6 +18,7 @@ import {
 import { useDialKit } from "dialkit";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import * as React from "react";
 
 import { useRepo } from "./_components/repo-context";
 
@@ -34,122 +26,133 @@ type AppShellProps = {
   children: React.ReactNode;
 };
 
-function SyncedReposSummary() {
-  const { installations, syncedRepos, totalAccessible, totalSynced } =
-    useRepo();
-
-  const displayCount = totalSynced > 0 ? totalSynced : totalAccessible;
-  const label =
-    totalSynced > 0
-      ? `${String(displayCount)} repo${displayCount === 1 ? "" : "s"} synced`
-      : `${String(displayCount)} repo${displayCount === 1 ? "" : "s"}`;
-
-  if (totalAccessible === 0) {
-    return (
-      <div className="mt-2 px-2 py-1.5">
-        <span className="text-xs text-sachi-fg-muted">No repos available</span>
-      </div>
-    );
-  }
-
-  const reposByOwner = new Map<string, typeof syncedRepos>();
-  const targetRepos = totalSynced > 0 ? syncedRepos : [];
-  for (const repo of targetRepos) {
-    const existing = reposByOwner.get(repo.owner.login) ?? [];
-    existing.push(repo);
-    reposByOwner.set(repo.owner.login, existing);
-  }
-
+function NavItem({
+  href,
+  children,
+  isActive,
+  icon,
+}: {
+  href: string;
+  children: React.ReactNode;
+  isActive: boolean;
+  icon?: React.ReactNode;
+}) {
   return (
-    <div className="mt-2">
-      <Popover>
-        <PopoverTrigger className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-sm font-medium text-sachi-fg hover:bg-sachi-fill focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-sachi-focus">
-          <span className="truncate">{label}</span>
-          <IconChevronDownMedium
-            className="size-4 shrink-0 text-sachi-fg-faint"
-            aria-hidden="true"
-          />
-        </PopoverTrigger>
-
-        <PopoverContent align="start" sideOffset={4} className="w-64 p-0">
-          <PopoverHeader className="px-3 pt-2.5 pb-0">
-            <PopoverTitle className="text-xs text-sachi-fg">
-              Synced repos
-            </PopoverTitle>
-          </PopoverHeader>
-
-          {totalSynced === 0 ? (
-            <div className="px-3 py-4 text-center">
-              <p className="text-xs text-sachi-fg-muted">
-                No repos synced yet. All {String(totalAccessible)} accessible
-                repos are shown.
-              </p>
-              <Link
-                href="/setup/repos"
-                className="mt-2 inline-block text-xs font-medium text-sachi-accent hover:underline"
-              >
-                Edit synced repos
-              </Link>
-            </div>
-          ) : (
-            <ScrollArea className="max-h-64">
-              {installations.map((inst) => {
-                const instRepos = reposByOwner.get(inst.account.login);
-                if (!instRepos || instRepos.length === 0) return null;
-                return (
-                  <div key={inst.id}>
-                    <div className="flex items-center gap-2 px-3 py-2">
-                      <Avatar size="sm">
-                        <AvatarImage
-                          src={inst.account.avatar_url}
-                          alt={inst.account.login}
-                        />
-                        <AvatarFallback>
-                          {inst.account.login.charAt(0).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="text-xs font-medium text-sachi-fg">
-                        {inst.account.login}
-                      </span>
-                    </div>
-                    <ul>
-                      {instRepos.map((repo) => (
-                        <li key={repo.id}>
-                          <Link
-                            href={`/repo/${repo.owner.login}/${repo.name}`}
-                            className="block px-3 py-1.5 text-xs text-sachi-fg-secondary transition-colors hover:bg-sachi-fill hover:text-sachi-fg"
-                          >
-                            {repo.name}
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                    <Separator />
-                  </div>
-                );
-              })}
-            </ScrollArea>
-          )}
-
-          <Separator />
-          <div className="px-3 py-2">
-            <Link
-              href="/setup/repos"
-              className="text-xs text-sachi-fg-muted transition-colors hover:text-sachi-fg"
-            >
-              Edit synced repos
-            </Link>
-          </div>
-        </PopoverContent>
-      </Popover>
-    </div>
+    <Link
+      href={href}
+      className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-sachi-focus ${
+        isActive
+          ? "bg-sachi-fill text-sachi-fg"
+          : "text-sachi-fg-secondary hover:bg-sachi-fill hover:text-sachi-fg"
+      }`}
+    >
+      {icon}
+      <span className="truncate">{children}</span>
+    </Link>
   );
 }
+
+function RepoNavGroup({
+  repo,
+  pathname,
+}: {
+  repo: { id: number; name: string; owner: { login: string } };
+  pathname: string;
+}) {
+  const repoBasePath = `/repo/${repo.owner.login}/${repo.name}`;
+  const isInRepo = pathname.startsWith(repoBasePath);
+  const isCodeActive =
+    pathname === repoBasePath ||
+    pathname.startsWith(`${repoBasePath}/tree`) ||
+    pathname.startsWith(`${repoBasePath}/blob`);
+  const isPullsActive = pathname.startsWith(`${repoBasePath}/pull`);
+
+  return (
+    <Collapsible open={isInRepo}>
+      <CollapsibleTrigger className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-sm transition-colors hover:bg-sachi-fill focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-sachi-focus">
+        <span className="truncate font-medium text-sachi-fg">{repo.name}</span>
+        <IconChevronDownMedium
+          className={`size-4 shrink-0 text-sachi-fg-faint transition-transform ${isInRepo ? "" : "-rotate-90"}`}
+          aria-hidden="true"
+        />
+      </CollapsibleTrigger>
+      <CollapsibleContent className="pl-2">
+        <ul className="border-l border-sachi-line-subtle pt-1 pl-2">
+          <li>
+            <NavItem href={repoBasePath} isActive={isCodeActive}>
+              Code
+            </NavItem>
+          </li>
+          <li>
+            <NavItem href={`${repoBasePath}/pulls`} isActive={isPullsActive}>
+              Pull requests
+            </NavItem>
+          </li>
+        </ul>
+      </CollapsibleContent>
+    </Collapsible>
+  );
+}
+
+function SidebarNav() {
+  const pathname = usePathname();
+  const { syncedRepos, totalSynced } = useRepo();
+
+  const isInboxActive = pathname === "/";
+
+  return (
+    <nav aria-label="Primary" className="flex h-full flex-col">
+      <ul className="space-y-0.5">
+        <li>
+          <NavItem href="/" isActive={isInboxActive}>
+            Inbox
+          </NavItem>
+        </li>
+      </ul>
+
+      {totalSynced > 0 && (
+        <div className="mt-6">
+          <div className="mb-2 px-2 text-xs font-medium tracking-wide text-sachi-fg-muted uppercase">
+            Repositories
+          </div>
+          <ul className="space-y-1">
+            {syncedRepos.map((repo) => (
+              <li key={repo.id}>
+                <RepoNavGroup repo={repo} pathname={pathname} />
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <div className="mt-auto pt-4">
+        <Link
+          href="/setup/repos"
+          className="block px-2 py-1.5 text-xs text-sachi-fg-muted transition-colors hover:text-sachi-fg"
+        >
+          {totalSynced === 0 ? "Sync repos" : "Edit synced repos"}
+        </Link>
+      </div>
+    </nav>
+  );
+}
+
+const EASE_PRESETS: Record<string, string> = {
+  "ease-out": "cubic-bezier(0, 0, 0.58, 1)",
+  "ease-out-cubic": "cubic-bezier(0.215, 0.61, 0.355, 1)",
+  "ease-in-out": "cubic-bezier(0.42, 0, 0.58, 1)",
+};
 
 function useSidebarAnimation() {
   const params = useDialKit("Sidebar Animation", {
     duration: [0.25, 0.05, 1],
+    preset: {
+      type: "select",
+      options: ["ease-out", "ease-out-cubic", "ease-in-out", "custom"],
+      default: "ease-out-cubic",
+    },
     ease: {
+      _collapsed: true,
       x1: [0.25, 0, 1],
       y1: [0.1, 0, 1],
       x2: [0.25, 0, 1],
@@ -157,22 +160,22 @@ function useSidebarAnimation() {
     },
   });
   const d = params.duration as number;
+  const preset = params.preset as string;
   const { x1, y1, x2, y2 } = params.ease as {
     x1: number;
     y1: number;
     x2: number;
     y2: number;
   };
+  const easeValue =
+    preset === "custom"
+      ? `cubic-bezier(${x1}, ${y1}, ${x2}, ${y2})`
+      : (EASE_PRESETS[preset] ?? EASE_PRESETS["ease-out-cubic"]);
   return {
     "--sidebar-transition-fast": `${d * 0.4}s`,
     "--sidebar-transition-normal": `${d}s`,
-    "--sidebar-ease": `cubic-bezier(${x1}, ${y1}, ${x2}, ${y2})`,
+    "--sidebar-ease": easeValue,
   } as React.CSSProperties;
-}
-
-function getPageLabel(pathname: string): string | null {
-  if (pathname === "/") return "Inbox";
-  return null;
 }
 
 function useRouteRepoContext(): { owner: string; repo: string } | null {
@@ -185,7 +188,6 @@ function useRouteRepoContext(): { owner: string; repo: string } | null {
 function HeaderContent() {
   const pathname = usePathname();
   const routeRepo = useRouteRepoContext();
-  const label = getPageLabel(pathname);
 
   if (routeRepo) {
     return (
@@ -197,9 +199,9 @@ function HeaderContent() {
     );
   }
 
-  if (label) {
+  if (pathname === "/") {
     return (
-      <span className="ml-3 text-sm font-medium text-sachi-fg">{label}</span>
+      <span className="ml-3 text-sm font-medium text-sachi-fg">Inbox</span>
     );
   }
 
@@ -207,9 +209,7 @@ function HeaderContent() {
 }
 
 export function AppShell({ children }: AppShellProps) {
-  const pathname = usePathname();
   const animationStyle = useSidebarAnimation();
-  const isHomePage = pathname === "/";
 
   return (
     <SidebarProvider
@@ -217,34 +217,21 @@ export function AppShell({ children }: AppShellProps) {
       style={animationStyle}
     >
       <Sidebar className="bg-sachi-sidebar">
-        <SidebarHeader className="px-2.5">
-          <SyncedReposSummary />
-        </SidebarHeader>
+        <SidebarHeader className="h-10 px-2.5" />
 
         <SidebarContent className="px-2.5 pt-2 pb-3">
-          <nav aria-label="Primary">
-            <Link
-              href="/"
-              className={`flex rounded-md px-2 py-1.5 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-sachi-focus ${
-                isHomePage
-                  ? "bg-sachi-fill text-sachi-fg"
-                  : "text-sachi-fg-secondary hover:bg-sachi-fill hover:text-sachi-fg"
-              }`}
-            >
-              Home
-            </Link>
-          </nav>
+          <SidebarNav />
         </SidebarContent>
 
         <SidebarRail />
       </Sidebar>
 
-      <SidebarInset className="bg-sachi-surface">
+      <SidebarInset className="flex flex-col overflow-hidden bg-sachi-surface">
         <header className="flex h-10 shrink-0 items-center border-b border-sachi-line-subtle bg-sachi-surface px-3">
           <SidebarTrigger layout="inline" />
           <HeaderContent />
         </header>
-        <div className="min-h-0 flex-1">{children}</div>
+        <div className="min-h-0 flex-1 overflow-hidden">{children}</div>
       </SidebarInset>
     </SidebarProvider>
   );

@@ -45,6 +45,7 @@ export type GitHubPullRequest = {
   state: "open" | "closed";
   draft: boolean;
   merged: boolean;
+  auto_merge_enabled: boolean;
   comments: number | null;
   review_comments: number | null;
   commits: number | null;

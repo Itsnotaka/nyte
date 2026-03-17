@@ -1,8 +1,30 @@
 export { withGitHubClient } from "./client.ts";
-export { listUserInstallations, getInstallUrl, getInstallUrlForAccount } from "./installations.ts";
-export { listInstallationRepos, getRepositoryTree, getFileContent, listCommits } from "./repositories.ts";
+export {
+  listUserInstallations,
+  getInstallUrl,
+  getInstallUrlForAccount,
+} from "./installations.ts";
+export {
+  listInstallationRepos,
+  getRepositoryTree,
+  getFileContent,
+  listCommits,
+} from "./repositories.ts";
 export { listRepositoryBranches } from "./branches.ts";
 export { listCheckRunsForRef, getCheckSummaryForRef } from "./checks.ts";
+export {
+  buildPullRequestReviewSignals,
+  classifyPullRequests,
+  computeReviewDecision,
+} from "./inbox.ts";
+export type {
+  ClassifiedInboxPullRequest,
+  InboxPullRequest,
+  InboxSection,
+  InboxSectionId,
+  PullRequestReviewSignals,
+  ReviewDecision,
+} from "./inbox.ts";
 export {
   addLabels,
   createIssueComment,
@@ -16,6 +38,7 @@ export {
   listPullRequestReviewComments,
   listPullRequestReviews,
   listRepoLabels,
+  listRecentPullRequests,
   listRepositoryPullRequests,
   markPullRequestReadyForReview,
   mergePullRequest,
