@@ -246,8 +246,6 @@ function canSubmitReview(
   return reviewBody.trim().length > 0 || draftCount > 0;
 }
 
-// --- Inline editable title ---
-
 function EditableTitle({
   title,
   onSave,
@@ -304,8 +302,6 @@ function EditableTitle({
   );
 }
 
-// --- Main component ---
-
 export function PullRequestView({ initialData }: PullRequestViewProps) {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
@@ -357,7 +353,6 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
   const reviewComments = pageData.reviewComments;
   const files = React.useMemo(() => parseFiles(pageData.diff), [pageData.diff]);
 
-  // Derive labels from the raw page data (they come through on the PR object from GitHub)
   const prLabels: GitHubLabel[] = React.useMemo(() => {
     const raw = (pullRequest as Record<string, unknown>).labels;
     if (!Array.isArray(raw)) return [];
@@ -369,7 +364,6 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
     });
   }, [pullRequest]);
 
-  // Viewed files
   const viewedFilesQuery = useQuery(
     trpc.settings.getViewedFiles.queryOptions(
       { prId: pullRequest.id },
@@ -433,7 +427,6 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
     }
   }
 
-  // File select => scroll
   function handleFileSelect(filename: string) {
     setActiveFile(filename);
     const element = diffAreaRef.current?.querySelector(
@@ -444,7 +437,6 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
     }
   }
 
-  // Keyboard shortcut: F to toggle sidebar
   React.useEffect(() => {
     function handler(event: KeyboardEvent) {
       if (
@@ -515,7 +507,6 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
     }),
   );
 
-  // Phase 4: Update PR mutation
   const updatePR = useMutation(
     trpc.github.updatePullRequest.mutationOptions({
       onSuccess: async () => {
@@ -527,7 +518,6 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
     }),
   );
 
-  // Phase 4: Convert to ready mutation
   const convertToReady = useMutation(
     trpc.github.convertToReady.mutationOptions({
       onSuccess: async () => {
@@ -631,7 +621,6 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
     submitReview.isPending ||
     !canSubmitReview(reviewAction, reviewBody, drafts.length);
 
-  // File entries for sidebar - compute additions/deletions from hunk counts
   const fileEntries = React.useMemo(
     () =>
       files.map((file) => {
@@ -901,7 +890,6 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
             </div>
 
             <div className="space-y-4">
-              {/* Phase 2: Checks panel */}
               <LayerCard>
                 <ChecksPanel
                   owner={repository.owner.login}
@@ -910,7 +898,6 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
                 />
               </LayerCard>
 
-              {/* Phase 4: Reviewers */}
               <LayerCard>
                 <LayerCardPrimary>
                   <ReviewerPanel
@@ -923,7 +910,6 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
                 </LayerCardPrimary>
               </LayerCard>
 
-              {/* Phase 4: Labels */}
               <LayerCard>
                 <LayerCardPrimary>
                   <LabelPanel

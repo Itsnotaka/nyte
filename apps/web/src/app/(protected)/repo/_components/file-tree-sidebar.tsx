@@ -23,48 +23,26 @@ type FileTreeSidebarProps = {
   onToggleViewed: (filename: string, viewed: boolean) => void;
 };
 
-function statusLabel(status: string): string {
-  if (status === "added" || status === "new") return "A";
-  if (status === "removed" || status === "deleted") return "D";
-  if (status === "modified" || status === "changed" || status === "change") return "M";
-  if (status === "renamed" || status === "rename-pure" || status === "rename-changed") return "R";
-  return "?";
-}
+const STATUS_LABEL: Record<string, string> = {
+  added: "A", new: "A",
+  removed: "D", deleted: "D",
+  modified: "M", changed: "M", change: "M",
+  renamed: "R", "rename-pure": "R", "rename-changed": "R",
+};
 
-function statusColor(status: string): string {
-  if (status === "added" || status === "new") return "text-green-600";
-  if (status === "removed" || status === "deleted") return "text-red-500";
-  if (status === "modified" || status === "changed" || status === "change") return "text-amber-500";
-  if (status === "renamed" || status === "rename-pure" || status === "rename-changed") return "text-blue-500";
-  return "text-sachi-fg-muted";
-}
+const STATUS_COLOR: Record<string, string> = {
+  added: "text-green-600", new: "text-green-600",
+  removed: "text-red-500", deleted: "text-red-500",
+  modified: "text-amber-500", changed: "text-amber-500", change: "text-amber-500",
+  renamed: "text-blue-500", "rename-pure": "text-blue-500", "rename-changed": "text-blue-500",
+};
 
-function matchesFilter(status: string, filter: StatusFilter): boolean {
-  if (filter === "all") return true;
-  if (filter === "added") return status === "added" || status === "new";
-  if (filter === "modified") return status === "modified" || status === "changed" || status === "change";
-  if (filter === "removed") return status === "removed" || status === "deleted";
-  if (filter === "renamed") return status === "renamed" || status === "rename-pure" || status === "rename-changed";
-  return true;
-}
-
-function fuzzyMatch(query: string, candidate: string): boolean {
-  if (query.length === 0) return true;
-  const lower = candidate.toLowerCase();
-  const parts = query.toLowerCase().split(/\s+/).filter(Boolean);
-  return parts.every((part) => lower.includes(part));
-}
-
-function basename(filepath: string): string {
-  const segments = filepath.split("/");
-  return segments[segments.length - 1] ?? filepath;
-}
-
-function dirname(filepath: string): string {
-  const segments = filepath.split("/");
-  if (segments.length <= 1) return "";
-  return segments.slice(0, -1).join("/");
-}
+const FILTER_STATUSES: Record<Exclude<StatusFilter, "all">, Set<string>> = {
+  added: new Set(["added", "new"]),
+  modified: new Set(["modified", "changed", "change"]),
+  removed: new Set(["removed", "deleted"]),
+  renamed: new Set(["renamed", "rename-pure", "rename-changed"]),
+};
 
 const FILTERS: { id: StatusFilter; label: string }[] = [
   { id: "all", label: "All" },
@@ -84,14 +62,16 @@ export function FileTreeSidebar({
   const [query, setQuery] = React.useState("");
   const [filter, setFilter] = React.useState<StatusFilter>("all");
 
-  const filtered = React.useMemo(
-    () =>
-      files.filter(
-        (file) =>
-          matchesFilter(file.status, filter) && fuzzyMatch(query, file.filename),
-      ),
-    [files, filter, query],
-  );
+  const filtered = React.useMemo(() => {
+    const q = query.toLowerCase().trim();
+    const parts = q.length > 0 ? q.split(/\s+/) : [];
+    return files.filter((file) => {
+      if (filter !== "all" && !FILTER_STATUSES[filter].has(file.status)) return false;
+      if (parts.length === 0) return true;
+      const lower = file.filename.toLowerCase();
+      return parts.every((p) => lower.includes(p));
+    });
+  }, [files, filter, query]);
 
   const viewedCount = files.filter((f) => viewedFiles.has(f.filename)).length;
 
@@ -140,8 +120,9 @@ export function FileTreeSidebar({
           filtered.map((file) => {
             const viewed = viewedFiles.has(file.filename);
             const active = activeFile === file.filename;
-            const dir = dirname(file.filename);
-            const name = basename(file.filename);
+            const lastSlash = file.filename.lastIndexOf("/");
+            const dir = lastSlash > 0 ? file.filename.slice(0, lastSlash) : "";
+            const name = lastSlash >= 0 ? file.filename.slice(lastSlash + 1) : file.filename;
 
             return (
               <div
@@ -169,10 +150,10 @@ export function FileTreeSidebar({
                       variant="outline"
                       className={cn(
                         "h-4 shrink-0 px-1 text-[10px] font-bold",
-                        statusColor(file.status),
+                        STATUS_COLOR[file.status] ?? "text-sachi-fg-muted",
                       )}
                     >
-                      {statusLabel(file.status)}
+                      {STATUS_LABEL[file.status] ?? "?"}
                     </Badge>
                     <span
                       className={cn(

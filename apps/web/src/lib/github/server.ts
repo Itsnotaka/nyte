@@ -460,8 +460,6 @@ export async function mergeRepoPullRequest(input: {
   );
 }
 
-// --- Phase 1: Paginated files ---
-
 export async function getPullRequestFileList(
   owner: string,
   repo: string,
@@ -481,8 +479,6 @@ export async function getPullRequestFileList(
     perPage,
   ).unwrapOr(null);
 }
-
-// --- Phase 2: Check runs ---
 
 export async function getCheckRunsForPR(
   owner: string,
@@ -505,8 +501,6 @@ export async function getCheckSummaryForPR(
 
   return getCheckSummaryForRef(context.auth, owner, context.repository.name, ref).unwrapOr(null);
 }
-
-// --- Phase 4: PR lifecycle management ---
 
 export async function updateRepoPullRequest(input: {
   owner: string;
@@ -642,8 +636,6 @@ export async function convertPullRequestToReady(input: {
     (error) => { throw error; },
   );
 }
-
-// --- Phase 5: Repository browser ---
 
 export async function getRepoTree(
   owner: string,

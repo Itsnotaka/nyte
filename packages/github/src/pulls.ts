@@ -447,8 +447,6 @@ export function submitPullRequestReview(
   });
 }
 
-// --- Paginated file list (Phase 1) ---
-
 export type PaginatedFiles = {
   files: GitHubPullRequestFile[];
   totalCount: number;
@@ -476,8 +474,6 @@ export function listPullRequestFilesPaginated(
     };
   });
 }
-
-// --- Reviewer management (Phase 4) ---
 
 export function requestReviewers(
   auth: GitHubAppInstallationAuth,
@@ -514,8 +510,6 @@ export function removeReviewers(
     return mapPullRequest(response.data);
   });
 }
-
-// --- Label helpers (Phase 4) ---
 
 function mapLabel(
   label: Awaited<ReturnType<Octokit["rest"]["issues"]["listLabelsForRepo"]>>["data"][number],

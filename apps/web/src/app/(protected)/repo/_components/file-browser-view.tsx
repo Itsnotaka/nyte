@@ -85,7 +85,7 @@ export function FileBrowserView({
         </Breadcrumb>
       </header>
 
-      <FileContentView file={file} owner={owner} repo={repo} />
+      <FileContentView file={file} />
     </InsetView>
   );
 }

@@ -30,7 +30,6 @@ import { createTRPCRouter, protectedProcedure } from "../server";
 const FAILURES = {
   addComment: "Failed to add pull request comment.",
   addLabels: "Failed to add labels.",
-  checkRuns: "Failed to fetch check runs.",
   convertToReady: "Failed to mark PR as ready for review.",
   fileContent: "File content not found.",
   getPullRequestPage: "Pull request page data not found.",
@@ -93,8 +92,6 @@ function throwMutationFailure(message: string, error: unknown): never {
 }
 
 export const githubRouter = createTRPCRouter({
-  // --- Existing routes ---
-
   startInstall: protectedProcedure.mutation(() => {
     return { url: getGitHubAppInstallUrl() };
   }),
@@ -302,8 +299,6 @@ export const githubRouter = createTRPCRouter({
       }
     }),
 
-  // --- Phase 1: Paginated files ---
-
   getPullRequestFiles: protectedProcedure
     .input(
       z.object({
@@ -324,8 +319,6 @@ export const githubRouter = createTRPCRouter({
       );
       return data ?? { files: [], totalCount: 0 };
     }),
-
-  // --- Phase 2: Check runs ---
 
   getCheckRuns: protectedProcedure
     .input(
@@ -350,8 +343,6 @@ export const githubRouter = createTRPCRouter({
     .query(async ({ input }) => {
       return getCheckSummaryForPR(input.owner, input.repo, input.ref);
     }),
-
-  // --- Phase 4: PR lifecycle ---
 
   updatePullRequest: protectedProcedure
     .input(
@@ -471,8 +462,6 @@ export const githubRouter = createTRPCRouter({
         throwMutationFailure(FAILURES.convertToReady, error);
       }
     }),
-
-  // --- Phase 5: Repository browser ---
 
   getRepoTree: protectedProcedure
     .input(

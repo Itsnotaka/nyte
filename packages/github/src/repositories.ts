@@ -44,8 +44,6 @@ export function listInstallationRepos(
   });
 }
 
-// --- Repository content APIs (Phase 5) ---
-
 export function getRepositoryTree(
   auth: GitHubAppInstallationAuth,
   owner: string,

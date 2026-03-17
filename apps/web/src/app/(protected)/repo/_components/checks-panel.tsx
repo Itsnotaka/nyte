@@ -71,14 +71,6 @@ function StatusIcon({ run }: { run: GitHubCheckRun }) {
     );
   }
 
-  if (run.conclusion === "skipped" || run.conclusion === "neutral") {
-    return (
-      <span className="flex size-4 items-center justify-center">
-        <span className="size-2 rounded-full bg-sachi-fg-faint" />
-      </span>
-    );
-  }
-
   return (
     <span className="flex size-4 items-center justify-center">
       <span className="size-2 rounded-full bg-sachi-fg-faint" />
@@ -98,11 +90,6 @@ function summaryLabel(
   if (failing > 0) parts.push(`${String(failing)} failing`);
   if (pending > 0) parts.push(`${String(pending)} pending`);
   return parts.join(", ");
-}
-
-function summaryVariant(conclusion: string): "outline" | "destructive" | "default" {
-  if (conclusion === "failure") return "destructive";
-  return "outline";
 }
 
 export function ChecksPanel({ owner, repo, headSha }: ChecksPanelProps) {
@@ -131,7 +118,7 @@ export function ChecksPanel({ owner, repo, headSha }: ChecksPanelProps) {
       <CollapsibleTrigger className="flex w-full items-center justify-between gap-2 rounded-md px-3 py-2 text-left text-sm transition-colors hover:bg-sachi-fill">
         <span className="font-medium text-sachi-fg">Checks</span>
         {summary ? (
-          <Badge variant={summaryVariant(summary.conclusion)}>
+          <Badge variant={summary.conclusion === "failure" ? "destructive" : "outline"}>
             {summaryLabel(summary.total, summary.passing, summary.failing, summary.pending)}
           </Badge>
         ) : (
@@ -178,5 +165,3 @@ export function ChecksPanel({ owner, repo, headSha }: ChecksPanelProps) {
     </Collapsible>
   );
 }
-
-// CheckStatusDot is in ~/app/(protected)/_components/check-status-dot.tsx

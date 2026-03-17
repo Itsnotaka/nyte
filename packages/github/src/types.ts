@@ -123,8 +123,6 @@ export type GitHubReviewCommentDraft = {
   side: "LEFT" | "RIGHT";
 };
 
-// --- Check Runs (Phase 2) ---
-
 export type GitHubCheckRun = {
   id: number;
   name: string;
@@ -144,16 +142,12 @@ export type GitHubCheckSummary = {
   conclusion: "success" | "failure" | "pending" | "neutral";
 };
 
-// --- Labels (Phase 4) ---
-
 export type GitHubLabel = {
   id: number;
   name: string;
   color: string;
   description: string | null;
 };
-
-// --- Repository Content (Phase 5) ---
 
 export type GitHubTreeEntry = {
   path: string;
