@@ -24,20 +24,18 @@ import { useDialKit } from "dialkit";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { useRepoOptional } from "./_components/repo-context";
+import { useRepo } from "./_components/repo-context";
 
 type AppShellProps = {
   children: React.ReactNode;
 };
 
 function RepoSelector() {
-  const repoCtx = useRepoOptional();
+  const { repos, selectedRepo, setSelectedRepo } = useRepo();
 
-  if (!repoCtx) {
+  if (repos.length === 0) {
     return <div className="mt-2 h-10" />;
   }
-
-  const { repos, selectedRepo, setSelectedRepo } = repoCtx;
 
   return (
     <div className="mt-2">
@@ -109,9 +107,7 @@ function HeaderLabel({ pathname }: { pathname: string }) {
 export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
   const animationStyle = useSidebarAnimation();
-  const repoCtx = useRepoOptional();
   const isHomePage = pathname === "/";
-  const isCodePage = pathname.startsWith("/repo/") && !pathname.includes("/pull/") && !pathname.includes("/submit");
 
   return (
     <SidebarProvider
@@ -124,7 +120,7 @@ export function AppShell({ children }: AppShellProps) {
         </SidebarHeader>
 
         <SidebarContent className="px-2.5 pt-2 pb-3">
-          <nav aria-label="Primary" className="space-y-0.5">
+          <nav aria-label="Primary">
             <Link
               href="/"
               className={`flex rounded-md px-2 py-1.5 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-sachi-focus ${
@@ -135,18 +131,6 @@ export function AppShell({ children }: AppShellProps) {
             >
               Home
             </Link>
-            {repoCtx?.selectedRepo ? (
-              <Link
-                href={`/repo/${repoCtx.selectedRepo.owner.login}/${repoCtx.selectedRepo.name}`}
-                className={`flex rounded-md px-2 py-1.5 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-sachi-focus ${
-                  isCodePage
-                    ? "bg-sachi-fill text-sachi-fg"
-                    : "text-sachi-fg-secondary hover:bg-sachi-fill hover:text-sachi-fg"
-                }`}
-              >
-                Code
-              </Link>
-            ) : null}
           </nav>
         </SidebarContent>
 

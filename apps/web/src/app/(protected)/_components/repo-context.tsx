@@ -20,10 +20,6 @@ export function useRepo() {
   return ctx;
 }
 
-export function useRepoOptional() {
-  return React.useContext(RepoContext);
-}
-
 type RepoProviderProps = {
   installations: GitHubInstallation[];
   repos: GitHubRepository[];

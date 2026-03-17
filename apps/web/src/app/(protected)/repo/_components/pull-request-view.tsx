@@ -29,6 +29,7 @@ import {
 import { InsetView } from "@sachikit/ui/components/sidebar";
 import { Textarea } from "@sachikit/ui/components/textarea";
 import { cn } from "@sachikit/ui/lib/utils";
+import { useHotkey } from "@tanstack/react-hotkeys";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { inferRouterOutputs } from "@trpc/server";
 import { nanoid } from "nanoid";
@@ -437,30 +438,7 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
     }
   }
 
-  React.useEffect(() => {
-    function handler(event: KeyboardEvent) {
-      if (
-        event.key === "f" &&
-        !event.metaKey &&
-        !event.ctrlKey &&
-        !event.altKey
-      ) {
-        const target = event.target as HTMLElement;
-        if (
-          target.tagName === "INPUT" ||
-          target.tagName === "TEXTAREA" ||
-          target.isContentEditable
-        ) {
-          return;
-        }
-        event.preventDefault();
-        setSidebarOpen((open) => !open);
-      }
-    }
-
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
-  }, []);
+  useHotkey("F", () => setSidebarOpen((prev) => !prev));
 
   const pullRequestIdentity = React.useMemo(
     () => ({
