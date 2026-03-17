@@ -84,8 +84,7 @@ export function LabelPanel({
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-medium text-sachi-fg-muted">Labels</span>
+      <div className="flex items-center justify-end">
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger
             render={

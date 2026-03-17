@@ -11,7 +11,11 @@ export {
   listCommits,
 } from "./repositories.ts";
 export { listRepositoryBranches } from "./branches.ts";
-export { listCheckRunsForRef, getCheckSummaryForRef } from "./checks.ts";
+export {
+  listCheckRunsForRef,
+  getCheckSummaryForRef,
+  summarizeCheckRuns,
+} from "./checks.ts";
 export {
   buildPullRequestReviewSignals,
   classifyPullRequests,
@@ -27,6 +31,7 @@ export type {
 } from "./inbox.ts";
 export {
   addLabels,
+  compareBranches,
   createIssueComment,
   createPullRequest,
   findPullRequestByHead,
@@ -42,13 +47,14 @@ export {
   listRepositoryPullRequests,
   markPullRequestReadyForReview,
   mergePullRequest,
+  mergeUpstream,
   removeLabel,
   removeReviewers,
   requestReviewers,
   submitPullRequestReview,
   updatePullRequest,
 } from "./pulls.ts";
-export type { PaginatedFiles } from "./pulls.ts";
+export type { BranchComparison, PaginatedFiles } from "./pulls.ts";
 export {
   GitHubError,
   type GitHubAccount,

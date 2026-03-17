@@ -1,6 +1,10 @@
 import { notFound } from "next/navigation";
 
-import { getPullRequestPageData } from "~/lib/github/server";
+import {
+  getQueryClient,
+  HydrateClient,
+  trpc,
+} from "~/lib/trpc/server-components";
 
 import { PullRequestView } from "../../../../_components/pull-request-view";
 
@@ -12,17 +16,33 @@ type PullRequestPageProps = {
   }>;
 };
 
-export default async function PullRequestPage({ params }: PullRequestPageProps) {
+export default async function PullRequestPage({
+  params,
+}: PullRequestPageProps) {
   const { owner, repo, number } = await params;
   const pullNumber = Number(number);
   if (!Number.isInteger(pullNumber) || pullNumber <= 0) {
     notFound();
   }
 
-  const initialData = await getPullRequestPageData(owner, repo, pullNumber);
-  if (!initialData) {
+  const queryClient = getQueryClient();
+  const pageData = await queryClient
+    .fetchQuery(
+      trpc.github.getPullRequestPage.queryOptions({
+        owner,
+        repo,
+        pullNumber,
+      })
+    )
+    .catch(() => null);
+
+  if (!pageData) {
     notFound();
   }
 
-  return <PullRequestView initialData={initialData} />;
+  return (
+    <HydrateClient>
+      <PullRequestView owner={owner} repo={repo} pullNumber={pullNumber} />
+    </HydrateClient>
+  );
 }

@@ -10,7 +10,7 @@ import { formatRelativeTime } from "~/lib/time";
 import { useRepo } from "./repo-context";
 
 export function RepoLanding() {
-  const { repos } = useRepo();
+  const repos = useRepo((state) => state.repos);
   const [search, setSearch] = React.useState("");
 
   const filtered = repos.filter((repo) =>

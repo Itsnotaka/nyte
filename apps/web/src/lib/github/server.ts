@@ -2,13 +2,13 @@ import "server-only";
 import { db, syncedReposSchema } from "@sachikit/db";
 import {
   addLabels,
+  compareBranches,
   createIssueComment,
   createPullRequest,
   buildPullRequestReviewSignals,
   classifyPullRequests,
   computeReviewDecision,
   findPullRequestByHead,
-  getCheckSummaryForRef,
   getFileContent,
   getInstallUrl,
   getPullRequest,
@@ -28,12 +28,14 @@ import {
   listUserInstallations,
   markPullRequestReadyForReview,
   mergePullRequest,
+  mergeUpstream,
   removeLabel,
   removeReviewers,
   requestReviewers,
   submitPullRequestReview,
   updatePullRequest,
   withGitHubClient,
+  type BranchComparison,
   type GitHubAppInstallationAuth,
   type GitHubBranch,
   type GitHubCheckRun,
@@ -51,9 +53,10 @@ import {
   type GitHubReviewEvent,
   type GitHubTree,
   type ClassifiedInboxPullRequest,
-  type InboxPullRequest,
   type InboxSection,
+  type InboxSectionId,
   type PaginatedFiles,
+  summarizeCheckRuns,
 } from "@sachikit/github";
 import { subDays } from "date-fns";
 import { eq } from "drizzle-orm";
@@ -90,6 +93,9 @@ type RepoContext = {
 export type PullRequestPageData = {
   repository: GitHubRepository;
   pullRequest: GitHubPullRequest;
+};
+
+export type PullRequestPageDetailsData = {
   diff: string;
   issueComments: GitHubIssueComment[];
   reviews: GitHubPullRequestReview[];
@@ -106,17 +112,86 @@ export type RepoSubmitPageData = {
 
 type TokenError = "token_unavailable";
 
-async function getGitHubAccessToken(): Promise<Result<string, TokenError>> {
-  const h = await headers();
-  return ResultAsync.fromPromise(
-    auth.api.getAccessToken({ body: { providerId: "github" }, headers: h }),
-    (): TokenError => "token_unavailable"
-  ).andThen((result) =>
-    result?.accessToken
-      ? ok(result.accessToken)
-      : err<string, TokenError>("token_unavailable")
-  );
+type SyncedRepoLookupRow = {
+  githubRepoId: number;
+  installationId: number;
+  ownerLogin: string;
+  repoName: string;
+};
+
+function getErrorDetails(error: unknown): Record<string, unknown> {
+  if (error instanceof Error) {
+    const details: Record<string, unknown> = {
+      name: error.name,
+      message: error.message,
+      ...(error.stack ? { stack: error.stack } : {}),
+    };
+
+    if ("status" in error && typeof error.status === "number") {
+      details.status = error.status;
+    }
+
+    if ("code" in error && typeof error.code === "string") {
+      details.code = error.code;
+    }
+
+    return details;
+  }
+
+  if (typeof error === "string" && error.trim().length > 0) {
+    return { message: error };
+  }
+
+  return { message: "Unknown non-Error throw" };
 }
+
+async function withTiming<T>(
+  operation: string,
+  details: Record<string, unknown>,
+  run: () => Promise<T>
+): Promise<T> {
+  const startedAt = performance.now();
+  return run()
+    .then((result) => {
+      log.info({
+        area: "github.server",
+        message: "GitHub server operation completed",
+        operation,
+        details,
+        durationMs: Math.round(performance.now() - startedAt),
+      });
+      return result;
+    })
+    .catch((error: unknown) => {
+      log.error({
+        area: "github.server",
+        message: "GitHub server operation failed",
+        operation,
+        details,
+        durationMs: Math.round(performance.now() - startedAt),
+        failure: getErrorDetails(error),
+      });
+      throw error;
+    });
+}
+
+function repoLookupKey(owner: string, repo: string): string {
+  return `${owner.toLowerCase()}/${repo.toLowerCase()}`;
+}
+
+const getGitHubAccessToken = cache(
+  async (): Promise<Result<string, TokenError>> => {
+    const h = await headers();
+    return ResultAsync.fromPromise(
+      auth.api.getAccessToken({ body: { providerId: "github" }, headers: h }),
+      (): TokenError => "token_unavailable"
+    ).andThen((result) =>
+      result?.accessToken
+        ? ok(result.accessToken)
+        : err<string, TokenError>("token_unavailable")
+    );
+  }
+);
 
 function unwrapGitHubResult<T>(result: Result<T, unknown>): T {
   return result.match(
@@ -187,17 +262,40 @@ export const getOnboardingState = cache(async (): Promise<OnboardingState> => {
   );
 });
 
-export async function getInstallationRepos(
+const getSyncedRepoLookupRows = cache(
+  async (): Promise<SyncedRepoLookupRow[]> => {
+    const session = await getSession();
+    if (!session) {
+      return [];
+    }
+
+    return db
+      .select({
+        githubRepoId: syncedReposSchema.syncedRepo.githubRepoId,
+        installationId: syncedReposSchema.syncedRepo.installationId,
+        ownerLogin: syncedReposSchema.syncedRepo.ownerLogin,
+        repoName: syncedReposSchema.syncedRepo.repoName,
+      })
+      .from(syncedReposSchema.syncedRepo)
+      .where(eq(syncedReposSchema.syncedRepo.userId, session.user.id));
+  }
+);
+
+export const getInstallationRepos = cache(async function getInstallationRepos(
   installationId: number
 ): Promise<GitHubRepository[]> {
-  const session = await getSession();
-  if (!session) return [];
+  return withTiming("getInstallationRepos", { installationId }, async () => {
+    const session = await getSession();
+    if (!session) return [];
 
-  const tokenResult = await getGitHubAccessToken();
-  if (tokenResult.isErr()) return [];
+    const tokenResult = await getGitHubAccessToken();
+    if (tokenResult.isErr()) return [];
 
-  return listInstallationRepos(tokenResult.value, installationId).unwrapOr([]);
-}
+    return listInstallationRepos(tokenResult.value, installationId).unwrapOr(
+      []
+    );
+  });
+});
 
 export type RepoCatalogEntry = {
   installation: GitHubInstallation;
@@ -216,19 +314,31 @@ export const getRepoCatalog = cache(async (): Promise<RepoCatalog> => {
     return { installations: [], entries: [], repos: [] };
   }
 
-  const entries: RepoCatalogEntry[] = [];
-  for (const installation of state.installations) {
-    const repos = await getInstallationRepos(installation.id);
-    for (const repository of repos) {
-      entries.push({ installation, repository });
-    }
-  }
+  return withTiming(
+    "getRepoCatalog",
+    { installationCount: state.installations.length },
+    async () => {
+      const entries: RepoCatalogEntry[] = [];
+      const repoGroups = await Promise.all(
+        state.installations.map(async (installation) => ({
+          installation,
+          repos: await getInstallationRepos(installation.id),
+        }))
+      );
 
-  return {
-    installations: state.installations,
-    entries,
-    repos: entries.map((e) => e.repository),
-  };
+      for (const { installation, repos } of repoGroups) {
+        for (const repository of repos) {
+          entries.push({ installation, repository });
+        }
+      }
+
+      return {
+        installations: state.installations,
+        entries,
+        repos: entries.map((e) => e.repository),
+      };
+    }
+  );
 });
 
 export type SyncedRepoCatalog = RepoCatalog & {
@@ -239,66 +349,86 @@ export type SyncedRepoCatalog = RepoCatalog & {
   totalSynced: number;
 };
 
-export async function getSyncedRepoCatalog(): Promise<SyncedRepoCatalog> {
-  const session = await getSession();
-  const catalog = await getRepoCatalog();
+export const getSyncedRepoCatalog = cache(
+  async (): Promise<SyncedRepoCatalog> => {
+    const [catalog, syncedRows] = await Promise.all([
+      getRepoCatalog(),
+      getSyncedRepoLookupRows(),
+    ]);
 
-  let syncedRepoIds: Set<number>;
-  if (!session) {
-    syncedRepoIds = new Set<number>();
-  } else {
-    const rows = await db
-      .select({ githubRepoId: syncedReposSchema.syncedRepo.githubRepoId })
-      .from(syncedReposSchema.syncedRepo)
-      .where(eq(syncedReposSchema.syncedRepo.userId, session.user.id));
-    syncedRepoIds = new Set(rows.map((r) => r.githubRepoId));
+    return withTiming(
+      "getSyncedRepoCatalog",
+      {
+        accessibleRepoCount: catalog.entries.length,
+        syncedRepoCount: syncedRows.length,
+      },
+      async () => {
+        const syncedRepoIds = new Set(
+          syncedRows.map((row) => row.githubRepoId)
+        );
+        const syncedEntries = catalog.entries.filter((e) =>
+          syncedRepoIds.has(e.repository.id)
+        );
+
+        return {
+          ...catalog,
+          syncedRepoIds,
+          syncedEntries,
+          syncedRepos: syncedEntries.map((e) => e.repository),
+          totalAccessible: catalog.entries.length,
+          totalSynced: syncedRepoIds.size,
+        };
+      }
+    );
   }
-
-  const syncedEntries = catalog.entries.filter((e) =>
-    syncedRepoIds.has(e.repository.id)
-  );
-
-  return {
-    ...catalog,
-    syncedRepoIds,
-    syncedEntries,
-    syncedRepos: syncedEntries.map((e) => e.repository),
-    totalAccessible: catalog.entries.length,
-    totalSynced: syncedRepoIds.size,
-  };
-}
+);
 
 export const findRepoContext = cache(
   async (owner: string, repo: string): Promise<RepoContext | null> => {
-    const state = await getOnboardingState();
-    if (state.step !== "has_installations") {
-      return null;
-    }
-
-    const syncedCatalog = await getSyncedRepoCatalog();
-
-    for (const installation of state.installations) {
-      const repos = await getInstallationRepos(installation.id);
-      const repository = repos.find(
-        (candidate) =>
-          candidate.owner.login.toLowerCase() === owner.toLowerCase() &&
-          candidate.name.toLowerCase() === repo.toLowerCase()
-      );
-
-      if (repository) {
-        const isSynced = syncedCatalog.syncedRepoIds.has(repository.id);
-        if (!isSynced) {
-          return null;
-        }
-        return {
-          installation,
-          repository,
-          auth: getGitHubAppAuth(installation.id),
-        };
+    return withTiming("findRepoContext", { owner, repo }, async () => {
+      const [state, syncedRows] = await Promise.all([
+        getOnboardingState(),
+        getSyncedRepoLookupRows(),
+      ]);
+      if (state.step !== "has_installations") {
+        return null;
       }
-    }
 
-    return null;
+      const matchedRow = syncedRows.find(
+        (row) =>
+          repoLookupKey(row.ownerLogin, row.repoName) ===
+          repoLookupKey(owner, repo)
+      );
+      if (!matchedRow) {
+        return null;
+      }
+
+      const installation = state.installations.find(
+        (candidate) => candidate.id === matchedRow.installationId
+      );
+      if (!installation) {
+        return null;
+      }
+
+      const repos = await getInstallationRepos(installation.id);
+      const repository =
+        repos.find((candidate) => candidate.id === matchedRow.githubRepoId) ??
+        repos.find(
+          (candidate) =>
+            repoLookupKey(candidate.owner.login, candidate.name) ===
+            repoLookupKey(owner, repo)
+        );
+
+      if (!repository) {
+        return null;
+      }
+
+      return {
+        installation,
+        repository,
+        auth: getGitHubAppAuth(installation.id),
+      };
+    });
   }
 );
 
@@ -307,52 +437,59 @@ export async function getRepoSubmitPageData(
   repo: string,
   branch: string | null
 ): Promise<RepoSubmitPageData | null> {
-  const context = await findRepoContext(owner, repo);
-  if (!context) return null;
+  return withTiming(
+    "getRepoSubmitPageData",
+    { owner, repo, requestedBranch: branch },
+    async () => {
+      const context = await findRepoContext(owner, repo);
+      if (!context) return null;
 
-  const branches = await listRepositoryBranches(
-    context.auth,
-    owner,
-    context.repository.name
-  ).unwrapOr([]);
+      const branches = await listRepositoryBranches(
+        context.auth,
+        owner,
+        context.repository.name
+      ).unwrapOr([]);
 
-  const selectableBranches = branches.filter(
-    (candidate) => candidate.name !== context.repository.default_branch
-  );
-  const selectedBranch =
-    branch && selectableBranches.some((candidate) => candidate.name === branch)
-      ? branch
-      : (selectableBranches[0]?.name ?? null);
+      const selectableBranches = branches.filter(
+        (candidate) => candidate.name !== context.repository.default_branch
+      );
+      const selectedBranch =
+        branch &&
+        selectableBranches.some((candidate) => candidate.name === branch)
+          ? branch
+          : (selectableBranches[0]?.name ?? null);
 
-  const [existingPullRequest, openPullRequests] = await Promise.all([
-    selectedBranch
-      ? findPullRequestByHead(
+      const [existingPullRequest, openPullRequests] = await Promise.all([
+        selectedBranch
+          ? findPullRequestByHead(
+              context.auth,
+              owner,
+              context.repository.name,
+              selectedBranch,
+              {
+                base: context.repository.default_branch,
+                headOwner: context.repository.owner.login,
+                state: "all",
+              }
+            ).unwrapOr(null)
+          : Promise.resolve(null),
+        listRepositoryPullRequests(
           context.auth,
           owner,
           context.repository.name,
-          selectedBranch,
-          {
-            base: context.repository.default_branch,
-            headOwner: context.repository.owner.login,
-            state: "all",
-          }
-        ).unwrapOr(null)
-      : Promise.resolve(null),
-    listRepositoryPullRequests(
-      context.auth,
-      owner,
-      context.repository.name,
-      "open"
-    ).unwrapOr([]),
-  ]);
+          "open"
+        ).unwrapOr([]),
+      ]);
 
-  return {
-    repository: context.repository,
-    branches,
-    selectedBranch,
-    existingPullRequest,
-    openPullRequests,
-  };
+      return {
+        repository: context.repository,
+        branches,
+        selectedBranch,
+        existingPullRequest,
+        openPullRequests,
+      };
+    }
+  );
 }
 
 export async function saveBranchPullRequest(input: {
@@ -432,56 +569,283 @@ export async function getPullRequestPageData(
   repo: string,
   pullNumber: number
 ): Promise<PullRequestPageData | null> {
-  const context = await findRepoContext(owner, repo);
-  if (!context) {
-    return null;
-  }
+  return withTiming(
+    "getPullRequestPageData",
+    { owner, repo, pullNumber },
+    async () => {
+      const context = await findRepoContext(owner, repo);
+      if (!context) {
+        return null;
+      }
 
-  const pullRequest = await getPullRequest(
+      const pullRequest = await getPullRequest(
+        context.auth,
+        owner,
+        context.repository.name,
+        pullNumber
+      ).unwrapOr(null);
+      if (!pullRequest) {
+        return null;
+      }
+
+      return {
+        repository: context.repository,
+        pullRequest,
+      };
+    }
+  );
+}
+
+export async function getPullRequestPageDetailsData(
+  owner: string,
+  repo: string,
+  pullNumber: number
+): Promise<PullRequestPageDetailsData | null> {
+  return withTiming(
+    "getPullRequestPageDetailsData",
+    { owner, repo, pullNumber },
+    async () => {
+      const context = await findRepoContext(owner, repo);
+      if (!context) {
+        return null;
+      }
+
+      const [diff, issueComments, reviews, reviewComments] = await Promise.all([
+        getPullRequestDiff(
+          context.auth,
+          owner,
+          context.repository.name,
+          pullNumber
+        ).unwrapOr(""),
+        listIssueComments(
+          context.auth,
+          owner,
+          context.repository.name,
+          pullNumber
+        ).unwrapOr([]),
+        listPullRequestReviews(
+          context.auth,
+          owner,
+          context.repository.name,
+          pullNumber
+        ).unwrapOr([]),
+        listPullRequestReviewComments(
+          context.auth,
+          owner,
+          context.repository.name,
+          pullNumber
+        ).unwrapOr([]),
+      ]);
+
+      return {
+        diff,
+        issueComments,
+        reviews,
+        reviewComments,
+      };
+    }
+  );
+}
+
+export type StackEntry = {
+  number: number;
+  title: string;
+  headRef: string;
+  baseRef: string;
+  state: "open" | "closed" | "merged";
+  isCurrent: boolean;
+};
+
+export async function getPullRequestStack(
+  owner: string,
+  repo: string,
+  currentPrNumber: number
+): Promise<StackEntry[]> {
+  const context = await findRepoContext(owner, repo);
+  if (!context) return [];
+
+  const allPRs = await listRepositoryPullRequests(
     context.auth,
     owner,
     context.repository.name,
-    pullNumber
-  ).unwrapOr(null);
-  if (!pullRequest) {
-    return null;
+    "all"
+  ).unwrapOr([]);
+
+  const currentPR = allPRs.find((pr) => pr.number === currentPrNumber);
+  if (!currentPR) return [];
+
+  const byHead = new Map<string, GitHubPullRequest>();
+  const byBase = new Map<string, GitHubPullRequest>();
+  for (const pr of allPRs) {
+    byHead.set(pr.head.ref, pr);
+    if (pr.state === "open" && !pr.merged) {
+      byBase.set(pr.base.ref, pr);
+    }
   }
 
-  const [diff, issueComments, reviews, reviewComments] = await Promise.all([
-    getPullRequestDiff(
-      context.auth,
-      owner,
-      context.repository.name,
-      pullNumber
-    ).unwrapOr(""),
-    listIssueComments(
-      context.auth,
-      owner,
-      context.repository.name,
-      pullNumber
-    ).unwrapOr([]),
-    listPullRequestReviews(
-      context.auth,
-      owner,
-      context.repository.name,
-      pullNumber
-    ).unwrapOr([]),
-    listPullRequestReviewComments(
-      context.auth,
-      owner,
-      context.repository.name,
-      pullNumber
-    ).unwrapOr([]),
-  ]);
+  const chain: GitHubPullRequest[] = [currentPR];
 
-  return {
-    repository: context.repository,
-    pullRequest,
-    diff,
-    issueComments,
-    reviews,
-    reviewComments,
-  };
+  let walk: GitHubPullRequest | undefined = currentPR;
+  while (walk) {
+    const parent = byHead.get(walk.base.ref);
+    if (!parent || parent.number === walk.number) break;
+    if (chain.some((p) => p.number === parent.number)) break;
+    chain.unshift(parent);
+    walk = parent;
+  }
+
+  walk = currentPR;
+  while (walk) {
+    const child = byBase.get(walk.head.ref);
+    if (!child || child.number === walk.number) break;
+    if (chain.some((p) => p.number === child.number)) break;
+    chain.push(child);
+    walk = child;
+  }
+
+  if (chain.length <= 1) return [];
+
+  return chain.map((pr) => ({
+    number: pr.number,
+    title: pr.title,
+    headRef: pr.head.ref,
+    baseRef: pr.base.ref,
+    state: pr.merged ? "merged" : pr.state,
+    isCurrent: pr.number === currentPrNumber,
+  }));
+}
+
+export type StackHealthEntry = StackEntry & {
+  needsRestack: boolean;
+  behindBy: number;
+  comparison: BranchComparison | null;
+};
+
+export async function getStackHealth(
+  owner: string,
+  repo: string,
+  currentPrNumber: number
+): Promise<StackHealthEntry[]> {
+  const stack = await getPullRequestStack(owner, repo, currentPrNumber);
+  if (stack.length === 0) return [];
+
+  const context = await findRepoContext(owner, repo);
+  if (!context) return [];
+
+  const results: StackHealthEntry[] = [];
+
+  for (const entry of stack) {
+    if (entry.state !== "open") {
+      results.push({
+        ...entry,
+        needsRestack: false,
+        behindBy: 0,
+        comparison: null,
+      });
+      continue;
+    }
+
+    const comparison = await compareBranches(
+      context.auth,
+      owner,
+      context.repository.name,
+      entry.headRef,
+      entry.baseRef
+    ).unwrapOr(null);
+
+    results.push({
+      ...entry,
+      needsRestack: comparison !== null && comparison.behindBy > 0,
+      behindBy: comparison?.behindBy ?? 0,
+      comparison,
+    });
+  }
+
+  return results;
+}
+
+export async function restackPullRequest(
+  owner: string,
+  repo: string,
+  pullNumber: number,
+  newBase: string
+): Promise<GitHubPullRequest> {
+  const context = await requireRepoContext(owner, repo);
+
+  return unwrapGitHubResult(
+    await updatePullRequest(
+      context.auth,
+      owner,
+      context.repository.name,
+      pullNumber,
+      { base: newBase }
+    )
+  );
+}
+
+export async function updateStackedBranch(
+  owner: string,
+  repo: string,
+  branch: string,
+  upstreamBranch: string
+): Promise<{ sha: string }> {
+  const context = await requireRepoContext(owner, repo);
+
+  return unwrapGitHubResult(
+    await mergeUpstream(
+      context.auth,
+      owner,
+      context.repository.name,
+      branch,
+      upstreamBranch
+    )
+  );
+}
+
+export async function restackAfterMerge(
+  owner: string,
+  repo: string,
+  mergedPrNumber: number
+): Promise<{ restacked: number[] }> {
+  const context = await requireRepoContext(owner, repo);
+
+  const mergedPR = await getPullRequest(
+    context.auth,
+    owner,
+    context.repository.name,
+    mergedPrNumber
+  ).unwrapOr(null);
+
+  if (!mergedPR || !mergedPR.merged) {
+    return { restacked: [] };
+  }
+
+  const allPRs = await listRepositoryPullRequests(
+    context.auth,
+    owner,
+    context.repository.name,
+    "open"
+  ).unwrapOr([]);
+
+  const children = allPRs.filter((pr) => pr.base.ref === mergedPR.head.ref);
+
+  const restacked: number[] = [];
+
+  for (const child of children) {
+    const updated = await updatePullRequest(
+      context.auth,
+      owner,
+      context.repository.name,
+      child.number,
+      { base: mergedPR.base.ref }
+    ).unwrapOr(null);
+
+    if (updated) {
+      restacked.push(child.number);
+    }
+  }
+
+  return { restacked };
 }
 
 export async function addPullRequestComment(input: {
@@ -583,20 +947,53 @@ export async function getPullRequestFileList(
   ).unwrapOr(null);
 }
 
+export type GitHubCheckRef = {
+  owner: string;
+  repo: string;
+  ref: string;
+};
+
+export type GitHubCheckReport = {
+  runs: GitHubCheckRun[];
+  summary: GitHubCheckSummary;
+};
+
+function checkRefKey(input: GitHubCheckRef): string {
+  return `${repoLookupKey(input.owner, input.repo)}@${input.ref}`;
+}
+
+export async function getCheckReportForPR(
+  owner: string,
+  repo: string,
+  ref: string
+): Promise<GitHubCheckReport | null> {
+  return withTiming("getCheckReportForPR", { owner, repo, ref }, async () => {
+    const context = await findRepoContext(owner, repo);
+    if (!context) return null;
+
+    const runs = await listCheckRunsForRef(
+      context.auth,
+      owner,
+      context.repository.name,
+      ref
+    ).unwrapOr([]);
+
+    return {
+      runs,
+      summary: summarizeCheckRuns(runs),
+    };
+  });
+}
+
 export async function getCheckRunsForPR(
   owner: string,
   repo: string,
   ref: string
 ): Promise<GitHubCheckRun[]> {
-  const context = await findRepoContext(owner, repo);
-  if (!context) return [];
-
-  return listCheckRunsForRef(
-    context.auth,
-    owner,
-    context.repository.name,
-    ref
-  ).unwrapOr([]);
+  return withTiming("getCheckRunsForPR", { owner, repo, ref }, async () => {
+    const report = await getCheckReportForPR(owner, repo, ref);
+    return report?.runs ?? [];
+  });
 }
 
 export async function getCheckSummaryForPR(
@@ -604,15 +1001,36 @@ export async function getCheckSummaryForPR(
   repo: string,
   ref: string
 ): Promise<GitHubCheckSummary | null> {
-  const context = await findRepoContext(owner, repo);
-  if (!context) return null;
+  return withTiming("getCheckSummaryForPR", { owner, repo, ref }, async () => {
+    const report = await getCheckReportForPR(owner, repo, ref);
+    return report?.summary ?? null;
+  });
+}
 
-  return getCheckSummaryForRef(
-    context.auth,
-    owner,
-    context.repository.name,
-    ref
-  ).unwrapOr(null);
+export async function getCheckSummariesForRefs(
+  refs: GitHubCheckRef[]
+): Promise<Record<string, GitHubCheckSummary | null>> {
+  const uniqueRefs = Array.from(
+    new Map(refs.map((ref) => [checkRefKey(ref), ref])).entries()
+  );
+
+  return withTiming(
+    "getCheckSummariesForRefs",
+    { requestedRefCount: refs.length, uniqueRefCount: uniqueRefs.length },
+    async () => {
+      const summaries = await Promise.all(
+        uniqueRefs.map(
+          async ([key, ref]) =>
+            [
+              key,
+              await getCheckSummaryForPR(ref.owner, ref.repo, ref.ref),
+            ] as const
+        )
+      );
+
+      return Object.fromEntries(summaries);
+    }
+  );
 }
 
 export async function updateRepoPullRequest(input: {
@@ -824,8 +1242,6 @@ export type {
 } from "@sachikit/github";
 
 export type InboxData = {
-  login: string;
-  pullRequests: InboxPullRequest[];
   sections: InboxSection[];
   diagnostics: InboxDiagnostics;
 };
@@ -840,177 +1256,260 @@ export type InboxDiagnostics = {
 };
 
 export async function getInboxData(): Promise<InboxData | null> {
-  const state = await getOnboardingState();
-  if (state.step !== "has_installations") {
-    log.info("inbox", "No installations, skipping inbox fetch");
-    return null;
-  }
+  return withTiming("getInboxData", {}, async () => {
+    const state = await getOnboardingState();
+    if (state.step !== "has_installations") {
+      log.info("inbox", "No installations, skipping inbox fetch");
+      return null;
+    }
 
-  const ghLogin = await getAuthenticatedGitHubLogin();
-  if (!ghLogin) {
-    log.info("inbox", "No GitHub login found, skipping inbox fetch");
-    return null;
-  }
+    const ghLogin = await getAuthenticatedGitHubLogin();
+    if (!ghLogin) {
+      log.info("inbox", "No GitHub login found, skipping inbox fetch");
+      return null;
+    }
 
-  const syncedCatalog = await getSyncedRepoCatalog();
-  const targetEntries = syncedCatalog.syncedEntries;
+    const syncedCatalog = await getSyncedRepoCatalog();
+    const targetEntries = syncedCatalog.syncedEntries;
 
-  log.info(
-    "inbox",
-    `Fetching inbox for ${ghLogin}: ${targetEntries.length} synced repos, ${syncedCatalog.totalAccessible} accessible`
-  );
+    log.info(
+      "inbox",
+      `Fetching inbox for ${ghLogin}: ${targetEntries.length} synced repos, ${syncedCatalog.totalAccessible} accessible`
+    );
 
-  const allPullRequests: ClassifiedInboxPullRequest[] = [];
-  const partialFailures: string[] = [];
-  const recentCutoff = subDays(new Date(), 7).toISOString();
+    const recentCutoff = subDays(new Date(), 7).toISOString();
 
-  const byInstallation = new Map<number, RepoCatalogEntry[]>();
-  for (const entry of targetEntries) {
-    const existing = byInstallation.get(entry.installation.id) ?? [];
-    existing.push(entry);
-    byInstallation.set(entry.installation.id, existing);
-  }
+    const byInstallation = new Map<number, RepoCatalogEntry[]>();
+    for (const entry of targetEntries) {
+      const existing = byInstallation.get(entry.installation.id) ?? [];
+      existing.push(entry);
+      byInstallation.set(entry.installation.id, existing);
+    }
 
-  for (const [installationId, entries] of byInstallation) {
-    const installationAuth = getGitHubAppAuth(installationId);
+    const installationResults = await Promise.all(
+      Array.from(byInstallation.entries()).map(
+        async ([installationId, entries]) => {
+          const installationAuth = getGitHubAppAuth(installationId);
+          const installationPullRequests: ClassifiedInboxPullRequest[] = [];
+          const installationFailures: string[] = [];
 
-    const repoPRResults = await Promise.all(
-      entries.map((entry) =>
-        listRecentPullRequests(
-          installationAuth,
-          entry.repository.owner.login,
-          entry.repository.name
-        ).match(
-          (prs) => {
-            log.info(
-              "inbox",
-              `Fetched ${prs.length} PRs from ${entry.repository.full_name}`
+          const repoPRResults = await Promise.all(
+            entries.map((entry) =>
+              listRecentPullRequests(
+                installationAuth,
+                entry.repository.owner.login,
+                entry.repository.name
+              ).match(
+                (prs) => {
+                  log.info(
+                    "inbox",
+                    `Fetched ${prs.length} PRs from ${entry.repository.full_name}`
+                  );
+                  return { ok: true as const, prs, entry };
+                },
+                (error) => {
+                  const message =
+                    error instanceof Error
+                      ? error.message
+                      : JSON.stringify(error);
+                  log.info(
+                    "inbox",
+                    `Failed to fetch PRs from ${entry.repository.full_name}: ${message}`
+                  );
+                  installationFailures.push(
+                    `Failed to list PRs for ${entry.repository.full_name}: ${message}`
+                  );
+                  return {
+                    ok: false as const,
+                    prs: [] as GitHubPullRequest[],
+                    entry,
+                  };
+                }
+              )
+            )
+          );
+
+          for (const result of repoPRResults) {
+            const { entry, prs } = result;
+
+            const relevantPRs = prs.filter(
+              (pr) => pr.state === "open" || pr.updated_at >= recentCutoff
             );
-            return { ok: true as const, prs, entry };
-          },
-          (error) => {
-            const message =
-              error instanceof Error ? error.message : JSON.stringify(error);
-            log.info(
-              "inbox",
-              `Failed to fetch PRs from ${entry.repository.full_name}: ${message}`
+
+            const openPRs = relevantPRs.filter(
+              (pr) => pr.state === "open" && !pr.merged
             );
-            partialFailures.push(
-              `Failed to list PRs for ${entry.repository.full_name}: ${message}`
+            const closedPRs = relevantPRs.filter(
+              (pr) => pr.state !== "open" || pr.merged
             );
-            return {
-              ok: false as const,
-              prs: [] as GitHubPullRequest[],
-              entry,
-            };
+
+            const [reviewResults, statsResults] = await Promise.all([
+              Promise.all(
+                openPRs.map((pr) =>
+                  listPullRequestReviews(
+                    installationAuth,
+                    entry.repository.owner.login,
+                    entry.repository.name,
+                    pr.number
+                  ).match(
+                    (reviews) => reviews,
+                    (reviewErr) => {
+                      log.info(
+                        "inbox",
+                        `Failed to get reviews for ${entry.repository.full_name}#${pr.number}: ${reviewErr.message}`
+                      );
+                      return [] as GitHubPullRequestReview[];
+                    }
+                  )
+                )
+              ),
+              Promise.all(
+                openPRs.map((pr) =>
+                  getPullRequest(
+                    installationAuth,
+                    entry.repository.owner.login,
+                    entry.repository.name,
+                    pr.number
+                  ).match(
+                    (full) => ({
+                      additions: full.additions,
+                      deletions: full.deletions,
+                    }),
+                    () => ({
+                      additions: null as number | null,
+                      deletions: null as number | null,
+                    })
+                  )
+                )
+              ),
+            ]);
+
+            for (let i = 0; i < openPRs.length; i++) {
+              const pr = openPRs[i]!;
+              const reviews = reviewResults[i]!;
+              const stats = statsResults[i]!;
+              const reviewSignals = buildPullRequestReviewSignals(pr, reviews);
+              const reviewDecision = computeReviewDecision(reviewSignals);
+              installationPullRequests.push({
+                ...pr,
+                additions: stats.additions,
+                deletions: stats.deletions,
+                auto_merge_enabled: pr.auto_merge_enabled,
+                repoFullName: entry.repository.full_name,
+                repoOwner: entry.repository.owner.login,
+                repoName: entry.repository.name,
+                reviewDecision,
+                reviewSignals,
+              });
+            }
+
+            const closedStatsResults = await Promise.all(
+              closedPRs.map((pr) =>
+                getPullRequest(
+                  installationAuth,
+                  entry.repository.owner.login,
+                  entry.repository.name,
+                  pr.number
+                ).match(
+                  (full) => ({
+                    additions: full.additions,
+                    deletions: full.deletions,
+                  }),
+                  () => ({
+                    additions: null as number | null,
+                    deletions: null as number | null,
+                  })
+                )
+              )
+            );
+
+            for (let i = 0; i < closedPRs.length; i++) {
+              const pr = closedPRs[i]!;
+              const stats = closedStatsResults[i]!;
+              const reviewSignals = buildPullRequestReviewSignals(pr, []);
+              installationPullRequests.push({
+                ...pr,
+                additions: stats.additions,
+                deletions: stats.deletions,
+                auto_merge_enabled: pr.auto_merge_enabled,
+                repoFullName: entry.repository.full_name,
+                repoOwner: entry.repository.owner.login,
+                repoName: entry.repository.name,
+                reviewDecision: computeReviewDecision(reviewSignals),
+                reviewSignals,
+              });
+            }
           }
-        )
+
+          return {
+            partialFailures: installationFailures,
+            pullRequests: installationPullRequests,
+          };
+        }
       )
     );
 
-    for (const result of repoPRResults) {
-      const { entry, prs } = result;
+    const allPullRequests = installationResults.flatMap(
+      (result) => result.pullRequests
+    );
+    const partialFailures = installationResults.flatMap(
+      (result) => result.partialFailures
+    );
 
-      // Keep all open PRs; for closed/merged, only keep recently updated ones
-      const relevantPRs = prs.filter(
-        (pr) => pr.state === "open" || pr.updated_at >= recentCutoff
-      );
+    const { sections, unclassifiedCount } = classifyPullRequests(
+      ghLogin,
+      allPullRequests,
+      { recentlyMergedSince: recentCutoff }
+    );
+    const classifiedCount = sections.reduce(
+      (sum, s) => sum + s.items.length,
+      0
+    );
 
-      const openPRs = relevantPRs.filter(
-        (pr) => pr.state === "open" && !pr.merged
-      );
-      const closedPRs = relevantPRs.filter(
-        (pr) => pr.state !== "open" || pr.merged
-      );
-
-      const reviewResults = await Promise.all(
-        openPRs.map((pr) =>
-          listPullRequestReviews(
-            installationAuth,
-            entry.repository.owner.login,
-            entry.repository.name,
-            pr.number
-          ).match(
-            (r) => r,
-            (reviewErr) => {
-              log.info(
-                "inbox",
-                `Failed to get reviews for ${entry.repository.full_name}#${pr.number}: ${reviewErr.message}`
-              );
-              return [] as GitHubPullRequestReview[];
-            }
-          )
-        )
-      );
-
-      for (let i = 0; i < openPRs.length; i++) {
-        const pr = openPRs[i]!;
-        const reviews = reviewResults[i]!;
-        const reviewSignals = buildPullRequestReviewSignals(pr, reviews);
-        const reviewDecision = computeReviewDecision(reviewSignals);
-        allPullRequests.push({
-          ...pr,
-          auto_merge_enabled: pr.auto_merge_enabled,
-          repoFullName: entry.repository.full_name,
-          repoOwner: entry.repository.owner.login,
-          repoName: entry.repository.name,
-          reviewDecision,
-          reviewSignals,
-        });
-      }
-
-      for (const pr of closedPRs) {
-        const reviewSignals = buildPullRequestReviewSignals(pr, []);
-        allPullRequests.push({
-          ...pr,
-          auto_merge_enabled: pr.auto_merge_enabled,
-          repoFullName: entry.repository.full_name,
-          repoOwner: entry.repository.owner.login,
-          repoName: entry.repository.name,
-          reviewDecision: computeReviewDecision(reviewSignals),
-          reviewSignals,
-        });
+    for (const section of sections) {
+      if (section.items.length > 0) {
+        log.info(
+          "inbox",
+          `Section "${section.label}": ${section.items.length} PRs`
+        );
       }
     }
-  }
 
-  const { sections, unclassifiedCount } = classifyPullRequests(
-    ghLogin,
-    allPullRequests,
-    { recentlyMergedSince: recentCutoff }
-  );
-  const classifiedCount = sections.reduce((sum, s) => sum + s.items.length, 0);
+    log.info(
+      "inbox",
+      `Complete: ${allPullRequests.length} PRs fetched, ${classifiedCount} classified, ${unclassifiedCount} unclassified`
+    );
 
-  // Log section breakdown
-  for (const section of sections) {
-    if (section.items.length > 0) {
-      log.info(
-        "inbox",
-        `Section "${section.label}": ${section.items.length} PRs`
-      );
+    if (partialFailures.length > 0) {
+      log.info("inbox", `Partial failures: ${partialFailures.join("; ")}`);
     }
-  }
 
-  log.info(
-    "inbox",
-    `Complete: ${allPullRequests.length} PRs fetched, ${classifiedCount} classified, ${unclassifiedCount} unclassified`
-  );
+    return {
+      sections,
+      diagnostics: {
+        fetchedCount: allPullRequests.length,
+        classifiedCount,
+        unclassifiedCount,
+        partialFailures,
+        syncedRepoCount: syncedCatalog.totalSynced,
+        accessibleRepoCount: syncedCatalog.totalAccessible,
+      },
+    };
+  });
+}
 
-  if (partialFailures.length > 0) {
-    log.info("inbox", `Partial failures: ${partialFailures.join("; ")}`);
-  }
+export type InboxSectionCount = {
+  id: InboxSectionId;
+  label: string;
+  count: number;
+};
 
-  return {
-    login: ghLogin,
-    pullRequests: allPullRequests,
-    sections,
-    diagnostics: {
-      fetchedCount: allPullRequests.length,
-      classifiedCount,
-      unclassifiedCount,
-      partialFailures,
-      syncedRepoCount: syncedCatalog.totalSynced,
-      accessibleRepoCount: syncedCatalog.totalAccessible,
-    },
-  };
+export async function getInboxSectionCounts(): Promise<InboxSectionCount[]> {
+  const data = await getInboxData();
+  if (!data) return [];
+  return data.sections.map((s) => ({
+    id: s.id,
+    label: s.label,
+    count: s.items.length,
+  }));
 }

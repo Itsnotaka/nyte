@@ -1,10 +1,8 @@
 "use client";
 
+import type { GitHubCheckSummary } from "@sachikit/github";
 import { Skeleton } from "@sachikit/ui/components/skeleton";
 import { cn } from "@sachikit/ui/lib/utils";
-import { useQuery } from "@tanstack/react-query";
-
-import { useTRPC } from "~/lib/trpc/client";
 
 function summaryLabel(
   total: number,
@@ -21,27 +19,19 @@ function summaryLabel(
 }
 
 export function CheckStatusDot({
-  owner,
-  repo,
-  headSha,
+  hasError = false,
+  isLoading = false,
+  summary,
 }: {
-  owner: string;
-  repo: string;
-  headSha: string;
+  hasError?: boolean;
+  isLoading?: boolean;
+  summary: GitHubCheckSummary | null | undefined;
 }) {
-  const trpc = useTRPC();
-  const summaryQuery = useQuery(
-    trpc.github.getCheckSummary.queryOptions(
-      { owner, repo, ref: headSha },
-      { staleTime: 60_000 }
-    )
-  );
-
-  if (summaryQuery.isLoading) {
+  if (isLoading) {
     return <Skeleton className="size-2 rounded-full" />;
   }
 
-  if (summaryQuery.isError) {
+  if (hasError) {
     return (
       <span
         className="inline-block size-2 shrink-0 rounded-full bg-destructive"
@@ -50,7 +40,6 @@ export function CheckStatusDot({
     );
   }
 
-  const summary = summaryQuery.data;
   if (!summary || summary.total === 0) return null;
 
   const color =

@@ -5,6 +5,7 @@ import {
   IconBlockSortDescending,
   IconSortArrowUpDown,
 } from "@central-icons-react/round-filled-radius-2-stroke-1.5";
+import type { GitHubCheckSummary } from "@sachikit/github";
 import type { GitHubRepository } from "@sachikit/github";
 import {
   Avatar,
@@ -19,6 +20,7 @@ import {
 } from "@sachikit/ui/components/empty";
 import { ScrollArea } from "@sachikit/ui/components/scroll-area";
 import { Table } from "@sachikit/ui/components/table";
+import { useQuery } from "@tanstack/react-query";
 import { compareAsc, compareDesc, parseISO } from "date-fns";
 import Link from "next/link";
 import * as React from "react";
@@ -27,9 +29,15 @@ import { CheckStatusDot } from "~/app/(protected)/_components/check-status-dot";
 import { ReviewStatusIcon } from "~/app/(protected)/_components/review-status-icon";
 import type { InboxPullRequest, ReviewDecision } from "~/lib/github/server";
 import { formatRelativeTime } from "~/lib/time";
+import { useTRPC } from "~/lib/trpc/client";
 
 type SortField = "title" | "changes" | "updated";
 type SortDirection = "asc" | "desc";
+type CheckSummaryMap = Record<string, GitHubCheckSummary | null>;
+
+function checkSummaryKey(owner: string, repo: string, ref: string): string {
+  return `${owner.toLowerCase()}/${repo.toLowerCase()}@${ref}`;
+}
 
 function sortItems(
   items: InboxPullRequest[],
@@ -118,14 +126,22 @@ function SortableHead({
 }
 
 function PullRequestRow({
+  checksError,
+  checksLoading,
+  checkSummaries,
   pr,
   owner,
   repo,
 }: {
+  checksError: boolean;
+  checksLoading: boolean;
+  checkSummaries: CheckSummaryMap;
   pr: InboxPullRequest & { reviewDecision: ReviewDecision };
   owner: string;
   repo: string;
 }) {
+  const checkSummary = checkSummaries[checkSummaryKey(owner, repo, pr.head.sha)];
+
   return (
     <Table.Row>
       <Table.Cell className="w-full min-w-0">
@@ -152,9 +168,11 @@ function PullRequestRow({
 
       <Table.Cell className="w-24">
         <div className="flex items-center gap-2">
-          <React.Suspense fallback={null}>
-            <CheckStatusDot owner={owner} repo={repo} headSha={pr.head.sha} />
-          </React.Suspense>
+          <CheckStatusDot
+            hasError={checksError}
+            isLoading={checksLoading}
+            summary={checkSummary}
+          />
           <ReviewStatusIcon reviewDecision={pr.reviewDecision} />
         </div>
       </Table.Cell>
@@ -187,6 +205,7 @@ export function PullRequestListView({
   repository,
   pullRequests,
 }: PullRequestListViewProps) {
+  const trpc = useTRPC();
   const [sortField, setSortField] = React.useState<SortField>("updated");
   const [sortDirection, setSortDirection] =
     React.useState<SortDirection>("desc");
@@ -207,6 +226,22 @@ export function PullRequestListView({
 
   const owner = repository.owner.login;
   const repo = repository.name;
+  const checkSummaryInputs = React.useMemo(
+    () =>
+      pullRequests.map((pr) => ({
+        owner,
+        repo,
+        ref: pr.head.sha,
+      })),
+    [owner, pullRequests, repo]
+  );
+  const checkSummariesQuery = useQuery(
+    trpc.github.getCheckSummaries.queryOptions(checkSummaryInputs, {
+      enabled: checkSummaryInputs.length > 0,
+      staleTime: 60_000,
+    })
+  );
+  const checkSummaries = checkSummariesQuery.data ?? {};
 
   return (
     <ScrollArea className="h-full bg-sachi-base">
@@ -253,7 +288,15 @@ export function PullRequestListView({
             </Table.Header>
             <Table.Body>
               {sortedPulls.map((pr) => (
-                <PullRequestRow key={pr.id} pr={pr} owner={owner} repo={repo} />
+                <PullRequestRow
+                  key={pr.id}
+                  checksError={checkSummariesQuery.isError}
+                  checksLoading={checkSummariesQuery.isLoading}
+                  checkSummaries={checkSummaries}
+                  pr={pr}
+                  owner={owner}
+                  repo={repo}
+                />
               ))}
             </Table.Body>
           </Table>

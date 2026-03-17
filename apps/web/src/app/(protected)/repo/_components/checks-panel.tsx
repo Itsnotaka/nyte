@@ -80,29 +80,20 @@ function summaryLabel(
 
 export function ChecksPanel({ owner, repo, headSha }: ChecksPanelProps) {
   const trpc = useTRPC();
-  const [open, setOpen] = React.useState(false);
+  const [open, setOpen] = React.useState(true);
 
-  const checksQuery = useQuery(
-    trpc.github.getCheckRuns.queryOptions(
+  const checkReportQuery = useQuery(
+    trpc.github.getCheckReport.queryOptions(
       { owner, repo, ref: headSha },
       { staleTime: 60_000 }
     )
   );
-
-  const summaryQuery = useQuery(
-    trpc.github.getCheckSummary.queryOptions(
-      { owner, repo, ref: headSha },
-      { staleTime: 60_000 }
-    )
-  );
-
-  const summary = summaryQuery.data;
-  const checks = checksQuery.data ?? [];
+  const summary = checkReportQuery.data?.summary ?? null;
+  const checks = checkReportQuery.data?.runs ?? [];
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
-      <CollapsibleTrigger className="flex w-full items-center justify-between gap-2 rounded-md px-3 py-2 text-left text-sm transition-colors hover:bg-sachi-fill">
-        <span className="font-medium text-sachi-fg">Checks</span>
+      <CollapsibleTrigger className="flex w-full items-center justify-end gap-2 rounded-md py-2 text-left text-sm transition-colors hover:bg-sachi-fill">
         {summary ? (
           <Badge
             variant={
@@ -123,11 +114,11 @@ export function ChecksPanel({ owner, repo, headSha }: ChecksPanelProps) {
 
       <CollapsibleContent>
         {checks.length === 0 ? (
-          <p className="px-3 py-2 text-xs text-sachi-fg-muted">
-            {checksQuery.isLoading ? "Loading checks..." : "No status checks."}
+          <p className="py-2 text-xs text-sachi-fg-muted">
+            {checkReportQuery.isLoading ? "Loading checks..." : "No status checks."}
           </p>
         ) : (
-          <div className="space-y-0.5 px-1 pb-2">
+          <div className="space-y-0.5 pb-2">
             {checks.map((run) => (
               <a
                 key={run.id}

@@ -23,12 +23,12 @@ import { useRouter } from "next/navigation";
 import { parseAsString, useQueryState } from "nuqs";
 import * as React from "react";
 
-import type { RepoSubmitPageData } from "~/lib/github/server";
 import { formatRelativeTime } from "~/lib/time";
 import { useTRPC } from "~/lib/trpc/client";
 
 type RepoSubmitViewProps = {
-  initialData: RepoSubmitPageData;
+  owner: string;
+  repo: string;
 };
 
 function branchTitle(branch: string): string {
@@ -39,36 +39,29 @@ function branchTitle(branch: string): string {
     .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
-export function RepoSubmitView({ initialData }: RepoSubmitViewProps) {
+export function RepoSubmitView({ owner, repo }: RepoSubmitViewProps) {
   const trpc = useTRPC();
   const router = useRouter();
   const queryClient = useQueryClient();
   const [branch, setBranch] = useQueryState("branch", parseAsString);
-  const initialBranchRef = React.useRef(branch);
-  const shouldUseInitialDataRef = React.useRef(true);
   const queryInput = React.useMemo(
     () => ({
       branch,
-      owner: initialData.repository.owner.login,
-      repo: initialData.repository.name,
+      owner,
+      repo,
     }),
-    [branch, initialData.repository.name, initialData.repository.owner.login]
+    [branch, owner, repo]
   );
-  const initialQueryData =
-    shouldUseInitialDataRef.current && branch === initialBranchRef.current
-      ? initialData
-      : undefined;
-  if (initialQueryData) {
-    shouldUseInitialDataRef.current = false;
-  }
   const repoSubmitPage = useQuery(
     trpc.github.getRepoSubmitPage.queryOptions(queryInput, {
-      initialData: initialQueryData,
       placeholderData: (previousData) => previousData,
-      staleTime: 0,
+      staleTime: 30_000,
     })
   );
-  const data = repoSubmitPage.data ?? initialData;
+  const data = repoSubmitPage.data;
+  if (!data) {
+    return null;
+  }
   const {
     repository,
     branches,
@@ -113,9 +106,21 @@ export function RepoSubmitView({ initialData }: RepoSubmitViewProps) {
   const savePullRequest = useMutation(
     trpc.github.savePullRequest.mutationOptions({
       onSuccess: async (pullRequest) => {
-        await queryClient.invalidateQueries({
-          queryKey: trpc.github.getRepoSubmitPage.queryKey(queryInput),
-        });
+        await Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: trpc.github.getRepoSubmitPage.queryKey(queryInput),
+          }),
+          queryClient.prefetchQuery(
+            trpc.github.getPullRequestPage.queryOptions(
+              {
+                owner: repository.owner.login,
+                repo: repository.name,
+                pullNumber: pullRequest.number,
+              },
+              { staleTime: 30_000 }
+            )
+          ),
+        ]);
         router.push(
           `/repo/${repository.owner.login}/${repository.name}/pull/${String(pullRequest.number)}`
         );

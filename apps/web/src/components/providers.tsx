@@ -9,16 +9,7 @@ import { useState } from "react";
 import type { ReactNode } from "react";
 
 import { TRPCProvider, makeTRPCClient } from "~/lib/trpc/client";
-
-function makeQueryClient() {
-  return new QueryClient({
-    defaultOptions: {
-      queries: {
-        staleTime: 60 * 1000,
-      },
-    },
-  });
-}
+import { makeQueryClient } from "~/lib/trpc/query-client";
 
 let browserQueryClient: QueryClient | undefined = undefined;
 

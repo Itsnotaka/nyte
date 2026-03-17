@@ -8,6 +8,34 @@ import {
   type GitHubError,
 } from "./types.ts";
 
+export function summarizeCheckRuns(
+  runs: GitHubCheckRun[]
+): GitHubCheckSummary {
+  const total = runs.length;
+  const passing = runs.filter(
+    (r) => r.status === "completed" && r.conclusion === "success"
+  ).length;
+  const failing = runs.filter(
+    (r) =>
+      r.status === "completed" &&
+      (r.conclusion === "failure" ||
+        r.conclusion === "timed_out" ||
+        r.conclusion === "action_required")
+  ).length;
+  const pending = total - passing - failing;
+
+  const conclusion: GitHubCheckSummary["conclusion"] =
+    total === 0
+      ? "neutral"
+      : failing > 0
+        ? "failure"
+        : pending > 0
+          ? "pending"
+          : "success";
+
+  return { total, passing, failing, pending, conclusion };
+}
+
 export function listCheckRunsForRef(
   auth: GitHubAppInstallationAuth,
   owner: string,
@@ -40,29 +68,5 @@ export function getCheckSummaryForRef(
   repo: string,
   ref: string,
 ): ResultAsync<GitHubCheckSummary, GitHubError> {
-  return listCheckRunsForRef(auth, owner, repo, ref).map((runs) => {
-    const total = runs.length;
-    const passing = runs.filter(
-      (r) => r.status === "completed" && r.conclusion === "success",
-    ).length;
-    const failing = runs.filter(
-      (r) =>
-        r.status === "completed" &&
-        (r.conclusion === "failure" ||
-          r.conclusion === "timed_out" ||
-          r.conclusion === "action_required"),
-    ).length;
-    const pending = total - passing - failing;
-
-    const conclusion: GitHubCheckSummary["conclusion"] =
-      total === 0
-        ? "neutral"
-        : failing > 0
-          ? "failure"
-          : pending > 0
-            ? "pending"
-            : "success";
-
-    return { total, passing, failing, pending, conclusion };
-  });
+  return listCheckRunsForRef(auth, owner, repo, ref).map(summarizeCheckRuns);
 }

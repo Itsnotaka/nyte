@@ -20,6 +20,8 @@
   divs with subtle separators when nesting adds no value.
 - Use `date-fns` for date calculations and formatting instead of native Date
   arithmetic.
+- Do not use inline type imports (e.g. `import("pkg").Type`); always use
+  top-level import statements for types.
 
 ## Learned Workspace Facts
 

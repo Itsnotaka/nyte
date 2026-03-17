@@ -301,8 +301,9 @@ export function updatePullRequest(
   repo: string,
   pullNumber: number,
   input: {
-    title: string;
-    body: string;
+    title?: string;
+    body?: string;
+    base?: string;
   }
 ): ResultAsync<GitHubPullRequest, GitHubError> {
   return withGitHubInstallationClient(auth, async (client) => {
@@ -310,8 +311,9 @@ export function updatePullRequest(
       owner,
       repo,
       pull_number: pullNumber,
-      title: input.title,
-      body: input.body,
+      ...(input.title !== undefined ? { title: input.title } : {}),
+      ...(input.body !== undefined ? { body: input.body } : {}),
+      ...(input.base !== undefined ? { base: input.base } : {}),
     });
     return mapPullRequest(response.data);
   });
@@ -630,5 +632,53 @@ export function removeLabel(
       issue_number: issueNumber,
       name,
     });
+  });
+}
+
+export type BranchComparison = {
+  aheadBy: number;
+  behindBy: number;
+  status: "ahead" | "behind" | "diverged" | "identical";
+  totalCommits: number;
+};
+
+export function compareBranches(
+  auth: GitHubAppInstallationAuth,
+  owner: string,
+  repo: string,
+  base: string,
+  head: string
+): ResultAsync<BranchComparison, GitHubError> {
+  return withGitHubInstallationClient(auth, async (client) => {
+    const response = await client.rest.repos.compareCommitsWithBasehead({
+      owner,
+      repo,
+      basehead: `${base}...${head}`,
+    });
+    return {
+      aheadBy: response.data.ahead_by,
+      behindBy: response.data.behind_by,
+      status: response.data.status as BranchComparison["status"],
+      totalCommits: response.data.total_commits,
+    };
+  });
+}
+
+export function mergeUpstream(
+  auth: GitHubAppInstallationAuth,
+  owner: string,
+  repo: string,
+  branch: string,
+  upstreamBranch: string
+): ResultAsync<{ sha: string }, GitHubError> {
+  return withGitHubInstallationClient(auth, async (client) => {
+    const response = await client.rest.repos.merge({
+      owner,
+      repo,
+      base: branch,
+      head: upstreamBranch,
+      commit_message: `Merge ${upstreamBranch} into ${branch}`,
+    });
+    return { sha: response.data.sha };
   });
 }

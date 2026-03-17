@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { getSession } from "~/lib/auth/server";
-import { getRepoCatalog, getSyncedRepoCatalog } from "~/lib/github/server";
+import { getSyncedRepoCatalog } from "~/lib/github/server";
 
 import { RepoProvider } from "./_components/repo-context";
 import { AppShell } from "./app-shell";
@@ -16,15 +16,11 @@ export default async function Layout({
     redirect("/login");
   }
 
-  const catalog = await getRepoCatalog();
   const syncedCatalog = await getSyncedRepoCatalog();
 
   return (
     <RepoProvider
-      installations={catalog.installations}
-      repos={catalog.repos}
-      syncedRepos={syncedCatalog.syncedRepos}
-      totalAccessible={syncedCatalog.totalAccessible}
+      repos={syncedCatalog.repos}
       totalSynced={syncedCatalog.totalSynced}
     >
       <AppShell>{children}</AppShell>

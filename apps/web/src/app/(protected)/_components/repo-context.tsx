@@ -1,53 +1,62 @@
 "use client";
 
-import type { GitHubInstallation, GitHubRepository } from "@sachikit/github";
+import type { GitHubRepository } from "@sachikit/github";
 import * as React from "react";
+import { createStore } from "zustand/vanilla";
+import { useStore } from "zustand";
 
-type RepoContextValue = {
-  installations: GitHubInstallation[];
+type RepoStoreState = {
   repos: GitHubRepository[];
-  syncedRepos: GitHubRepository[];
-  totalAccessible: number;
   totalSynced: number;
 };
 
-const RepoContext = React.createContext<RepoContextValue | null>(null);
+type RepoStore = ReturnType<typeof createRepoStore>;
 
-export function useRepo() {
-  const ctx = React.useContext(RepoContext);
-  if (!ctx) {
-    throw new Error("useRepo must be used within RepoProvider");
-  }
-  return ctx;
+const RepoStoreContext = React.createContext<RepoStore | null>(null);
+
+function createRepoStore(initialState: RepoStoreState) {
+  return createStore<RepoStoreState>(() => initialState);
 }
 
 type RepoProviderProps = {
-  installations: GitHubInstallation[];
   repos: GitHubRepository[];
-  syncedRepos: GitHubRepository[];
-  totalAccessible: number;
   totalSynced: number;
   children: React.ReactNode;
 };
 
 export function RepoProvider({
-  installations,
   repos,
-  syncedRepos,
-  totalAccessible,
   totalSynced,
   children,
 }: RepoProviderProps) {
-  const value = React.useMemo(
-    () => ({
-      installations,
-      repos,
-      syncedRepos,
-      totalAccessible,
-      totalSynced,
-    }),
-    [installations, repos, syncedRepos, totalAccessible, totalSynced]
-  );
+  const storeRef = React.useRef<RepoStore | null>(null);
 
-  return <RepoContext.Provider value={value}>{children}</RepoContext.Provider>;
+  if (storeRef.current === null) {
+    storeRef.current = createRepoStore({
+      repos,
+      totalSynced,
+    });
+  }
+
+  React.useEffect(() => {
+    storeRef.current?.setState({
+      repos,
+      totalSynced,
+    });
+  }, [repos, totalSynced]);
+
+  return (
+    <RepoStoreContext.Provider value={storeRef.current}>
+      {children}
+    </RepoStoreContext.Provider>
+  );
+}
+
+export function useRepo<T>(selector: (state: RepoStoreState) => T): T {
+  const store = React.useContext(RepoStoreContext);
+  if (!store) {
+    throw new Error("useRepo must be used within RepoProvider");
+  }
+
+  return useStore(store, selector);
 }

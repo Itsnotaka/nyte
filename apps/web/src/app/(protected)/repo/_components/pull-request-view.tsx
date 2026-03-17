@@ -22,24 +22,22 @@ import {
   DropdownMenuTrigger,
 } from "@sachikit/ui/components/dropdown-menu";
 import { Input } from "@sachikit/ui/components/input";
-import {
-  LayerCard,
-  LayerCardPrimary,
-  LayerCardSecondary,
-} from "@sachikit/ui/components/layer-card";
 import { InsetView } from "@sachikit/ui/components/sidebar";
 import { Textarea } from "@sachikit/ui/components/textarea";
 import { cn } from "@sachikit/ui/lib/utils";
 import { useHotkey } from "@tanstack/react-hotkeys";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { inferRouterOutputs } from "@trpc/server";
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  useSuspenseQuery,
+} from "@tanstack/react-query";
 import { nanoid } from "nanoid";
 import * as React from "react";
 import { Streamdown } from "streamdown";
 
 import { formatRelativeTime } from "~/lib/time";
 import { useTRPC } from "~/lib/trpc/client";
-import type { AppRouter } from "~/lib/trpc/router";
 
 import { ChecksPanel } from "./checks-panel";
 import { DiffSettingsPopover } from "./diff-settings-popover";
@@ -48,12 +46,16 @@ import { LabelPanel } from "./label-panel";
 import { MergeModal } from "./merge-modal";
 import { ReviewerPanel } from "./reviewer-panel";
 
-type PullRequestPageData = NonNullable<
-  inferRouterOutputs<AppRouter>["github"]["getPullRequestPage"]
->;
-
 type PullRequestViewProps = {
-  initialData: PullRequestPageData;
+  owner: string;
+  repo: string;
+  pullNumber: number;
+};
+
+type PullRequestQueryInput = {
+  owner: string;
+  repo: string;
+  pullNumber: number;
 };
 
 type DraftComment = {
@@ -154,33 +156,41 @@ function MarkdownContent({
   );
 }
 
-type ReviewSurfaceProps = {
+type SectionProps = {
   title: string;
   action?: React.ReactNode;
   children: React.ReactNode;
   className?: string;
-  contentClassName?: string;
 };
 
-function ReviewSurface({
-  title,
-  action,
-  children,
-  className,
-  contentClassName,
-}: ReviewSurfaceProps) {
+function Section({ title, action, children, className }: SectionProps) {
   return (
-    <LayerCard className={className}>
-      <LayerCardSecondary className="items-start">
-        <div className="min-w-0 space-y-1">
-          <h2 className="text-sm font-semibold text-sachi-fg">{title}</h2>
-        </div>
+    <div className={cn("space-y-3", className)}>
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-semibold text-sachi-fg">{title}</h2>
         {action}
-      </LayerCardSecondary>
-      <LayerCardPrimary className={contentClassName}>
-        {children}
-      </LayerCardPrimary>
-    </LayerCard>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+type SidebarSectionProps = {
+  title: string;
+  children: React.ReactNode;
+  action?: React.ReactNode;
+};
+function SidebarSection({ title, children, action }: SidebarSectionProps) {
+  return (
+    <div className="space-y-2 border-b border-sachi-line-subtle px-3 py-3 last:border-b-0">
+      <div className="flex items-center justify-between">
+        <h3 className="text-xs font-medium tracking-wide text-sachi-fg-muted uppercase">
+          {title}
+        </h3>
+        {action}
+      </div>
+      {children}
+    </div>
   );
 }
 
@@ -257,7 +267,11 @@ function EditableTitle({
   );
 }
 
-export function PullRequestView({ initialData }: PullRequestViewProps) {
+export function PullRequestView({
+  owner,
+  repo,
+  pullNumber,
+}: PullRequestViewProps) {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const [drafts, setDrafts] = React.useState<DraftComment[]>([]);
@@ -275,23 +289,20 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
 
   const queryInput = React.useMemo(
     () => ({
-      owner: initialData.repository.owner.login,
-      pullNumber: initialData.pullRequest.number,
-      repo: initialData.repository.name,
+      owner,
+      pullNumber,
+      repo,
     }),
-    [
-      initialData.pullRequest.number,
-      initialData.repository.name,
-      initialData.repository.owner.login,
-    ]
+    [owner, pullNumber, repo]
   );
 
   const pullRequestPageQueryKey =
     trpc.github.getPullRequestPage.queryKey(queryInput);
+  const pullRequestDetailsQueryKey =
+    trpc.github.getPullRequestDetails.queryKey(queryInput);
   const pullRequestPageQuery = useQuery(
     trpc.github.getPullRequestPage.queryOptions(queryInput, {
-      initialData,
-      staleTime: 0,
+      staleTime: 30_000,
     })
   );
 
@@ -301,22 +312,13 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
   const diffSettings: DiffSettingsJson =
     diffSettingsQuery.data ?? DIFF_SETTINGS_DEFAULTS;
 
-  const pageData = pullRequestPageQuery.data ?? initialData;
+  const pageData = pullRequestPageQuery.data;
+  if (!pageData) {
+    return null;
+  }
   const repository = pageData.repository;
   const pullRequest = pageData.pullRequest;
-  const issueComments = pageData.issueComments;
-  const reviews = pageData.reviews;
-  const reviewComments = pageData.reviewComments;
-  const files = React.useMemo(() => parseFiles(pageData.diff), [pageData.diff]);
-  const reviewCommentsWithLines = React.useMemo(
-    () => reviewComments.filter((comment) => comment.line !== null),
-    [reviewComments]
-  );
   const draftsByFile = React.useMemo(() => groupByPath(drafts), [drafts]);
-  const reviewCommentsByFile = React.useMemo(
-    () => groupByPath(reviewCommentsWithLines),
-    [reviewCommentsWithLines]
-  );
 
   const prLabels: GitHubLabel[] = React.useMemo(() => {
     const raw = (pullRequest as Record<string, unknown>).labels;
@@ -344,7 +346,7 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
   const viewedFilesQuery = useQuery(
     trpc.settings.getViewedFiles.queryOptions(
       { prId: pullRequest.id },
-      { staleTime: 0 }
+      { staleTime: 5 * 60_000 }
     )
   );
   const viewedFiles = React.useMemo(
@@ -436,9 +438,14 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
     trpc.github.addPullRequestComment.mutationOptions({
       onSuccess: async () => {
         setCommentBody("");
-        await queryClient.invalidateQueries({
-          queryKey: pullRequestPageQueryKey,
-        });
+        await Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: pullRequestPageQueryKey,
+          }),
+          queryClient.invalidateQueries({
+            queryKey: pullRequestDetailsQueryKey,
+          }),
+        ]);
       },
     })
   );
@@ -448,9 +455,14 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
       onSuccess: async () => {
         setDrafts([]);
         setReviewBody("");
-        await queryClient.invalidateQueries({
-          queryKey: pullRequestPageQueryKey,
-        });
+        await Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: pullRequestPageQueryKey,
+          }),
+          queryClient.invalidateQueries({
+            queryKey: pullRequestDetailsQueryKey,
+          }),
+        ]);
       },
     })
   );
@@ -458,9 +470,14 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
   const merge = useMutation(
     trpc.github.mergePullRequest.mutationOptions({
       onSuccess: async () => {
-        await queryClient.invalidateQueries({
-          queryKey: pullRequestPageQueryKey,
-        });
+        await Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: pullRequestPageQueryKey,
+          }),
+          queryClient.invalidateQueries({
+            queryKey: pullRequestDetailsQueryKey,
+          }),
+        ]);
       },
     })
   );
@@ -576,6 +593,393 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
     submitReview.isPending ||
     !canSubmitReview(reviewAction, reviewBody, drafts.length);
 
+  return (
+    <div className="flex h-full min-h-0">
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <header className="flex h-10 shrink-0 items-center justify-between gap-3 border-b border-sachi-line-subtle px-4">
+          <div className="flex min-w-0 items-center gap-2">
+            {isOpen ? (
+              <EditableTitle
+                title={pullRequest.title}
+                onSave={handleSaveTitle}
+                isPending={updatePR.isPending}
+              />
+            ) : (
+              <h1 className="truncate text-sm font-semibold text-sachi-fg">
+                {pullRequest.title}
+              </h1>
+            )}
+            <Badge variant="outline">#{pullRequest.number}</Badge>
+            {pullRequest.draft ? <Badge variant="outline">draft</Badge> : null}
+            {isMerged ? (
+              <Badge variant="outline">merged</Badge>
+            ) : pullRequest.state === "closed" ? (
+              <Badge variant="outline">closed</Badge>
+            ) : null}
+          </div>
+
+          {isOpen ? (
+            <div className="flex shrink-0 items-center gap-2">
+              {merge.error ? (
+                <p className="text-sm text-destructive">
+                  {merge.error.message}
+                </p>
+              ) : null}
+              {pullRequest.draft ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  type="button"
+                  disabled={convertToReady.isPending}
+                  onClick={() => convertToReady.mutate(pullRequestIdentity)}
+                >
+                  {convertToReady.isPending
+                    ? "Publishing..."
+                    : "Ready for review"}
+                </Button>
+              ) : null}
+              <MergeModal
+                pullTitle={pullRequest.title}
+                pullBody={pullRequest.body}
+                pullNumber={pullRequest.number}
+                owner={repository.owner.login}
+                repo={repository.name}
+                headSha={pullRequest.head.sha}
+                disabled={merge.isPending}
+                isPending={merge.isPending}
+                onMerge={onMerge}
+                trigger={
+                  <Button size="sm" type="button" disabled={merge.isPending}>
+                    {merge.isPending ? "Merging..." : "Merge"}
+                  </Button>
+                }
+              />
+            </div>
+          ) : null}
+        </header>
+
+        <div ref={diffAreaRef} className="min-w-0 flex-1 overflow-auto">
+          <InsetView maxWidth="xl">
+            <div className="space-y-4">
+              <p className="text-sm text-sachi-fg-muted">
+                {pullRequest.head.ref} → {pullRequest.base.ref} · updated{" "}
+                {formatRelativeTime(pullRequest.updated_at)}
+              </p>
+
+              <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+                <div className="space-y-6">
+                  <Section
+                    title="Description"
+                    action={
+                      isOpen && !editingDescription ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleStartEditDescription}
+                        >
+                          Edit
+                        </Button>
+                      ) : null
+                    }
+                  >
+                    {editingDescription ? (
+                      <div className="space-y-2">
+                        <Textarea
+                          value={descriptionDraft}
+                          onChange={(event) =>
+                            setDescriptionDraft(event.target.value)
+                          }
+                          rows={8}
+                          disabled={updatePR.isPending}
+                        />
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setEditingDescription(false)}
+                            disabled={updatePR.isPending}
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={handleSaveDescription}
+                            disabled={updatePR.isPending}
+                          >
+                            {updatePR.isPending ? "Saving..." : "Save"}
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <MarkdownContent
+                        className="pull-request-markdown text-sm text-sachi-fg-secondary"
+                        content={pullRequest.body}
+                        emptyFallback="No description provided."
+                        repository={repository}
+                      />
+                    )}
+                  </Section>
+
+                  {isOpen ? (
+                    <Section
+                      title="Review"
+                      action={
+                        drafts.length > 0 ? (
+                          <Badge variant="outline">
+                            {drafts.length} pending draft
+                            {drafts.length === 1 ? "" : "s"}
+                          </Badge>
+                        ) : null
+                      }
+                    >
+                      <Textarea
+                        id={reviewBodyId}
+                        value={reviewBody}
+                        onChange={(event) => setReviewBody(event.target.value)}
+                        onKeyDown={(event) => {
+                          if (!isShortcutSubmit(event) || reviewSubmitDisabled)
+                            return;
+                          event.preventDefault();
+                          onSubmitReview(reviewAction);
+                        }}
+                        disabled={submitReview.isPending}
+                        placeholder="Leave a review comment..."
+                        rows={3}
+                      />
+                      {submitReview.error ? (
+                        <p className="text-sm text-destructive">
+                          {submitReview.error.message}
+                        </p>
+                      ) : null}
+                      <div className="flex items-center justify-end gap-2">
+                        <ButtonGroup>
+                          <Button
+                            type="button"
+                            disabled={reviewSubmitDisabled}
+                            onClick={() => onSubmitReview(reviewAction)}
+                          >
+                            {REVIEW_ACTION_LABELS[reviewAction]}
+                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger
+                              render={
+                                <Button
+                                  type="button"
+                                  size="icon"
+                                  disabled={submitReview.isPending}
+                                  aria-label="Choose review action"
+                                />
+                              }
+                            >
+                              <IconChevronDownMedium />
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" sideOffset={4}>
+                              <DropdownMenuItem
+                                onClick={() => setReviewAction("COMMENT")}
+                              >
+                                <div>
+                                  <p className="text-sm font-medium">Comment</p>
+                                  <p className="text-xs text-sachi-fg-muted">
+                                    General feedback
+                                  </p>
+                                </div>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => setReviewAction("APPROVE")}
+                              >
+                                <div>
+                                  <p className="text-sm font-medium">Approve</p>
+                                  <p className="text-xs text-sachi-fg-muted">
+                                    Approve this PR
+                                  </p>
+                                </div>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  setReviewAction("REQUEST_CHANGES")
+                                }
+                              >
+                                <div>
+                                  <p className="text-sm font-medium">
+                                    Request changes
+                                  </p>
+                                  <p className="text-xs text-sachi-fg-muted">
+                                    Ask for revisions
+                                  </p>
+                                </div>
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </ButtonGroup>
+                      </div>
+                    </Section>
+                  ) : null}
+
+                  <Section title="Comment">
+                    <form
+                      className="space-y-2"
+                      onSubmit={(event) => {
+                        event.preventDefault();
+                        if (
+                          commentBody.trim().length === 0 ||
+                          addComment.isPending
+                        )
+                          return;
+                        onAddComment();
+                      }}
+                    >
+                      <Textarea
+                        id={commentBodyId}
+                        value={commentBody}
+                        onChange={(event) => setCommentBody(event.target.value)}
+                        onKeyDown={(event) => {
+                          if (!isShortcutSubmit(event)) return;
+                          event.preventDefault();
+                          if (
+                            commentBody.trim().length === 0 ||
+                            addComment.isPending
+                          )
+                            return;
+                          onAddComment();
+                        }}
+                        disabled={addComment.isPending}
+                        placeholder="Leave a comment..."
+                        rows={3}
+                      />
+                      {addComment.error ? (
+                        <p className="text-sm text-destructive">
+                          {addComment.error.message}
+                        </p>
+                      ) : null}
+                      <div className="flex justify-end">
+                        <Button
+                          type="submit"
+                          disabled={
+                            commentBody.trim().length === 0 ||
+                            addComment.isPending
+                          }
+                        >
+                          Comment
+                        </Button>
+                      </div>
+                    </form>
+                  </Section>
+
+                  <React.Suspense fallback={<PullRequestDetailsFallback />}>
+                    <PullRequestDetailsSection
+                      activeFile={activeFile}
+                      diffSettings={diffSettings}
+                      drafts={drafts}
+                      draftsByFile={draftsByFile}
+                      onAddDraft={addDraft}
+                      onDraftChange={updateDraft}
+                      onDraftRemove={removeDraft}
+                      onFileSelect={handleFileSelect}
+                      onToggleViewed={handleToggleViewed}
+                      queryInput={queryInput}
+                      repository={repository}
+                      sidebarOpen={sidebarOpen}
+                      viewedFiles={viewedFiles}
+                    />
+                  </React.Suspense>
+                </div>
+
+                <div className="divide-y divide-sachi-line-subtle">
+                  <SidebarSection title="Checks">
+                    <ChecksPanel
+                      owner={repository.owner.login}
+                      repo={repository.name}
+                      headSha={pullRequest.head.sha}
+                    />
+                  </SidebarSection>
+
+                  <SidebarSection title="Reviewers">
+                    <ReviewerPanel
+                      owner={repository.owner.login}
+                      repo={repository.name}
+                      pullNumber={pullRequest.number}
+                      requestedReviewers={pullRequest.requested_reviewers}
+                      pullRequestPageQueryKey={pullRequestPageQueryKey}
+                    />
+                  </SidebarSection>
+
+                  <SidebarSection title="Labels">
+                    <LabelPanel
+                      owner={repository.owner.login}
+                      repo={repository.name}
+                      pullNumber={pullRequest.number}
+                      currentLabels={prLabels}
+                      pullRequestPageQueryKey={pullRequestPageQueryKey}
+                    />
+                  </SidebarSection>
+                </div>
+              </div>
+            </div>
+          </InsetView>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+type PullRequestDetailsSectionProps = {
+  activeFile: string | null;
+  diffSettings: DiffSettingsJson;
+  drafts: DraftComment[];
+  draftsByFile: Map<string, DraftComment[]>;
+  onAddDraft: (path: string, lineNumber: number, side: "LEFT" | "RIGHT") => void;
+  onDraftChange: (id: string, body: string) => void;
+  onDraftRemove: (id: string) => void;
+  onFileSelect: (filename: string) => void;
+  onToggleViewed: (filename: string, viewed: boolean) => void;
+  queryInput: PullRequestQueryInput;
+  repository: GitHubRepository;
+  sidebarOpen: boolean;
+  viewedFiles: Set<string>;
+};
+
+function PullRequestDetailsFallback() {
+  return (
+    <div className="rounded-lg border border-sachi-line-subtle bg-sachi-base px-4 py-6 text-sm text-sachi-fg-muted">
+      Loading discussion and diff…
+    </div>
+  );
+}
+
+function PullRequestDetailsSection({
+  activeFile,
+  diffSettings,
+  drafts,
+  draftsByFile,
+  onAddDraft,
+  onDraftChange,
+  onDraftRemove,
+  onFileSelect,
+  onToggleViewed,
+  queryInput,
+  repository,
+  sidebarOpen,
+  viewedFiles,
+}: PullRequestDetailsSectionProps) {
+  const trpc = useTRPC();
+  const detailsQuery = useSuspenseQuery(
+    trpc.github.getPullRequestDetails.queryOptions(queryInput, {
+      staleTime: 30_000,
+    })
+  );
+  const details = detailsQuery.data;
+  const issueComments = details.issueComments;
+  const reviews = details.reviews;
+  const reviewComments = details.reviewComments;
+  const files = React.useMemo(() => parseFiles(details.diff), [details.diff]);
+  const reviewCommentsWithLines = React.useMemo(
+    () => reviewComments.filter((comment) => comment.line !== null),
+    [reviewComments]
+  );
+  const reviewCommentsByFile = React.useMemo(
+    () => groupByPath(reviewCommentsWithLines),
+    [reviewCommentsWithLines]
+  );
   const fileEntries = React.useMemo(
     () =>
       files.map((file) => {
@@ -596,420 +1000,104 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
   );
 
   return (
-    <div className="flex h-full min-h-0">
+    <div className="flex gap-6">
       {sidebarOpen ? (
-        <FileTreeSidebar
-          files={fileEntries}
-          viewedFiles={viewedFiles}
-          activeFile={activeFile}
-          onFileSelect={handleFileSelect}
-          onToggleViewed={handleToggleViewed}
-        />
+        <div className="hidden w-72 shrink-0 lg:block">
+          <div className="sticky top-0">
+            <FileTreeSidebar
+              files={fileEntries}
+              viewedFiles={viewedFiles}
+              activeFile={activeFile}
+              onFileSelect={onFileSelect}
+              onToggleViewed={onToggleViewed}
+            />
+          </div>
+        </div>
       ) : null}
 
-      <div ref={diffAreaRef} className="min-w-0 flex-1 overflow-auto">
-        <InsetView maxWidth="xl">
-          <header className="space-y-3">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="min-w-0 space-y-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  {isOpen ? (
-                    <EditableTitle
-                      title={pullRequest.title}
-                      onSave={handleSaveTitle}
-                      isPending={updatePR.isPending}
-                    />
-                  ) : (
-                    <h1 className="text-lg font-semibold text-sachi-fg">
-                      {pullRequest.title}
-                    </h1>
-                  )}
-                  <Badge variant="outline">#{pullRequest.number}</Badge>
-                  {pullRequest.draft ? (
-                    <Badge variant="outline">draft</Badge>
-                  ) : null}
-                  {isMerged ? (
-                    <Badge variant="outline">merged</Badge>
-                  ) : pullRequest.state === "closed" ? (
-                    <Badge variant="outline">closed</Badge>
-                  ) : null}
-                </div>
-                <p className="text-sm text-sachi-fg-muted">
-                  {pullRequest.head.ref} to {pullRequest.base.ref} · updated{" "}
-                  {formatRelativeTime(pullRequest.updated_at)}
-                </p>
-              </div>
-
-              {isOpen ? (
-                <div className="flex items-center gap-2">
-                  {pullRequest.draft ? (
-                    <Button
-                      variant="outline"
-                      type="button"
-                      disabled={convertToReady.isPending}
-                      onClick={() => convertToReady.mutate(pullRequestIdentity)}
-                    >
-                      {convertToReady.isPending
-                        ? "Publishing..."
-                        : "Ready for review"}
-                    </Button>
-                  ) : null}
-                  {merge.error ? (
-                    <p className="text-sm text-destructive">
-                      {merge.error.message}
-                    </p>
-                  ) : null}
-                  <MergeModal
-                    pullTitle={pullRequest.title}
-                    pullBody={pullRequest.body}
-                    pullNumber={pullRequest.number}
-                    owner={repository.owner.login}
-                    repo={repository.name}
-                    headSha={pullRequest.head.sha}
-                    disabled={merge.isPending}
-                    isPending={merge.isPending}
-                    onMerge={onMerge}
-                    trigger={
-                      <Button type="button" disabled={merge.isPending}>
-                        {merge.isPending ? "Merging..." : "Merge"}
-                      </Button>
-                    }
-                  />
-                </div>
-              ) : null}
-            </div>
-          </header>
-
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="min-w-0 flex-1 space-y-6">
+        {issueComments.length > 0 ? (
+          <Section title="Discussion">
             <div className="space-y-4">
-              <ReviewSurface
-                title="Description"
-                action={
-                  isOpen && !editingDescription ? (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleStartEditDescription}
-                    >
-                      Edit
-                    </Button>
-                  ) : null
-                }
-                contentClassName="gap-0"
-              >
-                {editingDescription ? (
-                  <div className="space-y-2">
-                    <Textarea
-                      value={descriptionDraft}
-                      onChange={(event) =>
-                        setDescriptionDraft(event.target.value)
-                      }
-                      rows={8}
-                      disabled={updatePR.isPending}
-                    />
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setEditingDescription(false)}
-                        disabled={updatePR.isPending}
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={handleSaveDescription}
-                        disabled={updatePR.isPending}
-                      >
-                        {updatePR.isPending ? "Saving..." : "Save"}
-                      </Button>
-                    </div>
+              {issueComments.map((comment) => (
+                <div key={comment.id} className="space-y-1">
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-sachi-fg-muted">
+                    <span className="font-medium text-sachi-fg-secondary">
+                      {comment.user.login}
+                    </span>
+                    <span>{formatRelativeTime(comment.updated_at)}</span>
                   </div>
-                ) : (
                   <MarkdownContent
                     className="pull-request-markdown text-sm text-sachi-fg-secondary"
-                    content={pullRequest.body}
-                    emptyFallback="No description provided."
+                    content={comment.body}
                     repository={repository}
                   />
-                )}
-              </ReviewSurface>
-
-              {isOpen ? (
-                <ReviewSurface
-                  title="Review"
-                  action={
-                    drafts.length > 0 ? (
-                      <Badge variant="outline">
-                        {drafts.length} pending draft
-                        {drafts.length === 1 ? "" : "s"}
-                      </Badge>
-                    ) : null
-                  }
-                  contentClassName="gap-3"
-                >
-                  <Textarea
-                    id={reviewBodyId}
-                    value={reviewBody}
-                    onChange={(event) => setReviewBody(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (!isShortcutSubmit(event) || reviewSubmitDisabled)
-                        return;
-                      event.preventDefault();
-                      onSubmitReview(reviewAction);
-                    }}
-                    disabled={submitReview.isPending}
-                    placeholder="Leave a review comment..."
-                    rows={3}
-                  />
-                  {submitReview.error ? (
-                    <p className="text-sm text-destructive">
-                      {submitReview.error.message}
-                    </p>
-                  ) : null}
-                  <div className="flex items-center justify-end gap-2">
-                    <ButtonGroup>
-                      <Button
-                        type="button"
-                        disabled={reviewSubmitDisabled}
-                        onClick={() => onSubmitReview(reviewAction)}
-                      >
-                        {REVIEW_ACTION_LABELS[reviewAction]}
-                      </Button>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger
-                          render={
-                            <Button
-                              type="button"
-                              size="icon"
-                              disabled={submitReview.isPending}
-                              aria-label="Choose review action"
-                            />
-                          }
-                        >
-                          <IconChevronDownMedium />
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" sideOffset={4}>
-                          <DropdownMenuItem
-                            onClick={() => setReviewAction("COMMENT")}
-                          >
-                            <div>
-                              <p className="text-sm font-medium">Comment</p>
-                              <p className="text-xs text-sachi-fg-muted">
-                                General feedback
-                              </p>
-                            </div>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => setReviewAction("APPROVE")}
-                          >
-                            <div>
-                              <p className="text-sm font-medium">Approve</p>
-                              <p className="text-xs text-sachi-fg-muted">
-                                Approve this PR
-                              </p>
-                            </div>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => setReviewAction("REQUEST_CHANGES")}
-                          >
-                            <div>
-                              <p className="text-sm font-medium">
-                                Request changes
-                              </p>
-                              <p className="text-xs text-sachi-fg-muted">
-                                Ask for revisions
-                              </p>
-                            </div>
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </ButtonGroup>
-                  </div>
-                </ReviewSurface>
-              ) : null}
-
-              <ReviewSurface
-                title="Diff"
-                action={
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline">
-                      {files.length} file{files.length === 1 ? "" : "s"}
-                    </Badge>
-                    <DiffSettingsPopover />
-                  </div>
-                }
-                contentClassName="gap-4"
-              >
-                {files.length === 0 ? (
-                  <p className="text-sm text-sachi-fg-muted">
-                    No files changed in this pull request.
-                  </p>
-                ) : (
-                  files.map((file) => (
-                    <DiffFile
-                      key={`${file.name}:${file.newObjectId ?? file.prevObjectId ?? file.mode ?? "file"}`}
-                      diffSettings={diffSettings}
-                      drafts={draftsByFile.get(file.name) ?? []}
-                      file={file}
-                      onAddDraft={addDraft}
-                      onDraftChange={updateDraft}
-                      onDraftRemove={removeDraft}
-                      repository={repository}
-                      reviewComments={reviewCommentsByFile.get(file.name) ?? []}
-                    />
-                  ))
-                )}
-              </ReviewSurface>
+                </div>
+              ))}
             </div>
+          </Section>
+        ) : null}
 
+        {reviews.length > 0 ? (
+          <Section title="Reviews">
             <div className="space-y-4">
-              <LayerCard>
-                <ChecksPanel
-                  owner={repository.owner.login}
-                  repo={repository.name}
-                  headSha={pullRequest.head.sha}
-                />
-              </LayerCard>
-
-              <LayerCard>
-                <LayerCardPrimary>
-                  <ReviewerPanel
-                    owner={repository.owner.login}
-                    repo={repository.name}
-                    pullNumber={pullRequest.number}
-                    requestedReviewers={pullRequest.requested_reviewers}
-                    pullRequestPageQueryKey={pullRequestPageQueryKey}
-                  />
-                </LayerCardPrimary>
-              </LayerCard>
-
-              <LayerCard>
-                <LayerCardPrimary>
-                  <LabelPanel
-                    owner={repository.owner.login}
-                    repo={repository.name}
-                    pullNumber={pullRequest.number}
-                    currentLabels={prLabels}
-                    pullRequestPageQueryKey={pullRequestPageQueryKey}
-                  />
-                </LayerCardPrimary>
-              </LayerCard>
-
-              <ReviewSurface title="Comment" contentClassName="gap-0">
-                <form
-                  className="space-y-3"
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    if (commentBody.trim().length === 0 || addComment.isPending)
-                      return;
-                    onAddComment();
-                  }}
-                >
-                  <Textarea
-                    id={commentBodyId}
-                    value={commentBody}
-                    onChange={(event) => setCommentBody(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (!isShortcutSubmit(event)) return;
-                      event.preventDefault();
-                      if (
-                        commentBody.trim().length === 0 ||
-                        addComment.isPending
-                      )
-                        return;
-                      onAddComment();
-                    }}
-                    disabled={addComment.isPending}
-                    placeholder="Leave a comment..."
-                    rows={3}
-                  />
-                  {addComment.error ? (
-                    <p className="text-sm text-destructive">
-                      {addComment.error.message}
-                    </p>
-                  ) : null}
-                  <div className="flex justify-end">
-                    <Button
-                      type="submit"
-                      disabled={
-                        commentBody.trim().length === 0 || addComment.isPending
-                      }
-                    >
-                      Comment
-                    </Button>
+              {reviews.map((review) => (
+                <div key={review.id} className="space-y-1">
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-sachi-fg-muted">
+                    <span className="font-medium text-sachi-fg-secondary">
+                      {review.user.login}
+                    </span>
+                    <Badge variant="outline">{reviewBadge(review)}</Badge>
+                    {review.submitted_at ? (
+                      <span>{formatRelativeTime(review.submitted_at)}</span>
+                    ) : null}
                   </div>
-                </form>
-              </ReviewSurface>
-
-              <ReviewSurface title="Discussion" contentClassName="gap-3">
-                {issueComments.length === 0 ? (
-                  <p className="text-sm text-sachi-fg-muted">
-                    No comments yet.
-                  </p>
-                ) : (
-                  issueComments.map((comment) => (
-                    <LayerCard
-                      key={comment.id}
-                      className="bg-transparent p-0 shadow-none ring-0"
-                    >
-                      <LayerCardSecondary className="rounded-lg bg-sachi-surface px-3 py-2 text-xs font-normal text-sachi-fg-muted ring-1 ring-sachi-line-subtle">
-                        <div className="flex min-w-0 flex-wrap items-center gap-2">
-                          <span className="font-medium text-sachi-fg-secondary">
-                            {comment.user.login}
-                          </span>
-                          <span>{formatRelativeTime(comment.updated_at)}</span>
-                        </div>
-                      </LayerCardSecondary>
-                      <LayerCardPrimary className="gap-0">
-                        <MarkdownContent
-                          className="pull-request-markdown text-sm text-sachi-fg-secondary"
-                          content={comment.body}
-                          repository={repository}
-                        />
-                      </LayerCardPrimary>
-                    </LayerCard>
-                  ))
-                )}
-              </ReviewSurface>
-
-              <ReviewSurface title="Reviews" contentClassName="gap-3">
-                {reviews.length === 0 ? (
-                  <p className="text-sm text-sachi-fg-muted">No reviews yet.</p>
-                ) : (
-                  reviews.map((review) => (
-                    <LayerCard
-                      key={review.id}
-                      className="bg-transparent p-0 shadow-none ring-0"
-                    >
-                      <LayerCardSecondary className="rounded-lg bg-sachi-surface px-3 py-2 text-xs font-normal text-sachi-fg-muted ring-1 ring-sachi-line-subtle">
-                        <div className="flex min-w-0 flex-wrap items-center gap-2">
-                          <span className="font-medium text-sachi-fg-secondary">
-                            {review.user.login}
-                          </span>
-                          <Badge variant="outline">{reviewBadge(review)}</Badge>
-                          {review.submitted_at ? (
-                            <span>
-                              {formatRelativeTime(review.submitted_at)}
-                            </span>
-                          ) : null}
-                        </div>
-                      </LayerCardSecondary>
-                      <LayerCardPrimary className="gap-0">
-                        <MarkdownContent
-                          className="pull-request-markdown text-sm text-sachi-fg-secondary"
-                          content={review.body}
-                          emptyFallback="No summary."
-                          repository={repository}
-                        />
-                      </LayerCardPrimary>
-                    </LayerCard>
-                  ))
-                )}
-              </ReviewSurface>
+                  {review.body ? (
+                    <MarkdownContent
+                      className="pull-request-markdown text-sm text-sachi-fg-secondary"
+                      content={review.body}
+                      repository={repository}
+                    />
+                  ) : null}
+                </div>
+              ))}
             </div>
-          </div>
-        </InsetView>
+          </Section>
+        ) : null}
+
+        <Section
+          title="Diff"
+          action={
+            <div className="flex items-center gap-2">
+              <Badge variant="outline">
+                {files.length} file{files.length === 1 ? "" : "s"}
+              </Badge>
+              <DiffSettingsPopover />
+            </div>
+          }
+        >
+          {files.length === 0 ? (
+            <p className="text-sm text-sachi-fg-muted">
+              No files changed in this pull request.
+            </p>
+          ) : (
+            <div className="space-y-4">
+              {files.map((file) => (
+                <DiffFile
+                  key={`${file.name}:${file.newObjectId ?? file.prevObjectId ?? file.mode ?? "file"}`}
+                  diffSettings={diffSettings}
+                  drafts={draftsByFile.get(file.name) ?? []}
+                  file={file}
+                  onAddDraft={onAddDraft}
+                  onDraftChange={onDraftChange}
+                  onDraftRemove={onDraftRemove}
+                  repository={repository}
+                  reviewComments={reviewCommentsByFile.get(file.name) ?? []}
+                />
+              ))}
+            </div>
+          )}
+        </Section>
       </div>
     </div>
   );
