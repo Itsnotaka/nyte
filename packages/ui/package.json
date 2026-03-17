@@ -1,6 +1,6 @@
 {
   "name": "@sachikit/ui",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "private": false,
   "description": "Shared Sachikit UI components, hooks, and styling primitives.",
   "homepage": "https://github.com/Itsnotaka/Sachi#readme",
