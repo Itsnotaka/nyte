@@ -1,5 +1,5 @@
-import { DIFF_SETTINGS_DEFAULTS, db, settingsSchema } from "@sachikit/db";
-import { eq } from "drizzle-orm";
+import { DIFF_SETTINGS_DEFAULTS, db, prFilesSchema, settingsSchema } from "@sachikit/db";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { createTRPCRouter, protectedProcedure } from "../server";
@@ -52,5 +52,70 @@ export const settingsRouter = createTRPCRouter({
         });
 
       return merged;
+    }),
+
+  // --- Phase 1: Viewed files ---
+
+  getViewedFiles: protectedProcedure
+    .input(z.object({ prId: z.number().int().positive() }))
+    .query(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id;
+      const rows = await db
+        .select({ filePath: prFilesSchema.prFileViewed.filePath })
+        .from(prFilesSchema.prFileViewed)
+        .where(
+          and(
+            eq(prFilesSchema.prFileViewed.userId, userId),
+            eq(prFilesSchema.prFileViewed.prId, input.prId),
+          ),
+        );
+      return rows.map((row) => row.filePath);
+    }),
+
+  markFileViewed: protectedProcedure
+    .input(
+      z.object({
+        filePath: z.string().min(1),
+        prId: z.number().int().positive(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id;
+      await db
+        .insert(prFilesSchema.prFileViewed)
+        .values({
+          filePath: input.filePath,
+          prId: input.prId,
+          userId,
+          viewedAt: new Date(),
+        })
+        .onConflictDoUpdate({
+          set: { viewedAt: new Date() },
+          target: [
+            prFilesSchema.prFileViewed.userId,
+            prFilesSchema.prFileViewed.prId,
+            prFilesSchema.prFileViewed.filePath,
+          ],
+        });
+    }),
+
+  markFileUnviewed: protectedProcedure
+    .input(
+      z.object({
+        filePath: z.string().min(1),
+        prId: z.number().int().positive(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id;
+      await db
+        .delete(prFilesSchema.prFileViewed)
+        .where(
+          and(
+            eq(prFilesSchema.prFileViewed.userId, userId),
+            eq(prFilesSchema.prFileViewed.prId, input.prId),
+            eq(prFilesSchema.prFileViewed.filePath, input.filePath),
+          ),
+        );
     }),
 });
