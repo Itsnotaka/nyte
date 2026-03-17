@@ -22,23 +22,12 @@ const FAILURES = {
   savePullRequest: "Failed to save pull request.",
 } as const;
 
-function toLoggableError(error: unknown): Error {
-  if (error instanceof Error) {
-    return error;
-  }
-
-  if (typeof error === "string" && error.trim().length > 0) {
-    return new Error(error);
-  }
-
-  return new Error("Unknown GitHub tRPC mutation failure");
-}
-
 function getErrorDetails(error: unknown): Record<string, unknown> {
   if (error instanceof Error) {
     const details: Record<string, unknown> = {
       name: error.name,
       message: error.message,
+      ...(error.stack ? { stack: error.stack } : {}),
     };
 
     if ("status" in error && typeof error.status === "number") {
@@ -64,8 +53,9 @@ function logGitHubMutationFailure(
   input: Record<string, unknown>,
   error: unknown,
 ) {
-  log.error(toLoggableError(error), {
+  log.error({
     area: "trpc.github",
+    message: "GitHub tRPC mutation failed",
     mutation,
     input,
     failure: getErrorDetails(error),
