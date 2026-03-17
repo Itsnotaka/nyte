@@ -109,7 +109,9 @@ function HeaderLabel({ pathname }: { pathname: string }) {
 export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
   const animationStyle = useSidebarAnimation();
+  const repoCtx = useRepoOptional();
   const isHomePage = pathname === "/";
+  const isCodePage = pathname.startsWith("/repo/") && !pathname.includes("/pull/") && !pathname.includes("/submit");
 
   return (
     <SidebarProvider
@@ -122,7 +124,7 @@ export function AppShell({ children }: AppShellProps) {
         </SidebarHeader>
 
         <SidebarContent className="px-2.5 pt-2 pb-3">
-          <nav aria-label="Primary">
+          <nav aria-label="Primary" className="space-y-0.5">
             <Link
               href="/"
               className={`flex rounded-md px-2 py-1.5 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-sachi-focus ${
@@ -133,6 +135,18 @@ export function AppShell({ children }: AppShellProps) {
             >
               Home
             </Link>
+            {repoCtx?.selectedRepo ? (
+              <Link
+                href={`/repo/${repoCtx.selectedRepo.owner.login}/${repoCtx.selectedRepo.name}`}
+                className={`flex rounded-md px-2 py-1.5 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-sachi-focus ${
+                  isCodePage
+                    ? "bg-sachi-fill text-sachi-fg"
+                    : "text-sachi-fg-secondary hover:bg-sachi-fill hover:text-sachi-fg"
+                }`}
+              >
+                Code
+              </Link>
+            ) : null}
           </nav>
         </SidebarContent>
 
