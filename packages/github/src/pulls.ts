@@ -11,6 +11,7 @@ import {
   type GitHubAppInstallationAuth,
   type GitHubIssueComment,
   GitHubError,
+  type GitHubLabel,
   type GitHubPullRequest,
   type GitHubPullRequestFile,
   type GitHubPullRequestReview,
@@ -443,5 +444,136 @@ export function submitPullRequestReview(
       })),
     });
     return mapReview(response.data);
+  });
+}
+
+// --- Paginated file list (Phase 1) ---
+
+export type PaginatedFiles = {
+  files: GitHubPullRequestFile[];
+  totalCount: number;
+};
+
+export function listPullRequestFilesPaginated(
+  auth: GitHubAppInstallationAuth,
+  owner: string,
+  repo: string,
+  pullNumber: number,
+  page = 1,
+  perPage = 30,
+): ResultAsync<PaginatedFiles, GitHubError> {
+  return withGitHubInstallationClient(auth, async (client) => {
+    const response = await client.rest.pulls.listFiles({
+      owner,
+      repo,
+      pull_number: pullNumber,
+      per_page: perPage,
+      page,
+    });
+    return {
+      files: response.data.map(mapPullRequestFile),
+      totalCount: response.data.length,
+    };
+  });
+}
+
+// --- Reviewer management (Phase 4) ---
+
+export function requestReviewers(
+  auth: GitHubAppInstallationAuth,
+  owner: string,
+  repo: string,
+  pullNumber: number,
+  reviewers: string[],
+): ResultAsync<GitHubPullRequest, GitHubError> {
+  return withGitHubInstallationClient(auth, async (client) => {
+    const response = await client.rest.pulls.requestReviewers({
+      owner,
+      repo,
+      pull_number: pullNumber,
+      reviewers,
+    });
+    return mapPullRequest(response.data);
+  });
+}
+
+export function removeReviewers(
+  auth: GitHubAppInstallationAuth,
+  owner: string,
+  repo: string,
+  pullNumber: number,
+  reviewers: string[],
+): ResultAsync<GitHubPullRequest, GitHubError> {
+  return withGitHubInstallationClient(auth, async (client) => {
+    const response = await client.rest.pulls.removeRequestedReviewers({
+      owner,
+      repo,
+      pull_number: pullNumber,
+      reviewers,
+    });
+    return mapPullRequest(response.data);
+  });
+}
+
+// --- Label helpers (Phase 4) ---
+
+function mapLabel(
+  label: Awaited<ReturnType<Octokit["rest"]["issues"]["listLabelsForRepo"]>>["data"][number],
+): GitHubLabel {
+  return {
+    id: label.id,
+    name: label.name,
+    color: label.color,
+    description: label.description ?? null,
+  };
+}
+
+export function listRepoLabels(
+  auth: GitHubAppInstallationAuth,
+  owner: string,
+  repo: string,
+): ResultAsync<GitHubLabel[], GitHubError> {
+  return withGitHubInstallationClient(auth, async (client) => {
+    const labels = await client.paginate(client.rest.issues.listLabelsForRepo, {
+      owner,
+      repo,
+      per_page: 100,
+    });
+    return labels.map(mapLabel);
+  });
+}
+
+export function addLabels(
+  auth: GitHubAppInstallationAuth,
+  owner: string,
+  repo: string,
+  issueNumber: number,
+  labels: string[],
+): ResultAsync<GitHubLabel[], GitHubError> {
+  return withGitHubInstallationClient(auth, async (client) => {
+    const response = await client.rest.issues.addLabels({
+      owner,
+      repo,
+      issue_number: issueNumber,
+      labels,
+    });
+    return response.data.map(mapLabel);
+  });
+}
+
+export function removeLabel(
+  auth: GitHubAppInstallationAuth,
+  owner: string,
+  repo: string,
+  issueNumber: number,
+  name: string,
+): ResultAsync<void, GitHubError> {
+  return withGitHubInstallationClient(auth, async (client) => {
+    await client.rest.issues.removeLabel({
+      owner,
+      repo,
+      issue_number: issueNumber,
+      name,
+    });
   });
 }

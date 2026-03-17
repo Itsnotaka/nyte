@@ -123,6 +123,69 @@ export type GitHubReviewCommentDraft = {
   side: "LEFT" | "RIGHT";
 };
 
+// --- Check Runs (Phase 2) ---
+
+export type GitHubCheckRun = {
+  id: number;
+  name: string;
+  status: "queued" | "in_progress" | "completed";
+  conclusion: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+  html_url: string;
+  app: { name: string; slug: string } | null;
+};
+
+export type GitHubCheckSummary = {
+  total: number;
+  passing: number;
+  failing: number;
+  pending: number;
+  conclusion: "success" | "failure" | "pending" | "neutral";
+};
+
+// --- Labels (Phase 4) ---
+
+export type GitHubLabel = {
+  id: number;
+  name: string;
+  color: string;
+  description: string | null;
+};
+
+// --- Repository Content (Phase 5) ---
+
+export type GitHubTreeEntry = {
+  path: string;
+  mode: string;
+  type: "blob" | "tree";
+  sha: string;
+  size: number | null;
+};
+
+export type GitHubTree = {
+  sha: string;
+  tree: GitHubTreeEntry[];
+  truncated: boolean;
+};
+
+export type GitHubCommitSummary = {
+  sha: string;
+  message: string;
+  author: { name: string; date: string };
+  html_url: string;
+};
+
+export type GitHubFileContent = {
+  name: string;
+  path: string;
+  sha: string;
+  size: number;
+  content: string;
+  encoding: string;
+  html_url: string;
+};
+
 export type GitHubAppInstallationAuth = {
   appId: number;
   privateKey: string;
