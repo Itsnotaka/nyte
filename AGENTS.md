@@ -201,3 +201,10 @@ secrets; the update script writes them to `.env.local` on startup.
   Tests and the Next.js dev server will fail with "Cannot find package" errors if
   the UI package has never been built. Run `vp run build` in `packages/ui` once
   after a fresh install.
+- `BETTER_AUTH_URL` must match the actual dev server origin (including port).
+  If port 3000 is occupied and Next.js falls back to 3001, the OAuth callback
+  will silently fail. Kill the conflicting process and ensure `next dev` binds
+  to the port in `BETTER_AUTH_URL`.
+- After killing the dev server, Next.js may leave a stale lock at
+  `apps/web/.next/dev/lock`. Remove it (`rm apps/web/.next/dev/lock`) before
+  restarting.
