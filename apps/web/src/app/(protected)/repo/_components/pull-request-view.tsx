@@ -529,6 +529,48 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
     })
   );
 
+  const updatePR = useMutation(
+    trpc.github.updatePullRequest.mutationOptions({
+      onSuccess: async () => {
+        setEditingDescription(false);
+        await queryClient.invalidateQueries({
+          queryKey: pullRequestPageQueryKey,
+        });
+      },
+    })
+  );
+
+  const convertToReady = useMutation(
+    trpc.github.convertToReady.mutationOptions({
+      onSuccess: async () => {
+        await queryClient.invalidateQueries({
+          queryKey: pullRequestPageQueryKey,
+        });
+      },
+    })
+  );
+
+  const updatePR = useMutation(
+    trpc.github.updatePullRequest.mutationOptions({
+      onSuccess: async () => {
+        setEditingDescription(false);
+        await queryClient.invalidateQueries({
+          queryKey: pullRequestPageQueryKey,
+        });
+      },
+    })
+  );
+
+  const convertToReady = useMutation(
+    trpc.github.convertToReady.mutationOptions({
+      onSuccess: async () => {
+        await queryClient.invalidateQueries({
+          queryKey: pullRequestPageQueryKey,
+        });
+      },
+    })
+  );
+
   function addDraft(path: string, lineNumber: number, side: "LEFT" | "RIGHT") {
     setDrafts((current) => {
       const exists = current.some(
