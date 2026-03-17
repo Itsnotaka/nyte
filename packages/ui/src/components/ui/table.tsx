@@ -2,8 +2,8 @@
 
 import * as React from "react";
 
-import { Checkbox } from "./checkbox";
 import { cn } from "../../lib/utils";
+import { Checkbox } from "./checkbox";
 
 /**
  * Table Component
@@ -57,7 +57,7 @@ function Table({ className, layout = "auto", variant, ...props }: TableProps) {
       className={cn(
         "w-full caption-bottom text-sm",
         layout === "fixed" && "table-fixed",
-        className,
+        className
       )}
       {...props}
     />
@@ -78,7 +78,11 @@ interface TableHeaderProps extends React.ComponentProps<"thead"> {
  * @param props - Header props including variant for compact style
  * @returns The thead element
  */
-function TableHeader({ className, variant = "default", ...props }: TableHeaderProps) {
+function TableHeader({
+  className,
+  variant = "default",
+  ...props
+}: TableHeaderProps) {
   return (
     <thead
       data-slot="table-header"
@@ -87,7 +91,7 @@ function TableHeader({ className, variant = "default", ...props }: TableHeaderPr
         "border-b border-sachi-line",
         variant === "compact" && "[&_tr]:h-8",
         variant === "default" && "[&_tr]:h-10",
-        className,
+        className
       )}
       {...props}
     />
@@ -133,7 +137,7 @@ function TableRow({ className, variant = "default", ...props }: TableRowProps) {
         "border-b border-sachi-line-subtle transition-colors",
         variant === "selected" && "bg-sachi-fill",
         variant === "default" && "hover:bg-sachi-fill-hover",
-        className,
+        className
       )}
       {...props}
     />
@@ -151,9 +155,9 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
     <th
       data-slot="table-head"
       className={cn(
-        "px-3 text-left align-middle font-medium text-sachi-fg-secondary whitespace-nowrap",
-        "[&:has([role=checkbox])]:pr-0 [&:has([role=checkbox])]:pl-3 [&:has([role=checkbox])]:w-10",
-        className,
+        "px-3 text-left align-middle font-medium whitespace-nowrap text-sachi-fg-secondary",
+        "[&:has([role=checkbox])]:w-10 [&:has([role=checkbox])]:pr-0 [&:has([role=checkbox])]:pl-3",
+        className
       )}
       {...props}
     />
@@ -171,9 +175,9 @@ function TableCell({ className, ...props }: React.ComponentProps<"td">) {
     <td
       data-slot="table-cell"
       className={cn(
-        "px-3 py-2.5 align-middle text-sachi-fg whitespace-nowrap",
-        "[&:has([role=checkbox])]:pr-0 [&:has([role=checkbox])]:pl-3 [&:has([role=checkbox])]:w-10",
-        className,
+        "px-3 py-2.5 align-middle whitespace-nowrap text-sachi-fg",
+        "[&:has([role=checkbox])]:w-10 [&:has([role=checkbox])]:pr-0 [&:has([role=checkbox])]:pl-3",
+        className
       )}
       {...props}
     />
@@ -183,7 +187,10 @@ function TableCell({ className, ...props }: React.ComponentProps<"td">) {
 /**
  * Props for Table.CheckHead component.
  */
-interface TableCheckHeadProps extends Omit<React.ComponentProps<"th">, "onChange"> {
+interface TableCheckHeadProps extends Omit<
+  React.ComponentProps<"th">,
+  "onChange"
+> {
   /** Whether the checkbox is checked */
   checked?: boolean;
   /** Whether the checkbox is in indeterminate state */
@@ -211,14 +218,12 @@ function TableCheckHead({
   return (
     <th
       data-slot="table-check-head"
-      className={cn(
-        "w-10 px-3 py-2 text-left align-middle",
-        className,
-      )}
+      className={cn("w-10 px-3 py-2 text-left align-middle", className)}
       {...props}
     >
       <Checkbox
-        checked={indeterminate ? "indeterminate" : checked}
+        checked={checked}
+        indeterminate={indeterminate}
         onCheckedChange={onChange}
         aria-label={ariaLabel}
       />
@@ -229,7 +234,10 @@ function TableCheckHead({
 /**
  * Props for Table.CheckCell component.
  */
-interface TableCheckCellProps extends Omit<React.ComponentProps<"td">, "onChange"> {
+interface TableCheckCellProps extends Omit<
+  React.ComponentProps<"td">,
+  "onChange"
+> {
   /** Whether the checkbox is checked */
   checked?: boolean;
   /** Callback when checkbox state changes */
@@ -254,10 +262,7 @@ function TableCheckCell({
   return (
     <td
       data-slot="table-check-cell"
-      className={cn(
-        "w-10 px-3 py-2 align-middle",
-        className,
-      )}
+      className={cn("w-10 px-3 py-2 align-middle", className)}
       {...props}
     >
       <Checkbox
@@ -298,9 +303,9 @@ function TableResizeHandle({
       role="separator"
       aria-orientation="vertical"
       className={cn(
-        "absolute right-0 top-0 h-full w-1 cursor-col-resize touch-none",
+        "absolute top-0 right-0 h-full w-1 cursor-col-resize touch-none",
         "hover:bg-sachi-accent/20 active:bg-sachi-accent/40",
-        className,
+        className
       )}
       onMouseDown={onMouseDown}
       onTouchStart={onTouchStart}
