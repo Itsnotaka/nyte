@@ -631,15 +631,23 @@ export function PullRequestView({ initialData }: PullRequestViewProps) {
     submitReview.isPending ||
     !canSubmitReview(reviewAction, reviewBody, drafts.length);
 
-  // File entries for sidebar
+  // File entries for sidebar - compute additions/deletions from hunk counts
   const fileEntries = React.useMemo(
     () =>
-      files.map((file) => ({
-        additions: file.additions ?? 0,
-        deletions: file.deletions ?? 0,
-        filename: file.name,
-        status: file.mode ?? "modified",
-      })),
+      files.map((file) => {
+        let additions = 0;
+        let deletions = 0;
+        for (const hunk of file.hunks) {
+          additions += hunk.additionLines;
+          deletions += hunk.deletionLines;
+        }
+        return {
+          additions,
+          deletions,
+          filename: file.name,
+          status: file.type ?? "modified",
+        };
+      }),
     [files],
   );
 

@@ -24,27 +24,27 @@ type FileTreeSidebarProps = {
 };
 
 function statusLabel(status: string): string {
-  if (status === "added") return "A";
-  if (status === "removed") return "D";
-  if (status === "modified" || status === "changed") return "M";
-  if (status === "renamed") return "R";
+  if (status === "added" || status === "new") return "A";
+  if (status === "removed" || status === "deleted") return "D";
+  if (status === "modified" || status === "changed" || status === "change") return "M";
+  if (status === "renamed" || status === "rename-pure" || status === "rename-changed") return "R";
   return "?";
 }
 
 function statusColor(status: string): string {
-  if (status === "added") return "text-green-600";
-  if (status === "removed") return "text-red-500";
-  if (status === "modified" || status === "changed") return "text-amber-500";
-  if (status === "renamed") return "text-blue-500";
+  if (status === "added" || status === "new") return "text-green-600";
+  if (status === "removed" || status === "deleted") return "text-red-500";
+  if (status === "modified" || status === "changed" || status === "change") return "text-amber-500";
+  if (status === "renamed" || status === "rename-pure" || status === "rename-changed") return "text-blue-500";
   return "text-sachi-fg-muted";
 }
 
 function matchesFilter(status: string, filter: StatusFilter): boolean {
   if (filter === "all") return true;
-  if (filter === "added") return status === "added";
-  if (filter === "modified") return status === "modified" || status === "changed";
-  if (filter === "removed") return status === "removed";
-  if (filter === "renamed") return status === "renamed";
+  if (filter === "added") return status === "added" || status === "new";
+  if (filter === "modified") return status === "modified" || status === "changed" || status === "change";
+  if (filter === "removed") return status === "removed" || status === "deleted";
+  if (filter === "renamed") return status === "renamed" || status === "rename-pure" || status === "rename-changed";
   return true;
 }
 

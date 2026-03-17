@@ -33,7 +33,7 @@ type MergeModalProps = {
     commitTitle: string;
     commitMessage: string;
   }) => void;
-  trigger: React.ReactNode;
+  trigger: React.ReactElement;
 };
 
 const STRATEGIES: { id: MergeMethod; label: string; description: string }[] = [

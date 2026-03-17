@@ -20,8 +20,12 @@ export function BranchSelector({
   currentRef,
   onRefChange,
 }: BranchSelectorProps) {
+  function handleChange(value: string | null) {
+    if (value) onRefChange(value);
+  }
+
   return (
-    <Select value={currentRef} onValueChange={onRefChange}>
+    <Select value={currentRef} onValueChange={handleChange}>
       <SelectTrigger className="w-48">
         <SelectValue placeholder="Select branch" />
       </SelectTrigger>
