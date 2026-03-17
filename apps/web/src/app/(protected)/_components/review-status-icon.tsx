@@ -18,21 +18,21 @@ export function ReviewStatusIcon({
     case "approved":
       return (
         <IconCircleCheck
-          className="size-3.5 text-green-500"
+          className="size-3.5 text-sachi-success"
           aria-label="Approved"
         />
       );
     case "changes_requested":
       return (
         <IconCircleX
-          className="size-3.5 text-red-500"
+          className="size-3.5 text-destructive"
           aria-label="Changes requested"
         />
       );
     case "review_required":
       return (
         <IconCircleDashed
-          className="size-3.5 text-amber-400"
+          className="size-3.5 text-sachi-warning"
           aria-label="Review required"
         />
       );

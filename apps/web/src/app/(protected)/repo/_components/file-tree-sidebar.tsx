@@ -24,17 +24,29 @@ type FileTreeSidebarProps = {
 };
 
 const STATUS_LABEL: Record<string, string> = {
-  added: "A", new: "A",
-  removed: "D", deleted: "D",
-  modified: "M", changed: "M", change: "M",
-  renamed: "R", "rename-pure": "R", "rename-changed": "R",
+  added: "A",
+  new: "A",
+  removed: "D",
+  deleted: "D",
+  modified: "M",
+  changed: "M",
+  change: "M",
+  renamed: "R",
+  "rename-pure": "R",
+  "rename-changed": "R",
 };
 
 const STATUS_COLOR: Record<string, string> = {
-  added: "text-green-600", new: "text-green-600",
-  removed: "text-red-500", deleted: "text-red-500",
-  modified: "text-amber-500", changed: "text-amber-500", change: "text-amber-500",
-  renamed: "text-blue-500", "rename-pure": "text-blue-500", "rename-changed": "text-blue-500",
+  added: "text-sachi-success",
+  new: "text-sachi-success",
+  removed: "text-destructive",
+  deleted: "text-destructive",
+  modified: "text-sachi-warning",
+  changed: "text-sachi-warning",
+  change: "text-sachi-warning",
+  renamed: "text-sachi-accent",
+  "rename-pure": "text-sachi-accent",
+  "rename-changed": "text-sachi-accent",
 };
 
 const FILTER_STATUSES: Record<Exclude<StatusFilter, "all">, Set<string>> = {
@@ -66,7 +78,8 @@ export function FileTreeSidebar({
     const q = query.toLowerCase().trim();
     const parts = q.length > 0 ? q.split(/\s+/) : [];
     return files.filter((file) => {
-      if (filter !== "all" && !FILTER_STATUSES[filter].has(file.status)) return false;
+      if (filter !== "all" && !FILTER_STATUSES[filter].has(file.status))
+        return false;
       if (parts.length === 0) return true;
       const lower = file.filename.toLowerCase();
       return parts.every((p) => lower.includes(p));
@@ -79,9 +92,7 @@ export function FileTreeSidebar({
     <div className="hidden w-72 shrink-0 flex-col border-r border-sachi-line bg-sachi-sidebar lg:flex">
       <div className="space-y-2 border-b border-sachi-line-subtle px-3 py-3">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-medium text-sachi-fg-muted">
-            Files
-          </span>
+          <span className="text-xs font-medium text-sachi-fg-muted">Files</span>
           <span className="text-xs text-sachi-fg-faint">
             {viewedCount}/{files.length} viewed
           </span>
@@ -102,7 +113,7 @@ export function FileTreeSidebar({
                 "rounded px-1.5 py-0.5 text-xs transition-colors",
                 filter === f.id
                   ? "bg-sachi-fill text-sachi-fg"
-                  : "text-sachi-fg-muted hover:bg-sachi-fill hover:text-sachi-fg-secondary",
+                  : "text-sachi-fg-muted hover:bg-sachi-fill hover:text-sachi-fg-secondary"
               )}
             >
               {f.label}
@@ -122,14 +133,17 @@ export function FileTreeSidebar({
             const active = activeFile === file.filename;
             const lastSlash = file.filename.lastIndexOf("/");
             const dir = lastSlash > 0 ? file.filename.slice(0, lastSlash) : "";
-            const name = lastSlash >= 0 ? file.filename.slice(lastSlash + 1) : file.filename;
+            const name =
+              lastSlash >= 0
+                ? file.filename.slice(lastSlash + 1)
+                : file.filename;
 
             return (
               <div
                 key={file.filename}
                 className={cn(
                   "group flex items-start gap-2 border-b border-sachi-line-subtle px-3 py-2 transition-colors hover:bg-sachi-fill",
-                  active && "bg-sachi-fill",
+                  active && "bg-sachi-fill"
                 )}
               >
                 <Checkbox
@@ -150,7 +164,7 @@ export function FileTreeSidebar({
                       variant="outline"
                       className={cn(
                         "h-4 shrink-0 px-1 text-[10px] font-bold",
-                        STATUS_COLOR[file.status] ?? "text-sachi-fg-muted",
+                        STATUS_COLOR[file.status] ?? "text-sachi-fg-muted"
                       )}
                     >
                       {STATUS_LABEL[file.status] ?? "?"}
@@ -158,9 +172,7 @@ export function FileTreeSidebar({
                     <span
                       className={cn(
                         "truncate text-xs font-medium",
-                        viewed
-                          ? "text-sachi-fg-muted"
-                          : "text-sachi-fg",
+                        viewed ? "text-sachi-fg-muted" : "text-sachi-fg"
                       )}
                       title={file.filename}
                     >
@@ -168,15 +180,17 @@ export function FileTreeSidebar({
                     </span>
                   </span>
                   {dir ? (
-                    <span className="truncate text-[10px] text-sachi-fg-faint" title={dir}>
+                    <span
+                      className="truncate text-[10px] text-sachi-fg-faint"
+                      title={dir}
+                    >
                       {dir}
                     </span>
                   ) : null}
                 </button>
                 <span className="shrink-0 pt-0.5 text-[10px] whitespace-nowrap">
-                  <span className="text-green-600">+{file.additions}</span>
-                  {" "}
-                  <span className="text-red-500">-{file.deletions}</span>
+                  <span className="text-sachi-success">+{file.additions}</span>{" "}
+                  <span className="text-destructive">-{file.deletions}</span>
                 </span>
               </div>
             );

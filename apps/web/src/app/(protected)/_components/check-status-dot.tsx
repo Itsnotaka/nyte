@@ -44,7 +44,7 @@ export function CheckStatusDot({
   if (summaryQuery.isError) {
     return (
       <span
-        className="inline-block size-2 shrink-0 rounded-full bg-red-300"
+        className="inline-block size-2 shrink-0 rounded-full bg-destructive"
         title="Failed to load check status"
       />
     );
@@ -55,11 +55,11 @@ export function CheckStatusDot({
 
   const color =
     summary.conclusion === "success"
-      ? "bg-green-500"
+      ? "bg-sachi-success"
       : summary.conclusion === "failure"
-        ? "bg-red-500"
+        ? "bg-destructive"
         : summary.conclusion === "pending"
-          ? "bg-amber-400"
+          ? "bg-sachi-warning"
           : "bg-sachi-fg-faint";
 
   return (

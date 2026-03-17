@@ -108,7 +108,7 @@ export function ReviewerPanel({
               {addReviewer.isPending ? "Adding..." : "Add reviewer"}
             </Button>
             {addReviewer.error ? (
-              <p className="text-xs text-red-500">
+              <p className="text-xs text-destructive">
                 {addReviewer.error.message}
               </p>
             ) : null}

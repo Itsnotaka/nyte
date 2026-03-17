@@ -137,9 +137,9 @@ function PullRequestRow({ pr }: { pr: InboxPullRequest }) {
       <Table.Cell className="w-28 text-right">
         {pr.additions != null && pr.deletions != null ? (
           <span className="text-xs whitespace-nowrap tabular-nums">
-            <span className="text-green-600">+{pr.additions}</span>
+            <span className="text-sachi-success">+{pr.additions}</span>
             <span className="text-sachi-fg-faint"> / </span>
-            <span className="text-red-500">-{pr.deletions}</span>
+            <span className="text-destructive">-{pr.deletions}</span>
           </span>
         ) : (
           <span className="text-xs text-sachi-fg-faint">&mdash;</span>

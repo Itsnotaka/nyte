@@ -210,7 +210,7 @@ export function RepoPickerView({
         </Button>
 
         {saveMutation.error ? (
-          <p className="text-sm text-red-500">
+          <p className="text-sm text-destructive">
             {saveMutation.error.message ?? "Failed to save repo selection."}
           </p>
         ) : null}

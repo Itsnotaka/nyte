@@ -9,8 +9,8 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-inter), system-ui, sans-serif;
   --font-mono:
-    var(--font-berkeley-mono), "SFMono Regular", Consolas, "Liberation Mono", Menlo, Courier,
-    monospace;
+    var(--font-berkeley-mono), "SFMono Regular", Consolas, "Liberation Mono",
+    Menlo, Courier, monospace;
   --text-sm: 0.8125rem;
   --text-sm--line-height: calc(21 / 14);
   --color-sidebar-ring: var(--sidebar-ring);
@@ -73,6 +73,10 @@
   --color-sachi-accent: light-dark(#5e6ad2, #dde2f2);
   --color-sachi-rail: light-dark(#dfe3eb, #23252a);
   --color-sachi-focus: light-dark(#5e6ad2, #7a86f2);
+
+  /* Sachikit semantic tokens — status */
+  --color-sachi-success: light-dark(#22c55e, #4ade80);
+  --color-sachi-warning: light-dark(#f59e0b, #fbbf24);
 }
 
 :root {

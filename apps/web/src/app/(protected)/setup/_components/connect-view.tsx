@@ -63,7 +63,7 @@ export function ConnectView() {
         </Button>
 
         {startInstallMutation.error ? (
-          <p className="text-sm text-red-500">
+          <p className="text-sm text-destructive">
             {startInstallMutation.error.message ??
               "Unable to start the GitHub app install."}
           </p>

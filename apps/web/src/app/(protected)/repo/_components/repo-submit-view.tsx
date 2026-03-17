@@ -230,7 +230,7 @@ export function RepoSubmitView({ initialData }: RepoSubmitViewProps) {
             ) : null}
 
             {savePullRequest.error ? (
-              <p className="text-sm text-red-500">
+              <p className="text-sm text-destructive">
                 {savePullRequest.error.message}
               </p>
             ) : null}

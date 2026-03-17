@@ -44,13 +44,13 @@ function StatusIcon({ run }: { run: GitHubCheckRun }) {
   if (run.status !== "completed") {
     return (
       <span className="flex size-4 items-center justify-center">
-        <span className="size-2 animate-pulse rounded-full bg-amber-400" />
+        <span className="size-2 animate-pulse rounded-full bg-sachi-warning" />
       </span>
     );
   }
 
   if (run.conclusion === "success") {
-    return <IconCircleCheck className="size-4 text-green-600" />;
+    return <IconCircleCheck className="size-4 text-sachi-success" />;
   }
 
   if (
@@ -58,7 +58,7 @@ function StatusIcon({ run }: { run: GitHubCheckRun }) {
     run.conclusion === "timed_out" ||
     run.conclusion === "action_required"
   ) {
-    return <IconCircleX className="size-4 text-red-500" />;
+    return <IconCircleX className="size-4 text-destructive" />;
   }
 
   return <IconCircle className="size-4 text-sachi-fg-faint" />;

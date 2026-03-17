@@ -48,7 +48,7 @@ export function LoginView() {
         </button>
 
         {signInMutation.error ? (
-          <p className="text-sm text-red-500">
+          <p className="text-sm text-destructive">
             {signInMutation.error.message ?? "Unable to sign in with GitHub."}
           </p>
         ) : null}
