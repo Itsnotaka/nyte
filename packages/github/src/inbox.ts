@@ -47,9 +47,10 @@ type ClassifyPullRequestsOptions = {
   recentlyMergedSince?: string;
 };
 
-function getLatestSubmittedReviews(
+export function buildPullRequestReviewSignals(
+  pullRequest: GitHubPullRequest,
   reviews: GitHubPullRequestReview[]
-): Map<string, GitHubPullRequestReview> {
+): PullRequestReviewSignals {
   const latestByUser = new Map<string, GitHubPullRequestReview>();
   for (const review of reviews) {
     if (review.state === "PENDING") continue;
@@ -61,14 +62,6 @@ function getLatestSubmittedReviews(
       latestByUser.set(review.user.login, review);
     }
   }
-  return latestByUser;
-}
-
-export function buildPullRequestReviewSignals(
-  pullRequest: GitHubPullRequest,
-  reviews: GitHubPullRequestReview[]
-): PullRequestReviewSignals {
-  const latestByUser = getLatestSubmittedReviews(reviews);
   const requestedReviewerLogins = pullRequest.requested_reviewers.map(
     (reviewer) => reviewer.login.toLowerCase()
   );

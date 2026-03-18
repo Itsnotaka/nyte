@@ -1,6 +1,10 @@
 import type { ResultAsync } from "neverthrow";
 
-import { accountFromResponse, withGitHubClient, withGitHubInstallationClient } from "./client.ts";
+import {
+  accountFromResponse,
+  withGitHubClient,
+  withGitHubInstallationClient,
+} from "./client.ts";
 import {
   GitHubError,
   type GitHubAppInstallationAuth,
@@ -8,12 +12,11 @@ import {
   type GitHubFileContent,
   type GitHubRepository,
   type GitHubTree,
-  type GitHubTreeEntry,
 } from "./types.ts";
 
 export function listInstallationRepos(
   userAccessToken: string,
-  installationId: number,
+  installationId: number
 ): ResultAsync<GitHubRepository[], GitHubError> {
   return withGitHubClient(userAccessToken, async (client) => {
     const repositories = await client.paginate(
@@ -21,11 +24,15 @@ export function listInstallationRepos(
       {
         installation_id: installationId,
         per_page: 100,
-      },
+      }
     );
     return repositories.map((repository) => {
       if (!repository.updated_at) {
-        throw new GitHubError("GitHub repository is missing an updated_at timestamp", 0, "unknown");
+        throw new GitHubError(
+          "GitHub repository is missing an updated_at timestamp",
+          0,
+          "unknown"
+        );
       }
 
       return {
@@ -49,7 +56,7 @@ export function getRepositoryTree(
   owner: string,
   repo: string,
   treeSha: string,
-  recursive = false,
+  recursive = false
 ): ResultAsync<GitHubTree, GitHubError> {
   return withGitHubInstallationClient(auth, async (client) => {
     const response = await client.rest.git.getTree({
@@ -60,15 +67,13 @@ export function getRepositoryTree(
     });
     return {
       sha: response.data.sha,
-      tree: response.data.tree.map(
-        (entry): GitHubTreeEntry => ({
-          path: entry.path ?? "",
-          mode: entry.mode ?? "",
-          type: (entry.type === "tree" ? "tree" : "blob") as GitHubTreeEntry["type"],
-          sha: entry.sha ?? "",
-          size: entry.size ?? null,
-        }),
-      ),
+      tree: response.data.tree.map((entry) => ({
+        path: entry.path ?? "",
+        mode: entry.mode ?? "",
+        type: entry.type === "tree" ? "tree" : "blob",
+        sha: entry.sha ?? "",
+        size: entry.size ?? null,
+      })),
       truncated: response.data.truncated,
     };
   });
@@ -79,7 +84,7 @@ export function getFileContent(
   owner: string,
   repo: string,
   path: string,
-  ref?: string,
+  ref?: string
 ): ResultAsync<GitHubFileContent, GitHubError> {
   return withGitHubInstallationClient(auth, async (client) => {
     const response = await client.rest.repos.getContent({
@@ -108,7 +113,7 @@ export function listCommits(
   auth: GitHubAppInstallationAuth,
   owner: string,
   repo: string,
-  options?: { path?: string; sha?: string; perPage?: number },
+  options?: { path?: string; sha?: string; perPage?: number }
 ): ResultAsync<GitHubCommitSummary[], GitHubError> {
   return withGitHubInstallationClient(auth, async (client) => {
     const response = await client.rest.repos.listCommits({

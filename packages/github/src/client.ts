@@ -49,11 +49,17 @@ function messageFromResponseData(data: unknown): string | null {
     return null;
   }
 
-  const message = (data as { message?: unknown }).message;
-  return typeof message === "string" && message.trim().length > 0 ? message : null;
+  const obj = data as Record<string, unknown>;
+  const message = obj.message;
+  return typeof message === "string" && message.trim().length > 0
+    ? message
+    : null;
 }
 
-function errorMessageFromFailure(error: GitHubRequestFailure, status: number): string {
+function errorMessageFromFailure(
+  error: GitHubRequestFailure,
+  status: number
+): string {
   const responseMessage = messageFromResponseData(error.response?.data);
   if (responseMessage) {
     return responseMessage;
@@ -63,12 +69,21 @@ function errorMessageFromFailure(error: GitHubRequestFailure, status: number): s
     return error.message;
   }
 
-  return status > 0 ? `GitHub API error: ${status}` : "GitHub API request failed";
+  return status > 0
+    ? `GitHub API error: ${status}`
+    : "GitHub API request failed";
 }
 
-export function accountFromResponse(account: GitHubAccountResponse, label: string): GitHubAccount {
+export function accountFromResponse(
+  account: GitHubAccountResponse,
+  label: string
+): GitHubAccount {
   if (!account) {
-    throw new GitHubError(`GitHub ${label} is missing account details`, 0, "unknown");
+    throw new GitHubError(
+      `GitHub ${label} is missing account details`,
+      0,
+      "unknown"
+    );
   }
 
   const login = account.login ?? account.slug;
@@ -76,7 +91,8 @@ export function accountFromResponse(account: GitHubAccountResponse, label: strin
     throw new GitHubError(`GitHub ${label} is missing a login`, 0, "unknown");
   }
 
-  const type: GitHubAccount["type"] = account.type === "Organization" ? "Organization" : "User";
+  const type: GitHubAccount["type"] =
+    account.type === "Organization" ? "Organization" : "User";
 
   return { login, id: account.id, avatar_url: account.avatar_url, type };
 }
@@ -88,7 +104,9 @@ export function createGitHubClient(token: string): Octokit {
   });
 }
 
-export function createGitHubInstallationClient(auth: GitHubAppInstallationAuth): Octokit {
+export function createGitHubInstallationClient(
+  auth: GitHubAppInstallationAuth
+): Octokit {
   return new Octokit({
     authStrategy: createAppAuth,
     auth: {
@@ -106,7 +124,9 @@ export function normalizeGitHubError(error: unknown): GitHubError {
   }
 
   const status =
-    isGitHubRequestFailure(error) && typeof error.status === "number" ? error.status : 0;
+    isGitHubRequestFailure(error) && typeof error.status === "number"
+      ? error.status
+      : 0;
 
   const message = isGitHubRequestFailure(error)
     ? errorMessageFromFailure(error, status)
@@ -121,7 +141,7 @@ export function normalizeGitHubError(error: unknown): GitHubError {
 
 export function withGitHubClient<T>(
   token: string,
-  run: (client: Octokit) => Promise<T>,
+  run: (client: Octokit) => Promise<T>
 ): ResultAsync<T, GitHubError> {
   const client = createGitHubClient(token);
   return ResultAsync.fromPromise(run(client), normalizeGitHubError);
@@ -129,8 +149,32 @@ export function withGitHubClient<T>(
 
 export function withGitHubInstallationClient<T>(
   auth: GitHubAppInstallationAuth,
-  run: (client: Octokit) => Promise<T>,
+  run: (client: Octokit) => Promise<T>
 ): ResultAsync<T, GitHubError> {
   const client = createGitHubInstallationClient(auth);
   return ResultAsync.fromPromise(run(client), normalizeGitHubError);
+}
+
+export async function withGitHubClientOrThrow<T>(
+  token: string,
+  run: (client: Octokit) => Promise<T>
+): Promise<T> {
+  const client = createGitHubClient(token);
+  try {
+    return await run(client);
+  } catch (error) {
+    throw normalizeGitHubError(error);
+  }
+}
+
+export async function withGitHubInstallationClientOrThrow<T>(
+  auth: GitHubAppInstallationAuth,
+  run: (client: Octokit) => Promise<T>
+): Promise<T> {
+  const client = createGitHubInstallationClient(auth);
+  try {
+    return await run(client);
+  } catch (error) {
+    throw normalizeGitHubError(error);
+  }
 }

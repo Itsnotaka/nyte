@@ -30,43 +30,32 @@ type PullRequestResponse =
   | PullRequestSummaryResponse
   | PullRequestDetailResponse;
 
-function isDetailedPullRequest(
-  pull: PullRequestResponse
-): pull is PullRequestDetailResponse {
-  return (
+function toPullRequest(pull: PullRequestResponse): GitHubPullRequest {
+  const user = accountFromResponse(pull.user, "pull request author");
+  const state = pull.state === "open" ? "open" : "closed";
+  const detailed =
     "comments" in pull &&
     "review_comments" in pull &&
     "commits" in pull &&
     "additions" in pull &&
     "deletions" in pull &&
-    "changed_files" in pull
-  );
-}
+    "changed_files" in pull;
 
-function filterRequestedReviewers(
-  pull: PullRequestResponse
-): GitHubPullRequest["requested_reviewers"] {
-  if (!Array.isArray(pull.requested_reviewers)) return [];
-
-  return pull.requested_reviewers.flatMap((reviewer) => {
-    if (!reviewer || !("login" in reviewer)) return [];
-    try {
-      return [
-        accountFromResponse(
-          reviewer as GitHubAccountResponse,
-          "requested reviewer"
-        ),
-      ];
-    } catch {
-      return [];
-    }
-  });
-}
-
-function mapPullRequest(pull: PullRequestResponse): GitHubPullRequest {
-  const user = accountFromResponse(pull.user, "pull request author");
-  const state = pull.state as GitHubPullRequest["state"];
-  const detailed = isDetailedPullRequest(pull);
+  const requestedReviewers = !Array.isArray(pull.requested_reviewers)
+    ? []
+    : pull.requested_reviewers.flatMap((reviewer) => {
+        if (!reviewer || !("login" in reviewer)) return [];
+        try {
+          return [
+            accountFromResponse(
+              reviewer as GitHubAccountResponse,
+              "requested reviewer"
+            ),
+          ];
+        } catch {
+          return [];
+        }
+      });
 
   return {
     id: pull.id,
@@ -81,7 +70,6 @@ function mapPullRequest(pull: PullRequestResponse): GitHubPullRequest {
       "auto_merge" in pull &&
       typeof pull.auto_merge === "object" &&
       pull.auto_merge !== null,
-    // pulls.list returns "Pull Request Simple" items, which omit these counts.
     comments: detailed ? pull.comments : null,
     review_comments: detailed ? pull.review_comments : null,
     commits: detailed ? pull.commits : null,
@@ -91,13 +79,13 @@ function mapPullRequest(pull: PullRequestResponse): GitHubPullRequest {
     created_at: pull.created_at,
     updated_at: pull.updated_at,
     user,
-    requested_reviewers: filterRequestedReviewers(pull),
+    requested_reviewers: requestedReviewers,
     head: { ref: pull.head.ref, sha: pull.head.sha },
     base: { ref: pull.base.ref, sha: pull.base.sha },
   };
 }
 
-function mapPullRequestFile(
+function toPullRequestFile(
   file: Awaited<
     ReturnType<Octokit["rest"]["pulls"]["listFiles"]>
   >["data"][number]
@@ -124,7 +112,7 @@ function mapPullRequestFile(
   };
 }
 
-function mapIssueComment(
+function toIssueComment(
   comment: Awaited<
     ReturnType<Octokit["rest"]["issues"]["listComments"]>
   >["data"][number]
@@ -139,7 +127,7 @@ function mapIssueComment(
   };
 }
 
-function mapReview(
+function toReview(
   review: Awaited<
     ReturnType<Octokit["rest"]["pulls"]["listReviews"]>
   >["data"][number]
@@ -162,7 +150,7 @@ function parseSide(
   return null;
 }
 
-function mapReviewComment(
+function toReviewComment(
   comment: Awaited<
     ReturnType<Octokit["rest"]["pulls"]["listReviewComments"]>
   >["data"][number]
@@ -198,7 +186,7 @@ export function listRepositoryPullRequests(
       state,
       per_page: 100,
     });
-    return pulls.map(mapPullRequest);
+    return pulls.map(toPullRequest);
   });
 }
 
@@ -217,7 +205,7 @@ export function listRecentPullRequests(
       direction: "desc",
       per_page: options?.perPage ?? 100,
     });
-    return response.data.map(mapPullRequest);
+    return response.data.map(toPullRequest);
   });
 }
 
@@ -249,7 +237,7 @@ export function findPullRequestByHead(
         ? pulls[0]
         : pulls.find((pull) => pull.base.ref === options.base);
 
-    return match == null ? null : mapPullRequest(match);
+    return match == null ? null : toPullRequest(match);
   });
 }
 
@@ -265,7 +253,7 @@ export function getPullRequest(
       repo,
       pull_number: pullNumber,
     });
-    return mapPullRequest(response.data);
+    return toPullRequest(response.data);
   });
 }
 
@@ -291,7 +279,7 @@ export function createPullRequest(
       base: input.base,
       draft: input.draft,
     });
-    return mapPullRequest(response.data);
+    return toPullRequest(response.data);
   });
 }
 
@@ -315,7 +303,7 @@ export function updatePullRequest(
       ...(input.body !== undefined ? { body: input.body } : {}),
       ...(input.base !== undefined ? { base: input.base } : {}),
     });
-    return mapPullRequest(response.data);
+    return toPullRequest(response.data);
   });
 }
 
@@ -334,7 +322,7 @@ export function markPullRequestReadyForReview(
         pull_number: pullNumber,
       }
     );
-    return mapPullRequest(response.data as PullRequestDetailResponse);
+    return toPullRequest(response.data as PullRequestDetailResponse);
   });
 }
 
@@ -351,7 +339,7 @@ export function listPullRequestFiles(
       pull_number: pullNumber,
       per_page: 100,
     });
-    return files.map(mapPullRequestFile);
+    return files.map(toPullRequestFile);
   });
 }
 
@@ -394,7 +382,7 @@ export function listIssueComments(
       issue_number: issueNumber,
       per_page: 100,
     });
-    return comments.map(mapIssueComment);
+    return comments.map(toIssueComment);
   });
 }
 
@@ -412,7 +400,7 @@ export function createIssueComment(
       issue_number: issueNumber,
       body,
     });
-    return mapIssueComment(response.data);
+    return toIssueComment(response.data);
   });
 }
 
@@ -429,7 +417,7 @@ export function listPullRequestReviews(
       pull_number: pullNumber,
       per_page: 100,
     });
-    return reviews.map(mapReview);
+    return reviews.map(toReview);
   });
 }
 
@@ -449,7 +437,7 @@ export function listPullRequestReviewComments(
         per_page: 100,
       }
     );
-    return comments.map(mapReviewComment);
+    return comments.map(toReviewComment);
   });
 }
 
@@ -504,7 +492,7 @@ export function submitPullRequestReview(
         side: comment.side,
       })),
     });
-    return mapReview(response.data);
+    return toReview(response.data);
   });
 }
 
@@ -530,10 +518,10 @@ export function listPullRequestFilesPaginated(
       page,
     });
     const nextMatch = response.headers.link?.match(
-      /[\?&]page=(\d+)[^>]*>; rel="next"/
+      /[?&]page=(\d+)[^>]*>; rel="next"/
     );
     return {
-      files: response.data.map(mapPullRequestFile),
+      files: response.data.map(toPullRequestFile),
       nextPage: nextMatch ? Number(nextMatch[1]) : null,
     };
   });
@@ -553,7 +541,7 @@ export function requestReviewers(
       pull_number: pullNumber,
       reviewers,
     });
-    return mapPullRequest(response.data);
+    return toPullRequest(response.data);
   });
 }
 
@@ -571,11 +559,11 @@ export function removeReviewers(
       pull_number: pullNumber,
       reviewers,
     });
-    return mapPullRequest(response.data);
+    return toPullRequest(response.data);
   });
 }
 
-function mapLabel(
+function toLabel(
   label: Awaited<
     ReturnType<Octokit["rest"]["issues"]["listLabelsForRepo"]>
   >["data"][number]
@@ -599,7 +587,7 @@ export function listRepoLabels(
       repo,
       per_page: 100,
     });
-    return labels.map(mapLabel);
+    return labels.map(toLabel);
   });
 }
 
@@ -617,7 +605,7 @@ export function addLabels(
       issue_number: issueNumber,
       labels,
     });
-    return response.data.map(mapLabel);
+    return response.data.map(toLabel);
   });
 }
 
@@ -658,10 +646,19 @@ export function compareBranches(
       repo,
       basehead: `${base}...${head}`,
     });
+    const status = response.data.status;
+    const validStatus: BranchComparison["status"] =
+      status === "ahead" ||
+      status === "behind" ||
+      status === "diverged" ||
+      status === "identical"
+        ? status
+        : "identical";
+
     return {
       aheadBy: response.data.ahead_by,
       behindBy: response.data.behind_by,
-      status: response.data.status as BranchComparison["status"],
+      status: validStatus,
       totalCommits: response.data.total_commits,
     };
   });
