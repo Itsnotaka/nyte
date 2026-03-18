@@ -44,68 +44,37 @@ export function RepoSubmitView({ owner, repo }: RepoSubmitViewProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [branch, setBranch] = useQueryState("branch", parseAsString);
-  const queryInput = React.useMemo(
-    () => ({
-      branch,
-      owner,
-      repo,
-    }),
-    [branch, owner, repo]
-  );
+
+  const queryInput = { branch, owner, repo };
+
   const repoSubmitPage = useQuery(
     trpc.github.getRepoSubmitPage.queryOptions(queryInput, {
       placeholderData: (previousData) => previousData,
       staleTime: 30_000,
     })
   );
+
   const data = repoSubmitPage.data;
-  if (!data) {
-    return null;
-  }
-  const {
-    repository,
-    branches,
-    existingPullRequest,
-    openPullRequests,
-    selectedBranch,
-  } = data;
-  const selectable = React.useMemo(
-    () => branches.filter((item) => item.name !== repository.default_branch),
-    [branches, repository.default_branch]
-  );
-  const branchValues = React.useMemo(
-    () => ({
-      body: data.existingPullRequest?.body ?? "",
-      title:
-        data.existingPullRequest?.title ??
-        (data.selectedBranch ? branchTitle(data.selectedBranch) : ""),
-    }),
-    [data]
-  );
-  const [title, setTitle] = React.useState(branchValues.title);
-  const [body, setBody] = React.useState(branchValues.body);
-  const lastSelectedBranchRef = React.useRef(selectedBranch);
-  const hasClosedPullRequest =
-    existingPullRequest != null &&
-    (existingPullRequest.state === "closed" || existingPullRequest.merged);
-  const isBranchTransitionPending =
-    repoSubmitPage.isFetching && branch != null && branch !== selectedBranch;
-  const isFormDisabled =
-    !selectedBranch || hasClosedPullRequest || isBranchTransitionPending;
 
-  React.useEffect(() => {
-    if (lastSelectedBranchRef.current === selectedBranch) {
-      return;
-    }
-
-    lastSelectedBranchRef.current = selectedBranch;
-    setTitle(branchValues.title);
-    setBody(branchValues.body);
-  }, [branchValues.body, branchValues.title, selectedBranch]);
+  const [title, setTitle] = React.useState(() => {
+    if (!data) return "";
+    return (
+      data.existingPullRequest?.title ??
+      (data.selectedBranch ? branchTitle(data.selectedBranch) : "")
+    );
+  });
+  const [body, setBody] = React.useState(
+    () => data?.existingPullRequest?.body ?? ""
+  );
+  const [prevSelectedBranch, setPrevSelectedBranch] = React.useState(
+    () => data?.selectedBranch ?? null
+  );
 
   const savePullRequest = useMutation(
     trpc.github.savePullRequest.mutationOptions({
       onSuccess: async (pullRequest) => {
+        const currentRepo = repoSubmitPage.data?.repository;
+        if (!currentRepo) return;
         await Promise.all([
           queryClient.invalidateQueries({
             queryKey: trpc.github.getRepoSubmitPage.queryKey(queryInput),
@@ -113,8 +82,8 @@ export function RepoSubmitView({ owner, repo }: RepoSubmitViewProps) {
           queryClient.prefetchQuery(
             trpc.github.getPullRequestPage.queryOptions(
               {
-                owner: repository.owner.login,
-                repo: repository.name,
+                owner: currentRepo.owner.login,
+                repo: currentRepo.name,
                 pullNumber: pullRequest.number,
               },
               { staleTime: 30_000 }
@@ -122,11 +91,43 @@ export function RepoSubmitView({ owner, repo }: RepoSubmitViewProps) {
           ),
         ]);
         router.push(
-          `/repo/${repository.owner.login}/${repository.name}/pull/${String(pullRequest.number)}`
+          `/repo/${currentRepo.owner.login}/${currentRepo.name}/pull/${String(pullRequest.number)}`
         );
       },
     })
   );
+
+  if (!data) {
+    return null;
+  }
+
+  const {
+    repository,
+    branches,
+    existingPullRequest,
+    openPullRequests,
+    selectedBranch,
+  } = data;
+
+  if (selectedBranch !== prevSelectedBranch) {
+    setPrevSelectedBranch(selectedBranch);
+    setTitle(
+      existingPullRequest?.title ??
+        (selectedBranch ? branchTitle(selectedBranch) : "")
+    );
+    setBody(existingPullRequest?.body ?? "");
+  }
+
+  const selectable = branches.filter(
+    (item) => item.name !== repository.default_branch
+  );
+  const hasClosedPullRequest =
+    existingPullRequest != null &&
+    (existingPullRequest.state === "closed" || existingPullRequest.merged);
+  const isBranchTransitionPending =
+    repoSubmitPage.isFetching && branch != null && branch !== selectedBranch;
+  const isFormDisabled =
+    !selectedBranch || hasClosedPullRequest || isBranchTransitionPending;
 
   function onBranchChange(event: React.ChangeEvent<HTMLSelectElement>) {
     void setBranch(event.target.value);

@@ -4,6 +4,10 @@ import {
   IconBlockSortAscending,
   IconBlockSortDescending,
   IconChevronDownMedium,
+  IconCircleCheck,
+  IconCircleDashed,
+  IconCircleX,
+  IconMerged,
   IconSortArrowUpDown,
 } from "@central-icons-react/round-filled-radius-2-stroke-1.5";
 import { DEFAULT_INBOX_SECTION_ORDER } from "@sachikit/db/schema/settings";
@@ -14,6 +18,8 @@ import {
   AvatarFallback,
   AvatarImage,
 } from "@sachikit/ui/components/avatar";
+import { Badge } from "@sachikit/ui/components/badge";
+import { Card, CardContent } from "@sachikit/ui/components/card";
 import {
   Collapsible,
   CollapsibleContent,
@@ -180,15 +186,26 @@ function PullRequestRow({ pr }: { pr: InboxPullRequestRow }) {
         </div>
       </Table.Cell>
 
-      <Table.Cell className="w-20">
-        <div className="flex items-center gap-2">
-          <CheckStatusDot
-            hasError={checkSummaryQuery.isError}
-            isLoading={checkSummaryQuery.isLoading && isOpen}
-            summary={checkSummaryQuery.data}
-          />
-          <ReviewStatusIcon reviewDecision={pr.reviewDecision} />
-        </div>
+      <Table.Cell className="w-8 text-center">
+        <ReviewStatusIcon reviewDecision={pr.reviewDecision} />
+      </Table.Cell>
+
+      <Table.Cell className="w-8 text-center">
+        <CheckStatusDot
+          hasError={checkSummaryQuery.isError}
+          isLoading={checkSummaryQuery.isLoading && isOpen}
+          summary={checkSummaryQuery.data}
+        />
+      </Table.Cell>
+
+      <Table.Cell className="w-8 text-center">
+        {pr.merged ? (
+          <IconMerged className="mx-auto size-3.5 text-sachi-accent" />
+        ) : pr.state === "open" ? (
+          <IconCircleDashed className="mx-auto size-3.5 text-sachi-success" />
+        ) : (
+          <IconCircleX className="mx-auto size-3.5 text-destructive" />
+        )}
       </Table.Cell>
 
       <Table.Cell className="w-28 text-right">
@@ -264,63 +281,80 @@ function InboxSectionView({ section }: { section: InboxSectionData }) {
   );
 
   return (
-    <div>
+    <Card className="bg-sachi-card gap-0 border-sachi-line-subtle py-0">
       <Collapsible open={open} onOpenChange={setOpen}>
-        <div className="flex items-center border-b border-sachi-line-subtle">
-          <CollapsibleTrigger className="flex flex-1 items-center gap-2 px-4 py-2.5 text-left text-sm transition-colors hover:bg-sachi-fill">
+        <div className="flex items-center border-b border-sachi-line-subtle/50 px-4 py-2.5">
+          <CollapsibleTrigger className="flex flex-1 items-center gap-2 text-left text-sm">
             <IconChevronDownMedium
               className={`size-4 shrink-0 text-sachi-fg-faint transition-transform ${open ? "" : "-rotate-90"}`}
               aria-hidden="true"
             />
-            <span className="font-medium text-sachi-fg-muted tabular-nums">
+            <Badge
+              variant="secondary"
+              className="h-5 min-w-5 justify-center rounded-full bg-sachi-fill px-1.5 text-xs font-medium tabular-nums"
+            >
               {section.items.length}
-            </span>
+            </Badge>
             <span className="font-medium text-sachi-fg">{section.label}</span>
           </CollapsibleTrigger>
         </div>
 
         <CollapsibleContent>
-          {sortedItems.length > 0 && (
-            <Table layout="fixed">
-              <Table.Header variant="compact">
-                <Table.Row>
-                  <SortableHead
-                    field="title"
-                    label="Title"
-                    activeField={sortField}
-                    direction={sortDirection}
-                    onSort={handleSort}
-                    className="w-full pl-4"
-                  />
-                  <Table.Head className="w-20" />
-                  <SortableHead
-                    field="changes"
-                    label="Changes"
-                    activeField={sortField}
-                    direction={sortDirection}
-                    onSort={handleSort}
-                    className="w-28 text-right"
-                  />
-                  <SortableHead
-                    field="updated"
-                    label="Updated"
-                    activeField={sortField}
-                    direction={sortDirection}
-                    onSort={handleSort}
-                    className="w-24 text-right"
-                  />
-                </Table.Row>
-              </Table.Header>
-              <Table.Body>
-                {sortedItems.map((pr) => (
-                  <PullRequestRow key={pr.id} pr={pr} />
-                ))}
-              </Table.Body>
-            </Table>
-          )}
+          <CardContent className="px-0">
+            {sortedItems.length > 0 ? (
+              <Table layout="fixed">
+                <Table.Header variant="compact">
+                  <Table.Row>
+                    <SortableHead
+                      field="title"
+                      label="Title"
+                      activeField={sortField}
+                      direction={sortDirection}
+                      onSort={handleSort}
+                      className="w-full pl-4"
+                    />
+                    <Table.Head className="w-8 text-center">
+                      <IconCircleCheck className="mx-auto size-3.5 text-sachi-fg-faint" />
+                    </Table.Head>
+                    <Table.Head className="w-8 text-center">
+                      <IconCircleDashed className="mx-auto size-3.5 text-sachi-fg-faint" />
+                    </Table.Head>
+                    <Table.Head className="w-8 text-center">
+                      <IconMerged className="mx-auto size-3.5 text-sachi-fg-faint" />
+                    </Table.Head>
+                    <SortableHead
+                      field="changes"
+                      label="Changes"
+                      activeField={sortField}
+                      direction={sortDirection}
+                      onSort={handleSort}
+                      className="w-28 text-right"
+                    />
+                    <SortableHead
+                      field="updated"
+                      label="Updated"
+                      activeField={sortField}
+                      direction={sortDirection}
+                      onSort={handleSort}
+                      className="w-24 text-right"
+                    />
+                  </Table.Row>
+                </Table.Header>
+                <Table.Body>
+                  {sortedItems.map((pr) => (
+                    <PullRequestRow key={pr.id} pr={pr} />
+                  ))}
+                </Table.Body>
+              </Table>
+            ) : (
+              <div className="flex h-24 items-center justify-center text-sm text-sachi-fg-muted">
+                No pull requests
+              </div>
+            )}
+          </CardContent>
         </CollapsibleContent>
       </Collapsible>
-    </div>
+    </Card>
   );
 }
 
@@ -453,7 +487,7 @@ export function InboxView() {
       {totalItems === 0 ? (
         <InboxEmptyState diagnostics={diagnostics} />
       ) : (
-        <div className="mx-auto w-full max-w-[960px]">
+        <div className="mx-auto max-w-5xl space-y-4 p-6">
           {orderedSections.map((section) => (
             <InboxSectionView key={section.id} section={section} />
           ))}

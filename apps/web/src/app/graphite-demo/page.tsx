@@ -1,6 +1,6 @@
 "use client";
 
-import { IconArrowDown, IconArrowMerge, IconBox2, IconChart, IconChevronDown, IconDotsVertical, IconFilter, IconHelpCircle, IconNotification, IconSearch, IconSend, IconSettings, IconSortDescending, IconSpark, IconSparkles } from "@central-icons-react/round-filled-radius-2-stroke-1.5";
+import { IconArrowDown, IconBell, IconBlockSortDescending, IconBox2, IconChart1, IconChevronDownMedium, IconCircleDotsCenter1, IconCircleQuestionmark, IconFilter1, IconMerged, IconQuickSearch, IconSend, IconSettingsGear1, IconSparkle } from "@central-icons-react/round-filled-radius-2-stroke-1.5";
 import { Avatar, AvatarFallback, AvatarImage } from "@sachikit/ui/components/avatar";
 import { Badge } from "@sachikit/ui/components/badge";
 import { Button } from "@sachikit/ui/components/button";
@@ -118,12 +118,12 @@ function StatusIcon({ type, state }: { type: "review" | "ci" | "merge"; state: s
   const getIcon = () => {
     switch (type) {
       case "review":
-        if (state === "approved") return <IconSparkles className="size-4 text-sachi-success" />;
+        if (state === "approved") return <IconSparkle className="size-4 text-sachi-success" />;
         return <div className="size-4 rounded-full border border-sachi-line" />;
       case "ci":
         return <div className="h-px w-4 bg-sachi-fg-muted" />;
       case "merge":
-        return <IconArrowMerge className="size-4 text-sachi-accent" />;
+        return <IconMerged className="size-4 text-sachi-accent" />;
       default:
         return null;
     }
@@ -171,10 +171,10 @@ function SectionCard({
 
         <div className="flex items-center gap-1">
           <Button variant="ghost" size="icon" className="size-6 text-sachi-fg-muted">
-            <IconSortDescending className="size-4" />
+            <IconBlockSortDescending className="size-4" />
           </Button>
           <Button variant="ghost" size="icon" className="size-6 text-sachi-fg-muted">
-            <IconSettings className="size-4" />
+            <IconSettingsGear1 className="size-4" />
           </Button>
         </div>
       </CardHeader>
@@ -192,13 +192,13 @@ function SectionCard({
                 </th>
                 <th className="px-2 py-2 font-medium">Title</th>
                 <th className="w-8 px-1 py-2 text-center">
-                  <IconSparkles className="mx-auto size-4" />
+                  <IconSparkle className="mx-auto size-4" />
                 </th>
                 <th className="w-8 px-1 py-2 text-center">
                   <div className="mx-auto size-4 rounded-full border border-current" />
                 </th>
                 <th className="w-8 px-1 py-2 text-center">
-                  <IconArrowMerge className="mx-auto size-4" />
+                  <IconMerged className="mx-auto size-4" />
                 </th>
                 <th className="w-24 px-2 py-2 text-right font-medium">Changes</th>
                 <th className="w-16 px-4 py-2 text-right font-medium">Updated</th>
@@ -223,7 +223,7 @@ function SectionCard({
                       </Avatar>
                       {pr.graphite && (
                         <div className="absolute -bottom-0.5 -right-0.5 flex size-3 items-center justify-center rounded-full bg-sachi-accent">
-                          <IconSpark className="size-2.5 text-white" />
+                          <IconSparkle className="size-2.5 text-white" />
                         </div>
                       )}
                     </div>
@@ -293,9 +293,9 @@ export default function GraphiteDemoPage() {
 
           <NavRailItem icon={IconBox2} label="PR Inbox" active shortcut="G then I" />
           <NavRailItem icon={IconSend} label="Agents" shortcut="" />
-          <NavRailItem icon={IconArrowMerge} label="Merge Queue" shortcut="G then M" />
-          <NavRailItem icon={IconChart} label="Insights" shortcut="G then T" />
-          <NavRailItem icon={IconSparkles} label="AI Reviews" shortcut="G then R" />
+          <NavRailItem icon={IconMerged} label="Merge Queue" shortcut="G then M" />
+          <NavRailItem icon={IconChart1} label="Insights" shortcut="G then T" />
+          <NavRailItem icon={IconSparkle} label="AI Reviews" shortcut="G then R" />
         </div>
 
         {/* Spacer */}
@@ -305,10 +305,10 @@ export default function GraphiteDemoPage() {
         <div className="flex flex-col gap-1">
           <Separator className="my-2 bg-sachi-line-subtle" />
 
-          <NavRailItem icon={IconNotification} label="Notifications" />
-          <NavRailItem icon={IconSearch} label="Search" />
-          <NavRailItem icon={IconHelpCircle} label="Help" />
-          <NavRailItem icon={IconSettings} label="Settings" shortcut="G then S" />
+          <NavRailItem icon={IconBell} label="Notifications" />
+          <NavRailItem icon={IconQuickSearch} label="Search" />
+          <NavRailItem icon={IconCircleQuestionmark} label="Help" />
+          <NavRailItem icon={IconSettingsGear1} label="Settings" shortcut="G then S" />
 
           <div className="flex justify-center pt-2">
             <Avatar className="size-7 cursor-pointer ring-2 ring-transparent transition-all hover:ring-sachi-line">
@@ -341,7 +341,7 @@ export default function GraphiteDemoPage() {
                     size="icon"
                     className="size-6 opacity-0 group-hover:opacity-100"
                   >
-                    <IconDotsVertical className="size-4" />
+                    <IconCircleDotsCenter1 className="size-4" />
                   </Button>
                 </li>
               ))}
@@ -373,7 +373,7 @@ export default function GraphiteDemoPage() {
               className="size-8"
               onClick={() => setSidebarOpen(!sidebarOpen)}
             >
-              <IconFilter className="size-4" />
+              <IconFilter1 className="size-4" />
             </Button>
             <h1 className="text-lg font-semibold text-sachi-fg">Inbox</h1>
           </div>
@@ -381,7 +381,7 @@ export default function GraphiteDemoPage() {
           <Button variant="outline" className="gap-2 border-sachi-line-subtle bg-sachi-card">
             <IconBox2 className="size-4" />
             <span className="text-sm">Itsnotaka/sachi</span>
-            <IconChevronDown className="size-4" />
+            <IconChevronDownMedium className="size-4" />
           </Button>
         </header>
 

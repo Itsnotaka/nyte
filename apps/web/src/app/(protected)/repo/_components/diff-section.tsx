@@ -133,10 +133,7 @@ export function PullRequestDiffSection({
 
   const diffSettings: DiffSettingsJson =
     diffSettingsQuery.data ?? DIFF_SETTINGS_DEFAULTS;
-  const viewedFiles = React.useMemo(
-    () => new Set(viewedFilesQuery.data ?? []),
-    [viewedFilesQuery.data]
-  );
+  const viewedFiles = new Set(viewedFilesQuery.data ?? []);
   const viewedFilesQueryKey = trpc.settings.getViewedFiles.queryKey({
     owner: queryInput.owner,
     pullNumber: queryInput.pullNumber,
@@ -261,16 +258,12 @@ export function PullRequestDiffSection({
     [reviewCommentsQuery.data]
   );
 
-  const fileEntries = React.useMemo(
-    () =>
-      sourceFiles.map((file) => ({
-        additions: file.additions,
-        deletions: file.deletions,
-        filename: file.filename,
-        status: file.status,
-      })),
-    [sourceFiles]
-  );
+  const fileEntries = sourceFiles.map((file) => ({
+    additions: file.additions,
+    deletions: file.deletions,
+    filename: file.filename,
+    status: file.status,
+  }));
 
   const isLoadingMoreFiles =
     resolvedBulkPagesQuery.isLoading || resolvedBulkPagesQuery.isFetching;

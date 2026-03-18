@@ -14,7 +14,11 @@ import {
 import { InsetView } from "@sachikit/ui/components/sidebar";
 import { Textarea } from "@sachikit/ui/components/textarea";
 import { useHotkey } from "@tanstack/react-hotkeys";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useSuspenseQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { nanoid } from "nanoid";
 import * as React from "react";
 
@@ -74,10 +78,17 @@ export function PullRequestView({
   const commentBodyId = React.useId();
   const diffAreaRef = React.useRef<HTMLDivElement>(null);
 
-  const queryInput = React.useMemo(
-    () => ({ owner, pullNumber, repo }),
-    [owner, pullNumber, repo]
+  const queryInput = { owner, pullNumber, repo };
+
+  const { data: pageData } = useSuspenseQuery(
+    trpc.github.getPullRequestPage.queryOptions(queryInput, {
+      staleTime: 60_000,
+    })
   );
+
+  useHotkey("F", () => setSidebarOpen((prev) => !prev));
+
+  const draftsByFile = React.useMemo(() => groupByPath(drafts), [drafts]);
 
   const pullRequestPageQueryKey =
     trpc.github.getPullRequestPage.queryKey(queryInput);
@@ -85,67 +96,6 @@ export function PullRequestView({
     trpc.github.getPullRequestDiscussion.queryKey(queryInput);
   const pullRequestReviewCommentsQueryKey =
     trpc.github.getPullRequestReviewComments.queryKey(queryInput);
-
-  const pullRequestPageQuery = useQuery(
-    trpc.github.getPullRequestPage.queryOptions(queryInput, {
-      staleTime: 60_000,
-    })
-  );
-
-  const pageData = pullRequestPageQuery.data;
-  if (!pageData) {
-    return null;
-  }
-  const { repository, pullRequest } = pageData;
-
-  const draftsByFile = React.useMemo(() => groupByPath(drafts), [drafts]);
-
-  const prLabels: GitHubLabel[] = React.useMemo(() => {
-    const raw = (pullRequest as Record<string, unknown>).labels;
-    if (!Array.isArray(raw)) return [];
-    return raw.flatMap((label: unknown) => {
-      if (typeof label !== "object" || label === null) return [];
-      const l = label as {
-        id?: number;
-        name?: string;
-        color?: string;
-        description?: string | null;
-      };
-      if (!l.id || !l.name || !l.color) return [];
-      return [
-        {
-          id: l.id,
-          name: l.name,
-          color: l.color,
-          description: l.description ?? null,
-        },
-      ];
-    });
-  }, [pullRequest]);
-
-  function handleFileSelect(filename: string) {
-    setActiveFile(filename);
-    const element = diffAreaRef.current?.querySelector(
-      `[data-file-name="${CSS.escape(filename)}"]`
-    );
-    if (element) {
-      element.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-  }
-
-  useHotkey("F", () => setSidebarOpen((prev) => !prev));
-
-  const pullRequestIdentity = React.useMemo(
-    () => ({
-      owner: repository.owner.login,
-      pullNumber: pullRequest.number,
-      repo: repository.name,
-    }),
-    [pullRequest.number, repository.name, repository.owner.login]
-  );
-
-  const isOpen = pullRequest.state === "open" && !pullRequest.merged;
-  const isMerged = pullRequest.merged;
 
   const addComment = useMutation(
     trpc.github.addPullRequestComment.mutationOptions({
@@ -212,6 +162,50 @@ export function PullRequestView({
       },
     })
   );
+
+  const { repository, pullRequest } = pageData;
+
+  const pullRequestIdentity = {
+    owner: repository.owner.login,
+    pullNumber: pullRequest.number,
+    repo: repository.name,
+  };
+
+  const prLabels: GitHubLabel[] = (() => {
+    const raw = (pullRequest as Record<string, unknown>).labels;
+    if (!Array.isArray(raw)) return [];
+    return raw.flatMap((label: unknown) => {
+      if (typeof label !== "object" || label === null) return [];
+      const l = label as {
+        id?: number;
+        name?: string;
+        color?: string;
+        description?: string | null;
+      };
+      if (!l.id || !l.name || !l.color) return [];
+      return [
+        {
+          id: l.id,
+          name: l.name,
+          color: l.color,
+          description: l.description ?? null,
+        },
+      ];
+    });
+  })();
+
+  const isOpen = pullRequest.state === "open" && !pullRequest.merged;
+  const isMerged = pullRequest.merged;
+
+  function handleFileSelect(filename: string) {
+    setActiveFile(filename);
+    const element = diffAreaRef.current?.querySelector(
+      `[data-file-name="${CSS.escape(filename)}"]`
+    );
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }
 
   function addDraft(path: string, lineNumber: number, side: "LEFT" | "RIGHT") {
     setDrafts((current) => {

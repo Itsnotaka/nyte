@@ -15,7 +15,6 @@ import {
   PanelHeaderTrailing,
 } from "@sachikit/ui/components/panel-header";
 import { Textarea } from "@sachikit/ui/components/textarea";
-import * as React from "react";
 
 import { formatRelativeTime } from "~/lib/time";
 
@@ -50,33 +49,28 @@ export function DiffFile({
   const publishedCommentCount = reviewComments.length;
   const draftCommentCount = drafts.length;
 
-  const annotations = React.useMemo<
-    DiffLineAnnotation<AnnotationPayload>[]
-  >(() => {
-    if (diffSettings.hideComments) return [];
-
-    const existing: DiffLineAnnotation<AnnotationPayload>[] =
-      reviewComments.flatMap((comment) => {
-        if (comment.line == null || comment.side == null) return [];
-        return [
-          {
-            lineNumber: comment.line,
-            metadata: { comment, kind: "existing" as const },
-            side: comment.side === "LEFT" ? "deletions" : "additions",
-          },
+  const annotations: DiffLineAnnotation<AnnotationPayload>[] =
+    diffSettings.hideComments
+      ? []
+      : [
+          ...reviewComments.flatMap((comment) => {
+            if (comment.line == null || comment.side == null) return [];
+            const annotation: DiffLineAnnotation<AnnotationPayload> = {
+              lineNumber: comment.line,
+              metadata: { comment, kind: "existing" as const },
+              side: comment.side === "LEFT" ? "deletions" : "additions",
+            };
+            return [annotation];
+          }),
+          ...drafts.map((draft) => {
+            const annotation: DiffLineAnnotation<AnnotationPayload> = {
+              lineNumber: draft.lineNumber,
+              metadata: { draft, kind: "draft" as const },
+              side: draft.side === "LEFT" ? "deletions" : "additions",
+            };
+            return annotation;
+          }),
         ];
-      });
-
-    const pending: DiffLineAnnotation<AnnotationPayload>[] = drafts.map(
-      (draft) => ({
-        lineNumber: draft.lineNumber,
-        metadata: { draft, kind: "draft" as const },
-        side: draft.side === "LEFT" ? "deletions" : "additions",
-      })
-    );
-
-    return [...existing, ...pending];
-  }, [drafts, reviewComments, diffSettings.hideComments]);
 
   return (
     <div

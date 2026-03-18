@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 
 import { caller, HydrateClient, prefetch, trpc } from "~/lib/trpc/server";
 
@@ -27,6 +28,13 @@ export default async function PullRequestPage({
     pullNumber,
   });
 
+  prefetch(
+    trpc.github.getPullRequestPage.queryOptions({
+      owner,
+      repo,
+      pullNumber,
+    })
+  );
   prefetch(
     trpc.github.getPullRequestDiscussion.queryOptions({
       owner,
@@ -75,7 +83,9 @@ export default async function PullRequestPage({
 
   return (
     <HydrateClient>
-      <PullRequestView owner={owner} repo={repo} pullNumber={pullNumber} />
+      <Suspense>
+        <PullRequestView owner={owner} repo={repo} pullNumber={pullNumber} />
+      </Suspense>
     </HydrateClient>
   );
 }
