@@ -1,3 +1,5 @@
+"use client";
+
 import {
   IconArrowDown,
   IconBell,
@@ -15,31 +17,10 @@ import {
   IconMerged,
   IconPeopleCopy,
   IconSettingsGear1,
-  IconSparkle,
-} from "@central-icons-react/round-filled-radius-2-stroke-1.5";
-  IconArrowDown,
-  IconBell,
-  IconBlockSortDescending,
-  IconBox2,
-  IconBranch,
-  IconCalendarEdit,
-  IconCheckmark1,
-  IconChevronDownMedium,
-  IconChevronDownSmall,
-  IconCircle,
-  IconCircleDotsCenter1,
-  IconCircleMinus,
-  IconCommits,
-  IconHistory,
-  IconMerged,
-  IconPeopleCopy,
-  IconSettingsGear1,
-  IconSparkle,
 } from "@central-icons-react/round-filled-radius-2-stroke-1.5";
 import { Avatar, AvatarFallback, AvatarImage } from "@sachikit/ui/components/avatar";
 import { Badge } from "@sachikit/ui/components/badge";
 import { Button } from "@sachikit/ui/components/button";
-import { Card, CardContent, CardHeader } from "@sachikit/ui/components/card";
 import {
   Collapsible,
   CollapsibleContent,
@@ -61,12 +42,6 @@ import * as React from "react";
 // Types
 // ============================================================================
 
-interface PRStatus {
-  review: "approved" | "pending" | "changes";
-  ci: "passing" | "failing" | "unknown";
-  merge: "merged" | "open" | "closed";
-}
-
 interface PullRequest {
   id: number;
   number: number;
@@ -77,7 +52,6 @@ interface PullRequest {
     login: string;
     avatar: string;
   };
-  status: PRStatus;
   changes: {
     added: number;
     removed: number;
@@ -121,11 +95,6 @@ const mockPR: PullRequest = {
     name: "Min Chun Fu",
     login: "Min Chun Fu",
     avatar: "https://avatars.githubusercontent.com/u/70210356?size=48",
-  },
-  status: {
-    review: "approved",
-    ci: "unknown",
-    merge: "merged",
   },
   changes: {
     added: 7427,
@@ -189,7 +158,7 @@ function SidebarSection({ title, defaultOpen = true, children, action }: Sidebar
         <span>{title}</span>
         <div className="flex items-center gap-1">
           {action}
-          <IconChevronDown className="size-4 text-sachi-fg-muted transition-transform group-data-[state=closed]:-rotate-90" />
+          <IconChevronDownSmall className="size-4 text-sachi-fg-muted transition-transform group-data-[state=closed]:-rotate-90" />
         </div>
       </CollapsibleTrigger>
       <CollapsibleContent className="pb-4">
@@ -220,35 +189,19 @@ function ShortcutSequence({ keys }: { keys: string[] }) {
   );
 }
 
-function StatusIcon({ type, state }: { type: "review" | "ci" | "merge"; state: string }) {
-  if (type === "review") {
-    if (state === "approved") {
-      return <IconSparkle className="size-4 text-sachi-success" />;
-    }
-    return <div className="size-4 rounded-full border border-sachi-line" />;
-  }
-  if (type === "merge") {
-    if (state === "merged") {
-      return <IconMerged className="size-4 text-sachi-accent" />;
-    }
-    return <IconCircle className="size-4 text-sachi-fg-muted" />;
-  }
-  return <div className="h-px w-4 bg-sachi-fg-muted" />;
-}
-
 function PRStack({ stack }: { stack: StackItem[] }) {
   return (
     <div className="rounded-lg border border-sachi-line-subtle bg-sachi-card">
       <div className="flex items-center justify-between border-b border-sachi-line-subtle px-4 py-2">
         <div className="flex items-center gap-2">
-          <IconGitCommit className="size-4 text-sachi-fg-muted" />
+          <IconCommits className="size-4 text-sachi-fg-muted" />
           <span className="text-sm font-medium text-sachi-fg">
             Stack <span className="text-sachi-fg-muted">1 of {stack.length}</span>
           </span>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="sm" className="h-7 text-xs">
-            <IconCopy className="mr-1.5 size-3.5" />
+            <IconPeopleCopy className="mr-1.5 size-3.5" />
             Copy stack
           </Button>
           <Button variant="ghost" size="icon" className="size-7">
@@ -270,7 +223,7 @@ function PRStack({ stack }: { stack: StackItem[] }) {
                 {item.merged ? (
                   <IconMerged className="size-3.5" />
                 ) : (
-                  <IconGitCommit className="size-3.5" />
+                  <IconCommits className="size-3.5" />
                 )}
               </div>
               {i < stack.length - 1 && (
@@ -293,7 +246,7 @@ function PRStack({ stack }: { stack: StackItem[] }) {
 
         <div className="flex items-center gap-2 pl-9">
           <div className="flex size-6 items-center justify-center rounded-full bg-sachi-fill">
-            <IconGitBranch className="size-3.5 text-sachi-fg-muted" />
+            <IconBranch className="size-3.5 text-sachi-fg-muted" />
           </div>
           <span className="text-sm text-sachi-fg-muted">main (trunk)</span>
         </div>
@@ -323,7 +276,7 @@ function PRDescription({ pr }: { pr: PullRequest }) {
             size="sm"
             className="h-7 text-xs opacity-0 group-hover:opacity-100"
           >
-            <IconEditPencil className="mr-1.5 size-3.5" />
+            <IconCalendarEdit className="mr-1.5 size-3.5" />
             Edit
           </Button>
         </CollapsibleTrigger>
@@ -472,8 +425,8 @@ function FileRow({
   };
 
   const statusIcons = {
-    added: IconPlus,
-    removed: IconMinus,
+    added: IconBox2,
+    removed: IconCircleMinus,
     modified: IconCircle,
   };
 
@@ -510,7 +463,7 @@ function FilesSection() {
         <div className="flex items-center justify-between border-b border-sachi-line-subtle px-4 py-2">
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs">
-              <IconCheckmark className="size-3.5" />
+              <IconCheckmark1 className="size-3.5" />
               Files
             </Button>
             <span className="text-xs text-sachi-fg-muted">Tour</span>
@@ -527,7 +480,7 @@ function FilesSection() {
               <IconChevronDownMedium className="ml-1 size-3.5" />
             </Button>
             <Button variant="ghost" size="icon" className="size-7">
-              <IconGear className="size-4" />
+              <IconSettingsGear1 className="size-4" />
             </Button>
           </div>
         </div>
@@ -575,15 +528,17 @@ export default function GraphitePRDetailPage() {
 
             {/* More actions dropdown */}
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="size-8">
-                  <IconCircleDotsCenter1 className="size-4" />
-                </Button>
-              </DropdownMenuTrigger>
+              <DropdownMenuTrigger
+                render={
+                  <Button variant="ghost" size="icon" className="size-8">
+                    <IconCircleDotsCenter1 className="size-4" />
+                  </Button>
+                }
+              />
               <DropdownMenuContent align="end" className="w-72">
                 <DropdownMenuGroup>
                   <DropdownMenuItem>
-                    <IconCopy className="mr-2 size-4" />
+                    <IconPeopleCopy className="mr-2 size-4" />
                     <span>Copy link to PR</span>
                     <div className="ml-auto">
                       <ShortcutSequence keys={["C", "L"]} />
@@ -628,7 +583,7 @@ export default function GraphitePRDetailPage() {
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
                   <DropdownMenuItem>
-                    <IconGear className="mr-2 size-4" />
+                    <IconSettingsGear1 className="mr-2 size-4" />
                     <span>Diff settings</span>
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
@@ -672,7 +627,7 @@ export default function GraphitePRDetailPage() {
 
                     {/* Branch pill */}
                     <div className="flex items-center gap-1.5 rounded-full bg-sachi-fill px-3 py-1">
-                      <IconGitBranch className="size-3.5 text-sachi-fg-muted" />
+                      <IconBranch className="size-3.5 text-sachi-fg-muted" />
                       <span className="text-sachi-fg">{pr.branch.head}</span>
                       <span className="text-sachi-fg-muted">→</span>
                       <span className="text-sachi-fg">{pr.branch.base}</span>
@@ -740,7 +695,7 @@ export default function GraphitePRDetailPage() {
                     defaultOpen={false}
                     action={
                       <Button variant="ghost" size="icon" className="size-6 opacity-0 group-hover:opacity-100">
-                        <IconPlus className="size-4" />
+                        <IconBox2 className="size-4" />
                       </Button>
                     }
                   >
@@ -752,7 +707,7 @@ export default function GraphitePRDetailPage() {
                     defaultOpen={false}
                     action={
                       <Button variant="ghost" size="icon" className="size-6 opacity-0 group-hover:opacity-100">
-                        <IconPlus className="size-4" />
+                        <IconBox2 className="size-4" />
                       </Button>
                     }
                   >
