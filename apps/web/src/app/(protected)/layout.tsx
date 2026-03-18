@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
 
 import { getSession } from "~/lib/auth/server";
+import { HydrateClient, prefetch, trpc } from "~/lib/trpc/server";
 
-import { RepoProvider } from "./_components/repo-context";
 import { AppShell } from "./app-shell";
 
 export default async function Layout({
@@ -15,9 +15,11 @@ export default async function Layout({
     redirect("/login");
   }
 
+  prefetch(trpc.github.getSyncedRepoSummary.queryOptions());
+
   return (
-    <RepoProvider repos={[]} totalSynced={0}>
+    <HydrateClient>
       <AppShell>{children}</AppShell>
-    </RepoProvider>
+    </HydrateClient>
   );
 }

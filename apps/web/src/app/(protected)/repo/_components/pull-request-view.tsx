@@ -32,7 +32,6 @@ import {
   useMutation,
   useQuery,
   useQueryClient,
-  useQueries,
   useSuspenseQuery,
 } from "@tanstack/react-query";
 import { nanoid } from "nanoid";
@@ -41,7 +40,7 @@ import * as React from "react";
 import { Streamdown } from "streamdown";
 
 import { formatRelativeTime } from "~/lib/time";
-import { useTRPC } from "~/lib/trpc/react";
+import { useTRPC, useTRPCClient } from "~/lib/trpc/react";
 
 import { ChecksPanel } from "./checks-panel";
 import { DiffSettingsPopover } from "./diff-settings-popover";
@@ -244,10 +243,6 @@ function EditableTitle({
   const [editing, setEditing] = React.useState(false);
   const [value, setValue] = React.useState(title);
 
-  React.useEffect(() => {
-    setValue(title);
-  }, [title]);
-
   function commit() {
     const trimmed = value.trim();
     if (trimmed.length > 0 && trimmed !== title) {
@@ -280,7 +275,10 @@ function EditableTitle({
     <button
       type="button"
       className="text-left text-lg font-semibold text-sachi-fg hover:text-sachi-accent"
-      onClick={() => setEditing(true)}
+      onClick={() => {
+        setValue(title);
+        setEditing(true);
+      }}
       title="Click to edit title"
     >
       {title}
@@ -1108,6 +1106,7 @@ function PullRequestDiffSection({
   sidebarOpen,
 }: PullRequestDiffSectionProps) {
   const trpc = useTRPC();
+  const trpcClient = useTRPCClient();
   const queryClient = useQueryClient();
   const diffSettingsQuery = useSuspenseQuery(
     trpc.settings.getDiffSettings.queryOptions()
@@ -1134,7 +1133,6 @@ function PullRequestDiffSection({
       staleTime: 60_000,
     })
   );
-  const [bulkPages, setBulkPages] = React.useState<number[]>([]);
   const diffSettings: DiffSettingsJson =
     diffSettingsQuery.data ?? DIFF_SETTINGS_DEFAULTS;
   const viewedFiles = React.useMemo(
@@ -1211,47 +1209,40 @@ function PullRequestDiffSection({
     });
   }
 
-  React.useEffect(() => {
-    setBulkPages((current) => (current.length === 0 ? [1] : current));
-  }, []);
+  const resolvedBulkPagesQuery = useQuery({
+    enabled: firstPageQuery.data.nextPage !== null,
+    queryKey: [
+      "github",
+      "getPullRequestFilesRemaining",
+      queryInput.owner,
+      queryInput.repo,
+      queryInput.pullNumber,
+      firstPageQuery.data.nextPage,
+      FOLLOW_UP_DIFF_PAGE_SIZE,
+    ],
+    queryFn: async () => {
+      const pages = [];
+      let nextPage = firstPageQuery.data.nextPage;
 
-  const bulkPageQueries = useQueries({
-    queries: bulkPages.map((page) =>
-      trpc.github.getPullRequestFiles.queryOptions(
-        {
+      while (nextPage !== null) {
+        const page = await trpcClient.github.getPullRequestFiles.query({
           ...queryInput,
-          page,
+          page: nextPage,
           perPage: FOLLOW_UP_DIFF_PAGE_SIZE,
-        },
-        {
-          staleTime: 60_000,
-        }
-      )
-    ),
+        });
+        pages.push(page);
+        nextPage = page.nextPage;
+      }
+
+      return pages;
+    },
+    staleTime: 60_000,
   });
-
-  const resolvedBulkPages = React.useMemo(
-    () => bulkPageQueries.flatMap((query) => (query.data ? [query.data] : [])),
-    [bulkPageQueries]
-  );
-  const nextBulkPage = resolvedBulkPages.at(-1)?.nextPage ?? null;
-
-  React.useEffect(() => {
-    if (!nextBulkPage) {
-      return;
-    }
-
-    setBulkPages((current) =>
-      current.includes(nextBulkPage) ? current : [...current, nextBulkPage]
-    );
-  }, [nextBulkPage]);
-
   const sourceFiles = React.useMemo(() => {
     const fileMap = new Map<string, GitHubPullRequestFile>();
-    const pages =
-      resolvedBulkPages.length > 0
-        ? [firstPageQuery.data, ...resolvedBulkPages]
-        : [firstPageQuery.data];
+    const pages = resolvedBulkPagesQuery.data
+      ? [firstPageQuery.data, ...resolvedBulkPagesQuery.data]
+      : [firstPageQuery.data];
 
     for (const page of pages) {
       for (const file of page.files) {
@@ -1260,7 +1251,7 @@ function PullRequestDiffSection({
     }
 
     return Array.from(fileMap.values());
-  }, [firstPageQuery.data, resolvedBulkPages]);
+  }, [firstPageQuery.data, resolvedBulkPagesQuery.data]);
 
   const files = React.useMemo(
     () =>
@@ -1270,7 +1261,7 @@ function PullRequestDiffSection({
       }),
     [sourceFiles]
   );
-  const reviewComments = reviewCommentsQuery.data ?? [];
+  const reviewComments = reviewCommentsQuery.data;
   const reviewCommentsWithLines = React.useMemo(
     () => reviewComments.filter((comment) => comment.line !== null),
     [reviewComments]
@@ -1289,9 +1280,8 @@ function PullRequestDiffSection({
       })),
     [sourceFiles]
   );
-  const isLoadingMoreFiles = bulkPageQueries.some(
-    (query) => query.isLoading || query.isFetching
-  );
+  const isLoadingMoreFiles =
+    resolvedBulkPagesQuery.isLoading || resolvedBulkPagesQuery.isFetching;
 
   return (
     <div className="flex gap-6">
