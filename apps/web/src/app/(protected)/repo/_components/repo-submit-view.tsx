@@ -24,7 +24,7 @@ import { parseAsString, useQueryState } from "nuqs";
 import * as React from "react";
 
 import { formatRelativeTime } from "~/lib/time";
-import { useTRPC } from "~/lib/trpc/client";
+import { useTRPC } from "~/lib/trpc/react";
 
 type RepoSubmitViewProps = {
   owner: string;
@@ -159,6 +159,7 @@ export function RepoSubmitView({ owner, repo }: RepoSubmitViewProps) {
         {existingPullRequest ? (
           <Link
             href={`/repo/${repository.owner.login}/${repository.name}/pull/${String(existingPullRequest.number)}`}
+            prefetch={true}
             className="text-sm text-sachi-fg-secondary underline-offset-4 hover:underline"
           >
             View PR #{existingPullRequest.number}
@@ -296,6 +297,7 @@ export function RepoSubmitView({ owner, repo }: RepoSubmitViewProps) {
                 <Link
                   key={pullRequest.id}
                   href={`/repo/${repository.owner.login}/${repository.name}/pull/${String(pullRequest.number)}`}
+                  prefetch={true}
                   className="block rounded-lg border border-sachi-line-subtle p-3 text-sm hover:bg-sachi-fill"
                 >
                   <div className="flex items-center gap-2">

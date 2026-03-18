@@ -8,10 +8,11 @@ import {
   SidebarInset,
   SidebarProvider,
 } from "@sachikit/ui/components/sidebar";
+import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { useRepo } from "./_components/repo-context";
+import { useTRPC } from "~/lib/trpc/react";
 
 type AppShellProps = {
   children: React.ReactNode;
@@ -43,7 +44,19 @@ function SidebarNav() {
 }
 
 function SidebarTopBar() {
-  const totalSynced = useRepo((state) => state.totalSynced);
+  const trpc = useTRPC();
+  const syncedSummaryQuery = useQuery(
+    trpc.github.getSyncedRepoSummary.queryOptions(undefined, {
+      staleTime: 60_000,
+    })
+  );
+  const totalSynced = syncedSummaryQuery.data?.totalSynced;
+  const repoCta =
+    totalSynced == null
+      ? "Repos"
+      : totalSynced === 0
+        ? "Sync repos"
+        : "Edit repos";
 
   return (
     <div className="flex h-full items-center justify-between px-2.5">
@@ -52,7 +65,7 @@ function SidebarTopBar() {
         href="/setup/repos"
         className="text-xs text-sachi-fg-muted transition-colors hover:text-sachi-fg"
       >
-        {totalSynced === 0 ? "Sync repos" : "Edit repos"}
+        {repoCta}
       </Link>
     </div>
   );

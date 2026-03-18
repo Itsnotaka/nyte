@@ -22,7 +22,7 @@ import { Switch } from "@sachikit/ui/components/switch";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as React from "react";
 
-import { useTRPC } from "~/lib/trpc/client";
+import { useTRPC } from "~/lib/trpc/react";
 
 function DiffViewOption({
   label,

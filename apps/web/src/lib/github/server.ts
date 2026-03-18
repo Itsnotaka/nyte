@@ -53,10 +53,12 @@ import {
   type GitHubReviewEvent,
   type GitHubTree,
   type ClassifiedInboxPullRequest,
-  type InboxSection,
+  type InboxPullRequest as GitHubInboxPullRequest,
+  type InboxSection as GitHubInboxSection,
   type InboxSectionId,
   type PaginatedFiles,
   summarizeCheckRuns,
+  type ReviewDecision,
 } from "@sachikit/github";
 import { subDays } from "date-fns";
 import { eq } from "drizzle-orm";
@@ -102,12 +104,49 @@ export type PullRequestPageDetailsData = {
   reviewComments: GitHubPullRequestReviewComment[];
 };
 
+export type PullRequestDiscussionData = {
+  issueComments: GitHubIssueComment[];
+  reviews: GitHubPullRequestReview[];
+};
+
 export type RepoSubmitPageData = {
   repository: GitHubRepository;
   branches: GitHubBranch[];
   selectedBranch: string | null;
   existingPullRequest: GitHubPullRequest | null;
   openPullRequests: GitHubPullRequest[];
+};
+
+export type SyncedRepoSummary = {
+  totalSynced: number;
+};
+
+export type InboxPullRequestRow = {
+  id: number;
+  number: number;
+  title: string;
+  state: GitHubPullRequest["state"];
+  merged: boolean;
+  additions: number | null;
+  deletions: number | null;
+  updated_at: string;
+  user: {
+    avatar_url: string;
+    login: string;
+  };
+  head: {
+    sha: string;
+  };
+  repoFullName: string;
+  repoOwner: string;
+  repoName: string;
+  reviewDecision: ReviewDecision;
+};
+
+export type InboxSectionData = {
+  id: InboxSectionId;
+  label: string;
+  items: InboxPullRequestRow[];
 };
 
 type TokenError = "token_unavailable";
@@ -383,6 +422,15 @@ export const getSyncedRepoCatalog = cache(
   }
 );
 
+export const getSyncedRepoSummary = cache(
+  async (): Promise<SyncedRepoSummary> => {
+    const syncedRows = await getSyncedRepoLookupRows();
+    return {
+      totalSynced: new Set(syncedRows.map((row) => row.githubRepoId)).size,
+    };
+  }
+);
+
 export const findRepoContext = cache(
   async (owner: string, repo: string): Promise<RepoContext | null> => {
     return withTiming("findRepoContext", { owner, repo }, async () => {
@@ -596,6 +644,67 @@ export async function getPullRequestPageData(
   );
 }
 
+export async function getPullRequestDiscussionData(
+  owner: string,
+  repo: string,
+  pullNumber: number
+): Promise<PullRequestDiscussionData | null> {
+  return withTiming(
+    "getPullRequestDiscussionData",
+    { owner, repo, pullNumber },
+    async () => {
+      const context = await findRepoContext(owner, repo);
+      if (!context) {
+        return null;
+      }
+
+      const [issueComments, reviews] = await Promise.all([
+        listIssueComments(
+          context.auth,
+          owner,
+          context.repository.name,
+          pullNumber
+        ).unwrapOr([]),
+        listPullRequestReviews(
+          context.auth,
+          owner,
+          context.repository.name,
+          pullNumber
+        ).unwrapOr([]),
+      ]);
+
+      return {
+        issueComments,
+        reviews,
+      };
+    }
+  );
+}
+
+export async function getPullRequestReviewCommentsData(
+  owner: string,
+  repo: string,
+  pullNumber: number
+): Promise<GitHubPullRequestReviewComment[] | null> {
+  return withTiming(
+    "getPullRequestReviewCommentsData",
+    { owner, repo, pullNumber },
+    async () => {
+      const context = await findRepoContext(owner, repo);
+      if (!context) {
+        return null;
+      }
+
+      return listPullRequestReviewComments(
+        context.auth,
+        owner,
+        context.repository.name,
+        pullNumber
+      ).unwrapOr([]);
+    }
+  );
+}
+
 export async function getPullRequestPageDetailsData(
   owner: string,
   repo: string,
@@ -610,38 +719,22 @@ export async function getPullRequestPageDetailsData(
         return null;
       }
 
-      const [diff, issueComments, reviews, reviewComments] = await Promise.all([
+      const [diff, discussion, reviewComments] = await Promise.all([
         getPullRequestDiff(
           context.auth,
           owner,
           context.repository.name,
           pullNumber
         ).unwrapOr(""),
-        listIssueComments(
-          context.auth,
-          owner,
-          context.repository.name,
-          pullNumber
-        ).unwrapOr([]),
-        listPullRequestReviews(
-          context.auth,
-          owner,
-          context.repository.name,
-          pullNumber
-        ).unwrapOr([]),
-        listPullRequestReviewComments(
-          context.auth,
-          owner,
-          context.repository.name,
-          pullNumber
-        ).unwrapOr([]),
+        getPullRequestDiscussionData(owner, repo, pullNumber),
+        getPullRequestReviewCommentsData(owner, repo, pullNumber),
       ]);
 
       return {
         diff,
-        issueComments,
-        reviews,
-        reviewComments,
+        issueComments: discussion?.issueComments ?? [],
+        reviews: discussion?.reviews ?? [],
+        reviewComments: reviewComments ?? [],
       };
     }
   );
@@ -1242,7 +1335,7 @@ export type {
 } from "@sachikit/github";
 
 export type InboxData = {
-  sections: InboxSection[];
+  sections: InboxSectionData[];
   diagnostics: InboxDiagnostics;
 };
 
@@ -1254,6 +1347,38 @@ export type InboxDiagnostics = {
   syncedRepoCount: number;
   accessibleRepoCount: number;
 };
+
+function mapInboxPullRequest(pr: GitHubInboxPullRequest): InboxPullRequestRow {
+  return {
+    id: pr.id,
+    number: pr.number,
+    title: pr.title,
+    state: pr.state,
+    merged: pr.merged,
+    additions: pr.additions,
+    deletions: pr.deletions,
+    updated_at: pr.updated_at,
+    user: {
+      avatar_url: pr.user.avatar_url,
+      login: pr.user.login,
+    },
+    head: {
+      sha: pr.head.sha,
+    },
+    repoFullName: pr.repoFullName,
+    repoOwner: pr.repoOwner,
+    repoName: pr.repoName,
+    reviewDecision: pr.reviewDecision,
+  };
+}
+
+function mapInboxSection(section: GitHubInboxSection): InboxSectionData {
+  return {
+    id: section.id,
+    label: section.label,
+    items: section.items.map((item) => mapInboxPullRequest(item)),
+  };
+}
 
 export async function getInboxData(): Promise<InboxData | null> {
   return withTiming("getInboxData", {}, async () => {
@@ -1343,7 +1468,7 @@ export async function getInboxData(): Promise<InboxData | null> {
               (pr) => pr.state !== "open" || pr.merged
             );
 
-            const [reviewResults, statsResults] = await Promise.all([
+            const [reviewResults, statEntries] = await Promise.all([
               Promise.all(
                 openPRs.map((pr) =>
                   listPullRequestReviews(
@@ -1352,42 +1477,58 @@ export async function getInboxData(): Promise<InboxData | null> {
                     entry.repository.name,
                     pr.number
                   ).match(
-                    (reviews) => reviews,
+                    (reviews) => [pr.number, reviews] as const,
                     (reviewErr) => {
                       log.info(
                         "inbox",
                         `Failed to get reviews for ${entry.repository.full_name}#${pr.number}: ${reviewErr.message}`
                       );
-                      return [] as GitHubPullRequestReview[];
+                      return [
+                        pr.number,
+                        [] as GitHubPullRequestReview[],
+                      ] as const;
                     }
                   )
                 )
               ),
               Promise.all(
-                openPRs.map((pr) =>
+                relevantPRs.map((pr) =>
                   getPullRequest(
                     installationAuth,
                     entry.repository.owner.login,
                     entry.repository.name,
                     pr.number
                   ).match(
-                    (full) => ({
-                      additions: full.additions,
-                      deletions: full.deletions,
-                    }),
-                    () => ({
-                      additions: null as number | null,
-                      deletions: null as number | null,
-                    })
+                    (full) =>
+                      [
+                        pr.number,
+                        {
+                          additions: full.additions,
+                          deletions: full.deletions,
+                        },
+                      ] as const,
+                    () =>
+                      [
+                        pr.number,
+                        {
+                          additions: null as number | null,
+                          deletions: null as number | null,
+                        },
+                      ] as const
                   )
                 )
               ),
             ]);
+            const reviewsByNumber = new Map(reviewResults);
+            const statsByNumber = new Map(statEntries);
 
             for (let i = 0; i < openPRs.length; i++) {
               const pr = openPRs[i]!;
-              const reviews = reviewResults[i]!;
-              const stats = statsResults[i]!;
+              const reviews = reviewsByNumber.get(pr.number) ?? [];
+              const stats = statsByNumber.get(pr.number) ?? {
+                additions: null,
+                deletions: null,
+              };
               const reviewSignals = buildPullRequestReviewSignals(pr, reviews);
               const reviewDecision = computeReviewDecision(reviewSignals);
               installationPullRequests.push({
@@ -1403,29 +1544,12 @@ export async function getInboxData(): Promise<InboxData | null> {
               });
             }
 
-            const closedStatsResults = await Promise.all(
-              closedPRs.map((pr) =>
-                getPullRequest(
-                  installationAuth,
-                  entry.repository.owner.login,
-                  entry.repository.name,
-                  pr.number
-                ).match(
-                  (full) => ({
-                    additions: full.additions,
-                    deletions: full.deletions,
-                  }),
-                  () => ({
-                    additions: null as number | null,
-                    deletions: null as number | null,
-                  })
-                )
-              )
-            );
-
             for (let i = 0; i < closedPRs.length; i++) {
               const pr = closedPRs[i]!;
-              const stats = closedStatsResults[i]!;
+              const stats = statsByNumber.get(pr.number) ?? {
+                additions: null,
+                deletions: null,
+              };
               const reviewSignals = buildPullRequestReviewSignals(pr, []);
               installationPullRequests.push({
                 ...pr,
@@ -1456,10 +1580,12 @@ export async function getInboxData(): Promise<InboxData | null> {
       (result) => result.partialFailures
     );
 
-    const { sections, unclassifiedCount } = classifyPullRequests(
-      ghLogin,
-      allPullRequests,
-      { recentlyMergedSince: recentCutoff }
+    const { sections: classifiedSections, unclassifiedCount } =
+      classifyPullRequests(ghLogin, allPullRequests, {
+        recentlyMergedSince: recentCutoff,
+      });
+    const sections = classifiedSections.map((section) =>
+      mapInboxSection(section)
     );
     const classifiedCount = sections.reduce(
       (sum, s) => sum + s.items.length,

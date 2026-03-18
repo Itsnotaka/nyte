@@ -8,7 +8,7 @@ import {
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
-import { createTRPCRouter, protectedProcedure } from "../server";
+import { createTRPCRouter, protectedProcedure } from "../trpc";
 
 const VALID_SECTION_IDS = [
   "needs_review",
@@ -38,6 +38,14 @@ const diffSettingsSchema = z.object({
 });
 
 const partialDiffSettingsSchema = diffSettingsSchema.partial();
+const viewedFilesInputSchema = z.object({
+  owner: z.string().min(1),
+  pullNumber: z.number().int().positive(),
+  repo: z.string().min(1),
+});
+const viewedFileMutationSchema = viewedFilesInputSchema.extend({
+  filePath: z.string().min(1),
+});
 
 export const settingsRouter = createTRPCRouter({
   getDiffSettings: protectedProcedure.query(async ({ ctx }) => {
@@ -79,38 +87,37 @@ export const settingsRouter = createTRPCRouter({
       return merged;
     }),
 
-  // --- Phase 1: Viewed files ---
-
   getViewedFiles: protectedProcedure
-    .input(z.object({ prId: z.number().int().positive() }))
+    .input(viewedFilesInputSchema)
     .query(async ({ ctx, input }) => {
       const userId = ctx.session.user.id;
+      const prefix = `${input.owner}/${input.repo}:`;
       const rows = await db
         .select({ filePath: prFilesSchema.prFileViewed.filePath })
         .from(prFilesSchema.prFileViewed)
         .where(
           and(
             eq(prFilesSchema.prFileViewed.userId, userId),
-            eq(prFilesSchema.prFileViewed.prId, input.prId)
+            eq(prFilesSchema.prFileViewed.prId, input.pullNumber)
           )
         );
-      return rows.map((row) => row.filePath);
+      return rows.flatMap((row) =>
+        row.filePath.startsWith(prefix)
+          ? [row.filePath.slice(prefix.length)]
+          : []
+      );
     }),
 
   markFileViewed: protectedProcedure
-    .input(
-      z.object({
-        filePath: z.string().min(1),
-        prId: z.number().int().positive(),
-      })
-    )
+    .input(viewedFileMutationSchema)
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.session.user.id;
+      const scopedPath = `${input.owner}/${input.repo}:${input.filePath}`;
       await db
         .insert(prFilesSchema.prFileViewed)
         .values({
-          filePath: input.filePath,
-          prId: input.prId,
+          filePath: scopedPath,
+          prId: input.pullNumber,
           userId,
           viewedAt: new Date(),
         })
@@ -125,21 +132,17 @@ export const settingsRouter = createTRPCRouter({
     }),
 
   markFileUnviewed: protectedProcedure
-    .input(
-      z.object({
-        filePath: z.string().min(1),
-        prId: z.number().int().positive(),
-      })
-    )
+    .input(viewedFileMutationSchema)
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.session.user.id;
+      const scopedPath = `${input.owner}/${input.repo}:${input.filePath}`;
       await db
         .delete(prFilesSchema.prFileViewed)
         .where(
           and(
             eq(prFilesSchema.prFileViewed.userId, userId),
-            eq(prFilesSchema.prFileViewed.prId, input.prId),
-            eq(prFilesSchema.prFileViewed.filePath, input.filePath)
+            eq(prFilesSchema.prFileViewed.prId, input.pullNumber),
+            eq(prFilesSchema.prFileViewed.filePath, scopedPath)
           )
         );
     }),

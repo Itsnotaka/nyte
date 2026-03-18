@@ -3,7 +3,7 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { getInstallationRepos, getOnboardingState } from "../../github/server";
-import { createTRPCRouter, protectedProcedure } from "../server";
+import { createTRPCRouter, protectedProcedure } from "../trpc";
 
 export const repoSyncRouter = createTRPCRouter({
   getSyncState: protectedProcedure.query(async ({ ctx }) => {

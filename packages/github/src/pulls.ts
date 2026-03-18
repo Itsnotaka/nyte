@@ -510,7 +510,7 @@ export function submitPullRequestReview(
 
 export type PaginatedFiles = {
   files: GitHubPullRequestFile[];
-  totalCount: number;
+  nextPage: number | null;
 };
 
 export function listPullRequestFilesPaginated(
@@ -529,9 +529,12 @@ export function listPullRequestFilesPaginated(
       per_page: perPage,
       page,
     });
+    const nextMatch = response.headers.link?.match(
+      /[\?&]page=(\d+)[^>]*>; rel="next"/
+    );
     return {
       files: response.data.map(mapPullRequestFile),
-      totalCount: response.data.length,
+      nextPage: nextMatch ? Number(nextMatch[1]) : null,
     };
   });
 }

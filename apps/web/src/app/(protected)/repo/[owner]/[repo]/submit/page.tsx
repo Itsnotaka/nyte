@@ -1,15 +1,10 @@
-import { notFound } from "next/navigation";
 import {
   createSearchParamsCache,
   parseAsString,
   type SearchParams,
 } from "nuqs/server";
 
-import {
-  getQueryClient,
-  HydrateClient,
-  trpc,
-} from "~/lib/trpc/server-components";
+import { HydrateClient, prefetch, trpc } from "~/lib/trpc/server";
 
 import { RepoSubmitView } from "../../../_components/repo-submit-view";
 
@@ -32,20 +27,13 @@ export default async function SubmitPage({
   const { owner, repo } = await params;
   const { branch } = await submitSearchParamsCache.parse(searchParams);
 
-  const queryClient = getQueryClient();
-  const pageData = await queryClient
-    .fetchQuery(
-      trpc.github.getRepoSubmitPage.queryOptions({
-        owner,
-        repo,
-        branch: branch ?? null,
-      })
-    )
-    .catch(() => null);
-
-  if (!pageData) {
-    notFound();
-  }
+  prefetch(
+    trpc.github.getRepoSubmitPage.queryOptions({
+      owner,
+      repo,
+      branch: branch ?? null,
+    })
+  );
 
   return (
     <HydrateClient>

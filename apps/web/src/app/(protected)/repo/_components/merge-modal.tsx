@@ -15,7 +15,7 @@ import { cn } from "@sachikit/ui/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import * as React from "react";
 
-import { useTRPC } from "~/lib/trpc/client";
+import { useTRPC } from "~/lib/trpc/react";
 
 type MergeMethod = "merge" | "squash" | "rebase";
 

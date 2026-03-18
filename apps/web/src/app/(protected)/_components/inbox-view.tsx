@@ -8,7 +8,6 @@ import {
 } from "@central-icons-react/round-filled-radius-2-stroke-1.5";
 import { DEFAULT_INBOX_SECTION_ORDER } from "@sachikit/db/schema/settings";
 import type { InboxSectionId } from "@sachikit/github";
-import type { GitHubCheckSummary } from "@sachikit/github";
 import { Alert, AlertDescription } from "@sachikit/ui/components/alert";
 import {
   Avatar,
@@ -35,28 +34,23 @@ import * as React from "react";
 
 import type {
   InboxData,
-  InboxPullRequest,
-  InboxSection,
+  InboxPullRequestRow,
+  InboxSectionData,
 } from "~/lib/github/server";
 import { formatRelativeTime } from "~/lib/time";
-import { useTRPC } from "~/lib/trpc/client";
+import { useTRPC } from "~/lib/trpc/react";
 
 import { CheckStatusDot } from "./check-status-dot";
 import { ReviewStatusIcon } from "./review-status-icon";
 
 type SortField = "title" | "changes" | "updated";
 type SortDirection = "asc" | "desc";
-type CheckSummaryMap = Record<string, GitHubCheckSummary | null>;
-
-function checkSummaryKey(owner: string, repo: string, ref: string): string {
-  return `${owner.toLowerCase()}/${repo.toLowerCase()}@${ref}`;
-}
 
 function sortItems(
-  items: InboxPullRequest[],
+  items: InboxPullRequestRow[],
   field: SortField,
   direction: SortDirection
-): InboxPullRequest[] {
+): InboxPullRequestRow[] {
   return [...items].sort((a, b) => {
     let cmp = 0;
     if (field === "title") {
@@ -105,51 +99,93 @@ function SortIcon({
   );
 }
 
-function PullRequestRow({
-  checksError,
-  checksLoading,
-  checkSummaries,
-  pr,
-}: {
-  checksError: boolean;
-  checksLoading: boolean;
-  checkSummaries: CheckSummaryMap;
-  pr: InboxPullRequest;
-}) {
-  const checkSummary = checkSummaries[
-    checkSummaryKey(pr.repoOwner, pr.repoName, pr.head.sha)
-  ];
+function useDeferredVisibility<T extends Element>() {
+  const ref = React.useRef<T | null>(null);
+  const [hasBeenVisible, setHasBeenVisible] = React.useState(false);
+
+  React.useEffect(() => {
+    if (hasBeenVisible) {
+      return;
+    }
+
+    const node = ref.current;
+    if (!node) {
+      return;
+    }
+
+    if (typeof IntersectionObserver === "undefined") {
+      setHasBeenVisible(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setHasBeenVisible(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "300px 0px" }
+    );
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [hasBeenVisible]);
+
+  return { hasBeenVisible, ref };
+}
+
+function PullRequestRow({ pr }: { pr: InboxPullRequestRow }) {
+  const trpc = useTRPC();
+  const { hasBeenVisible, ref } = useDeferredVisibility<HTMLDivElement>();
+  const isOpen = pr.state === "open" && !pr.merged;
+  const checkSummaryQuery = useQuery(
+    trpc.github.getCheckSummary.queryOptions(
+      {
+        owner: pr.repoOwner,
+        repo: pr.repoName,
+        ref: pr.head.sha,
+      },
+      {
+        enabled: isOpen && hasBeenVisible,
+        staleTime: 60_000,
+      }
+    )
+  );
 
   return (
     <Table.Row>
       <Table.Cell className="w-full min-w-0">
-        <Link
-          href={`/repo/${pr.repoOwner}/${pr.repoName}/pull/${String(pr.number)}`}
-          className="flex min-w-0 items-center gap-3"
-        >
-          <Avatar size="sm">
-            <AvatarImage src={pr.user.avatar_url} alt={pr.user.login} />
-            <AvatarFallback>
-              {pr.user.login.charAt(0).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex min-w-0 flex-col gap-0.5">
-            <span className="truncate text-sm font-medium text-sachi-fg">
-              {pr.title}
-            </span>
-            <span className="truncate text-xs text-sachi-fg-muted">
-              {pr.user.login} &middot; {pr.repoFullName} #{pr.number}
-            </span>
-          </div>
-        </Link>
+        <div ref={ref}>
+          <Link
+            href={`/repo/${pr.repoOwner}/${pr.repoName}/pull/${String(pr.number)}`}
+            prefetch={true}
+            className="flex min-w-0 items-center gap-3"
+          >
+            <Avatar size="sm">
+              <AvatarImage src={pr.user.avatar_url} alt={pr.user.login} />
+              <AvatarFallback>
+                {pr.user.login.charAt(0).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex min-w-0 flex-col gap-0.5">
+              <span className="truncate text-sm font-medium text-sachi-fg">
+                {pr.title}
+              </span>
+              <span className="truncate text-xs text-sachi-fg-muted">
+                {pr.user.login} &middot; {pr.repoFullName} #{pr.number}
+              </span>
+            </div>
+          </Link>
+        </div>
       </Table.Cell>
 
       <Table.Cell className="w-20">
         <div className="flex items-center gap-2">
           <CheckStatusDot
-            hasError={checksError}
-            isLoading={checksLoading && pr.state === "open" && !pr.merged}
-            summary={checkSummary}
+            hasError={checkSummaryQuery.isError}
+            isLoading={checkSummaryQuery.isLoading && isOpen}
+            summary={checkSummaryQuery.data}
           />
           <ReviewStatusIcon reviewDecision={pr.reviewDecision} />
         </div>
@@ -207,17 +243,7 @@ function SortableHead({
   );
 }
 
-function InboxSectionView({
-  checksError,
-  checksLoading,
-  checkSummaries,
-  section,
-}: {
-  checksError: boolean;
-  checksLoading: boolean;
-  checkSummaries: CheckSummaryMap;
-  section: InboxSection;
-}) {
+function InboxSectionView({ section }: { section: InboxSectionData }) {
   const [open, setOpen] = React.useState(section.items.length > 0);
   const [sortField, setSortField] = React.useState<SortField>("updated");
   const [sortDirection, setSortDirection] =
@@ -287,13 +313,7 @@ function InboxSectionView({
               </Table.Header>
               <Table.Body>
                 {sortedItems.map((pr) => (
-                  <PullRequestRow
-                    key={pr.id}
-                    checksError={checksError}
-                    checksLoading={checksLoading}
-                    checkSummaries={checkSummaries}
-                    pr={pr}
-                  />
+                  <PullRequestRow key={pr.id} pr={pr} />
                 ))}
               </Table.Body>
             </Table>
@@ -390,11 +410,7 @@ function InboxEmptyState({
   );
 }
 
-type InboxViewProps = {
-  data: InboxData;
-};
-
-function useOrderedSections(sections: InboxSection[]): InboxSection[] {
+function useOrderedSections(sections: InboxSectionData[]): InboxSectionData[] {
   const trpc = useTRPC();
   const orderQuery = useQuery(
     trpc.settings.getInboxSectionOrder.queryOptions()
@@ -403,7 +419,7 @@ function useOrderedSections(sections: InboxSection[]): InboxSection[] {
     DEFAULT_INBOX_SECTION_ORDER) as InboxSectionId[];
 
   const byId = new Map(sections.map((s) => [s.id, s]));
-  const ordered: InboxSection[] = [];
+  const ordered: InboxSectionData[] = [];
   for (const id of order) {
     const section = byId.get(id);
     if (section) ordered.push(section);
@@ -416,29 +432,18 @@ function useOrderedSections(sections: InboxSection[]): InboxSection[] {
   return ordered;
 }
 
-export function InboxView({ data }: InboxViewProps) {
+export function InboxView() {
   const trpc = useTRPC();
+  const inboxQuery = useQuery({
+    ...trpc.github.getInbox.queryOptions(),
+    staleTime: 2 * 60_000,
+  });
+  const data = inboxQuery.data;
+  if (!data) {
+    return null;
+  }
   const { sections, diagnostics } = data;
   const orderedSections = useOrderedSections(sections);
-  const checkSummaryInputs = React.useMemo(
-    () =>
-      sections
-        .flatMap((section) => section.items)
-        .filter((pr) => pr.state === "open" && !pr.merged)
-        .map((pr) => ({
-          owner: pr.repoOwner,
-          repo: pr.repoName,
-          ref: pr.head.sha,
-        })),
-    [sections]
-  );
-  const checkSummariesQuery = useQuery(
-    trpc.github.getCheckSummaries.queryOptions(checkSummaryInputs, {
-      enabled: checkSummaryInputs.length > 0,
-      staleTime: 60_000,
-    })
-  );
-  const checkSummaries = checkSummariesQuery.data ?? {};
   const totalItems = sections.reduce((sum, s) => sum + s.items.length, 0);
 
   return (
@@ -450,13 +455,7 @@ export function InboxView({ data }: InboxViewProps) {
       ) : (
         <div className="mx-auto w-full max-w-[960px]">
           {orderedSections.map((section) => (
-            <InboxSectionView
-              key={section.id}
-              checksError={checkSummariesQuery.isError}
-              checksLoading={checkSummariesQuery.isLoading}
-              checkSummaries={checkSummaries}
-              section={section}
-            />
+            <InboxSectionView key={section.id} section={section} />
           ))}
         </div>
       )}

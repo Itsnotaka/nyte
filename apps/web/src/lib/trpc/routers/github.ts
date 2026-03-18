@@ -11,15 +11,19 @@ import {
   getCheckSummaryForPR,
   getCheckSummariesForRefs,
   getGitHubAppInstallUrl,
+  getInboxData,
   getPullRequestFileList,
+  getPullRequestDiscussionData,
   getPullRequestPageData,
   getPullRequestPageDetailsData,
+  getPullRequestReviewCommentsData,
   getPullRequestStack,
   getRepoBranches,
   getRepoCommits,
   getRepoFileContent,
   getRepoLabels,
   getRepoSubmitPageData,
+  getSyncedRepoSummary,
   getRepoTree,
   getStackHealth,
   mergeRepoPullRequest,
@@ -32,7 +36,7 @@ import {
   updateRepoPullRequest,
   updateStackedBranch,
 } from "../../github/server";
-import { createTRPCRouter, protectedProcedure } from "../server";
+import { createTRPCRouter, protectedProcedure } from "../trpc";
 
 const FAILURES = {
   addComment: "Failed to add pull request comment.",
@@ -40,7 +44,9 @@ const FAILURES = {
   convertToReady: "Failed to mark PR as ready for review.",
   fileContent: "File content not found.",
   getPullRequestPage: "Pull request page data not found.",
+  getPullRequestDiscussion: "Pull request discussion data not found.",
   getPullRequestDetails: "Pull request details not found.",
+  getPullRequestReviewComments: "Pull request review comments not found.",
   getRepoSubmitPage: "Repository submit page data not found.",
   merge: "Failed to merge pull request.",
   removeLabel: "Failed to remove label.",
@@ -103,6 +109,10 @@ export const githubRouter = createTRPCRouter({
   startInstall: protectedProcedure.mutation(() => {
     return { url: getGitHubAppInstallUrl() };
   }),
+  getInbox: protectedProcedure.query(async () => getInboxData()),
+  getSyncedRepoSummary: protectedProcedure.query(async () =>
+    getSyncedRepoSummary()
+  ),
   getPullRequestPage: protectedProcedure
     .input(
       z.object({
@@ -119,6 +129,46 @@ export const githubRouter = createTRPCRouter({
       );
       if (!data) {
         throw new Error(FAILURES.getPullRequestPage);
+      }
+
+      return data;
+    }),
+  getPullRequestDiscussion: protectedProcedure
+    .input(
+      z.object({
+        owner: z.string().min(1),
+        repo: z.string().min(1),
+        pullNumber: z.number().int().positive(),
+      })
+    )
+    .query(async ({ input }) => {
+      const data = await getPullRequestDiscussionData(
+        input.owner,
+        input.repo,
+        input.pullNumber
+      );
+      if (!data) {
+        throw new Error(FAILURES.getPullRequestDiscussion);
+      }
+
+      return data;
+    }),
+  getPullRequestReviewComments: protectedProcedure
+    .input(
+      z.object({
+        owner: z.string().min(1),
+        repo: z.string().min(1),
+        pullNumber: z.number().int().positive(),
+      })
+    )
+    .query(async ({ input }) => {
+      const data = await getPullRequestReviewCommentsData(
+        input.owner,
+        input.repo,
+        input.pullNumber
+      );
+      if (!data) {
+        throw new Error(FAILURES.getPullRequestReviewComments);
       }
 
       return data;
@@ -346,7 +396,7 @@ export const githubRouter = createTRPCRouter({
         input.page,
         input.perPage
       );
-      return data ?? { files: [], totalCount: 0 };
+      return data ?? { files: [], nextPage: null };
     }),
 
   getCheckRuns: protectedProcedure
@@ -370,7 +420,11 @@ export const githubRouter = createTRPCRouter({
       })
     )
     .query(async ({ input }) => {
-      const report = await getCheckReportForPR(input.owner, input.repo, input.ref);
+      const report = await getCheckReportForPR(
+        input.owner,
+        input.repo,
+        input.ref
+      );
       return report ?? { runs: [], summary: null };
     }),
 

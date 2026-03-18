@@ -20,7 +20,7 @@ import {
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import * as React from "react";
 
-import { useTRPC } from "~/lib/trpc/client";
+import { useTRPC } from "~/lib/trpc/react";
 
 type ReviewerPanelProps = {
   owner: string;

@@ -13,10 +13,10 @@ import {
   CollapsibleTrigger,
 } from "@sachikit/ui/components/collapsible";
 import { cn } from "@sachikit/ui/lib/utils";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import * as React from "react";
 
-import { useTRPC } from "~/lib/trpc/client";
+import { useTRPC } from "~/lib/trpc/react";
 
 type ChecksPanelProps = {
   owner: string;
@@ -80,16 +80,22 @@ function summaryLabel(
 
 export function ChecksPanel({ owner, repo, headSha }: ChecksPanelProps) {
   const trpc = useTRPC();
-  const [open, setOpen] = React.useState(true);
+  const [open, setOpen] = React.useState(false);
 
-  const checkReportQuery = useQuery(
-    trpc.github.getCheckReport.queryOptions(
+  const summaryQuery = useSuspenseQuery(
+    trpc.github.getCheckSummary.queryOptions(
       { owner, repo, ref: headSha },
       { staleTime: 60_000 }
     )
   );
-  const summary = checkReportQuery.data?.summary ?? null;
-  const checks = checkReportQuery.data?.runs ?? [];
+  const runsQuery = useQuery(
+    trpc.github.getCheckRuns.queryOptions(
+      { owner, repo, ref: headSha },
+      { staleTime: 60_000, enabled: open }
+    )
+  );
+  const summary = summaryQuery.data ?? null;
+  const checks = runsQuery.data ?? [];
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
@@ -115,7 +121,7 @@ export function ChecksPanel({ owner, repo, headSha }: ChecksPanelProps) {
       <CollapsibleContent>
         {checks.length === 0 ? (
           <p className="py-2 text-xs text-sachi-fg-muted">
-            {checkReportQuery.isLoading ? "Loading checks..." : "No status checks."}
+            {runsQuery.isLoading ? "Loading checks..." : "No status checks."}
           </p>
         ) : (
           <div className="space-y-0.5 pb-2">

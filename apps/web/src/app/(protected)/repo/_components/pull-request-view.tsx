@@ -8,6 +8,7 @@ import { DIFF_SETTINGS_DEFAULTS } from "@sachikit/db/schema/settings";
 import type { DiffSettingsJson } from "@sachikit/db/schema/settings";
 import type {
   GitHubLabel,
+  GitHubPullRequestFile,
   GitHubPullRequestReview,
   GitHubPullRequestReviewComment,
   GitHubRepository,
@@ -23,6 +24,7 @@ import {
 } from "@sachikit/ui/components/dropdown-menu";
 import { Input } from "@sachikit/ui/components/input";
 import { InsetView } from "@sachikit/ui/components/sidebar";
+import { Skeleton } from "@sachikit/ui/components/skeleton";
 import { Textarea } from "@sachikit/ui/components/textarea";
 import { cn } from "@sachikit/ui/lib/utils";
 import { useHotkey } from "@tanstack/react-hotkeys";
@@ -30,14 +32,16 @@ import {
   useMutation,
   useQuery,
   useQueryClient,
+  useQueries,
   useSuspenseQuery,
 } from "@tanstack/react-query";
 import { nanoid } from "nanoid";
+import Link from "next/link";
 import * as React from "react";
 import { Streamdown } from "streamdown";
 
 import { formatRelativeTime } from "~/lib/time";
-import { useTRPC } from "~/lib/trpc/client";
+import { useTRPC } from "~/lib/trpc/react";
 
 import { ChecksPanel } from "./checks-panel";
 import { DiffSettingsPopover } from "./diff-settings-popover";
@@ -76,6 +80,9 @@ type AnnotationPayload =
       draft: DraftComment;
     };
 
+const INITIAL_DIFF_PAGE_SIZE = 1;
+const FOLLOW_UP_DIFF_PAGE_SIZE = 100;
+
 function annotationSide(side: "LEFT" | "RIGHT"): "deletions" | "additions" {
   return side === "LEFT" ? "deletions" : "additions";
 }
@@ -87,9 +94,23 @@ function reviewBadge(review: GitHubPullRequestReview): string {
   return review.state.toLowerCase();
 }
 
-function parseFiles(diff: string): FileDiffMetadata[] {
-  if (diff.trim().length === 0) return [];
-  return parsePatchFiles(diff).flatMap((patch) => patch.files);
+function buildPatchHeader(file: GitHubPullRequestFile): string {
+  const previousName = file.previous_filename ?? file.filename;
+  const fromPath = file.status === "added" ? "/dev/null" : `a/${previousName}`;
+  const toPath = file.status === "removed" ? "/dev/null" : `b/${file.filename}`;
+  return `diff --git a/${previousName} b/${file.filename}\n--- ${fromPath}\n+++ ${toPath}\n`;
+}
+
+function parsePullRequestFile(
+  file: GitHubPullRequestFile
+): FileDiffMetadata | null {
+  const diff = `${buildPatchHeader(file)}${file.patch ? `${file.patch}\n` : ""}`;
+  try {
+    const parsed = parsePatchFiles(diff).flatMap((patch) => patch.files);
+    return parsed[0] ?? null;
+  } catch {
+    return null;
+  }
 }
 
 function groupByPath<T extends { path: string }>(items: T[]): Map<string, T[]> {
@@ -298,19 +319,15 @@ export function PullRequestView({
 
   const pullRequestPageQueryKey =
     trpc.github.getPullRequestPage.queryKey(queryInput);
-  const pullRequestDetailsQueryKey =
-    trpc.github.getPullRequestDetails.queryKey(queryInput);
+  const pullRequestDiscussionQueryKey =
+    trpc.github.getPullRequestDiscussion.queryKey(queryInput);
+  const pullRequestReviewCommentsQueryKey =
+    trpc.github.getPullRequestReviewComments.queryKey(queryInput);
   const pullRequestPageQuery = useQuery(
     trpc.github.getPullRequestPage.queryOptions(queryInput, {
-      staleTime: 30_000,
+      staleTime: 60_000,
     })
   );
-
-  const diffSettingsQuery = useQuery(
-    trpc.settings.getDiffSettings.queryOptions()
-  );
-  const diffSettings: DiffSettingsJson =
-    diffSettingsQuery.data ?? DIFF_SETTINGS_DEFAULTS;
 
   const pageData = pullRequestPageQuery.data;
   if (!pageData) {
@@ -342,73 +359,6 @@ export function PullRequestView({
       ];
     });
   }, [pullRequest]);
-
-  const viewedFilesQuery = useQuery(
-    trpc.settings.getViewedFiles.queryOptions(
-      { prId: pullRequest.id },
-      { staleTime: 5 * 60_000 }
-    )
-  );
-  const viewedFiles = React.useMemo(
-    () => new Set(viewedFilesQuery.data ?? []),
-    [viewedFilesQuery.data]
-  );
-  const viewedFilesQueryKey = trpc.settings.getViewedFiles.queryKey({
-    prId: pullRequest.id,
-  });
-
-  const markViewed = useMutation(
-    trpc.settings.markFileViewed.mutationOptions({
-      onMutate: async (variables) => {
-        await queryClient.cancelQueries({ queryKey: viewedFilesQueryKey });
-        const previous = queryClient.getQueryData(viewedFilesQueryKey);
-        queryClient.setQueryData(
-          viewedFilesQueryKey,
-          (old: string[] | undefined) => [...(old ?? []), variables.filePath]
-        );
-        return { previous };
-      },
-      onError: (_err, _vars, context) => {
-        if (context?.previous !== undefined) {
-          queryClient.setQueryData(viewedFilesQueryKey, context.previous);
-        }
-      },
-      onSettled: () => {
-        void queryClient.invalidateQueries({ queryKey: viewedFilesQueryKey });
-      },
-    })
-  );
-
-  const markUnviewed = useMutation(
-    trpc.settings.markFileUnviewed.mutationOptions({
-      onMutate: async (variables) => {
-        await queryClient.cancelQueries({ queryKey: viewedFilesQueryKey });
-        const previous = queryClient.getQueryData(viewedFilesQueryKey);
-        queryClient.setQueryData(
-          viewedFilesQueryKey,
-          (old: string[] | undefined) =>
-            (old ?? []).filter((f) => f !== variables.filePath)
-        );
-        return { previous };
-      },
-      onError: (_err, _vars, context) => {
-        if (context?.previous !== undefined) {
-          queryClient.setQueryData(viewedFilesQueryKey, context.previous);
-        }
-      },
-      onSettled: () => {
-        void queryClient.invalidateQueries({ queryKey: viewedFilesQueryKey });
-      },
-    })
-  );
-
-  function handleToggleViewed(filename: string, viewed: boolean) {
-    if (viewed) {
-      markViewed.mutate({ filePath: filename, prId: pullRequest.id });
-    } else {
-      markUnviewed.mutate({ filePath: filename, prId: pullRequest.id });
-    }
-  }
 
   function handleFileSelect(filename: string) {
     setActiveFile(filename);
@@ -443,7 +393,7 @@ export function PullRequestView({
             queryKey: pullRequestPageQueryKey,
           }),
           queryClient.invalidateQueries({
-            queryKey: pullRequestDetailsQueryKey,
+            queryKey: pullRequestDiscussionQueryKey,
           }),
         ]);
       },
@@ -460,7 +410,10 @@ export function PullRequestView({
             queryKey: pullRequestPageQueryKey,
           }),
           queryClient.invalidateQueries({
-            queryKey: pullRequestDetailsQueryKey,
+            queryKey: pullRequestDiscussionQueryKey,
+          }),
+          queryClient.invalidateQueries({
+            queryKey: pullRequestReviewCommentsQueryKey,
           }),
         ]);
       },
@@ -475,7 +428,7 @@ export function PullRequestView({
             queryKey: pullRequestPageQueryKey,
           }),
           queryClient.invalidateQueries({
-            queryKey: pullRequestDetailsQueryKey,
+            queryKey: pullRequestDiscussionQueryKey,
           }),
         ]);
       },
@@ -865,32 +818,43 @@ export function PullRequestView({
                     </form>
                   </Section>
 
-                  <React.Suspense fallback={<PullRequestDetailsFallback />}>
-                    <PullRequestDetailsSection
+                  <React.Suspense fallback={<PullRequestDiscussionFallback />}>
+                    <PullRequestDiscussionSection
+                      queryInput={queryInput}
+                      repository={repository}
+                    />
+                  </React.Suspense>
+
+                  <React.Suspense fallback={<PullRequestDiffFallback />}>
+                    <PullRequestDiffSection
                       activeFile={activeFile}
-                      diffSettings={diffSettings}
-                      drafts={drafts}
                       draftsByFile={draftsByFile}
                       onAddDraft={addDraft}
                       onDraftChange={updateDraft}
                       onDraftRemove={removeDraft}
                       onFileSelect={handleFileSelect}
-                      onToggleViewed={handleToggleViewed}
                       queryInput={queryInput}
                       repository={repository}
                       sidebarOpen={sidebarOpen}
-                      viewedFiles={viewedFiles}
                     />
                   </React.Suspense>
                 </div>
 
                 <div className="divide-y divide-sachi-line-subtle">
                   <SidebarSection title="Checks">
-                    <ChecksPanel
-                      owner={repository.owner.login}
-                      repo={repository.name}
-                      headSha={pullRequest.head.sha}
-                    />
+                    <React.Suspense fallback={<SidebarStatusFallback />}>
+                      <ChecksPanel
+                        owner={repository.owner.login}
+                        repo={repository.name}
+                        headSha={pullRequest.head.sha}
+                      />
+                    </React.Suspense>
+                  </SidebarSection>
+
+                  <SidebarSection title="Stack">
+                    <React.Suspense fallback={<SidebarListFallback />}>
+                      <PullRequestStackPanel queryInput={queryInput} />
+                    </React.Suspense>
                   </SidebarSection>
 
                   <SidebarSection title="Reviewers">
@@ -922,56 +886,391 @@ export function PullRequestView({
   );
 }
 
-type PullRequestDetailsSectionProps = {
+type PullRequestDiscussionSectionProps = {
+  queryInput: PullRequestQueryInput;
+  repository: GitHubRepository;
+};
+
+type PullRequestDiffSectionProps = {
   activeFile: string | null;
-  diffSettings: DiffSettingsJson;
-  drafts: DraftComment[];
   draftsByFile: Map<string, DraftComment[]>;
-  onAddDraft: (path: string, lineNumber: number, side: "LEFT" | "RIGHT") => void;
+  onAddDraft: (
+    path: string,
+    lineNumber: number,
+    side: "LEFT" | "RIGHT"
+  ) => void;
   onDraftChange: (id: string, body: string) => void;
   onDraftRemove: (id: string) => void;
   onFileSelect: (filename: string) => void;
-  onToggleViewed: (filename: string, viewed: boolean) => void;
   queryInput: PullRequestQueryInput;
   repository: GitHubRepository;
   sidebarOpen: boolean;
-  viewedFiles: Set<string>;
 };
 
-function PullRequestDetailsFallback() {
+function PullRequestDiscussionFallback() {
   return (
-    <div className="rounded-lg border border-sachi-line-subtle bg-sachi-base px-4 py-6 text-sm text-sachi-fg-muted">
-      Loading discussion and diff…
+    <div className="space-y-6">
+      <div className="space-y-3">
+        <Skeleton className="h-4 w-24" />
+        <div className="space-y-3 rounded-lg border border-sachi-line-subtle bg-sachi-base px-4 py-4">
+          <Skeleton className="h-3 w-32" />
+          <Skeleton className="h-4 w-5/6" />
+          <Skeleton className="h-4 w-2/3" />
+        </div>
+      </div>
+      <div className="space-y-3">
+        <Skeleton className="h-4 w-16" />
+        <div className="space-y-3 rounded-lg border border-sachi-line-subtle bg-sachi-base px-4 py-4">
+          <Skeleton className="h-3 w-40" />
+          <Skeleton className="h-4 w-3/5" />
+        </div>
+      </div>
     </div>
   );
 }
 
-function PullRequestDetailsSection({
+function PullRequestDiffFallback() {
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <Skeleton className="h-4 w-12" />
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-5 w-20 rounded-full" />
+          <Skeleton className="h-8 w-24 rounded-md" />
+        </div>
+      </div>
+      <div className="rounded-lg border border-sachi-line-subtle bg-sachi-base px-4 py-6">
+        <div className="space-y-3">
+          <Skeleton className="h-4 w-40" />
+          <Skeleton className="h-32 w-full rounded-md" />
+        </div>
+      </div>
+      <div className="rounded-lg border border-sachi-line-subtle bg-sachi-base px-4 py-6">
+        <div className="space-y-3">
+          <Skeleton className="h-4 w-52" />
+          <Skeleton className="h-24 w-full rounded-md" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SidebarStatusFallback() {
+  return (
+    <div className="space-y-2 py-2">
+      <Skeleton className="h-5 w-24 rounded-full" />
+      <Skeleton className="h-3 w-20" />
+    </div>
+  );
+}
+
+function SidebarListFallback() {
+  return (
+    <div className="space-y-2 py-1">
+      <Skeleton className="h-8 w-full rounded-md" />
+      <Skeleton className="h-8 w-full rounded-md" />
+      <Skeleton className="h-8 w-5/6 rounded-md" />
+    </div>
+  );
+}
+
+function PullRequestDiscussionSection({
+  queryInput,
+  repository,
+}: PullRequestDiscussionSectionProps) {
+  const trpc = useTRPC();
+  const discussionQuery = useSuspenseQuery(
+    trpc.github.getPullRequestDiscussion.queryOptions(queryInput, {
+      staleTime: 60_000,
+    })
+  );
+  const discussion = discussionQuery.data;
+  const issueComments = discussion.issueComments;
+  const reviews = discussion.reviews;
+
+  if (issueComments.length === 0 && reviews.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="space-y-6">
+      {issueComments.length > 0 ? (
+        <Section title="Discussion">
+          <div className="space-y-4">
+            {issueComments.map((comment) => (
+              <div key={comment.id} className="space-y-1">
+                <div className="flex flex-wrap items-center gap-2 text-xs text-sachi-fg-muted">
+                  <span className="font-medium text-sachi-fg-secondary">
+                    {comment.user.login}
+                  </span>
+                  <span>{formatRelativeTime(comment.updated_at)}</span>
+                </div>
+                <MarkdownContent
+                  className="pull-request-markdown text-sm text-sachi-fg-secondary"
+                  content={comment.body}
+                  repository={repository}
+                />
+              </div>
+            ))}
+          </div>
+        </Section>
+      ) : null}
+
+      {reviews.length > 0 ? (
+        <Section title="Reviews">
+          <div className="space-y-4">
+            {reviews.map((review) => (
+              <div key={review.id} className="space-y-1">
+                <div className="flex flex-wrap items-center gap-2 text-xs text-sachi-fg-muted">
+                  <span className="font-medium text-sachi-fg-secondary">
+                    {review.user.login}
+                  </span>
+                  <Badge variant="outline">{reviewBadge(review)}</Badge>
+                  {review.submitted_at ? (
+                    <span>{formatRelativeTime(review.submitted_at)}</span>
+                  ) : null}
+                </div>
+                {review.body ? (
+                  <MarkdownContent
+                    className="pull-request-markdown text-sm text-sachi-fg-secondary"
+                    content={review.body}
+                    repository={repository}
+                  />
+                ) : null}
+              </div>
+            ))}
+          </div>
+        </Section>
+      ) : null}
+    </div>
+  );
+}
+
+function PullRequestStackPanel({
+  queryInput,
+}: {
+  queryInput: PullRequestQueryInput;
+}) {
+  const trpc = useTRPC();
+  const stackQuery = useSuspenseQuery(
+    trpc.github.getPullRequestStack.queryOptions(queryInput, {
+      staleTime: 60_000,
+    })
+  );
+  const stack = stackQuery.data;
+
+  if (stack.length === 0) {
+    return (
+      <p className="py-2 text-xs text-sachi-fg-muted">
+        This pull request is not part of a stack.
+      </p>
+    );
+  }
+
+  return (
+    <div className="space-y-1.5 py-1">
+      {stack.map((entry) => (
+        <Link
+          key={entry.number}
+          href={`/repo/${queryInput.owner}/${queryInput.repo}/pull/${String(entry.number)}`}
+          prefetch={true}
+          className={cn(
+            "flex items-start justify-between gap-2 rounded-md px-2 py-2 transition-colors hover:bg-sachi-fill",
+            entry.isCurrent ? "bg-sachi-fill" : undefined
+          )}
+        >
+          <div className="min-w-0 space-y-0.5">
+            <p className="truncate text-xs font-medium text-sachi-fg">
+              #{String(entry.number)} {entry.title}
+            </p>
+            <p className="truncate text-[11px] text-sachi-fg-muted">
+              {entry.baseRef} {"->"} {entry.headRef}
+            </p>
+          </div>
+          <Badge variant="outline" className="shrink-0">
+            {entry.state}
+          </Badge>
+        </Link>
+      ))}
+    </div>
+  );
+}
+
+function PullRequestDiffSection({
   activeFile,
-  diffSettings,
-  drafts,
   draftsByFile,
   onAddDraft,
   onDraftChange,
   onDraftRemove,
   onFileSelect,
-  onToggleViewed,
   queryInput,
   repository,
   sidebarOpen,
-  viewedFiles,
-}: PullRequestDetailsSectionProps) {
+}: PullRequestDiffSectionProps) {
   const trpc = useTRPC();
-  const detailsQuery = useSuspenseQuery(
-    trpc.github.getPullRequestDetails.queryOptions(queryInput, {
-      staleTime: 30_000,
+  const queryClient = useQueryClient();
+  const diffSettingsQuery = useSuspenseQuery(
+    trpc.settings.getDiffSettings.queryOptions()
+  );
+  const viewedFilesQuery = useSuspenseQuery(
+    trpc.settings.getViewedFiles.queryOptions(queryInput, {
+      staleTime: 5 * 60_000,
     })
   );
-  const details = detailsQuery.data;
-  const issueComments = details.issueComments;
-  const reviews = details.reviews;
-  const reviewComments = details.reviewComments;
-  const files = React.useMemo(() => parseFiles(details.diff), [details.diff]);
+  const firstPageQuery = useSuspenseQuery(
+    trpc.github.getPullRequestFiles.queryOptions(
+      {
+        ...queryInput,
+        page: 1,
+        perPage: INITIAL_DIFF_PAGE_SIZE,
+      },
+      {
+        staleTime: 60_000,
+      }
+    )
+  );
+  const reviewCommentsQuery = useSuspenseQuery(
+    trpc.github.getPullRequestReviewComments.queryOptions(queryInput, {
+      staleTime: 60_000,
+    })
+  );
+  const [bulkPages, setBulkPages] = React.useState<number[]>([]);
+  const diffSettings: DiffSettingsJson =
+    diffSettingsQuery.data ?? DIFF_SETTINGS_DEFAULTS;
+  const viewedFiles = React.useMemo(
+    () => new Set(viewedFilesQuery.data ?? []),
+    [viewedFilesQuery.data]
+  );
+  const viewedFilesQueryKey = trpc.settings.getViewedFiles.queryKey({
+    owner: queryInput.owner,
+    pullNumber: queryInput.pullNumber,
+    repo: queryInput.repo,
+  });
+
+  const markViewed = useMutation(
+    trpc.settings.markFileViewed.mutationOptions({
+      onMutate: async (variables) => {
+        await queryClient.cancelQueries({ queryKey: viewedFilesQueryKey });
+        const previous = queryClient.getQueryData(viewedFilesQueryKey);
+        queryClient.setQueryData(
+          viewedFilesQueryKey,
+          (old: string[] | undefined) => [...(old ?? []), variables.filePath]
+        );
+        return { previous };
+      },
+      onError: (_err, _vars, context) => {
+        if (context?.previous !== undefined) {
+          queryClient.setQueryData(viewedFilesQueryKey, context.previous);
+        }
+      },
+      onSettled: () => {
+        void queryClient.invalidateQueries({ queryKey: viewedFilesQueryKey });
+      },
+    })
+  );
+
+  const markUnviewed = useMutation(
+    trpc.settings.markFileUnviewed.mutationOptions({
+      onMutate: async (variables) => {
+        await queryClient.cancelQueries({ queryKey: viewedFilesQueryKey });
+        const previous = queryClient.getQueryData(viewedFilesQueryKey);
+        queryClient.setQueryData(
+          viewedFilesQueryKey,
+          (old: string[] | undefined) =>
+            (old ?? []).filter((filePath) => filePath !== variables.filePath)
+        );
+        return { previous };
+      },
+      onError: (_err, _vars, context) => {
+        if (context?.previous !== undefined) {
+          queryClient.setQueryData(viewedFilesQueryKey, context.previous);
+        }
+      },
+      onSettled: () => {
+        void queryClient.invalidateQueries({ queryKey: viewedFilesQueryKey });
+      },
+    })
+  );
+
+  function handleToggleViewed(filename: string, viewed: boolean) {
+    if (viewed) {
+      markViewed.mutate({
+        filePath: filename,
+        owner: queryInput.owner,
+        pullNumber: queryInput.pullNumber,
+        repo: queryInput.repo,
+      });
+      return;
+    }
+
+    markUnviewed.mutate({
+      filePath: filename,
+      owner: queryInput.owner,
+      pullNumber: queryInput.pullNumber,
+      repo: queryInput.repo,
+    });
+  }
+
+  React.useEffect(() => {
+    setBulkPages((current) => (current.length === 0 ? [1] : current));
+  }, []);
+
+  const bulkPageQueries = useQueries({
+    queries: bulkPages.map((page) =>
+      trpc.github.getPullRequestFiles.queryOptions(
+        {
+          ...queryInput,
+          page,
+          perPage: FOLLOW_UP_DIFF_PAGE_SIZE,
+        },
+        {
+          staleTime: 60_000,
+        }
+      )
+    ),
+  });
+
+  const resolvedBulkPages = React.useMemo(
+    () => bulkPageQueries.flatMap((query) => (query.data ? [query.data] : [])),
+    [bulkPageQueries]
+  );
+  const nextBulkPage = resolvedBulkPages.at(-1)?.nextPage ?? null;
+
+  React.useEffect(() => {
+    if (!nextBulkPage) {
+      return;
+    }
+
+    setBulkPages((current) =>
+      current.includes(nextBulkPage) ? current : [...current, nextBulkPage]
+    );
+  }, [nextBulkPage]);
+
+  const sourceFiles = React.useMemo(() => {
+    const fileMap = new Map<string, GitHubPullRequestFile>();
+    const pages =
+      resolvedBulkPages.length > 0
+        ? [firstPageQuery.data, ...resolvedBulkPages]
+        : [firstPageQuery.data];
+
+    for (const page of pages) {
+      for (const file of page.files) {
+        fileMap.set(`${file.filename}:${file.sha}`, file);
+      }
+    }
+
+    return Array.from(fileMap.values());
+  }, [firstPageQuery.data, resolvedBulkPages]);
+
+  const files = React.useMemo(
+    () =>
+      sourceFiles.flatMap((file) => {
+        const parsed = parsePullRequestFile(file);
+        return parsed ? [parsed] : [];
+      }),
+    [sourceFiles]
+  );
+  const reviewComments = reviewCommentsQuery.data ?? [];
   const reviewCommentsWithLines = React.useMemo(
     () => reviewComments.filter((comment) => comment.line !== null),
     [reviewComments]
@@ -982,21 +1281,16 @@ function PullRequestDetailsSection({
   );
   const fileEntries = React.useMemo(
     () =>
-      files.map((file) => {
-        let additions = 0;
-        let deletions = 0;
-        for (const hunk of file.hunks) {
-          additions += hunk.additionLines;
-          deletions += hunk.deletionLines;
-        }
-        return {
-          additions,
-          deletions,
-          filename: file.name,
-          status: file.type ?? "modified",
-        };
-      }),
-    [files]
+      sourceFiles.map((file) => ({
+        additions: file.additions,
+        deletions: file.deletions,
+        filename: file.filename,
+        status: file.status,
+      })),
+    [sourceFiles]
+  );
+  const isLoadingMoreFiles = bulkPageQueries.some(
+    (query) => query.isLoading || query.isFetching
   );
 
   return (
@@ -1009,68 +1303,19 @@ function PullRequestDetailsSection({
               viewedFiles={viewedFiles}
               activeFile={activeFile}
               onFileSelect={onFileSelect}
-              onToggleViewed={onToggleViewed}
+              onToggleViewed={handleToggleViewed}
             />
           </div>
         </div>
       ) : null}
 
       <div className="min-w-0 flex-1 space-y-6">
-        {issueComments.length > 0 ? (
-          <Section title="Discussion">
-            <div className="space-y-4">
-              {issueComments.map((comment) => (
-                <div key={comment.id} className="space-y-1">
-                  <div className="flex flex-wrap items-center gap-2 text-xs text-sachi-fg-muted">
-                    <span className="font-medium text-sachi-fg-secondary">
-                      {comment.user.login}
-                    </span>
-                    <span>{formatRelativeTime(comment.updated_at)}</span>
-                  </div>
-                  <MarkdownContent
-                    className="pull-request-markdown text-sm text-sachi-fg-secondary"
-                    content={comment.body}
-                    repository={repository}
-                  />
-                </div>
-              ))}
-            </div>
-          </Section>
-        ) : null}
-
-        {reviews.length > 0 ? (
-          <Section title="Reviews">
-            <div className="space-y-4">
-              {reviews.map((review) => (
-                <div key={review.id} className="space-y-1">
-                  <div className="flex flex-wrap items-center gap-2 text-xs text-sachi-fg-muted">
-                    <span className="font-medium text-sachi-fg-secondary">
-                      {review.user.login}
-                    </span>
-                    <Badge variant="outline">{reviewBadge(review)}</Badge>
-                    {review.submitted_at ? (
-                      <span>{formatRelativeTime(review.submitted_at)}</span>
-                    ) : null}
-                  </div>
-                  {review.body ? (
-                    <MarkdownContent
-                      className="pull-request-markdown text-sm text-sachi-fg-secondary"
-                      content={review.body}
-                      repository={repository}
-                    />
-                  ) : null}
-                </div>
-              ))}
-            </div>
-          </Section>
-        ) : null}
-
         <Section
           title="Diff"
           action={
             <div className="flex items-center gap-2">
               <Badge variant="outline">
-                {files.length} file{files.length === 1 ? "" : "s"}
+                {sourceFiles.length} file{sourceFiles.length === 1 ? "" : "s"}
               </Badge>
               <DiffSettingsPopover />
             </div>
@@ -1095,6 +1340,11 @@ function PullRequestDetailsSection({
                   reviewComments={reviewCommentsByFile.get(file.name) ?? []}
                 />
               ))}
+              {isLoadingMoreFiles ? (
+                <div className="rounded-lg border border-sachi-line-subtle bg-sachi-base px-4 py-3 text-sm text-sachi-fg-muted">
+                  Loading more files…
+                </div>
+              ) : null}
             </div>
           )}
         </Section>

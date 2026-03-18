@@ -1,9 +1,9 @@
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { DialRoot } from "dialkit";
+import { Inter } from "next/font/google";
 
 import "../styles/globals.css";
 import "dialkit/styles.css";
-import { Inter } from "next/font/google";
 import localFont from "next/font/local";
 import Script from "next/script";
 

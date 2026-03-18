@@ -1,10 +1,6 @@
 import { notFound } from "next/navigation";
 
-import {
-  getQueryClient,
-  HydrateClient,
-  trpc,
-} from "~/lib/trpc/server-components";
+import { caller, HydrateClient, prefetch, trpc } from "~/lib/trpc/server";
 
 import { PullRequestView } from "../../../../_components/pull-request-view";
 
@@ -25,20 +21,57 @@ export default async function PullRequestPage({
     notFound();
   }
 
-  const queryClient = getQueryClient();
-  const pageData = await queryClient
-    .fetchQuery(
-      trpc.github.getPullRequestPage.queryOptions({
-        owner,
-        repo,
-        pullNumber,
-      })
-    )
-    .catch(() => null);
+  const page = await caller.github.getPullRequestPage({
+    owner,
+    repo,
+    pullNumber,
+  });
 
-  if (!pageData) {
-    notFound();
-  }
+  prefetch(
+    trpc.github.getPullRequestDiscussion.queryOptions({
+      owner,
+      repo,
+      pullNumber,
+    })
+  );
+  prefetch(
+    trpc.github.getPullRequestFiles.queryOptions({
+      owner,
+      repo,
+      pullNumber,
+      page: 1,
+      perPage: 1,
+    })
+  );
+  prefetch(
+    trpc.github.getPullRequestReviewComments.queryOptions({
+      owner,
+      repo,
+      pullNumber,
+    })
+  );
+  prefetch(
+    trpc.github.getPullRequestStack.queryOptions({
+      owner,
+      repo,
+      pullNumber,
+    })
+  );
+  prefetch(
+    trpc.github.getCheckSummary.queryOptions({
+      owner,
+      repo,
+      ref: page.pullRequest.head.sha,
+    })
+  );
+  prefetch(trpc.settings.getDiffSettings.queryOptions());
+  prefetch(
+    trpc.settings.getViewedFiles.queryOptions({
+      owner,
+      pullNumber,
+      repo,
+    })
+  );
 
   return (
     <HydrateClient>

@@ -29,7 +29,7 @@ import { CheckStatusDot } from "~/app/(protected)/_components/check-status-dot";
 import { ReviewStatusIcon } from "~/app/(protected)/_components/review-status-icon";
 import type { InboxPullRequest, ReviewDecision } from "~/lib/github/server";
 import { formatRelativeTime } from "~/lib/time";
-import { useTRPC } from "~/lib/trpc/client";
+import { useTRPC } from "~/lib/trpc/react";
 
 type SortField = "title" | "changes" | "updated";
 type SortDirection = "asc" | "desc";
@@ -140,13 +140,15 @@ function PullRequestRow({
   owner: string;
   repo: string;
 }) {
-  const checkSummary = checkSummaries[checkSummaryKey(owner, repo, pr.head.sha)];
+  const checkSummary =
+    checkSummaries[checkSummaryKey(owner, repo, pr.head.sha)];
 
   return (
     <Table.Row>
       <Table.Cell className="w-full min-w-0">
         <Link
           href={`/repo/${owner}/${repo}/pull/${String(pr.number)}`}
+          prefetch={true}
           className="flex min-w-0 items-center gap-3"
         >
           <Avatar size="sm">

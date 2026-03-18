@@ -8,16 +8,16 @@ import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { useState } from "react";
 import type { ReactNode } from "react";
 
-import { TRPCProvider, makeTRPCClient } from "~/lib/trpc/client";
-import { makeQueryClient } from "~/lib/trpc/query-client";
+import { createQueryClient } from "~/lib/trpc/query-client";
+import { TRPCProvider, makeTRPCClient } from "~/lib/trpc/react";
 
 let browserQueryClient: QueryClient | undefined = undefined;
 
 function getQueryClient() {
   if (typeof window === "undefined") {
-    return makeQueryClient();
+    return createQueryClient();
   }
-  if (!browserQueryClient) browserQueryClient = makeQueryClient();
+  if (!browserQueryClient) browserQueryClient = createQueryClient();
   return browserQueryClient;
 }
 
