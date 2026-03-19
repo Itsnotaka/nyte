@@ -3,10 +3,7 @@
 import type { DiffLineAnnotation, FileDiffMetadata } from "@pierre/diffs/react";
 import { FileDiff } from "@pierre/diffs/react";
 import type { DiffSettingsJson } from "@sachikit/db/schema/settings";
-import type {
-  GitHubPullRequestReviewComment,
-  GitHubRepository,
-} from "@sachikit/github";
+import type { GitHubPullRequestReviewComment, GitHubRepository } from "@sachikit/github";
 import { Badge } from "@sachikit/ui/components/badge";
 import { Button } from "@sachikit/ui/components/button";
 import {
@@ -27,11 +24,7 @@ type DiffFileProps = {
   reviewComments: GitHubPullRequestReviewComment[];
   drafts: DraftComment[];
   diffSettings: DiffSettingsJson;
-  onAddDraft: (
-    path: string,
-    lineNumber: number,
-    side: "LEFT" | "RIGHT"
-  ) => void;
+  onAddDraft: (path: string, lineNumber: number, side: "LEFT" | "RIGHT") => void;
   onDraftChange: (id: string, body: string) => void;
   onDraftRemove: (id: string) => void;
 };
@@ -49,39 +42,33 @@ export function DiffFile({
   const publishedCommentCount = reviewComments.length;
   const draftCommentCount = drafts.length;
 
-  const annotations: DiffLineAnnotation<AnnotationPayload>[] =
-    diffSettings.hideComments
-      ? []
-      : [
-          ...reviewComments.flatMap((comment) => {
-            if (comment.line == null || comment.side == null) return [];
-            const annotation: DiffLineAnnotation<AnnotationPayload> = {
-              lineNumber: comment.line,
-              metadata: { comment, kind: "existing" as const },
-              side: comment.side === "LEFT" ? "deletions" : "additions",
-            };
-            return [annotation];
-          }),
-          ...drafts.map((draft) => {
-            const annotation: DiffLineAnnotation<AnnotationPayload> = {
-              lineNumber: draft.lineNumber,
-              metadata: { draft, kind: "draft" as const },
-              side: draft.side === "LEFT" ? "deletions" : "additions",
-            };
-            return annotation;
-          }),
-        ];
+  const annotations: DiffLineAnnotation<AnnotationPayload>[] = diffSettings.hideComments
+    ? []
+    : [
+        ...reviewComments.flatMap((comment) => {
+          if (comment.line == null || comment.side == null) return [];
+          const annotation: DiffLineAnnotation<AnnotationPayload> = {
+            lineNumber: comment.line,
+            metadata: { comment, kind: "existing" as const },
+            side: comment.side === "LEFT" ? "deletions" : "additions",
+          };
+          return [annotation];
+        }),
+        ...drafts.map((draft) => {
+          const annotation: DiffLineAnnotation<AnnotationPayload> = {
+            lineNumber: draft.lineNumber,
+            metadata: { draft, kind: "draft" as const },
+            side: draft.side === "LEFT" ? "deletions" : "additions",
+          };
+          return annotation;
+        }),
+      ];
 
   return (
-    <div
-      className="overflow-hidden rounded-lg ring-1 ring-sachi-line"
-      data-file-name={file.name}
-    >
+    <div className="overflow-hidden rounded-lg ring-1 ring-sachi-line" data-file-name={file.name}>
       <PanelHeader>
         <PanelHeaderLeading>
-          <h3 className="truncate text-sm font-semibold text-sachi-fg">
-            {file.name}
-          </h3>
+          <h3 className="truncate text-sm font-semibold text-sachi-fg">{file.name}</h3>
         </PanelHeaderLeading>
         <PanelHeaderTrailing>
           {publishedCommentCount > 0 ? (
@@ -144,9 +131,7 @@ export function DiffFile({
             <div className="max-w-2xl space-y-1.5 p-2">
               <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-sachi-surface px-3 py-2 ring-1 ring-sachi-line-subtle">
                 <div className="flex flex-wrap items-center gap-2 text-xs font-normal text-sachi-fg-muted">
-                  <span className="font-medium text-sachi-fg-secondary">
-                    Draft comment
-                  </span>
+                  <span className="font-medium text-sachi-fg-secondary">Draft comment</span>
                   <Badge variant="outline">Pending</Badge>
                   <span>Line {meta.draft.lineNumber}</span>
                 </div>
@@ -161,18 +146,13 @@ export function DiffFile({
               </div>
               <div className="rounded-lg bg-sachi-base px-3 py-3 ring-1 ring-sachi-line">
                 <div className="space-y-2">
-                  <label
-                    htmlFor={draftFieldId}
-                    className="text-sm font-medium text-sachi-fg"
-                  >
+                  <label htmlFor={draftFieldId} className="text-sm font-medium text-sachi-fg">
                     Inline feedback
                   </label>
                   <Textarea
                     id={draftFieldId}
                     value={meta.draft.body}
-                    onChange={(event) =>
-                      onDraftChange(meta.draft.id, event.target.value)
-                    }
+                    onChange={(event) => onDraftChange(meta.draft.id, event.target.value)}
                     placeholder="Explain what should change or why this looks good."
                     rows={3}
                   />

@@ -3,11 +3,7 @@ import { cn } from "@sachikit/ui/lib/utils";
 import { Streamdown } from "streamdown";
 
 function resolveMarkdownUrl(url: string, repository: GitHubRepository): string {
-  if (
-    url.startsWith("#") ||
-    url.startsWith("//") ||
-    /^[a-zA-Z][a-zA-Z\d+.-]*:/.test(url)
-  ) {
+  if (url.startsWith("#") || url.startsWith("//") || /^[a-zA-Z][a-zA-Z\d+.-]*:/.test(url)) {
     return url;
   }
 
@@ -43,7 +39,7 @@ export function MarkdownContent({
       className={cn(
         "[&_ol]:list-decimal [&_ol]:pl-4 [&_ul]:list-disc [&_ul]:pl-4",
         "[&_p]:mb-2 [&_p]:last:mb-0",
-        className
+        className,
       )}
       linkSafety={{ enabled: false }}
       mode="static"

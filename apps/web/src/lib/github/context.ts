@@ -2,11 +2,8 @@ import "server-only";
 import { cache } from "react";
 
 import { getGitHubAppAuth } from "./auth";
-import {
-  getInstallationRepos,
-  getOnboardingState,
-  getSyncedRepoLookupRows,
-} from "./catalog";
+import { getInstallationRepos, getOnboardingState, getSyncedRepoLookupRows } from "./catalog";
+import { GitHubRepoContextNotFoundError } from "./errors";
 import type { RepoContext } from "./types";
 
 function repoLookupKey(owner: string, repo: string): string {
@@ -25,14 +22,14 @@ export const findRepoContext = cache(
 
     const lookupKey = repoLookupKey(owner, repo);
     const matchedRow = syncedRows.find(
-      (row) => repoLookupKey(row.ownerLogin, row.repoName) === lookupKey
+      (row) => repoLookupKey(row.ownerLogin, row.repoName) === lookupKey,
     );
     if (!matchedRow) {
       return null;
     }
 
     const installation = state.installations.find(
-      (candidate) => candidate.id === matchedRow.installationId
+      (candidate) => candidate.id === matchedRow.installationId,
     );
     if (!installation) {
       return null;
@@ -41,10 +38,7 @@ export const findRepoContext = cache(
     const repos = await getInstallationRepos(installation.id);
     const repository =
       repos.find((candidate) => candidate.id === matchedRow.githubRepoId) ??
-      repos.find(
-        (candidate) =>
-          repoLookupKey(candidate.owner.login, candidate.name) === lookupKey
-      );
+      repos.find((candidate) => repoLookupKey(candidate.owner.login, candidate.name) === lookupKey);
 
     if (!repository) {
       return null;
@@ -55,16 +49,17 @@ export const findRepoContext = cache(
       repository,
       auth: getGitHubAppAuth(installation.id),
     };
-  }
+  },
 );
 
-export async function requireRepoContext(
-  owner: string,
-  repo: string
-): Promise<RepoContext> {
+export async function requireRepoContext(owner: string, repo: string): Promise<RepoContext> {
   const context = await findRepoContext(owner, repo);
   if (!context) {
-    throw new Error("Repository not found.");
+    throw new GitHubRepoContextNotFoundError({
+      message: "Repository not found.",
+      owner,
+      repo,
+    });
   }
 
   return context;

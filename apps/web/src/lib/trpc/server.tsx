@@ -26,18 +26,12 @@ export const trpc = createTRPCOptionsProxy({
 
 export const caller = createCallerFactory(appRouter)(createContext);
 
-export function prefetch<T extends ReturnType<TRPCQueryOptions<any>>>(
-  queryOptions: T
-) {
+export function prefetch<T extends ReturnType<TRPCQueryOptions<any>>>(queryOptions: T) {
   const queryClient = getQueryClient();
-  void queryClient.prefetchQuery(queryOptions);
+  return queryClient.prefetchQuery(queryOptions);
 }
 
 export function HydrateClient({ children }: { children: ReactNode }) {
   const queryClient = getQueryClient();
-  return (
-    <HydrationBoundary state={dehydrate(queryClient)}>
-      {children}
-    </HydrationBoundary>
-  );
+  return <HydrationBoundary state={dehydrate(queryClient)}>{children}</HydrationBoundary>;
 }

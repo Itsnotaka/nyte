@@ -9,11 +9,7 @@ type EditableTitleProps = {
   isPending: boolean;
 };
 
-export function EditableTitle({
-  title,
-  onSave,
-  isPending,
-}: EditableTitleProps) {
+export function EditableTitle({ title, onSave, isPending }: EditableTitleProps) {
   const [editing, setEditing] = React.useState(false);
   const [value, setValue] = React.useState(title);
 

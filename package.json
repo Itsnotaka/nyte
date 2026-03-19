@@ -6,6 +6,11 @@
     "build": "turbo run build",
     "dev": "turbo run dev",
     "db:push": "turbo run push -F @sachikit/db",
+    "effect:check": "effect-language-service check",
+    "effect:diagnostics": "effect-language-service diagnostics --project tsconfig.json",
+    "effect:diagnostics:github": "effect-language-service diagnostics --project packages/github/tsconfig.json",
+    "effect:diagnostics:web": "effect-language-service diagnostics --project apps/web/tsconfig.json",
+    "effect:patch": "effect-language-service patch",
     "lint": "oxlint -c .config/.oxlintrc.json --type-aware --type-check --report-unused-disable-directives",
     "fmt": "oxfmt -c .config/.oxfmtrc.json",
     "knip": "knip -c .config/knip.json",
@@ -15,6 +20,7 @@
     "lint:ws": "pnpx sherif@latest"
   },
   "devDependencies": {
+    "@effect/language-service": "^0.80.0",
     "@sachikit/tsconfig": "workspace:*",
     "@typescript/native-preview": "^7.0.0-dev.20260318.1",
     "knip": "^5.88.0",

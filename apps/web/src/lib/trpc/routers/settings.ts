@@ -24,10 +24,7 @@ const inboxSectionOrderSchema = z
   .array(z.enum(VALID_SECTION_IDS))
   .min(VALID_SECTION_IDS.length)
   .max(VALID_SECTION_IDS.length)
-  .refine(
-    (arr) => new Set(arr).size === arr.length,
-    "Section order must not contain duplicates"
-  );
+  .refine((arr) => new Set(arr).size === arr.length, "Section order must not contain duplicates");
 
 const diffSettingsSchema = z.object({
   contextLines: z.number().int().min(1).max(20),
@@ -87,26 +84,22 @@ export const settingsRouter = createTRPCRouter({
       return merged;
     }),
 
-  getViewedFiles: protectedProcedure
-    .input(viewedFilesInputSchema)
-    .query(async ({ ctx, input }) => {
-      const userId = ctx.session.user.id;
-      const prefix = `${input.owner}/${input.repo}:`;
-      const rows = await db
-        .select({ filePath: prFilesSchema.prFileViewed.filePath })
-        .from(prFilesSchema.prFileViewed)
-        .where(
-          and(
-            eq(prFilesSchema.prFileViewed.userId, userId),
-            eq(prFilesSchema.prFileViewed.prId, input.pullNumber)
-          )
-        );
-      return rows.flatMap((row) =>
-        row.filePath.startsWith(prefix)
-          ? [row.filePath.slice(prefix.length)]
-          : []
+  getViewedFiles: protectedProcedure.input(viewedFilesInputSchema).query(async ({ ctx, input }) => {
+    const userId = ctx.session.user.id;
+    const prefix = `${input.owner}/${input.repo}:`;
+    const rows = await db
+      .select({ filePath: prFilesSchema.prFileViewed.filePath })
+      .from(prFilesSchema.prFileViewed)
+      .where(
+        and(
+          eq(prFilesSchema.prFileViewed.userId, userId),
+          eq(prFilesSchema.prFileViewed.prId, input.pullNumber),
+        ),
       );
-    }),
+    return rows.flatMap((row) =>
+      row.filePath.startsWith(prefix) ? [row.filePath.slice(prefix.length)] : [],
+    );
+  }),
 
   markFileViewed: protectedProcedure
     .input(viewedFileMutationSchema)
@@ -142,8 +135,8 @@ export const settingsRouter = createTRPCRouter({
           and(
             eq(prFilesSchema.prFileViewed.userId, userId),
             eq(prFilesSchema.prFileViewed.prId, input.pullNumber),
-            eq(prFilesSchema.prFileViewed.filePath, scopedPath)
-          )
+            eq(prFilesSchema.prFileViewed.filePath, scopedPath),
+          ),
         );
     }),
 

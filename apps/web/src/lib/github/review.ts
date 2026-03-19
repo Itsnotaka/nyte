@@ -17,6 +17,7 @@ import {
 } from "@sachikit/github";
 
 import { findRepoContext, requireRepoContext } from "./context";
+import { runGitHubEffect, runGitHubEffectOrEmptyArray } from "./effect";
 
 export async function addPullRequestComment(input: {
   owner: string;
@@ -26,17 +27,14 @@ export async function addPullRequestComment(input: {
 }): Promise<GitHubIssueComment> {
   const context = await requireRepoContext(input.owner, input.repo);
 
-  return createIssueComment(
-    context.auth,
-    input.owner,
-    context.repository.name,
-    input.pullNumber,
-    input.body
-  ).match(
-    (comment) => comment,
-    (error) => {
-      throw error;
-    }
+  return runGitHubEffect(
+    createIssueComment(
+      context.auth,
+      input.owner,
+      context.repository.name,
+      input.pullNumber,
+      input.body,
+    ),
   );
 }
 
@@ -50,34 +48,17 @@ export async function addPullRequestReview(input: {
 }): Promise<GitHubPullRequestReview> {
   const context = await requireRepoContext(input.owner, input.repo);
 
-  const pullRequest = await getPullRequest(
-    context.auth,
-    input.owner,
-    context.repository.name,
-    input.pullNumber
-  ).match(
-    (pr) => pr,
-    (error) => {
-      throw error;
-    }
+  const pullRequest = await runGitHubEffect(
+    getPullRequest(context.auth, input.owner, context.repository.name, input.pullNumber),
   );
 
-  return submitPullRequestReview(
-    context.auth,
-    input.owner,
-    context.repository.name,
-    input.pullNumber,
-    {
+  return runGitHubEffect(
+    submitPullRequestReview(context.auth, input.owner, context.repository.name, input.pullNumber, {
       body: input.body,
       comments: input.comments,
       commitId: pullRequest.head.sha,
       event: input.event,
-    }
-  ).match(
-    (review) => review,
-    (error) => {
-      throw error;
-    }
+    }),
   );
 }
 
@@ -89,17 +70,14 @@ export async function requestPullRequestReviewers(input: {
 }): Promise<GitHubPullRequest> {
   const context = await requireRepoContext(input.owner, input.repo);
 
-  return requestReviewers(
-    context.auth,
-    input.owner,
-    context.repository.name,
-    input.pullNumber,
-    input.reviewers
-  ).match(
-    (pr) => pr,
-    (error) => {
-      throw error;
-    }
+  return runGitHubEffect(
+    requestReviewers(
+      context.auth,
+      input.owner,
+      context.repository.name,
+      input.pullNumber,
+      input.reviewers,
+    ),
   );
 }
 
@@ -111,30 +89,18 @@ export async function removePullRequestReviewer(input: {
 }): Promise<GitHubPullRequest> {
   const context = await requireRepoContext(input.owner, input.repo);
 
-  return removeReviewers(
-    context.auth,
-    input.owner,
-    context.repository.name,
-    input.pullNumber,
-    [input.reviewer]
-  ).match(
-    (pr) => pr,
-    (error) => {
-      throw error;
-    }
+  return runGitHubEffect(
+    removeReviewers(context.auth, input.owner, context.repository.name, input.pullNumber, [
+      input.reviewer,
+    ]),
   );
 }
 
-export async function getRepoLabels(
-  owner: string,
-  repo: string
-): Promise<GitHubLabel[]> {
+export async function getRepoLabels(owner: string, repo: string): Promise<GitHubLabel[]> {
   const context = await findRepoContext(owner, repo);
   if (!context) return [];
 
-  return listRepoLabels(context.auth, owner, context.repository.name).unwrapOr(
-    []
-  );
+  return runGitHubEffectOrEmptyArray(listRepoLabels(context.auth, owner, context.repository.name));
 }
 
 export async function addPullRequestLabels(input: {
@@ -145,17 +111,8 @@ export async function addPullRequestLabels(input: {
 }): Promise<GitHubLabel[]> {
   const context = await requireRepoContext(input.owner, input.repo);
 
-  return addLabels(
-    context.auth,
-    input.owner,
-    context.repository.name,
-    input.pullNumber,
-    input.labels
-  ).match(
-    (labels) => labels,
-    (error) => {
-      throw error;
-    }
+  return runGitHubEffect(
+    addLabels(context.auth, input.owner, context.repository.name, input.pullNumber, input.labels),
   );
 }
 
@@ -167,16 +124,7 @@ export async function removePullRequestLabel(input: {
 }): Promise<void> {
   const context = await requireRepoContext(input.owner, input.repo);
 
-  await removeLabel(
-    context.auth,
-    input.owner,
-    context.repository.name,
-    input.pullNumber,
-    input.label
-  ).match(
-    () => undefined,
-    (error) => {
-      throw error;
-    }
+  await runGitHubEffect(
+    removeLabel(context.auth, input.owner, context.repository.name, input.pullNumber, input.label),
   );
 }

@@ -78,8 +78,7 @@ export function FileTreeSidebar({
     const q = query.toLowerCase().trim();
     const parts = q.length > 0 ? q.split(/\s+/) : [];
     return files.filter((file) => {
-      if (filter !== "all" && !FILTER_STATUSES[filter].has(file.status))
-        return false;
+      if (filter !== "all" && !FILTER_STATUSES[filter].has(file.status)) return false;
       if (parts.length === 0) return true;
       const lower = file.filename.toLowerCase();
       return parts.every((p) => lower.includes(p));
@@ -113,7 +112,7 @@ export function FileTreeSidebar({
                 "rounded px-1.5 py-0.5 text-xs transition-colors",
                 filter === f.id
                   ? "bg-sachi-fill text-sachi-fg"
-                  : "text-sachi-fg-muted hover:bg-sachi-fill hover:text-sachi-fg-secondary"
+                  : "text-sachi-fg-muted hover:bg-sachi-fill hover:text-sachi-fg-secondary",
               )}
             >
               {f.label}
@@ -124,33 +123,26 @@ export function FileTreeSidebar({
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         {filtered.length === 0 ? (
-          <p className="px-3 py-4 text-xs text-sachi-fg-muted">
-            No files match.
-          </p>
+          <p className="px-3 py-4 text-xs text-sachi-fg-muted">No files match.</p>
         ) : (
           filtered.map((file) => {
             const viewed = viewedFiles.has(file.filename);
             const active = activeFile === file.filename;
             const lastSlash = file.filename.lastIndexOf("/");
             const dir = lastSlash > 0 ? file.filename.slice(0, lastSlash) : "";
-            const name =
-              lastSlash >= 0
-                ? file.filename.slice(lastSlash + 1)
-                : file.filename;
+            const name = lastSlash >= 0 ? file.filename.slice(lastSlash + 1) : file.filename;
 
             return (
               <div
                 key={file.filename}
                 className={cn(
                   "group flex items-start gap-2 border-b border-sachi-line-subtle px-3 py-2 transition-colors hover:bg-sachi-fill",
-                  active && "bg-sachi-fill"
+                  active && "bg-sachi-fill",
                 )}
               >
                 <Checkbox
                   checked={viewed}
-                  onCheckedChange={(checked) =>
-                    onToggleViewed(file.filename, checked === true)
-                  }
+                  onCheckedChange={(checked) => onToggleViewed(file.filename, checked === true)}
                   className="mt-0.5 shrink-0"
                   aria-label={`Mark ${file.filename} as viewed`}
                 />
@@ -164,7 +156,7 @@ export function FileTreeSidebar({
                       variant="outline"
                       className={cn(
                         "h-4 shrink-0 px-1 text-[10px] font-bold",
-                        STATUS_COLOR[file.status] ?? "text-sachi-fg-muted"
+                        STATUS_COLOR[file.status] ?? "text-sachi-fg-muted",
                       )}
                     >
                       {STATUS_LABEL[file.status] ?? "?"}
@@ -172,7 +164,7 @@ export function FileTreeSidebar({
                     <span
                       className={cn(
                         "truncate text-xs font-medium",
-                        viewed ? "text-sachi-fg-muted" : "text-sachi-fg"
+                        viewed ? "text-sachi-fg-muted" : "text-sachi-fg",
                       )}
                       title={file.filename}
                     >
@@ -180,10 +172,7 @@ export function FileTreeSidebar({
                     </span>
                   </span>
                   {dir ? (
-                    <span
-                      className="truncate text-[10px] text-sachi-fg-faint"
-                      title={dir}
-                    >
+                    <span className="truncate text-[10px] text-sachi-fg-faint" title={dir}>
                       {dir}
                     </span>
                   ) : null}

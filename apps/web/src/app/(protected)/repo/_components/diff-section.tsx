@@ -7,12 +7,7 @@ import type { DiffSettingsJson } from "@sachikit/db/schema/settings";
 import type { GitHubPullRequestFile, GitHubRepository } from "@sachikit/github";
 import { Badge } from "@sachikit/ui/components/badge";
 import { Skeleton } from "@sachikit/ui/components/skeleton";
-import {
-  useMutation,
-  useQuery,
-  useSuspenseQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { useMutation, useQuery, useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
 import * as React from "react";
 
 import { useTRPC, useTRPCClient } from "~/lib/trpc/react";
@@ -34,9 +29,7 @@ function buildPatchHeader(file: GitHubPullRequestFile): string {
   return `diff --git a/${previousName} b/${file.filename}\n--- ${fromPath}\n+++ ${toPath}\n`;
 }
 
-function parsePullRequestFile(
-  file: GitHubPullRequestFile
-): FileDiffMetadata | null {
+function parsePullRequestFile(file: GitHubPullRequestFile): FileDiffMetadata | null {
   const diff = `${buildPatchHeader(file)}${file.patch ? `${file.patch}\n` : ""}`;
   try {
     const parsed = parsePatchFiles(diff).flatMap((patch) => patch.files);
@@ -49,11 +42,7 @@ function parsePullRequestFile(
 type PullRequestDiffSectionProps = {
   activeFile: string | null;
   draftsByFile: Map<string, DraftComment[]>;
-  onAddDraft: (
-    path: string,
-    lineNumber: number,
-    side: "LEFT" | "RIGHT"
-  ) => void;
+  onAddDraft: (path: string, lineNumber: number, side: "LEFT" | "RIGHT") => void;
   onDraftChange: (id: string, body: string) => void;
   onDraftRemove: (id: string) => void;
   onFileSelect: (filename: string) => void;
@@ -111,28 +100,25 @@ export function PullRequestDiffSection({
   const trpc = useTRPC();
   const trpcClient = useTRPCClient();
   const queryClient = useQueryClient();
-  const diffSettingsQuery = useSuspenseQuery(
-    trpc.settings.getDiffSettings.queryOptions()
-  );
+  const diffSettingsQuery = useSuspenseQuery(trpc.settings.getDiffSettings.queryOptions());
   const viewedFilesQuery = useSuspenseQuery(
     trpc.settings.getViewedFiles.queryOptions(queryInput, {
       staleTime: 5 * 60_000,
-    })
+    }),
   );
   const firstPageQuery = useSuspenseQuery(
     trpc.github.getPullRequestFiles.queryOptions(
       { ...queryInput, page: 1, perPage: INITIAL_DIFF_PAGE_SIZE },
-      { staleTime: 60_000 }
-    )
+      { staleTime: 60_000 },
+    ),
   );
   const reviewCommentsQuery = useSuspenseQuery(
     trpc.github.getPullRequestReviewComments.queryOptions(queryInput, {
       staleTime: 60_000,
-    })
+    }),
   );
 
-  const diffSettings: DiffSettingsJson =
-    diffSettingsQuery.data ?? DIFF_SETTINGS_DEFAULTS;
+  const diffSettings: DiffSettingsJson = diffSettingsQuery.data ?? DIFF_SETTINGS_DEFAULTS;
   const viewedFiles = new Set(viewedFilesQuery.data ?? []);
   const viewedFilesQueryKey = trpc.settings.getViewedFiles.queryKey({
     owner: queryInput.owner,
@@ -145,10 +131,10 @@ export function PullRequestDiffSection({
       onMutate: async (variables) => {
         await queryClient.cancelQueries({ queryKey: viewedFilesQueryKey });
         const previous = queryClient.getQueryData(viewedFilesQueryKey);
-        queryClient.setQueryData(
-          viewedFilesQueryKey,
-          (old: string[] | undefined) => [...(old ?? []), variables.filePath]
-        );
+        queryClient.setQueryData(viewedFilesQueryKey, (old: string[] | undefined) => [
+          ...(old ?? []),
+          variables.filePath,
+        ]);
         return { previous };
       },
       onError: (_err, _vars, context) => {
@@ -159,7 +145,7 @@ export function PullRequestDiffSection({
       onSettled: () => {
         void queryClient.invalidateQueries({ queryKey: viewedFilesQueryKey });
       },
-    })
+    }),
   );
 
   const markUnviewed = useMutation(
@@ -167,10 +153,8 @@ export function PullRequestDiffSection({
       onMutate: async (variables) => {
         await queryClient.cancelQueries({ queryKey: viewedFilesQueryKey });
         const previous = queryClient.getQueryData(viewedFilesQueryKey);
-        queryClient.setQueryData(
-          viewedFilesQueryKey,
-          (old: string[] | undefined) =>
-            (old ?? []).filter((filePath) => filePath !== variables.filePath)
+        queryClient.setQueryData(viewedFilesQueryKey, (old: string[] | undefined) =>
+          (old ?? []).filter((filePath) => filePath !== variables.filePath),
         );
         return { previous };
       },
@@ -182,7 +166,7 @@ export function PullRequestDiffSection({
       onSettled: () => {
         void queryClient.invalidateQueries({ queryKey: viewedFilesQueryKey });
       },
-    })
+    }),
   );
 
   function handleToggleViewed(filename: string, viewed: boolean) {
@@ -250,12 +234,12 @@ export function PullRequestDiffSection({
         const parsed = parsePullRequestFile(file);
         return parsed ? [parsed] : [];
       }),
-    [sourceFiles]
+    [sourceFiles],
   );
 
   const reviewCommentsByFile = React.useMemo(
     () => groupByPath(reviewCommentsQuery.data.filter((c) => c.line !== null)),
-    [reviewCommentsQuery.data]
+    [reviewCommentsQuery.data],
   );
 
   const fileEntries = sourceFiles.map((file) => ({
@@ -265,8 +249,7 @@ export function PullRequestDiffSection({
     status: file.status,
   }));
 
-  const isLoadingMoreFiles =
-    resolvedBulkPagesQuery.isLoading || resolvedBulkPagesQuery.isFetching;
+  const isLoadingMoreFiles = resolvedBulkPagesQuery.isLoading || resolvedBulkPagesQuery.isFetching;
 
   return (
     <div className="flex gap-6">
@@ -297,9 +280,7 @@ export function PullRequestDiffSection({
           }
         >
           {files.length === 0 ? (
-            <p className="text-sm text-sachi-fg-muted">
-              No files changed in this pull request.
-            </p>
+            <p className="text-sm text-sachi-fg-muted">No files changed in this pull request.</p>
           ) : (
             <div className="space-y-4">
               {files.map((file) => (

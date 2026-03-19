@@ -28,11 +28,7 @@ function SidebarNav() {
         <li>
           <Link
             href="/"
-            className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-sachi-focus ${
-              isInboxActive
-                ? "bg-sachi-fill text-sachi-fg"
-                : "text-sachi-fg-secondary hover:bg-sachi-fill hover:text-sachi-fg"
-            }`}
+            className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-sachi-focus`}
           >
             <IconBox2 className="size-4 shrink-0" aria-hidden="true" />
             <span className="truncate">Inbox</span>
@@ -48,15 +44,10 @@ function SidebarTopBar() {
   const syncedSummaryQuery = useQuery(
     trpc.github.getSyncedRepoSummary.queryOptions(undefined, {
       staleTime: 60_000,
-    })
+    }),
   );
   const totalSynced = syncedSummaryQuery.data?.totalSynced;
-  const repoCta =
-    totalSynced == null
-      ? "Repos"
-      : totalSynced === 0
-        ? "Sync repos"
-        : "Edit repos";
+  const repoCta = totalSynced == null ? "Repos" : totalSynced === 0 ? "Sync repos" : "Edit repos";
 
   return (
     <div className="flex h-full items-center justify-between px-2.5">
@@ -73,10 +64,7 @@ function SidebarTopBar() {
 
 export function AppShell({ children }: AppShellProps) {
   return (
-    <SidebarProvider
-      open={true}
-      className="h-dvh w-full bg-sachi-shell text-sachi-fg-secondary"
-    >
+    <SidebarProvider open={true} className="h-dvh w-full bg-sachi-shell text-sachi-fg-secondary">
       <Sidebar className="bg-sachi-sidebar">
         <SidebarHeader className="h-10 border-b border-sachi-line-subtle">
           <SidebarTopBar />

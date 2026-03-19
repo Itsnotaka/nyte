@@ -5,7 +5,7 @@ export function formatRelativeTime(
   options: {
     addSuffix?: boolean;
     justNowLabel?: string;
-  } = {}
+  } = {},
 ): string {
   const date = input instanceof Date ? input : new Date(input);
   const distance = formatDistanceToNow(date, {
@@ -13,10 +13,7 @@ export function formatRelativeTime(
     includeSeconds: true,
   });
 
-  if (
-    distance === "less than a minute" ||
-    distance === "less than a minute ago"
-  ) {
+  if (distance === "less than a minute" || distance === "less than a minute ago") {
     return options.justNowLabel ?? "just now";
   }
 

@@ -1,9 +1,11 @@
 "use client";
 
-import * as React from "react";
-
 import { Checkbox as CheckboxPrimitive } from "@base-ui/react/checkbox";
-import { IconCheckmark1, IconMinusSmall } from "@central-icons-react/round-filled-radius-2-stroke-1.5";
+import {
+  IconCheckmark1,
+  IconMinusSmall,
+} from "@central-icons-react/round-filled-radius-2-stroke-1.5";
+import * as React from "react";
 
 import { cn } from "../../lib/utils";
 
@@ -50,7 +52,10 @@ export type CheckboxVariant = keyof typeof CHECKBOX_VARIANTS.variant;
 /**
  * Props for the Checkbox component.
  */
-export interface CheckboxProps extends Omit<React.ComponentProps<typeof CheckboxPrimitive.Root>, "onChange"> {
+export interface CheckboxProps extends Omit<
+  React.ComponentProps<typeof CheckboxPrimitive.Root>,
+  "onChange"
+> {
   /** Visual variant - "default" or "error" for validation failures */
   variant?: CheckboxVariant;
 }

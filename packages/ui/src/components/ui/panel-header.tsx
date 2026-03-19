@@ -8,17 +8,14 @@ function PanelHeader({ className, ...props }: React.ComponentProps<"div">) {
       data-slot="panel-header"
       className={cn(
         "flex flex-wrap items-center justify-between gap-3 border-b border-sachi-line bg-sachi-fill px-3 py-2",
-        className
+        className,
       )}
       {...props}
     />
   );
 }
 
-function PanelHeaderLeading({
-  className,
-  ...props
-}: React.ComponentProps<"div">) {
+function PanelHeaderLeading({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="panel-header-leading"
@@ -28,10 +25,7 @@ function PanelHeaderLeading({
   );
 }
 
-function PanelHeaderTrailing({
-  className,
-  ...props
-}: React.ComponentProps<"div">) {
+function PanelHeaderTrailing({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="panel-header-trailing"

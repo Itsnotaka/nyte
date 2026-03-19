@@ -1,7 +1,4 @@
-import type {
-  GitHubPullRequestReview,
-  GitHubRepository,
-} from "@sachikit/github";
+import type { GitHubPullRequestReview, GitHubRepository } from "@sachikit/github";
 import { Badge } from "@sachikit/ui/components/badge";
 import { Skeleton } from "@sachikit/ui/components/skeleton";
 import { cn } from "@sachikit/ui/lib/utils";
@@ -44,7 +41,7 @@ export function PullRequestDiscussionFallback() {
 function reviewStateBadgeClass(review: GitHubPullRequestReview): string {
   return cn(
     review.state === "APPROVED" && "border-green-600 text-green-700",
-    review.state === "CHANGES_REQUESTED" && "border-red-500 text-red-600"
+    review.state === "CHANGES_REQUESTED" && "border-red-500 text-red-600",
   );
 }
 
@@ -63,7 +60,7 @@ export function PullRequestDiscussionSection({
   const discussionQuery = useSuspenseQuery(
     trpc.github.getPullRequestDiscussion.queryOptions(queryInput, {
       staleTime: 60_000,
-    })
+    }),
   );
   const { issueComments, reviews } = discussionQuery.data;
 
@@ -79,9 +76,7 @@ export function PullRequestDiscussionSection({
             {issueComments.map((comment) => (
               <div key={comment.id} className="space-y-1">
                 <div className="flex flex-wrap items-center gap-2 text-xs text-sachi-fg-muted">
-                  <span className="font-medium text-sachi-fg-secondary">
-                    {comment.user.login}
-                  </span>
+                  <span className="font-medium text-sachi-fg-secondary">{comment.user.login}</span>
                   <span>{formatRelativeTime(comment.updated_at)}</span>
                 </div>
                 <MarkdownContent
@@ -101,13 +96,8 @@ export function PullRequestDiscussionSection({
             {reviews.map((review) => (
               <div key={review.id} className="space-y-1">
                 <div className="flex flex-wrap items-center gap-2 text-xs text-sachi-fg-muted">
-                  <span className="font-medium text-sachi-fg-secondary">
-                    {review.user.login}
-                  </span>
-                  <Badge
-                    variant="outline"
-                    className={reviewStateBadgeClass(review)}
-                  >
+                  <span className="font-medium text-sachi-fg-secondary">{review.user.login}</span>
+                  <Badge variant="outline" className={reviewStateBadgeClass(review)}>
                     {reviewStateLabel(review)}
                   </Badge>
                   {review.submitted_at ? (

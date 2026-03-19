@@ -26,17 +26,11 @@ type SidebarSectionProps = {
   action?: React.ReactNode;
 };
 
-export function SidebarSection({
-  title,
-  children,
-  action,
-}: SidebarSectionProps) {
+export function SidebarSection({ title, children, action }: SidebarSectionProps) {
   return (
     <div className="space-y-2 border-b border-sachi-line-subtle px-3 py-3 last:border-b-0">
       <div className="flex items-center justify-between">
-        <h3 className="text-xs font-medium tracking-wide text-sachi-fg-muted uppercase">
-          {title}
-        </h3>
+        <h3 className="text-xs font-medium tracking-wide text-sachi-fg-muted uppercase">{title}</h3>
         {action}
       </div>
       {children}

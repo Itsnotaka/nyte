@@ -5,18 +5,10 @@ import {
   IconPlusSmall,
 } from "@central-icons-react/round-filled-radius-2-stroke-1.5";
 import type { GitHubAccount } from "@sachikit/github";
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@sachikit/ui/components/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@sachikit/ui/components/avatar";
 import { Button } from "@sachikit/ui/components/button";
 import { Input } from "@sachikit/ui/components/input";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@sachikit/ui/components/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@sachikit/ui/components/popover";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import * as React from "react";
 
@@ -53,7 +45,7 @@ export function ReviewerPanel({
           queryKey: pullRequestPageQueryKey,
         });
       },
-    })
+    }),
   );
 
   const removeReviewer = useMutation(
@@ -63,7 +55,7 @@ export function ReviewerPanel({
           queryKey: pullRequestPageQueryKey,
         });
       },
-    })
+    }),
   );
 
   function handleAdd() {
@@ -105,9 +97,7 @@ export function ReviewerPanel({
               {addReviewer.isPending ? "Adding..." : "Add reviewer"}
             </Button>
             {addReviewer.error ? (
-              <p className="text-xs text-destructive">
-                {addReviewer.error.message}
-              </p>
+              <p className="text-xs text-destructive">{addReviewer.error.message}</p>
             ) : null}
           </PopoverContent>
         </Popover>
@@ -118,15 +108,10 @@ export function ReviewerPanel({
       ) : (
         <div className="space-y-1">
           {requestedReviewers.map((reviewer) => (
-            <div
-              key={reviewer.id}
-              className="flex items-center gap-2 rounded-md px-1.5 py-1"
-            >
+            <div key={reviewer.id} className="flex items-center gap-2 rounded-md px-1.5 py-1">
               <Avatar size="sm">
                 <AvatarImage src={reviewer.avatar_url} alt={reviewer.login} />
-                <AvatarFallback>
-                  {reviewer.login.charAt(0).toUpperCase()}
-                </AvatarFallback>
+                <AvatarFallback>{reviewer.login.charAt(0).toUpperCase()}</AvatarFallback>
               </Avatar>
               <span className="min-w-0 flex-1 truncate text-xs text-sachi-fg-secondary">
                 {reviewer.login}

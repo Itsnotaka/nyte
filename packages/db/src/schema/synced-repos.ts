@@ -1,10 +1,4 @@
-import {
-  integer,
-  pgTable,
-  primaryKey,
-  text,
-  timestamp,
-} from "drizzle-orm/pg-core";
+import { integer, pgTable, primaryKey, text, timestamp } from "drizzle-orm/pg-core";
 
 import { user } from "./auth";
 
@@ -22,5 +16,5 @@ export const syncedRepo = pgTable(
     isPrivate: integer("is_private").notNull().default(0),
     syncedAt: timestamp("synced_at").notNull(),
   },
-  (table) => [primaryKey({ columns: [table.userId, table.githubRepoId] })]
+  (table) => [primaryKey({ columns: [table.userId, table.githubRepoId] })],
 );

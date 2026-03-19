@@ -7,26 +7,20 @@ import {
 } from "@sachikit/github";
 
 import { findRepoContext } from "./context";
+import { runGitHubEffectOrEmptyArray } from "./effect";
 import type { GitHubCheckRef, GitHubCheckReport } from "./types";
-
-function checkRefKey(input: GitHubCheckRef): string {
-  return `${input.owner.toLowerCase()}/${input.repo.toLowerCase()}@${input.ref}`;
-}
 
 export async function getCheckReportForPR(
   owner: string,
   repo: string,
-  ref: string
+  ref: string,
 ): Promise<GitHubCheckReport | null> {
   const context = await findRepoContext(owner, repo);
   if (!context) return null;
 
-  const runs = await listCheckRunsForRef(
-    context.auth,
-    owner,
-    context.repository.name,
-    ref
-  ).unwrapOr([]);
+  const runs = await runGitHubEffectOrEmptyArray(
+    listCheckRunsForRef(context.auth, owner, context.repository.name, ref),
+  );
 
   return {
     runs,
@@ -37,7 +31,7 @@ export async function getCheckReportForPR(
 export async function getCheckRunsForPR(
   owner: string,
   repo: string,
-  ref: string
+  ref: string,
 ): Promise<GitHubCheckRun[]> {
   const report = await getCheckReportForPR(owner, repo, ref);
   return report?.runs ?? [];
@@ -46,24 +40,28 @@ export async function getCheckRunsForPR(
 export async function getCheckSummaryForPR(
   owner: string,
   repo: string,
-  ref: string
+  ref: string,
 ): Promise<GitHubCheckSummary | null> {
   const report = await getCheckReportForPR(owner, repo, ref);
   return report?.summary ?? null;
 }
 
 export async function getCheckSummariesForRefs(
-  refs: GitHubCheckRef[]
+  refs: GitHubCheckRef[],
 ): Promise<Record<string, GitHubCheckSummary | null>> {
   const uniqueRefs = Array.from(
-    new Map(refs.map((ref) => [checkRefKey(ref), ref])).entries()
+    new Map(
+      refs.map((ref) => [`${ref.owner.toLowerCase()}/${ref.repo.toLowerCase()}@${ref.ref}`, ref]),
+    ).entries(),
   );
 
   const summaries = await Promise.all(
     uniqueRefs.map(
-      async ([key, ref]) =>
-        [key, await getCheckSummaryForPR(ref.owner, ref.repo, ref.ref)] as const
-    )
+      async ([key, ref]): Promise<[string, GitHubCheckSummary | null]> => [
+        key,
+        await getCheckSummaryForPR(ref.owner, ref.repo, ref.ref),
+      ],
+    ),
   );
 
   return Object.fromEntries(summaries);

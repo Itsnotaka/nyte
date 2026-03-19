@@ -14,14 +14,9 @@ type FileContentViewProps = {
 };
 
 export function FileContentView({ file }: FileContentViewProps) {
-  const content =
-    file.encoding === "base64"
-      ? atob(file.content.replace(/\n/g, ""))
-      : file.content;
+  const content = file.encoding === "base64" ? atob(file.content.replace(/\n/g, "")) : file.content;
   const lines = content.split("\n");
-  const extension = file.path.includes(".")
-    ? (file.path.split(".").pop() ?? "")
-    : "";
+  const extension = file.path.includes(".") ? (file.path.split(".").pop() ?? "") : "";
   const size =
     file.size < 1024
       ? `${String(file.size)} B`

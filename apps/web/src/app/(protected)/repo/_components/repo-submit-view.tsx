@@ -11,10 +11,7 @@ import {
   CardTitle,
 } from "@sachikit/ui/components/card";
 import { Input } from "@sachikit/ui/components/input";
-import {
-  NativeSelect,
-  NativeSelectOption,
-} from "@sachikit/ui/components/native-select";
+import { NativeSelect, NativeSelectOption } from "@sachikit/ui/components/native-select";
 import { InsetView } from "@sachikit/ui/components/sidebar";
 import { Textarea } from "@sachikit/ui/components/textarea";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -51,7 +48,7 @@ export function RepoSubmitView({ owner, repo }: RepoSubmitViewProps) {
     trpc.github.getRepoSubmitPage.queryOptions(queryInput, {
       placeholderData: (previousData) => previousData,
       staleTime: 30_000,
-    })
+    }),
   );
 
   const data = repoSubmitPage.data;
@@ -63,11 +60,9 @@ export function RepoSubmitView({ owner, repo }: RepoSubmitViewProps) {
       (data.selectedBranch ? branchTitle(data.selectedBranch) : "")
     );
   });
-  const [body, setBody] = React.useState(
-    () => data?.existingPullRequest?.body ?? ""
-  );
+  const [body, setBody] = React.useState(() => data?.existingPullRequest?.body ?? "");
   const [prevSelectedBranch, setPrevSelectedBranch] = React.useState(
-    () => data?.selectedBranch ?? null
+    () => data?.selectedBranch ?? null,
   );
 
   const savePullRequest = useMutation(
@@ -86,48 +81,36 @@ export function RepoSubmitView({ owner, repo }: RepoSubmitViewProps) {
                 repo: currentRepo.name,
                 pullNumber: pullRequest.number,
               },
-              { staleTime: 30_000 }
-            )
+              { staleTime: 30_000 },
+            ),
           ),
         ]);
         router.push(
-          `/repo/${currentRepo.owner.login}/${currentRepo.name}/pull/${String(pullRequest.number)}`
+          `/repo/${currentRepo.owner.login}/${currentRepo.name}/pull/${String(pullRequest.number)}`,
         );
       },
-    })
+    }),
   );
 
   if (!data) {
     return null;
   }
 
-  const {
-    repository,
-    branches,
-    existingPullRequest,
-    openPullRequests,
-    selectedBranch,
-  } = data;
+  const { repository, branches, existingPullRequest, openPullRequests, selectedBranch } = data;
 
   if (selectedBranch !== prevSelectedBranch) {
     setPrevSelectedBranch(selectedBranch);
-    setTitle(
-      existingPullRequest?.title ??
-        (selectedBranch ? branchTitle(selectedBranch) : "")
-    );
+    setTitle(existingPullRequest?.title ?? (selectedBranch ? branchTitle(selectedBranch) : ""));
     setBody(existingPullRequest?.body ?? "");
   }
 
-  const selectable = branches.filter(
-    (item) => item.name !== repository.default_branch
-  );
+  const selectable = branches.filter((item) => item.name !== repository.default_branch);
   const hasClosedPullRequest =
     existingPullRequest != null &&
     (existingPullRequest.state === "closed" || existingPullRequest.merged);
   const isBranchTransitionPending =
     repoSubmitPage.isFetching && branch != null && branch !== selectedBranch;
-  const isFormDisabled =
-    !selectedBranch || hasClosedPullRequest || isBranchTransitionPending;
+  const isFormDisabled = !selectedBranch || hasClosedPullRequest || isBranchTransitionPending;
 
   function onBranchChange(event: React.ChangeEvent<HTMLSelectElement>) {
     void setBranch(event.target.value);
@@ -150,9 +133,7 @@ export function RepoSubmitView({ owner, repo }: RepoSubmitViewProps) {
     <InsetView maxWidth="lg">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div className="space-y-1">
-          <h1 className="text-lg font-semibold text-sachi-fg">
-            Submit pull request
-          </h1>
+          <h1 className="text-lg font-semibold text-sachi-fg">Submit pull request</h1>
           <p className="text-sm text-sachi-fg-muted">
             {repository.full_name} to `{repository.default_branch}`
           </p>
@@ -176,12 +157,10 @@ export function RepoSubmitView({ owner, repo }: RepoSubmitViewProps) {
               Base branch is fixed to the repository default branch in v1.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 py-4">
             {selectable.length > 0 ? (
               <div className="space-y-2">
-                <label className="text-sm font-medium text-sachi-fg">
-                  Head branch
-                </label>
+                <label className="text-sm font-medium text-sachi-fg">Head branch</label>
                 <NativeSelect
                   value={branch ?? selectedBranch ?? ""}
                   onChange={onBranchChange}
@@ -195,9 +174,7 @@ export function RepoSubmitView({ owner, repo }: RepoSubmitViewProps) {
                 </NativeSelect>
               </div>
             ) : (
-              <p className="text-sm text-sachi-fg-muted">
-                No submit-ready branches found yet.
-              </p>
+              <p className="text-sm text-sachi-fg-muted">No submit-ready branches found yet.</p>
             )}
 
             <div className="space-y-2">
@@ -211,9 +188,7 @@ export function RepoSubmitView({ owner, repo }: RepoSubmitViewProps) {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-sachi-fg">
-                Description
-              </label>
+              <label className="text-sm font-medium text-sachi-fg">Description</label>
               <Textarea
                 value={body}
                 onChange={(event) => setBody(event.target.value)}
@@ -225,52 +200,36 @@ export function RepoSubmitView({ owner, repo }: RepoSubmitViewProps) {
             {existingPullRequest ? (
               <div className="flex flex-wrap items-center gap-2 text-sm text-sachi-fg-muted">
                 <Badge variant="outline">
-                  {existingPullRequest.draft
-                    ? "draft"
-                    : existingPullRequest.state}
+                  {existingPullRequest.draft ? "draft" : existingPullRequest.state}
                 </Badge>
                 <span>PR #{existingPullRequest.number}</span>
-                <span>
-                  updated {formatRelativeTime(existingPullRequest.updated_at)}
-                </span>
+                <span>updated {formatRelativeTime(existingPullRequest.updated_at)}</span>
               </div>
             ) : null}
 
             {savePullRequest.error ? (
-              <p className="text-sm text-destructive">
-                {savePullRequest.error.message}
-              </p>
+              <p className="text-sm text-destructive">{savePullRequest.error.message}</p>
             ) : null}
 
             {hasClosedPullRequest ? (
               <p className="text-sm text-sachi-fg-muted">
-                This branch already has a closed pull request. Reopen or review
-                the existing PR instead of creating a new one.
+                This branch already has a closed pull request. Reopen or review the existing PR
+                instead of creating a new one.
               </p>
             ) : null}
           </CardContent>
           <CardFooter className="justify-between gap-3">
-            <span className="text-xs text-sachi-fg-muted">
-              Base: `{repository.default_branch}`
-            </span>
+            <span className="text-xs text-sachi-fg-muted">Base: `{repository.default_branch}`</span>
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
-                disabled={
-                  isFormDisabled ||
-                  title.trim().length === 0 ||
-                  savePullRequest.isPending
-                }
+                disabled={isFormDisabled || title.trim().length === 0 || savePullRequest.isPending}
                 onClick={() => onSave(true)}
               >
                 {existingPullRequest?.draft ? "Update draft" : "Save draft"}
               </Button>
               <Button
-                disabled={
-                  isFormDisabled ||
-                  title.trim().length === 0 ||
-                  savePullRequest.isPending
-                }
+                disabled={isFormDisabled || title.trim().length === 0 || savePullRequest.isPending}
                 onClick={() => onSave(false)}
               >
                 {existingPullRequest?.draft
@@ -288,11 +247,9 @@ export function RepoSubmitView({ owner, repo }: RepoSubmitViewProps) {
             <CardTitle>Open pull requests</CardTitle>
             <CardDescription>Existing PRs for this repository.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-3 py-4">
             {openPullRequests.length === 0 ? (
-              <p className="text-sm text-sachi-fg-muted">
-                No open pull requests.
-              </p>
+              <p className="text-sm text-sachi-fg-muted">No open pull requests.</p>
             ) : (
               openPullRequests.map((pullRequest) => (
                 <Link
@@ -302,12 +259,8 @@ export function RepoSubmitView({ owner, repo }: RepoSubmitViewProps) {
                   className="block rounded-lg border border-sachi-line-subtle p-3 text-sm hover:bg-sachi-fill"
                 >
                   <div className="flex items-center gap-2">
-                    <span className="font-medium text-sachi-fg">
-                      {pullRequest.title}
-                    </span>
-                    {pullRequest.draft ? (
-                      <Badge variant="outline">draft</Badge>
-                    ) : null}
+                    <span className="font-medium text-sachi-fg">{pullRequest.title}</span>
+                    {pullRequest.draft ? <Badge variant="outline">draft</Badge> : null}
                   </div>
                   <p className="mt-1 text-sachi-fg-muted">
                     {pullRequest.head.ref} to {pullRequest.base.ref}

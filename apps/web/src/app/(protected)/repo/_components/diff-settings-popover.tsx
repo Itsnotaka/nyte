@@ -92,22 +92,14 @@ function SettingRow({
     <div className="flex items-center justify-between gap-4">
       <div className="min-w-0 space-y-0.5">
         <p className="text-sm font-medium text-sachi-fg">{label}</p>
-        {description ? (
-          <p className="text-xs text-sachi-fg-muted">{description}</p>
-        ) : null}
+        {description ? <p className="text-xs text-sachi-fg-muted">{description}</p> : null}
       </div>
       {children}
     </div>
   );
 }
 
-function AdvancedSettingRow({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
+function AdvancedSettingRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-4">
       <p className="text-sm text-sachi-fg-secondary">{label}</p>
@@ -122,21 +114,17 @@ export function DiffSettingsPopover() {
   const settingsQueryKey = trpc.settings.getDiffSettings.queryKey();
 
   const settingsQuery = useQuery(trpc.settings.getDiffSettings.queryOptions());
-  const settings: DiffSettingsJson =
-    settingsQuery.data ?? DIFF_SETTINGS_DEFAULTS;
+  const settings: DiffSettingsJson = settingsQuery.data ?? DIFF_SETTINGS_DEFAULTS;
 
   const mutation = useMutation(
     trpc.settings.updateDiffSettings.mutationOptions({
       onMutate: async (newSettings) => {
         await queryClient.cancelQueries({ queryKey: settingsQueryKey });
         const previous = queryClient.getQueryData(settingsQueryKey);
-        queryClient.setQueryData(
-          settingsQueryKey,
-          (old: DiffSettingsJson | undefined) => ({
-            ...(old ?? DIFF_SETTINGS_DEFAULTS),
-            ...newSettings,
-          })
-        );
+        queryClient.setQueryData(settingsQueryKey, (old: DiffSettingsJson | undefined) => ({
+          ...(old ?? DIFF_SETTINGS_DEFAULTS),
+          ...newSettings,
+        }));
         return { previous };
       },
       onError: (_err, _vars, context) => {
@@ -147,7 +135,7 @@ export function DiffSettingsPopover() {
       onSettled: () => {
         void queryClient.invalidateQueries({ queryKey: settingsQueryKey });
       },
-    })
+    }),
   );
 
   function update(patch: Partial<DiffSettingsJson>) {
@@ -170,9 +158,7 @@ export function DiffSettingsPopover() {
 
         <div className="space-y-5">
           <div className="space-y-2.5">
-            <p className="text-sm font-medium text-sachi-fg">
-              Preferred diff view
-            </p>
+            <p className="text-sm font-medium text-sachi-fg">Preferred diff view</p>
             <div className="flex gap-2">
               <DiffViewOption
                 label="Unified"
@@ -213,9 +199,7 @@ export function DiffSettingsPopover() {
             <AdvancedSettingRow label="Lines above and below changes">
               <Select
                 value={String(settings.contextLines)}
-                onValueChange={(value) =>
-                  update({ contextLines: Number(value) })
-                }
+                onValueChange={(value) => update({ contextLines: Number(value) })}
               >
                 <SelectTrigger size="sm" className="w-40">
                   <SelectValue />
@@ -233,9 +217,7 @@ export function DiffSettingsPopover() {
             <AdvancedSettingRow label="Line overflow">
               <Select
                 value={settings.overflow}
-                onValueChange={(value) =>
-                  update({ overflow: value as "scroll" | "wrap" })
-                }
+                onValueChange={(value) => update({ overflow: value as "scroll" | "wrap" })}
               >
                 <SelectTrigger size="sm" className="w-40">
                   <SelectValue />

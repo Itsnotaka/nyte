@@ -1,19 +1,5 @@
 {
   "$schema": "../node_modules/oxfmt/configuration_schema.json",
-  "printWidth": 80,
-  "tabWidth": 2,
-  "useTabs": false,
-  "semi": true,
-  "proseWrap": "always",
-  "singleQuote": false,
-  "quoteProps": "as-needed",
-  "jsxSingleQuote": false,
-  "trailingComma": "es5",
-  "bracketSpacing": true,
-  "bracketSameLine": false,
-  "arrowParens": "always",
-  "endOfLine": "lf",
-  "sortPackageJson": true,
   "sortImports": {
     "ignoreCase": true,
     "newlinesBetween": true,
@@ -28,8 +14,7 @@
     "node_modules/**",
     ".vercel/**",
     ".next/**",
-    "apps/web/convex/_generated/**",
-    "apps/web/convex/betterAuth/_generated/**",
-    "out/**"
+    "out/**",
+    ".cache/**"
   ]
 }

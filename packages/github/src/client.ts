@@ -1,5 +1,5 @@
 import { createAppAuth } from "@octokit/auth-app";
-import { ResultAsync } from "neverthrow";
+import { Effect, Layer, ServiceMap } from "effect";
 import { Octokit } from "octokit";
 
 import {
@@ -7,9 +7,11 @@ import {
   type GitHubAccount,
   type GitHubAppInstallationAuth,
   type GitHubErrorCode,
+  type GitHubOperationMetadata,
 } from "./types.ts";
 
 const USER_AGENT = "@sachikit/github";
+type GitHubAuthKind = "user" | "installation";
 
 type GitHubRequestFailure = {
   status?: unknown;
@@ -26,6 +28,36 @@ export type GitHubAccountResponse = {
   slug?: string;
   type?: string;
 } | null;
+
+export type GitHubTelemetryEvent = GitHubOperationMetadata & {
+  authKind: GitHubAuthKind;
+  durationMs: number;
+  operation: string;
+};
+
+type GitHubTelemetryShape = {
+  onFailure: (event: GitHubTelemetryEvent, error: GitHubError) => Effect.Effect<void>;
+  onSuccess: (event: GitHubTelemetryEvent) => Effect.Effect<void>;
+};
+
+type GitHubClientShape = {
+  withInstallationClient: <T>(
+    auth: GitHubAppInstallationAuth,
+    operation: string,
+    run: (client: Octokit) => Promise<T>,
+    metadata?: GitHubOperationMetadata,
+  ) => Effect.Effect<T, GitHubError>;
+  withUserClient: <T>(
+    token: string,
+    operation: string,
+    run: (client: Octokit) => Promise<T>,
+    metadata?: GitHubOperationMetadata,
+  ) => Effect.Effect<T, GitHubError>;
+};
+
+export class GitHubTelemetry extends ServiceMap.Service<GitHubTelemetry, GitHubTelemetryShape>()(
+  "GitHubTelemetry",
+) {}
 
 function errorCodeFromStatus(status: number): GitHubErrorCode {
   if (status === 401) return "unauthorized";
@@ -49,17 +81,11 @@ function messageFromResponseData(data: unknown): string | null {
     return null;
   }
 
-  const obj = data as Record<string, unknown>;
-  const message = obj.message;
-  return typeof message === "string" && message.trim().length > 0
-    ? message
-    : null;
+  const message = (data as Record<string, unknown>).message;
+  return typeof message === "string" && message.trim().length > 0 ? message : null;
 }
 
-function errorMessageFromFailure(
-  error: GitHubRequestFailure,
-  status: number
-): string {
+function errorMessageFromFailure(error: GitHubRequestFailure, status: number): string {
   const responseMessage = messageFromResponseData(error.response?.data);
   if (responseMessage) {
     return responseMessage;
@@ -69,21 +95,12 @@ function errorMessageFromFailure(
     return error.message;
   }
 
-  return status > 0
-    ? `GitHub API error: ${status}`
-    : "GitHub API request failed";
+  return status > 0 ? `GitHub API error: ${status}` : "GitHub API request failed";
 }
 
-export function accountFromResponse(
-  account: GitHubAccountResponse,
-  label: string
-): GitHubAccount {
+export function accountFromResponse(account: GitHubAccountResponse, label: string): GitHubAccount {
   if (!account) {
-    throw new GitHubError(
-      `GitHub ${label} is missing account details`,
-      0,
-      "unknown"
-    );
+    throw new GitHubError(`GitHub ${label} is missing account details`, 0, "unknown");
   }
 
   const login = account.login ?? account.slug;
@@ -91,8 +108,7 @@ export function accountFromResponse(
     throw new GitHubError(`GitHub ${label} is missing a login`, 0, "unknown");
   }
 
-  const type: GitHubAccount["type"] =
-    account.type === "Organization" ? "Organization" : "User";
+  const type: GitHubAccount["type"] = account.type === "Organization" ? "Organization" : "User";
 
   return { login, id: account.id, avatar_url: account.avatar_url, type };
 }
@@ -104,9 +120,7 @@ export function createGitHubClient(token: string): Octokit {
   });
 }
 
-export function createGitHubInstallationClient(
-  auth: GitHubAppInstallationAuth
-): Octokit {
+export function createGitHubInstallationClient(auth: GitHubAppInstallationAuth): Octokit {
   return new Octokit({
     authStrategy: createAppAuth,
     auth: {
@@ -118,15 +132,17 @@ export function createGitHubInstallationClient(
   });
 }
 
-export function normalizeGitHubError(error: unknown): GitHubError {
+export function normalizeGitHubError(
+  error: unknown,
+  operation = "github.request",
+  metadata: GitHubOperationMetadata = {},
+): GitHubError {
   if (error instanceof GitHubError) {
     return error;
   }
 
   const status =
-    isGitHubRequestFailure(error) && typeof error.status === "number"
-      ? error.status
-      : 0;
+    isGitHubRequestFailure(error) && typeof error.status === "number" ? error.status : 0;
 
   const message = isGitHubRequestFailure(error)
     ? errorMessageFromFailure(error, status)
@@ -136,45 +152,100 @@ export function normalizeGitHubError(error: unknown): GitHubError {
         ? `GitHub API error: ${status}`
         : "GitHub API request failed";
 
-  return new GitHubError(message, status, errorCodeFromStatus(status));
+  return new GitHubError(message, status, errorCodeFromStatus(status), operation, metadata);
+}
+
+function runGitHubRequest<T>(
+  telemetry: GitHubTelemetryShape,
+  authKind: GitHubAuthKind,
+  operation: string,
+  metadata: GitHubOperationMetadata,
+  createClient: () => Octokit,
+  run: (client: Octokit) => Promise<T>,
+): Effect.Effect<T, GitHubError> {
+  const startedAt = Date.now();
+  const event = (): GitHubTelemetryEvent => ({
+    ...metadata,
+    authKind,
+    durationMs: Date.now() - startedAt,
+    operation,
+  });
+
+  return Effect.tryPromise({
+    try: () => run(createClient()),
+    catch: (error) => normalizeGitHubError(error, operation, metadata),
+  }).pipe(
+    Effect.tap(() => telemetry.onSuccess(event())),
+    Effect.tapError((error) => telemetry.onFailure(event(), error)),
+  );
+}
+
+export class GitHubClientService extends ServiceMap.Service<
+  GitHubClientService,
+  GitHubClientShape
+>()("GitHubClientService", {
+  make: Effect.gen(function* () {
+    const telemetry = yield* GitHubTelemetry;
+    return {
+      withInstallationClient: (auth, operation, run, metadata = {}) =>
+        runGitHubRequest(
+          telemetry,
+          "installation",
+          operation,
+          {
+            ...metadata,
+            installationId: metadata.installationId ?? auth.installationId,
+          },
+          () => createGitHubInstallationClient(auth),
+          run,
+        ),
+      withUserClient: (token, operation, run, metadata = {}) =>
+        runGitHubRequest(
+          telemetry,
+          "user",
+          operation,
+          metadata,
+          () => createGitHubClient(token),
+          run,
+        ),
+    };
+  }),
+}) {
+  static readonly layer = Layer.effect(this)(this.make);
 }
 
 export function withGitHubClient<T>(
   token: string,
-  run: (client: Octokit) => Promise<T>
-): ResultAsync<T, GitHubError> {
-  const client = createGitHubClient(token);
-  return ResultAsync.fromPromise(run(client), normalizeGitHubError);
+  run: (client: Octokit) => Promise<T>,
+  options?: {
+    metadata?: GitHubOperationMetadata;
+    operation?: string;
+  },
+): Effect.Effect<T, GitHubError, GitHubClientService> {
+  return GitHubClientService.use((service) =>
+    service.withUserClient(
+      token,
+      options?.operation ?? "github.user.request",
+      run,
+      options?.metadata,
+    ),
+  );
 }
 
 export function withGitHubInstallationClient<T>(
   auth: GitHubAppInstallationAuth,
-  run: (client: Octokit) => Promise<T>
-): ResultAsync<T, GitHubError> {
-  const client = createGitHubInstallationClient(auth);
-  return ResultAsync.fromPromise(run(client), normalizeGitHubError);
-}
-
-export async function withGitHubClientOrThrow<T>(
-  token: string,
-  run: (client: Octokit) => Promise<T>
-): Promise<T> {
-  const client = createGitHubClient(token);
-  try {
-    return await run(client);
-  } catch (error) {
-    throw normalizeGitHubError(error);
-  }
-}
-
-export async function withGitHubInstallationClientOrThrow<T>(
-  auth: GitHubAppInstallationAuth,
-  run: (client: Octokit) => Promise<T>
-): Promise<T> {
-  const client = createGitHubInstallationClient(auth);
-  try {
-    return await run(client);
-  } catch (error) {
-    throw normalizeGitHubError(error);
-  }
+  run: (client: Octokit) => Promise<T>,
+  options?: {
+    metadata?: GitHubOperationMetadata;
+    operation?: string;
+  },
+): Effect.Effect<T, GitHubError, GitHubClientService> {
+  return GitHubClientService.use((service) =>
+    service.withInstallationClient(
+      auth,
+      options?.operation ?? "github.installation.request",
+      run,
+      options?.metadata,
+    ),
+  );
 }

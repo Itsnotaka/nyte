@@ -8,17 +8,20 @@ import {
   IconCircleDashed,
   IconCircleX,
   IconMerged,
+  IconSettingsGear1,
   IconSortArrowUpDown,
 } from "@central-icons-react/round-filled-radius-2-stroke-1.5";
-import { DEFAULT_INBOX_SECTION_ORDER } from "@sachikit/db/schema/settings";
-import type { InboxSectionId } from "@sachikit/github";
-import { Alert, AlertDescription } from "@sachikit/ui/components/alert";
 import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@sachikit/ui/components/avatar";
+  DEFAULT_INBOX_SECTION_RULES,
+  type InboxCondition,
+  type InboxConditionPreset,
+  type InboxSectionId,
+  type InboxSectionRule,
+} from "@sachikit/github";
+import { Alert, AlertDescription } from "@sachikit/ui/components/alert";
+import { Avatar, AvatarFallback, AvatarImage } from "@sachikit/ui/components/avatar";
 import { Badge } from "@sachikit/ui/components/badge";
+import { Button } from "@sachikit/ui/components/button";
 import { Card, CardContent } from "@sachikit/ui/components/card";
 import {
   Collapsible,
@@ -26,11 +29,16 @@ import {
   CollapsibleTrigger,
 } from "@sachikit/ui/components/collapsible";
 import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyTitle,
-} from "@sachikit/ui/components/empty";
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@sachikit/ui/components/dialog";
+import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@sachikit/ui/components/empty";
+import { Input } from "@sachikit/ui/components/input";
+import { Label } from "@sachikit/ui/components/label";
 import { ScrollArea } from "@sachikit/ui/components/scroll-area";
 import { Table } from "@sachikit/ui/components/table";
 import { useQuery } from "@tanstack/react-query";
@@ -42,30 +50,95 @@ import type {
   InboxData,
   InboxPullRequestRow,
   InboxSectionData,
+  InboxSectionMeta,
 } from "~/lib/github/server";
 import { formatRelativeTime } from "~/lib/time";
 import { useTRPC } from "~/lib/trpc/react";
 
 import { CheckStatusDot } from "./check-status-dot";
+import { InboxSkeleton, type InboxSkeletonSection } from "./inbox-skeleton";
 import { ReviewStatusIcon } from "./review-status-icon";
 
 type SortField = "title" | "changes" | "updated";
 type SortDirection = "asc" | "desc";
 
+const DEFAULT_SECTION_ORDER: InboxSectionId[] = DEFAULT_INBOX_SECTION_RULES.map((rule) => rule.id);
+const DEFAULT_RULES_BY_ID = new Map(DEFAULT_INBOX_SECTION_RULES.map((rule) => [rule.id, rule]));
+const CONDITION_PRESET_LABELS: Record<InboxConditionPreset, string> = {
+  has_active_review: "Has active reviews",
+  has_approvals: "Has approvals",
+  has_unaddressed_changes_requested: "Has unaddressed changes",
+  is_active_reviewer: "You left a review",
+  is_approver: "You approved",
+  is_author: "You are the author",
+  is_draft: "PR is draft",
+  is_fully_approved: "Fully approved",
+  is_merging: "Auto-merge enabled",
+  is_open: "PR is open",
+  is_recently_merged: "Recently merged",
+  is_rerequested_reviewer: "Re-review requested",
+  is_requested_reviewer: "Review requested from you",
+};
+
+type FlatCondition = {
+  label: string;
+  negated: boolean;
+};
+
+type FilterGroup = FlatCondition[];
+
+function flattenAndConditions(condition: InboxCondition): FlatCondition[] {
+  switch (condition.type) {
+    case "all":
+      return condition.conditions.flatMap(flattenAndConditions);
+    case "not":
+      if (condition.condition.type === "preset") {
+        return [
+          {
+            label:
+              CONDITION_PRESET_LABELS[condition.condition.preset] ?? condition.condition.preset,
+            negated: true,
+          },
+        ];
+      }
+      return flattenAndConditions(condition.condition).map((c) => ({
+        ...c,
+        negated: !c.negated,
+      }));
+    case "preset":
+      return [
+        {
+          label: CONDITION_PRESET_LABELS[condition.preset] ?? condition.preset,
+          negated: false,
+        },
+      ];
+    case "any":
+      return [{ label: "Any of multiple conditions", negated: false }];
+  }
+}
+
+function flattenToFilterGroups(condition: InboxCondition): FilterGroup[] {
+  switch (condition.type) {
+    case "any":
+      return condition.conditions.map((c) => flattenAndConditions(c));
+    case "all":
+    case "not":
+    case "preset":
+      return [flattenAndConditions(condition)];
+  }
+}
+
 function sortItems(
   items: InboxPullRequestRow[],
   field: SortField,
-  direction: SortDirection
+  direction: SortDirection,
 ): InboxPullRequestRow[] {
   return [...items].sort((a, b) => {
     let cmp = 0;
     if (field === "title") {
       cmp = a.title.localeCompare(b.title);
     } else if (field === "changes") {
-      cmp =
-        (a.additions ?? 0) +
-        (a.deletions ?? 0) -
-        ((b.additions ?? 0) + (b.deletions ?? 0));
+      cmp = (a.additions ?? 0) + (a.deletions ?? 0) - ((b.additions ?? 0) + (b.deletions ?? 0));
     } else {
       cmp =
         direction === "asc"
@@ -87,22 +160,10 @@ function SortIcon({
 }) {
   const cls = `size-3 ${active ? "text-sachi-fg-secondary" : "text-sachi-fg-faint"}`;
   if (active && direction === "asc")
-    return (
-      <IconBlockSortAscending
-        className={cls}
-        aria-label={`Sort by ${field} ascending`}
-      />
-    );
+    return <IconBlockSortAscending className={cls} aria-label={`Sort by ${field} ascending`} />;
   if (active && direction === "desc")
-    return (
-      <IconBlockSortDescending
-        className={cls}
-        aria-label={`Sort by ${field} descending`}
-      />
-    );
-  return (
-    <IconSortArrowUpDown className={cls} aria-label={`Sort by ${field}`} />
-  );
+    return <IconBlockSortDescending className={cls} aria-label={`Sort by ${field} descending`} />;
+  return <IconSortArrowUpDown className={cls} aria-label={`Sort by ${field}`} />;
 }
 
 function useDeferredVisibility<T extends Element>() {
@@ -131,7 +192,7 @@ function useDeferredVisibility<T extends Element>() {
           observer.disconnect();
         }
       },
-      { rootMargin: "300px 0px" }
+      { rootMargin: "300px 0px" },
     );
 
     observer.observe(node);
@@ -155,8 +216,8 @@ function PullRequestRow({ pr }: { pr: InboxPullRequestRow }) {
       {
         enabled: isOpen && hasBeenVisible,
         staleTime: 60_000,
-      }
-    )
+      },
+    ),
   );
 
   return (
@@ -170,14 +231,10 @@ function PullRequestRow({ pr }: { pr: InboxPullRequestRow }) {
           >
             <Avatar size="sm">
               <AvatarImage src={pr.user.avatar_url} alt={pr.user.login} />
-              <AvatarFallback>
-                {pr.user.login.charAt(0).toUpperCase()}
-              </AvatarFallback>
+              <AvatarFallback>{pr.user.login.charAt(0).toUpperCase()}</AvatarFallback>
             </Avatar>
             <div className="flex min-w-0 flex-col gap-0.5">
-              <span className="truncate text-sm font-medium text-sachi-fg">
-                {pr.title}
-              </span>
+              <span className="truncate text-sm font-medium text-sachi-fg">{pr.title}</span>
               <span className="truncate text-xs text-sachi-fg-muted">
                 {pr.user.login} &middot; {pr.repoFullName} #{pr.number}
               </span>
@@ -250,21 +307,72 @@ function SortableHead({
         className="flex items-center gap-1 transition-colors hover:text-sachi-fg"
       >
         {label}
-        <SortIcon
-          field={field}
-          active={activeField === field}
-          direction={direction}
-        />
+        <SortIcon field={field} active={activeField === field} direction={direction} />
       </button>
     </Table.Head>
+  );
+}
+
+function SectionFiltersDialog({ rule }: { rule: InboxSectionRule }) {
+  const filterGroups = React.useMemo(() => flattenToFilterGroups(rule.condition), [rule.condition]);
+
+  return (
+    <Dialog>
+      <DialogTrigger
+        render={<Button variant="ghost" size="icon-sm" aria-label="Section settings" />}
+      >
+        <IconSettingsGear1 className="size-4 text-sachi-fg-faint" />
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Update &ldquo;{rule.label}&rdquo;</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-sachi-fg-muted">Section name</Label>
+            <Input value={rule.label} readOnly />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-sachi-fg-muted">Filters</Label>
+            <div className="space-y-3">
+              {filterGroups.map((group, groupIdx) => (
+                <div key={groupIdx} className="space-y-1.5">
+                  {group.map((condition, condIdx) => {
+                    let prefix: string | null = null;
+                    if (groupIdx > 0 && condIdx === 0) prefix = "Or";
+                    else if (condIdx > 0) prefix = "And";
+
+                    return (
+                      <div key={condIdx} className="flex items-center gap-2">
+                        <span className="w-7 shrink-0 text-right text-xs font-medium text-sachi-fg-muted">
+                          {prefix}
+                        </span>
+                        <div className="flex-1 rounded-lg border border-sachi-line-subtle px-3 py-1.5 text-sm text-sachi-fg">
+                          {condition.negated && <span className="text-sachi-fg-muted">Not: </span>}
+                          {condition.label}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter showCloseButton />
+      </DialogContent>
+    </Dialog>
   );
 }
 
 function InboxSectionView({ section }: { section: InboxSectionData }) {
   const [open, setOpen] = React.useState(section.items.length > 0);
   const [sortField, setSortField] = React.useState<SortField>("updated");
-  const [sortDirection, setSortDirection] =
-    React.useState<SortDirection>("desc");
+  const [sortDirection, setSortDirection] = React.useState<SortDirection>("desc");
+  const rule = DEFAULT_RULES_BY_ID.get(section.id as InboxSectionId);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -277,11 +385,11 @@ function InboxSectionView({ section }: { section: InboxSectionData }) {
 
   const sortedItems = React.useMemo(
     () => sortItems(section.items, sortField, sortDirection),
-    [section.items, sortField, sortDirection]
+    [section.items, sortField, sortDirection],
   );
 
   return (
-    <Card className="bg-sachi-card gap-0 border-sachi-line-subtle py-0">
+    <Card>
       <Collapsible open={open} onOpenChange={setOpen}>
         <div className="flex items-center border-b border-sachi-line-subtle/50 px-4 py-2.5">
           <CollapsibleTrigger className="flex flex-1 items-center gap-2 text-left text-sm">
@@ -297,6 +405,7 @@ function InboxSectionView({ section }: { section: InboxSectionData }) {
             </Badge>
             <span className="font-medium text-sachi-fg">{section.label}</span>
           </CollapsibleTrigger>
+          {rule && <SectionFiltersDialog rule={rule} />}
         </div>
 
         <CollapsibleContent>
@@ -358,15 +467,8 @@ function InboxSectionView({ section }: { section: InboxSectionData }) {
   );
 }
 
-function InboxDiagnosticsBanner({
-  diagnostics,
-}: {
-  diagnostics: InboxData["diagnostics"];
-}) {
-  if (
-    diagnostics.partialFailures.length === 0 &&
-    diagnostics.unclassifiedCount === 0
-  ) {
+function InboxDiagnosticsBanner({ diagnostics }: { diagnostics: InboxData["diagnostics"] }) {
+  if (diagnostics.partialFailures.length === 0 && diagnostics.unclassifiedCount === 0) {
     return null;
   }
 
@@ -375,16 +477,14 @@ function InboxDiagnosticsBanner({
       <AlertDescription>
         {diagnostics.partialFailures.length > 0 && (
           <span>
-            Some repositories could not be reached (
-            {diagnostics.partialFailures.length} failed).
+            Some repositories could not be reached ({diagnostics.partialFailures.length} failed).
           </span>
         )}
         {diagnostics.unclassifiedCount > 0 && (
           <span>
             {" "}
             {diagnostics.unclassifiedCount} pull request
-            {diagnostics.unclassifiedCount === 1 ? "" : "s"} could not be
-            classified.
+            {diagnostics.unclassifiedCount === 1 ? "" : "s"} could not be classified.
           </span>
         )}
       </AlertDescription>
@@ -392,39 +492,28 @@ function InboxDiagnosticsBanner({
   );
 }
 
-function InboxEmptyState({
-  diagnostics,
-}: {
-  diagnostics: InboxData["diagnostics"];
-}) {
-  if (
-    diagnostics.syncedRepoCount === 0 &&
-    diagnostics.accessibleRepoCount > 0
-  ) {
+function InboxEmptyState({ diagnostics }: { diagnostics: InboxData["diagnostics"] }) {
+  if (diagnostics.syncedRepoCount === 0 && diagnostics.accessibleRepoCount > 0) {
     return (
       <Empty className="flex-1">
         <EmptyHeader>
           <EmptyTitle>No repos synced yet</EmptyTitle>
           <EmptyDescription>
-            You have access to {diagnostics.accessibleRepoCount} repositories.
-            Use the sidebar to choose which repos to sync.
+            You have access to {diagnostics.accessibleRepoCount} repositories. Use the sidebar to
+            choose which repos to sync.
           </EmptyDescription>
         </EmptyHeader>
       </Empty>
     );
   }
 
-  if (
-    diagnostics.fetchedCount === 0 &&
-    diagnostics.partialFailures.length > 0
-  ) {
+  if (diagnostics.fetchedCount === 0 && diagnostics.partialFailures.length > 0) {
     return (
       <Empty className="flex-1">
         <EmptyHeader>
           <EmptyTitle>Unable to load pull requests</EmptyTitle>
           <EmptyDescription>
-            All repository fetches failed. Check your GitHub App installation
-            and try again.
+            All repository fetches failed. Check your GitHub App installation and try again.
           </EmptyDescription>
         </EmptyHeader>
       </Empty>
@@ -436,48 +525,95 @@ function InboxEmptyState({
       <EmptyHeader>
         <EmptyTitle>No open pull requests</EmptyTitle>
         <EmptyDescription>
-          There are no open pull requests across your synced repositories right
-          now.
+          There are no open pull requests across your synced repositories right now.
         </EmptyDescription>
       </EmptyHeader>
     </Empty>
   );
 }
 
-function useOrderedSections(sections: InboxSectionData[]): InboxSectionData[] {
-  const trpc = useTRPC();
-  const orderQuery = useQuery(
-    trpc.settings.getInboxSectionOrder.queryOptions()
+function buildSkeletonSectionsFromMeta(
+  meta: InboxSectionMeta,
+  canonicalOrder: readonly InboxSectionId[],
+): InboxSkeletonSection[] {
+  const byId = new Map(meta.sections.map((s) => [s.id, s] as const));
+  const defaultLabelById = new Map(
+    DEFAULT_INBOX_SECTION_RULES.map((r) => [r.id, r.label] as const),
   );
-  const order = (orderQuery.data ??
-    DEFAULT_INBOX_SECTION_ORDER) as InboxSectionId[];
+  return canonicalOrder.map((id) => {
+    const entry = byId.get(id);
+    return {
+      id,
+      label: entry?.label ?? defaultLabelById.get(id) ?? String(id),
+      count: entry?.count ?? 0,
+    };
+  });
+}
 
+function orderInboxSections(
+  sections: InboxSectionData[],
+  canonicalOrder: readonly InboxSectionId[],
+): InboxSectionData[] {
   const byId = new Map(sections.map((s) => [s.id, s]));
   const ordered: InboxSectionData[] = [];
-  for (const id of order) {
+  for (const id of canonicalOrder) {
     const section = byId.get(id);
     if (section) ordered.push(section);
   }
   for (const section of sections) {
-    if (!order.includes(section.id as InboxSectionId)) {
+    if (!canonicalOrder.includes(section.id as InboxSectionId)) {
       ordered.push(section);
     }
   }
   return ordered;
 }
 
-export function InboxView() {
+function useInboxSectionOrderQuery() {
   const trpc = useTRPC();
-  const inboxQuery = useQuery({
+  return useQuery(trpc.settings.getInboxSectionOrder.queryOptions());
+}
+
+function useInboxQuery() {
+  const trpc = useTRPC();
+  return useQuery({
     ...trpc.github.getInbox.queryOptions(),
     staleTime: 2 * 60_000,
   });
+}
+
+function useInboxSectionMetaQuery() {
+  const trpc = useTRPC();
+  return useQuery({
+    ...trpc.github.getInboxSectionMeta.queryOptions(),
+    staleTime: 2 * 60_000,
+  });
+}
+
+export function InboxView({ initialMeta }: { initialMeta?: InboxSectionMeta | null }) {
+  const inboxQuery = useInboxQuery();
+  const sectionMetaQuery = useInboxSectionMetaQuery();
+  const sectionOrderQuery = useInboxSectionOrderQuery();
   const data = inboxQuery.data;
+  const canonicalOrder = (sectionOrderQuery.data ?? DEFAULT_SECTION_ORDER) as InboxSectionId[];
+  const pendingMeta = sectionMetaQuery.data ?? initialMeta;
+
   if (!data) {
+    if (inboxQuery.isPending) {
+      const skeletonSections =
+        pendingMeta != null ? buildSkeletonSectionsFromMeta(pendingMeta, canonicalOrder) : null;
+      return (
+        <ScrollArea className="h-full min-h-0 bg-sachi-base">
+          {pendingMeta != null ? (
+            <InboxDiagnosticsBanner diagnostics={pendingMeta.diagnostics} />
+          ) : null}
+          <InboxSkeleton sections={skeletonSections} />
+        </ScrollArea>
+      );
+    }
     return null;
   }
   const { sections, diagnostics } = data;
-  const orderedSections = useOrderedSections(sections);
+  const orderedSections = orderInboxSections(sections, canonicalOrder);
   const totalItems = sections.reduce((sum, s) => sum + s.items.length, 0);
 
   return (

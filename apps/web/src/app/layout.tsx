@@ -56,9 +56,7 @@ export default function RootLayout({
           />
         )}
       </head>
-      <body
-        className={`${inter.variable} ${berkeleyMono.variable} h-full font-sans`}
-      >
+      <body className={`${inter.variable} ${berkeleyMono.variable} h-full font-sans`}>
         <Providers>
           {children}
           <ReactQueryDevtools />

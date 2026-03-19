@@ -7,17 +7,8 @@ import {
 } from "@central-icons-react/round-filled-radius-2-stroke-1.5";
 import type { GitHubCheckSummary } from "@sachikit/github";
 import type { GitHubRepository } from "@sachikit/github";
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@sachikit/ui/components/avatar";
-import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyTitle,
-} from "@sachikit/ui/components/empty";
+import { Avatar, AvatarFallback, AvatarImage } from "@sachikit/ui/components/avatar";
+import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@sachikit/ui/components/empty";
 import { ScrollArea } from "@sachikit/ui/components/scroll-area";
 import { Table } from "@sachikit/ui/components/table";
 import { useQuery } from "@tanstack/react-query";
@@ -42,17 +33,14 @@ function checkSummaryKey(owner: string, repo: string, ref: string): string {
 function sortItems(
   items: InboxPullRequest[],
   field: SortField,
-  direction: SortDirection
+  direction: SortDirection,
 ): InboxPullRequest[] {
   return [...items].sort((a, b) => {
     let cmp = 0;
     if (field === "title") {
       cmp = a.title.localeCompare(b.title);
     } else if (field === "changes") {
-      cmp =
-        (a.additions ?? 0) +
-        (a.deletions ?? 0) -
-        ((b.additions ?? 0) + (b.deletions ?? 0));
+      cmp = (a.additions ?? 0) + (a.deletions ?? 0) - ((b.additions ?? 0) + (b.deletions ?? 0));
     } else {
       cmp =
         direction === "asc"
@@ -74,22 +62,10 @@ function SortIcon({
 }) {
   const cls = `size-3 ${active ? "text-sachi-fg-secondary" : "text-sachi-fg-faint"}`;
   if (active && direction === "asc")
-    return (
-      <IconBlockSortAscending
-        className={cls}
-        aria-label={`Sort by ${field} ascending`}
-      />
-    );
+    return <IconBlockSortAscending className={cls} aria-label={`Sort by ${field} ascending`} />;
   if (active && direction === "desc")
-    return (
-      <IconBlockSortDescending
-        className={cls}
-        aria-label={`Sort by ${field} descending`}
-      />
-    );
-  return (
-    <IconSortArrowUpDown className={cls} aria-label={`Sort by ${field}`} />
-  );
+    return <IconBlockSortDescending className={cls} aria-label={`Sort by ${field} descending`} />;
+  return <IconSortArrowUpDown className={cls} aria-label={`Sort by ${field}`} />;
 }
 
 function SortableHead({
@@ -115,11 +91,7 @@ function SortableHead({
         className="flex items-center gap-1 transition-colors hover:text-sachi-fg"
       >
         {label}
-        <SortIcon
-          field={field}
-          active={activeField === field}
-          direction={direction}
-        />
+        <SortIcon field={field} active={activeField === field} direction={direction} />
       </button>
     </Table.Head>
   );
@@ -140,8 +112,7 @@ function PullRequestRow({
   owner: string;
   repo: string;
 }) {
-  const checkSummary =
-    checkSummaries[checkSummaryKey(owner, repo, pr.head.sha)];
+  const checkSummary = checkSummaries[checkSummaryKey(owner, repo, pr.head.sha)];
 
   return (
     <Table.Row>
@@ -153,14 +124,10 @@ function PullRequestRow({
         >
           <Avatar size="sm">
             <AvatarImage src={pr.user.avatar_url} alt={pr.user.login} />
-            <AvatarFallback>
-              {pr.user.login.charAt(0).toUpperCase()}
-            </AvatarFallback>
+            <AvatarFallback>{pr.user.login.charAt(0).toUpperCase()}</AvatarFallback>
           </Avatar>
           <div className="flex min-w-0 flex-col gap-0.5">
-            <span className="truncate text-sm font-medium text-sachi-fg">
-              {pr.title}
-            </span>
+            <span className="truncate text-sm font-medium text-sachi-fg">{pr.title}</span>
             <span className="truncate text-xs text-sachi-fg-muted">
               {pr.user.login} &middot; #{pr.number}
             </span>
@@ -170,11 +137,7 @@ function PullRequestRow({
 
       <Table.Cell className="w-24">
         <div className="flex items-center gap-2">
-          <CheckStatusDot
-            hasError={checksError}
-            isLoading={checksLoading}
-            summary={checkSummary}
-          />
+          <CheckStatusDot hasError={checksError} isLoading={checksLoading} summary={checkSummary} />
           <ReviewStatusIcon reviewDecision={pr.reviewDecision} />
         </div>
       </Table.Cell>
@@ -203,14 +166,10 @@ type PullRequestListViewProps = {
   pullRequests: (InboxPullRequest & { reviewDecision: ReviewDecision })[];
 };
 
-export function PullRequestListView({
-  repository,
-  pullRequests,
-}: PullRequestListViewProps) {
+export function PullRequestListView({ repository, pullRequests }: PullRequestListViewProps) {
   const trpc = useTRPC();
   const [sortField, setSortField] = React.useState<SortField>("updated");
-  const [sortDirection, setSortDirection] =
-    React.useState<SortDirection>("desc");
+  const [sortDirection, setSortDirection] = React.useState<SortDirection>("desc");
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -223,7 +182,7 @@ export function PullRequestListView({
 
   const sortedPulls = React.useMemo(
     () => sortItems(pullRequests, sortField, sortDirection),
-    [pullRequests, sortField, sortDirection]
+    [pullRequests, sortField, sortDirection],
   );
 
   const owner = repository.owner.login;
@@ -235,13 +194,13 @@ export function PullRequestListView({
         repo,
         ref: pr.head.sha,
       })),
-    [owner, pullRequests, repo]
+    [owner, pullRequests, repo],
   );
   const checkSummariesQuery = useQuery(
     trpc.github.getCheckSummaries.queryOptions(checkSummaryInputs, {
       enabled: checkSummaryInputs.length > 0,
       staleTime: 60_000,
-    })
+    }),
   );
   const checkSummaries = checkSummariesQuery.data ?? {};
 
@@ -251,9 +210,7 @@ export function PullRequestListView({
         <Empty className="h-full flex-1">
           <EmptyHeader>
             <EmptyTitle>No open pull requests</EmptyTitle>
-            <EmptyDescription>
-              There are no open pull requests in this repository.
-            </EmptyDescription>
+            <EmptyDescription>There are no open pull requests in this repository.</EmptyDescription>
           </EmptyHeader>
         </Empty>
       ) : (

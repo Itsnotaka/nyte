@@ -161,16 +161,14 @@ function SidebarSection({ title, defaultOpen = true, children, action }: Sidebar
           <IconChevronDownSmall className="size-4 text-sachi-fg-muted transition-transform group-data-[state=closed]:-rotate-90" />
         </div>
       </CollapsibleTrigger>
-      <CollapsibleContent className="pb-4">
-        {children}
-      </CollapsibleContent>
+      <CollapsibleContent className="pb-4">{children}</CollapsibleContent>
     </Collapsible>
   );
 }
 
 function ShortcutKey({ children }: { children: React.ReactNode }) {
   return (
-    <kbd className="rounded bg-sachi-fill px-1 py-0.5 text-xs font-mono text-sachi-fg-muted">
+    <kbd className="rounded bg-sachi-fill px-1 py-0.5 font-mono text-xs text-sachi-fg-muted">
       {children}
     </kbd>
   );
@@ -214,21 +212,21 @@ function PRStack({ stack }: { stack: StackItem[] }) {
         {stack.map((item, i) => (
           <div key={item.id} className="flex gap-3">
             <div className="flex flex-col items-center">
-              <div className={cn(
-                "flex size-6 items-center justify-center rounded-full",
-                item.merged
-                  ? "bg-sachi-accent/10 text-sachi-accent"
-                  : "bg-sachi-fill text-sachi-fg-muted"
-              )}>
+              <div
+                className={cn(
+                  "flex size-6 items-center justify-center rounded-full",
+                  item.merged
+                    ? "bg-sachi-accent/10 text-sachi-accent"
+                    : "bg-sachi-fill text-sachi-fg-muted",
+                )}
+              >
                 {item.merged ? (
                   <IconMerged className="size-3.5" />
                 ) : (
                   <IconCommits className="size-3.5" />
                 )}
               </div>
-              {i < stack.length - 1 && (
-                <div className="my-1 w-px flex-1 bg-sachi-line-subtle" />
-              )}
+              {i < stack.length - 1 && <div className="my-1 w-px flex-1 bg-sachi-line-subtle" />}
             </div>
 
             <div className="flex flex-1 items-center gap-2 pb-4">
@@ -266,7 +264,7 @@ function PRDescription({ pr }: { pr: PullRequest }) {
             <IconArrowDown
               className={cn(
                 "size-4 text-sachi-fg-muted transition-transform",
-                !isOpen && "-rotate-90"
+                !isOpen && "-rotate-90",
               )}
             />
             <span className="text-sm font-medium text-sachi-fg">Description</span>
@@ -303,11 +301,15 @@ function PRDescription({ pr }: { pr: PullRequest }) {
                         {paragraph.split("\n")[0]}
                       </h3>
                       <ul className="my-2 list-disc space-y-1 pl-5">
-                        {paragraph.split("\n").slice(1).filter(l => l.startsWith("- ")).map((line, j) => (
-                          <li key={j} className="text-sm text-sachi-fg-secondary">
-                            {line.replace("- ", "")}
-                          </li>
-                        ))}
+                        {paragraph
+                          .split("\n")
+                          .slice(1)
+                          .filter((l) => l.startsWith("- "))
+                          .map((line, j) => (
+                            <li key={j} className="text-sm text-sachi-fg-secondary">
+                              {line.replace("- ", "")}
+                            </li>
+                          ))}
                       </ul>
                     </React.Fragment>
                   );
@@ -319,27 +321,37 @@ function PRDescription({ pr }: { pr: PullRequest }) {
                         {paragraph.split("\n")[0]}
                       </h3>
                       <ul className="my-2 list-disc space-y-1 pl-5">
-                        {paragraph.split("\n").slice(1).filter(l => l.startsWith("- ")).map((line, j) => (
-                          <li key={j} className="text-sm text-sachi-fg-secondary">
-                            {line.replace("- ", "")}
-                          </li>
-                        ))}
+                        {paragraph
+                          .split("\n")
+                          .slice(1)
+                          .filter((l) => l.startsWith("- "))
+                          .map((line, j) => (
+                            <li key={j} className="text-sm text-sachi-fg-secondary">
+                              {line.replace("- ", "")}
+                            </li>
+                          ))}
                       </ul>
                     </React.Fragment>
                   );
                 }
-                if (paragraph.startsWith("Update package dependencies and refactor authentication")) {
+                if (
+                  paragraph.startsWith("Update package dependencies and refactor authentication")
+                ) {
                   return (
                     <React.Fragment key={i}>
                       <h3 className="mt-4 text-sm font-semibold text-sachi-fg">
                         {paragraph.split("\n")[0]}
                       </h3>
                       <ul className="my-2 list-disc space-y-1 pl-5">
-                        {paragraph.split("\n").slice(1).filter(l => l.startsWith("- ")).map((line, j) => (
-                          <li key={j} className="text-sm text-sachi-fg-secondary">
-                            {line.replace("- ", "")}
-                          </li>
-                        ))}
+                        {paragraph
+                          .split("\n")
+                          .slice(1)
+                          .filter((l) => l.startsWith("- "))
+                          .map((line, j) => (
+                            <li key={j} className="text-sm text-sachi-fg-secondary">
+                              {line.replace("- ", "")}
+                            </li>
+                          ))}
                       </ul>
                     </React.Fragment>
                   );
@@ -351,11 +363,15 @@ function PRDescription({ pr }: { pr: PullRequest }) {
                         {paragraph.split("\n")[0]}
                       </h3>
                       <ul className="my-2 list-disc space-y-1 pl-5">
-                        {paragraph.split("\n").slice(1).filter(l => l.startsWith("- ")).map((line, j) => (
-                          <li key={j} className="text-sm text-sachi-fg-secondary">
-                            {line.replace("- ", "")}
-                          </li>
-                        ))}
+                        {paragraph
+                          .split("\n")
+                          .slice(1)
+                          .filter((l) => l.startsWith("- "))
+                          .map((line, j) => (
+                            <li key={j} className="text-sm text-sachi-fg-secondary">
+                              {line.replace("- ", "")}
+                            </li>
+                          ))}
                       </ul>
                     </React.Fragment>
                   );
@@ -434,11 +450,7 @@ function FileRow({
 
   return (
     <div className="flex items-center gap-3 px-4 py-2 hover:bg-sachi-fill/50">
-      <input
-        type="checkbox"
-        checked={viewed}
-        className="size-4 rounded border-sachi-line"
-      />
+      <input type="checkbox" checked={viewed} className="size-4 rounded border-sachi-line" />
       <StatusIcon className={cn("size-4", statusColors[status])} />
       <span className="flex-1 truncate text-sm text-sachi-fg">{filename}</span>
       <div className="flex items-center gap-2 font-mono text-xs tabular-nums">
@@ -455,7 +467,9 @@ function FilesSection() {
       {/* Warning banner */}
       <div className="flex items-center gap-2 rounded-lg border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-600">
         <IconBell className="size-4" />
-        <span>This PR has 124 files. To improve performance, only the first 50 files are expanded.</span>
+        <span>
+          This PR has 124 files. To improve performance, only the first 50 files are expanded.
+        </span>
       </div>
 
       {/* Files list */}
@@ -467,7 +481,9 @@ function FilesSection() {
               Files
             </Button>
             <span className="text-xs text-sachi-fg-muted">Tour</span>
-            <Badge variant="outline" className="h-5 text-[10px]">Beta</Badge>
+            <Badge variant="outline" className="h-5 text-[10px]">
+              Beta
+            </Badge>
           </div>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" className="h-7 text-xs">
@@ -518,11 +534,7 @@ export default function GraphitePRDetailPage() {
 
           <div className="flex items-center gap-2">
             {/* Review changes button */}
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 gap-1.5 text-xs"
-            >
+            <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
               <span>Review changes</span>
             </Button>
 
@@ -633,11 +645,11 @@ export default function GraphitePRDetailPage() {
                       <span className="text-sachi-fg">{pr.branch.base}</span>
                     </div>
 
-                    <span className="text-sachi-fg-muted">
-                      {pr.changes.files} files
-                    </span>
+                    <span className="text-sachi-fg-muted">{pr.changes.files} files</span>
                     <span className="text-sachi-success">+{pr.changes.added.toLocaleString()}</span>
-                    <span className="text-sachi-danger">-{pr.changes.removed.toLocaleString()}</span>
+                    <span className="text-sachi-danger">
+                      -{pr.changes.removed.toLocaleString()}
+                    </span>
                     <span className="text-sachi-fg-muted">Updated {pr.updated} ago</span>
                   </div>
                 </div>
@@ -694,7 +706,11 @@ export default function GraphitePRDetailPage() {
                     title="Labels"
                     defaultOpen={false}
                     action={
-                      <Button variant="ghost" size="icon" className="size-6 opacity-0 group-hover:opacity-100">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-6 opacity-0 group-hover:opacity-100"
+                      >
                         <IconBox2 className="size-4" />
                       </Button>
                     }
@@ -706,7 +722,11 @@ export default function GraphitePRDetailPage() {
                     title="Assignees"
                     defaultOpen={false}
                     action={
-                      <Button variant="ghost" size="icon" className="size-6 opacity-0 group-hover:opacity-100">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-6 opacity-0 group-hover:opacity-100"
+                      >
                         <IconBox2 className="size-4" />
                       </Button>
                     }

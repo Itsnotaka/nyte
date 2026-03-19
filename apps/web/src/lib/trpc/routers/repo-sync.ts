@@ -26,7 +26,7 @@ export const repoSyncRouter = createTRPCRouter({
             isPrivate: r.private,
             ownerAvatarUrl: r.owner.avatar_url,
           }));
-        })
+        }),
       )
     ).flat();
 
@@ -62,9 +62,9 @@ export const repoSyncRouter = createTRPCRouter({
             repoName: z.string().min(1),
             repoFullName: z.string().min(1),
             isPrivate: z.boolean(),
-          })
+          }),
         ),
-      })
+      }),
     )
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.session.user.id;
@@ -85,7 +85,7 @@ export const repoSyncRouter = createTRPCRouter({
             repoFullName: r.repoFullName,
             isPrivate: r.isPrivate ? 1 : 0,
             syncedAt: now,
-          }))
+          })),
         );
       }
 
@@ -101,8 +101,8 @@ export const repoSyncRouter = createTRPCRouter({
         .where(
           and(
             eq(syncedReposSchema.syncedRepo.userId, userId),
-            eq(syncedReposSchema.syncedRepo.githubRepoId, input.githubRepoId)
-          )
+            eq(syncedReposSchema.syncedRepo.githubRepoId, input.githubRepoId),
+          ),
         );
     }),
 });

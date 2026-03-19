@@ -1,14 +1,15 @@
 {
   "$schema": "../node_modules/oxlint/configuration_schema.json",
-  "plugins": ["nextjs", "typescript", "oxc", "import", "promise", "react", "react-perf"],
+  "plugins": ["nextjs", "typescript", "oxc", "import", "promise", "react", "eslint", "unicorn"],
   "settings": {
     "next": {
       "rootDir": ["apps/web"]
     }
   },
   "rules": {
-    "no-var": "error",
-    "prefer-const": "error"
+    "react-in-jsx-scope": "off",
+    "eslint/no-shadow": "off",
+    "eslint/no-await-in-loop": "off"
   },
   "ignorePatterns": [
     "stylelint.config.mjs",
@@ -16,9 +17,7 @@
     ".vercel/**",
     ".next/**",
     "out/**",
-    ".pi/**",
-    "apps/web/convex/_generated/**",
-    "apps/web/convex/betterAuth/_generated/**"
+    ".pi/**"
   ],
   "env": {
     "builtin": true

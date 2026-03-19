@@ -15,11 +15,7 @@ type BranchSelectorProps = {
   onRefChange: (ref: string) => void;
 };
 
-export function BranchSelector({
-  branches,
-  currentRef,
-  onRefChange,
-}: BranchSelectorProps) {
+export function BranchSelector({ branches, currentRef, onRefChange }: BranchSelectorProps) {
   function handleChange(value: string | null) {
     if (value) onRefChange(value);
   }

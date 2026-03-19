@@ -8,11 +8,7 @@ import type { GitHubLabel } from "@sachikit/github";
 import { Badge } from "@sachikit/ui/components/badge";
 import { Button } from "@sachikit/ui/components/button";
 import { Input } from "@sachikit/ui/components/input";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@sachikit/ui/components/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@sachikit/ui/components/popover";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as React from "react";
 
@@ -49,10 +45,7 @@ export function LabelPanel({
   const identity = { owner, pullNumber, repo };
 
   const repoLabelsQuery = useQuery(
-    trpc.github.listRepoLabels.queryOptions(
-      { owner, repo },
-      { staleTime: 300_000, enabled: open }
-    )
+    trpc.github.listRepoLabels.queryOptions({ owner, repo }, { staleTime: 300_000, enabled: open }),
   );
 
   const addLabel = useMutation(
@@ -62,7 +55,7 @@ export function LabelPanel({
           queryKey: pullRequestPageQueryKey,
         });
       },
-    })
+    }),
   );
 
   const removeLabelMutation = useMutation(
@@ -72,14 +65,13 @@ export function LabelPanel({
           queryKey: pullRequestPageQueryKey,
         });
       },
-    })
+    }),
   );
 
   const currentNames = new Set(currentLabels.map((label) => label.name));
   const available = (repoLabelsQuery.data ?? []).filter(
     (label) =>
-      !currentNames.has(label.name) &&
-      label.name.toLowerCase().includes(search.toLowerCase())
+      !currentNames.has(label.name) && label.name.toLowerCase().includes(search.toLowerCase()),
   );
 
   return (
@@ -120,9 +112,7 @@ export function LabelPanel({
                       className="size-3 shrink-0 rounded-full"
                       style={{ backgroundColor: `#${label.color}` }}
                     />
-                    <span className="truncate text-sachi-fg-secondary">
-                      {label.name}
-                    </span>
+                    <span className="truncate text-sachi-fg-secondary">{label.name}</span>
                   </button>
                 ))
               )}
@@ -148,9 +138,7 @@ export function LabelPanel({
               <button
                 type="button"
                 className="ml-0.5 opacity-70 hover:opacity-100"
-                onClick={() =>
-                  removeLabelMutation.mutate({ ...identity, label: label.name })
-                }
+                onClick={() => removeLabelMutation.mutate({ ...identity, label: label.name })}
                 aria-label={`Remove ${label.name}`}
               >
                 <IconCrossMedium className="size-2.5" />

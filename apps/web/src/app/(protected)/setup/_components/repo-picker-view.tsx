@@ -44,24 +44,15 @@ function RepoRow({
   );
 }
 
-export function RepoPickerView({
-  installations,
-  repos,
-  syncedRepoIds,
-}: RepoPickerViewProps) {
+export function RepoPickerView({ installations, repos, syncedRepoIds }: RepoPickerViewProps) {
   const router = useRouter();
   const trpc = useTRPC();
   const [search, setSearch] = React.useState("");
-  const [selected, setSelected] = React.useState<Set<number>>(
-    () => new Set(syncedRepoIds)
-  );
+  const [selected, setSelected] = React.useState<Set<number>>(() => new Set(syncedRepoIds));
 
   const filtered = React.useMemo(
-    () =>
-      repos.filter((repo) =>
-        repo.full_name.toLowerCase().includes(search.toLowerCase())
-      ),
-    [repos, search]
+    () => repos.filter((repo) => repo.full_name.toLowerCase().includes(search.toLowerCase())),
+    [repos, search],
   );
 
   const toggle = (repoId: number) => {
@@ -81,7 +72,7 @@ export function RepoPickerView({
       onSuccess: () => {
         router.replace("/");
       },
-    })
+    }),
   );
 
   function handleSave() {
@@ -89,7 +80,7 @@ export function RepoPickerView({
     saveMutation.mutate({
       repos: selectedRepos.map((r) => {
         const inst = installations.find(
-          (i) => i.account.login.toLowerCase() === r.owner.login.toLowerCase()
+          (i) => i.account.login.toLowerCase() === r.owner.login.toLowerCase(),
         );
         if (!inst) {
           throw new Error(`No installation found for owner: ${r.owner.login}`);
@@ -113,12 +104,10 @@ export function RepoPickerView({
     <section className="flex h-full items-center justify-center">
       <div className="mx-auto flex w-full max-w-lg flex-col items-center gap-4">
         <div className="flex flex-col items-center gap-2 text-center">
-          <h1 className="text-xl font-semibold text-sachi-fg">
-            Select repositories
-          </h1>
+          <h1 className="text-xl font-semibold text-sachi-fg">Select repositories</h1>
           <p className="max-w-sm text-sm text-sachi-fg-muted">
-            Choose which repositories to sync with Sachi. Only synced repos will
-            appear in your inbox and be available for review.
+            Choose which repositories to sync with Sachi. Only synced repos will appear in your
+            inbox and be available for review.
           </p>
         </div>
 
@@ -201,11 +190,7 @@ export function RepoPickerView({
           </LayerCardPrimary>
         </LayerCard>
 
-        <Button
-          size="lg"
-          disabled={saveMutation.isPending}
-          onClick={handleSave}
-        >
+        <Button size="lg" disabled={saveMutation.isPending} onClick={handleSave}>
           {saveMutation.isPending
             ? "Saving..."
             : `Sync ${String(selected.size)} ${selected.size === 1 ? "repository" : "repositories"}`}

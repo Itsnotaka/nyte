@@ -1,12 +1,7 @@
 "use client";
 
 import { Button } from "@sachikit/ui/components/button";
-import {
-  Empty,
-  EmptyHeader,
-  EmptyTitle,
-  EmptyDescription,
-} from "@sachikit/ui/components/empty";
+import { Empty, EmptyHeader, EmptyTitle, EmptyDescription } from "@sachikit/ui/components/empty";
 
 export default function Error({
   error,
@@ -21,13 +16,10 @@ export default function Error({
         <EmptyHeader>
           <EmptyTitle>Something went wrong</EmptyTitle>
           <EmptyDescription>
-            {error.message ||
-              "An unexpected error occurred while loading this page."}
+            {error.message || "An unexpected error occurred while loading this page."}
           </EmptyDescription>
           {error.digest ? (
-            <p className="text-xs text-sachi-fg-faint">
-              Error ID: {error.digest}
-            </p>
+            <p className="text-xs text-sachi-fg-faint">Error ID: {error.digest}</p>
           ) : null}
         </EmptyHeader>
         <Button onClick={reset}>Try again</Button>

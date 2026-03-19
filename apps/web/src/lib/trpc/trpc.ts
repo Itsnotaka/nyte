@@ -10,14 +10,12 @@ export type CreateTRPCContextOptions = {
   headers?: Headers;
 };
 
-export const createTRPCContext = cache(
-  async (opts?: CreateTRPCContextOptions) => {
-    const session = opts?.headers
-      ? await auth.api.getSession({ headers: opts.headers })
-      : await getSession();
-    return { session, auth };
-  }
-);
+export const createTRPCContext = cache(async (opts?: CreateTRPCContextOptions) => {
+  const session = opts?.headers
+    ? await auth.api.getSession({ headers: opts.headers })
+    : await getSession();
+  return { session, auth };
+});
 
 const t = initTRPC.context<typeof createTRPCContext>().create({
   transformer: superjson,
@@ -51,5 +49,5 @@ export const protectedProcedure = t.procedure.use(timingMiddleware).use(
         session: ctx.session,
       },
     });
-  })
+  }),
 );

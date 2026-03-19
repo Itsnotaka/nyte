@@ -1,6 +1,21 @@
 "use client";
 
-import { IconArrowDown, IconBell, IconBlockSortDescending, IconBox2, IconChart1, IconChevronDownMedium, IconCircleDotsCenter1, IconCircleQuestionmark, IconFilter1, IconMerged, IconQuickSearch, IconSend, IconSettingsGear1, IconSparkle } from "@central-icons-react/round-filled-radius-2-stroke-1.5";
+import {
+  IconArrowDown,
+  IconBell,
+  IconBlockSortDescending,
+  IconBox2,
+  IconChart1,
+  IconChevronDownMedium,
+  IconCircleDotsCenter1,
+  IconCircleQuestionmark,
+  IconFilter1,
+  IconMerged,
+  IconQuickSearch,
+  IconSend,
+  IconSettingsGear1,
+  IconSparkle,
+} from "@central-icons-react/round-filled-radius-2-stroke-1.5";
 import { Avatar, AvatarFallback, AvatarImage } from "@sachikit/ui/components/avatar";
 import { Badge } from "@sachikit/ui/components/badge";
 import { Button } from "@sachikit/ui/components/button";
@@ -25,7 +40,10 @@ const prs = [
     id: 1,
     title: "Update package dependencies to latest versions",
     subtitle: "Itsnotaka · Itsnotaka/sachi #5",
-    author: { name: "Min Chun Fu", avatar: "https://avatars.githubusercontent.com/u/70210356?size=48" },
+    author: {
+      name: "Min Chun Fu",
+      avatar: "https://avatars.githubusercontent.com/u/70210356?size=48",
+    },
     status: { review: "approved", ci: "unknown", merge: "merged" },
     changes: { added: 7427, removed: 1022 },
     updated: "1d",
@@ -35,7 +53,10 @@ const prs = [
     id: 2,
     title: "Redesign PR review UX: Graphite-style split button, merge action, cleaner layout",
     subtitle: "Itsnotaka · Itsnotaka/sachi #7",
-    author: { name: "Min Chun Fu", avatar: "https://avatars.githubusercontent.com/u/70210356?size=48" },
+    author: {
+      name: "Min Chun Fu",
+      avatar: "https://avatars.githubusercontent.com/u/70210356?size=48",
+    },
     status: { review: "approved", ci: "unknown", merge: "merged" },
     changes: { added: 265, removed: 125 },
     updated: "1d",
@@ -46,7 +67,10 @@ const prs = [
     id: 3,
     title: "feat(web): add auth-first landing with server suspense and error boundaries",
     subtitle: "Itsnotaka · Itsnotaka/sachi #3",
-    author: { name: "Min Chun Fu", avatar: "https://avatars.githubusercontent.com/u/70210356?size=48" },
+    author: {
+      name: "Min Chun Fu",
+      avatar: "https://avatars.githubusercontent.com/u/70210356?size=48",
+    },
     status: { review: "approved", ci: "unknown", merge: "merged" },
     changes: { added: 147, removed: 14 },
     updated: "1d",
@@ -57,7 +81,10 @@ const prs = [
     id: 4,
     title: "feat: feature parity with GitHub PR review + Graphite UX polish (5 phases)",
     subtitle: "Itsnotaka · Itsnotaka/sachi #10",
-    author: { name: "Min Chun Fu", avatar: "https://avatars.githubusercontent.com/u/70210356?size=48" },
+    author: {
+      name: "Min Chun Fu",
+      avatar: "https://avatars.githubusercontent.com/u/70210356?size=48",
+    },
     status: { review: "approved", ci: "unknown", merge: "merged" },
     changes: { added: 3076, removed: 307 },
     updated: "1d",
@@ -68,23 +95,16 @@ const prs = [
     id: 5,
     title: "Enhance application functionality and update dependencies",
     subtitle: "Itsnotaka · Itsnotaka/sachi #6",
-    author: { name: "Min Chun Fu", avatar: "https://avatars.githubusercontent.com/u/70210356?size=48" },
+    author: {
+      name: "Min Chun Fu",
+      avatar: "https://avatars.githubusercontent.com/u/70210356?size=48",
+    },
     status: { review: "approved", ci: "unknown", merge: "merged" },
     changes: { added: 2373, removed: 2191 },
     updated: "2d",
     unread: false,
   },
 ];
-
-// Graphite Logo SVG
-function GraphiteLogo({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 28 28" className={className} aria-hidden="true">
-      <path d="m20.704 7.123-9.27-2.484-6.788 6.793 2.482 9.276 9.27 2.484 6.788-6.793-2.482-9.276Z" />
-      <path d="M17.644 0 3.73 3.729 0 17.644l10.187 10.187 13.915-3.729 3.73-13.915L17.643 0Zm2.27 24.312H7.917L1.92 13.915 7.917 3.518h11.997l5.998 10.397-5.998 10.397Z" />
-    </svg>
-  );
-}
 
 // Navigation Rail Item
 function NavRailItem({
@@ -102,9 +122,7 @@ function NavRailItem({
     <button
       className={cn(
         "group flex flex-col items-center justify-center gap-1 rounded-lg p-2 transition-colors",
-        active
-          ? "text-sachi-fg"
-          : "text-sachi-fg-muted hover:bg-sachi-fill hover:text-sachi-fg"
+        active ? "text-sachi-fg" : "text-sachi-fg-muted hover:bg-sachi-fill hover:text-sachi-fg",
       )}
       title={`${label}${shortcut ? ` (${shortcut})` : ""}`}
     >
@@ -129,11 +147,7 @@ function StatusIcon({ type, state }: { type: "review" | "ci" | "merge"; state: s
     }
   };
 
-  return (
-    <div className="flex items-center justify-center">
-      {getIcon()}
-    </div>
-  );
+  return <div className="flex items-center justify-center">{getIcon()}</div>;
 }
 
 // Section Card Component
@@ -147,7 +161,7 @@ function SectionCard({
   const [expanded, setExpanded] = React.useState(defaultExpanded);
 
   return (
-    <Card className="overflow-hidden border-sachi-line-subtle bg-sachi-card">
+    <Card>
       <CardHeader className="flex flex-row items-center gap-2 border-b border-sachi-line-subtle/50 px-4 py-2.5">
         <Button
           variant="ghost"
@@ -155,9 +169,7 @@ function SectionCard({
           className="size-6 text-sachi-fg-muted"
           onClick={() => setExpanded(!expanded)}
         >
-          <IconArrowDown
-            className={cn("size-4 transition-transform", !expanded && "-rotate-90")}
-          />
+          <IconArrowDown className={cn("size-4 transition-transform", !expanded && "-rotate-90")} />
         </Button>
 
         <Badge
@@ -205,60 +217,65 @@ function SectionCard({
               </tr>
             </thead>
             <tbody>
-              {section.count > 0 && prs.map((pr) => (
-                <tr
-                  key={pr.id}
-                  className="group cursor-pointer border-b border-sachi-line-subtle/30 transition-colors hover:bg-sachi-fill/50"
-                >
-                  <td className="px-2 py-2.5 text-center">
-                    {pr.unread && <div className="mx-auto size-2 rounded-full bg-sachi-accent" />}
-                  </td>
-                  <td className="px-2 py-2.5 text-center">
-                    <div className="relative mx-auto inline-block">
-                      <Avatar className="size-6">
-                        <AvatarImage src={pr.author.avatar} alt={pr.author.name} />
-                        <AvatarFallback className="text-[10px]">
-                          {pr.author.name[0]}
-                        </AvatarFallback>
-                      </Avatar>
-                      {pr.graphite && (
-                        <div className="absolute -bottom-0.5 -right-0.5 flex size-3 items-center justify-center rounded-full bg-sachi-accent">
-                          <IconSparkle className="size-2.5 text-white" />
-                        </div>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-2 py-2.5">
-                    <div className="flex flex-col gap-0.5">
-                      <a
-                        href="#"
-                        className="truncate text-sm font-medium text-sachi-fg hover:underline"
-                      >
-                        {pr.title}
-                      </a>
-                      <span className="text-xs text-sachi-fg-muted">{pr.subtitle}</span>
-                    </div>
-                  </td>
-                  <td className="px-1 py-2.5 text-center">
-                    <StatusIcon type="review" state={pr.status.review} />
-                  </td>
-                  <td className="px-1 py-2.5 text-center">
-                    <StatusIcon type="ci" state={pr.status.ci} />
-                  </td>
-                  <td className="px-1 py-2.5 text-center">
-                    <StatusIcon type="merge" state={pr.status.merge} />
-                  </td>
-                  <td className="px-2 py-2.5 text-right">
-                    <div className="flex items-center justify-end gap-2 font-mono text-xs tabular-nums">
-                      <span className="text-sachi-success">+{pr.changes.added.toLocaleString()}</span>
-                      <span className="text-sachi-danger">-{pr.changes.removed.toLocaleString()}</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-2.5 text-right">
-                    <span className="text-xs text-sachi-fg-muted">{pr.updated}</span>
-                  </td>
-                </tr>
-              ))}
+              {section.count > 0 &&
+                prs.map((pr) => (
+                  <tr
+                    key={pr.id}
+                    className="group cursor-pointer border-b border-sachi-line-subtle/30 transition-colors hover:bg-sachi-fill/50"
+                  >
+                    <td className="px-2 py-2.5 text-center">
+                      {pr.unread && <div className="mx-auto size-2 rounded-full bg-sachi-accent" />}
+                    </td>
+                    <td className="px-2 py-2.5 text-center">
+                      <div className="relative mx-auto inline-block">
+                        <Avatar className="size-6">
+                          <AvatarImage src={pr.author.avatar} alt={pr.author.name} />
+                          <AvatarFallback className="text-[10px]">
+                            {pr.author.name[0]}
+                          </AvatarFallback>
+                        </Avatar>
+                        {pr.graphite && (
+                          <div className="absolute -right-0.5 -bottom-0.5 flex size-3 items-center justify-center rounded-full bg-sachi-accent">
+                            <IconSparkle className="size-2.5 text-white" />
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-2 py-2.5">
+                      <div className="flex flex-col gap-0.5">
+                        <a
+                          href="#"
+                          className="truncate text-sm font-medium text-sachi-fg hover:underline"
+                        >
+                          {pr.title}
+                        </a>
+                        <span className="text-xs text-sachi-fg-muted">{pr.subtitle}</span>
+                      </div>
+                    </td>
+                    <td className="px-1 py-2.5 text-center">
+                      <StatusIcon type="review" state={pr.status.review} />
+                    </td>
+                    <td className="px-1 py-2.5 text-center">
+                      <StatusIcon type="ci" state={pr.status.ci} />
+                    </td>
+                    <td className="px-1 py-2.5 text-center">
+                      <StatusIcon type="merge" state={pr.status.merge} />
+                    </td>
+                    <td className="px-2 py-2.5 text-right">
+                      <div className="flex items-center justify-end gap-2 font-mono text-xs tabular-nums">
+                        <span className="text-sachi-success">
+                          +{pr.changes.added.toLocaleString()}
+                        </span>
+                        <span className="text-sachi-danger">
+                          -{pr.changes.removed.toLocaleString()}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-2.5 text-right">
+                      <span className="text-xs text-sachi-fg-muted">{pr.updated}</span>
+                    </td>
+                  </tr>
+                ))}
             </tbody>
           </table>
 
@@ -312,7 +329,10 @@ export default function GraphiteDemoPage() {
 
           <div className="flex justify-center pt-2">
             <Avatar className="size-7 cursor-pointer ring-2 ring-transparent transition-all hover:ring-sachi-line">
-              <AvatarImage src="https://avatars.githubusercontent.com/u/70210356?size=48" alt="User" />
+              <AvatarImage
+                src="https://avatars.githubusercontent.com/u/70210356?size=48"
+                alt="User"
+              />
               <AvatarFallback>MC</AvatarFallback>
             </Avatar>
           </div>

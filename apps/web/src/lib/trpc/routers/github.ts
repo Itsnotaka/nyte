@@ -1,7 +1,12 @@
+import { GitHubError } from "@sachikit/github";
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 import { log } from "../../evlog";
 import {
+  GitHubAppConfigurationError,
+  GitHubClosedPullRequestExistsError,
+  GitHubRepoContextNotFoundError,
   addPullRequestComment,
   addPullRequestLabels,
   addPullRequestReview,
@@ -12,6 +17,7 @@ import {
   getCheckSummaryForPR,
   getGitHubAppInstallUrl,
   getInboxData,
+  getInboxSectionMeta,
   getPullRequestFileList,
   getPullRequestDiscussionData,
   getPullRequestPageData,
@@ -65,12 +71,23 @@ function getErrorDetails(error: unknown): Record<string, unknown> {
       ...(error.stack ? { stack: error.stack } : {}),
     };
 
-    if ("status" in error && typeof error.status === "number") {
+    if (error instanceof GitHubError) {
+      details.tag = error._tag;
       details.status = error.status;
-    }
-
-    if ("code" in error && typeof error.code === "string") {
       details.code = error.code;
+      details.operation = error.operation;
+      details.metadata = error.metadata;
+    } else if (error instanceof GitHubRepoContextNotFoundError) {
+      details.tag = error._tag;
+      details.owner = error.owner;
+      details.repo = error.repo;
+    } else if (error instanceof GitHubClosedPullRequestExistsError) {
+      details.tag = error._tag;
+      details.owner = error.owner;
+      details.repo = error.repo;
+      details.head = error.head;
+    } else if (error instanceof GitHubAppConfigurationError) {
+      details.tag = error._tag;
     }
 
     return details;
@@ -86,7 +103,7 @@ function getErrorDetails(error: unknown): Record<string, unknown> {
 function logGitHubMutationFailure(
   mutation: string,
   input: Record<string, unknown>,
-  error: unknown
+  error: unknown,
 ) {
   log.error({
     area: "trpc.github",
@@ -97,12 +114,73 @@ function logGitHubMutationFailure(
   });
 }
 
+function mapGitHubErrorToTrpcCode(error: GitHubError): TRPCError["code"] {
+  switch (error.code) {
+    case "unauthorized":
+      return "UNAUTHORIZED";
+    case "forbidden":
+      return "FORBIDDEN";
+    case "not_found":
+      return "NOT_FOUND";
+    case "rate_limited":
+    case "server_error":
+    case "unknown":
+      return error.status === 400 ? "BAD_REQUEST" : "INTERNAL_SERVER_ERROR";
+  }
+}
+
 function throwMutationFailure(message: string, error: unknown): never {
-  if (error instanceof Error) {
-    throw new Error(message, { cause: error });
+  if (error instanceof GitHubError) {
+    throw new TRPCError({
+      cause: error,
+      code: mapGitHubErrorToTrpcCode(error),
+      message,
+    });
   }
 
-  throw new Error(message);
+  if (error instanceof GitHubRepoContextNotFoundError) {
+    throw new TRPCError({
+      cause: error,
+      code: "NOT_FOUND",
+      message,
+    });
+  }
+
+  if (error instanceof GitHubClosedPullRequestExistsError) {
+    throw new TRPCError({
+      cause: error,
+      code: "CONFLICT",
+      message,
+    });
+  }
+
+  if (error instanceof GitHubAppConfigurationError) {
+    throw new TRPCError({
+      cause: error,
+      code: "INTERNAL_SERVER_ERROR",
+      message,
+    });
+  }
+
+  throw new TRPCError({
+    cause: error instanceof Error ? error : undefined,
+    code: "INTERNAL_SERVER_ERROR",
+    message,
+  });
+}
+
+function throwNotFound(message: string): never {
+  throw new TRPCError({
+    code: "NOT_FOUND",
+    message,
+  });
+}
+
+function throwBadRequest(message: string): never {
+  throw new TRPCError({
+    code: "BAD_REQUEST",
+    message,
+  });
 }
 
 export const githubRouter = createTRPCRouter({
@@ -110,25 +188,20 @@ export const githubRouter = createTRPCRouter({
     return { url: getGitHubAppInstallUrl() };
   }),
   getInbox: protectedProcedure.query(async () => getInboxData()),
-  getSyncedRepoSummary: protectedProcedure.query(async () =>
-    getSyncedRepoSummary()
-  ),
+  getInboxSectionMeta: protectedProcedure.query(async () => getInboxSectionMeta()),
+  getSyncedRepoSummary: protectedProcedure.query(async () => getSyncedRepoSummary()),
   getPullRequestPage: protectedProcedure
     .input(
       z.object({
         owner: z.string().min(1),
         repo: z.string().min(1),
         pullNumber: z.number().int().positive(),
-      })
+      }),
     )
     .query(async ({ input }) => {
-      const data = await getPullRequestPageData(
-        input.owner,
-        input.repo,
-        input.pullNumber
-      );
+      const data = await getPullRequestPageData(input.owner, input.repo, input.pullNumber);
       if (!data) {
-        throw new Error(FAILURES.getPullRequestPage);
+        throwNotFound(FAILURES.getPullRequestPage);
       }
 
       return data;
@@ -139,16 +212,12 @@ export const githubRouter = createTRPCRouter({
         owner: z.string().min(1),
         repo: z.string().min(1),
         pullNumber: z.number().int().positive(),
-      })
+      }),
     )
     .query(async ({ input }) => {
-      const data = await getPullRequestDiscussionData(
-        input.owner,
-        input.repo,
-        input.pullNumber
-      );
+      const data = await getPullRequestDiscussionData(input.owner, input.repo, input.pullNumber);
       if (!data) {
-        throw new Error(FAILURES.getPullRequestDiscussion);
+        throwNotFound(FAILURES.getPullRequestDiscussion);
       }
 
       return data;
@@ -159,16 +228,16 @@ export const githubRouter = createTRPCRouter({
         owner: z.string().min(1),
         repo: z.string().min(1),
         pullNumber: z.number().int().positive(),
-      })
+      }),
     )
     .query(async ({ input }) => {
       const data = await getPullRequestReviewCommentsData(
         input.owner,
         input.repo,
-        input.pullNumber
+        input.pullNumber,
       );
       if (!data) {
-        throw new Error(FAILURES.getPullRequestReviewComments);
+        throwNotFound(FAILURES.getPullRequestReviewComments);
       }
 
       return data;
@@ -179,16 +248,12 @@ export const githubRouter = createTRPCRouter({
         owner: z.string().min(1),
         repo: z.string().min(1),
         pullNumber: z.number().int().positive(),
-      })
+      }),
     )
     .query(async ({ input }) => {
-      const data = await getPullRequestPageDetailsData(
-        input.owner,
-        input.repo,
-        input.pullNumber
-      );
+      const data = await getPullRequestPageDetailsData(input.owner, input.repo, input.pullNumber);
       if (!data) {
-        throw new Error(FAILURES.getPullRequestDetails);
+        throwNotFound(FAILURES.getPullRequestDetails);
       }
 
       return data;
@@ -199,16 +264,12 @@ export const githubRouter = createTRPCRouter({
         owner: z.string().min(1),
         repo: z.string().min(1),
         branch: z.string().min(1).nullable(),
-      })
+      }),
     )
     .query(async ({ input }) => {
-      const data = await getRepoSubmitPageData(
-        input.owner,
-        input.repo,
-        input.branch
-      );
+      const data = await getRepoSubmitPageData(input.owner, input.repo, input.branch);
       if (!data) {
-        throw new Error(FAILURES.getRepoSubmitPage);
+        throwNotFound(FAILURES.getRepoSubmitPage);
       }
 
       return data;
@@ -222,7 +283,7 @@ export const githubRouter = createTRPCRouter({
         owner: z.string().min(1),
         repo: z.string().min(1),
         title: z.string().min(1),
-      })
+      }),
     )
     .mutation(async ({ input }) => {
       try {
@@ -245,7 +306,7 @@ export const githubRouter = createTRPCRouter({
             repo: input.repo,
             titleLength: input.title.length,
           },
-          error
+          error,
         );
         throwMutationFailure(FAILURES.savePullRequest, error);
       }
@@ -257,7 +318,7 @@ export const githubRouter = createTRPCRouter({
         owner: z.string().min(1),
         pullNumber: z.number().int().positive(),
         repo: z.string().min(1),
-      })
+      }),
     )
     .mutation(async ({ input }) => {
       try {
@@ -276,7 +337,7 @@ export const githubRouter = createTRPCRouter({
             pullNumber: input.pullNumber,
             repo: input.repo,
           },
-          error
+          error,
         );
         throwMutationFailure(FAILURES.addComment, error);
       }
@@ -290,7 +351,7 @@ export const githubRouter = createTRPCRouter({
         owner: z.string().min(1),
         pullNumber: z.number().int().positive(),
         repo: z.string().min(1),
-      })
+      }),
     )
     .mutation(async ({ input }) => {
       try {
@@ -311,7 +372,7 @@ export const githubRouter = createTRPCRouter({
             pullNumber: input.pullNumber,
             repo: input.repo,
           },
-          error
+          error,
         );
         throwMutationFailure(FAILURES.merge, error);
       }
@@ -327,14 +388,14 @@ export const githubRouter = createTRPCRouter({
               line: z.number().int().positive(),
               path: z.string().min(1),
               side: z.enum(["LEFT", "RIGHT"]),
-            })
+            }),
           )
           .optional(),
         event: z.enum(["APPROVE", "REQUEST_CHANGES", "COMMENT"]),
         owner: z.string().min(1),
         pullNumber: z.number().int().positive(),
         repo: z.string().min(1),
-      })
+      }),
     )
     .mutation(async ({ input }) => {
       const body = input.body?.trim();
@@ -345,11 +406,8 @@ export const githubRouter = createTRPCRouter({
         side: comment.side,
       }));
 
-      if (
-        (!body || body.length === 0) &&
-        (!comments || comments.length === 0)
-      ) {
-        throw new Error(FAILURES.review);
+      if ((!body || body.length === 0) && (!comments || comments.length === 0)) {
+        throwBadRequest(FAILURES.review);
       }
 
       try {
@@ -372,7 +430,7 @@ export const githubRouter = createTRPCRouter({
             pullNumber: input.pullNumber,
             repo: input.repo,
           },
-          error
+          error,
         );
         throwMutationFailure(FAILURES.review, error);
       }
@@ -386,7 +444,7 @@ export const githubRouter = createTRPCRouter({
         pullNumber: z.number().int().positive(),
         page: z.number().int().positive().optional(),
         perPage: z.number().int().min(1).max(100).optional(),
-      })
+      }),
     )
     .query(async ({ input }) => {
       const data = await getPullRequestFileList(
@@ -394,7 +452,7 @@ export const githubRouter = createTRPCRouter({
         input.repo,
         input.pullNumber,
         input.page,
-        input.perPage
+        input.perPage,
       );
       return data ?? { files: [], nextPage: null };
     }),
@@ -405,7 +463,7 @@ export const githubRouter = createTRPCRouter({
         owner: z.string().min(1),
         repo: z.string().min(1),
         ref: z.string().min(1),
-      })
+      }),
     )
     .query(async ({ input }) => {
       return getCheckRunsForPR(input.owner, input.repo, input.ref);
@@ -417,14 +475,10 @@ export const githubRouter = createTRPCRouter({
         owner: z.string().min(1),
         repo: z.string().min(1),
         ref: z.string().min(1),
-      })
+      }),
     )
     .query(async ({ input }) => {
-      const report = await getCheckReportForPR(
-        input.owner,
-        input.repo,
-        input.ref
-      );
+      const report = await getCheckReportForPR(input.owner, input.repo, input.ref);
       return report ?? { runs: [], summary: null };
     }),
 
@@ -434,7 +488,7 @@ export const githubRouter = createTRPCRouter({
         owner: z.string().min(1),
         repo: z.string().min(1),
         ref: z.string().min(1),
-      })
+      }),
     )
     .query(async ({ input }) => {
       return getCheckSummaryForPR(input.owner, input.repo, input.ref);
@@ -447,8 +501,8 @@ export const githubRouter = createTRPCRouter({
           owner: z.string().min(1),
           repo: z.string().min(1),
           ref: z.string().min(1),
-        })
-      )
+        }),
+      ),
     )
     .query(async ({ input }) => {
       return getCheckSummariesForRefs(input);
@@ -462,7 +516,7 @@ export const githubRouter = createTRPCRouter({
         pullNumber: z.number().int().positive(),
         repo: z.string().min(1),
         title: z.string().min(1),
-      })
+      }),
     )
     .mutation(async ({ input }) => {
       try {
@@ -475,7 +529,7 @@ export const githubRouter = createTRPCRouter({
             repo: input.repo,
             pullNumber: input.pullNumber,
           },
-          error
+          error,
         );
         throwMutationFailure(FAILURES.updatePullRequest, error);
       }
@@ -488,7 +542,7 @@ export const githubRouter = createTRPCRouter({
         pullNumber: z.number().int().positive(),
         repo: z.string().min(1),
         reviewers: z.array(z.string().min(1)).min(1),
-      })
+      }),
     )
     .mutation(async ({ input }) => {
       try {
@@ -501,7 +555,7 @@ export const githubRouter = createTRPCRouter({
             repo: input.repo,
             pullNumber: input.pullNumber,
           },
-          error
+          error,
         );
         throwMutationFailure(FAILURES.requestReviewers, error);
       }
@@ -514,7 +568,7 @@ export const githubRouter = createTRPCRouter({
         pullNumber: z.number().int().positive(),
         repo: z.string().min(1),
         reviewer: z.string().min(1),
-      })
+      }),
     )
     .mutation(async ({ input }) => {
       try {
@@ -527,7 +581,7 @@ export const githubRouter = createTRPCRouter({
             repo: input.repo,
             pullNumber: input.pullNumber,
           },
-          error
+          error,
         );
         throwMutationFailure(FAILURES.removeReviewer, error);
       }
@@ -538,7 +592,7 @@ export const githubRouter = createTRPCRouter({
       z.object({
         owner: z.string().min(1),
         repo: z.string().min(1),
-      })
+      }),
     )
     .query(async ({ input }) => {
       return getRepoLabels(input.owner, input.repo);
@@ -551,7 +605,7 @@ export const githubRouter = createTRPCRouter({
         owner: z.string().min(1),
         pullNumber: z.number().int().positive(),
         repo: z.string().min(1),
-      })
+      }),
     )
     .mutation(async ({ input }) => {
       try {
@@ -564,7 +618,7 @@ export const githubRouter = createTRPCRouter({
             repo: input.repo,
             pullNumber: input.pullNumber,
           },
-          error
+          error,
         );
         throwMutationFailure(FAILURES.addLabels, error);
       }
@@ -577,7 +631,7 @@ export const githubRouter = createTRPCRouter({
         owner: z.string().min(1),
         pullNumber: z.number().int().positive(),
         repo: z.string().min(1),
-      })
+      }),
     )
     .mutation(async ({ input }) => {
       try {
@@ -590,7 +644,7 @@ export const githubRouter = createTRPCRouter({
             repo: input.repo,
             pullNumber: input.pullNumber,
           },
-          error
+          error,
         );
         throwMutationFailure(FAILURES.removeLabel, error);
       }
@@ -602,7 +656,7 @@ export const githubRouter = createTRPCRouter({
         owner: z.string().min(1),
         pullNumber: z.number().int().positive(),
         repo: z.string().min(1),
-      })
+      }),
     )
     .mutation(async ({ input }) => {
       try {
@@ -615,7 +669,7 @@ export const githubRouter = createTRPCRouter({
             repo: input.repo,
             pullNumber: input.pullNumber,
           },
-          error
+          error,
         );
         throwMutationFailure(FAILURES.convertToReady, error);
       }
@@ -628,7 +682,7 @@ export const githubRouter = createTRPCRouter({
         path: z.string().optional(),
         ref: z.string().min(1),
         repo: z.string().min(1),
-      })
+      }),
     )
     .query(async ({ input }) => {
       return getRepoTree(input.owner, input.repo, input.ref, input.path);
@@ -641,17 +695,12 @@ export const githubRouter = createTRPCRouter({
         path: z.string().min(1),
         ref: z.string().optional(),
         repo: z.string().min(1),
-      })
+      }),
     )
     .query(async ({ input }) => {
-      const data = await getRepoFileContent(
-        input.owner,
-        input.repo,
-        input.path,
-        input.ref
-      );
+      const data = await getRepoFileContent(input.owner, input.repo, input.path, input.ref);
       if (!data) {
-        throw new Error(FAILURES.fileContent);
+        throwNotFound(FAILURES.fileContent);
       }
       return data;
     }),
@@ -663,7 +712,7 @@ export const githubRouter = createTRPCRouter({
         path: z.string().optional(),
         ref: z.string().optional(),
         repo: z.string().min(1),
-      })
+      }),
     )
     .query(async ({ input }) => {
       return getRepoCommits(input.owner, input.repo, {
@@ -677,7 +726,7 @@ export const githubRouter = createTRPCRouter({
       z.object({
         owner: z.string().min(1),
         repo: z.string().min(1),
-      })
+      }),
     )
     .query(async ({ input }) => {
       return getRepoBranches(input.owner, input.repo);
@@ -689,7 +738,7 @@ export const githubRouter = createTRPCRouter({
         owner: z.string().min(1),
         repo: z.string().min(1),
         pullNumber: z.number().int().positive(),
-      })
+      }),
     )
     .query(async ({ input }) => {
       return getPullRequestStack(input.owner, input.repo, input.pullNumber);
@@ -701,7 +750,7 @@ export const githubRouter = createTRPCRouter({
         owner: z.string().min(1),
         repo: z.string().min(1),
         pullNumber: z.number().int().positive(),
-      })
+      }),
     )
     .query(async ({ input }) => {
       return getStackHealth(input.owner, input.repo, input.pullNumber);
@@ -714,16 +763,11 @@ export const githubRouter = createTRPCRouter({
         repo: z.string().min(1),
         pullNumber: z.number().int().positive(),
         newBase: z.string().min(1),
-      })
+      }),
     )
     .mutation(async ({ input }) => {
       try {
-        return await restackPullRequest(
-          input.owner,
-          input.repo,
-          input.pullNumber,
-          input.newBase
-        );
+        return await restackPullRequest(input.owner, input.repo, input.pullNumber, input.newBase);
       } catch (error) {
         logGitHubMutationFailure(
           "restackPullRequest",
@@ -733,7 +777,7 @@ export const githubRouter = createTRPCRouter({
             pullNumber: input.pullNumber,
             newBase: input.newBase,
           },
-          error
+          error,
         );
         throwMutationFailure("Failed to restack pull request.", error);
       }
@@ -746,7 +790,7 @@ export const githubRouter = createTRPCRouter({
         repo: z.string().min(1),
         branch: z.string().min(1),
         upstreamBranch: z.string().min(1),
-      })
+      }),
     )
     .mutation(async ({ input }) => {
       try {
@@ -754,7 +798,7 @@ export const githubRouter = createTRPCRouter({
           input.owner,
           input.repo,
           input.branch,
-          input.upstreamBranch
+          input.upstreamBranch,
         );
       } catch (error) {
         logGitHubMutationFailure(
@@ -765,7 +809,7 @@ export const githubRouter = createTRPCRouter({
             branch: input.branch,
             upstreamBranch: input.upstreamBranch,
           },
-          error
+          error,
         );
         throwMutationFailure("Failed to update stacked branch.", error);
       }
@@ -777,15 +821,11 @@ export const githubRouter = createTRPCRouter({
         owner: z.string().min(1),
         repo: z.string().min(1),
         mergedPrNumber: z.number().int().positive(),
-      })
+      }),
     )
     .mutation(async ({ input }) => {
       try {
-        return await restackAfterMerge(
-          input.owner,
-          input.repo,
-          input.mergedPrNumber
-        );
+        return await restackAfterMerge(input.owner, input.repo, input.mergedPrNumber);
       } catch (error) {
         logGitHubMutationFailure(
           "restackAfterMerge",
@@ -794,7 +834,7 @@ export const githubRouter = createTRPCRouter({
             repo: input.repo,
             mergedPrNumber: input.mergedPrNumber,
           },
-          error
+          error,
         );
         throwMutationFailure("Failed to restack after merge.", error);
       }

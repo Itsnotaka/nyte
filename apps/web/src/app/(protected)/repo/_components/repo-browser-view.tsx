@@ -97,9 +97,7 @@ export function RepoBrowserView({
       />
 
       {tree.truncated ? (
-        <p className="text-xs text-sachi-fg-muted">
-          Tree is truncated. Not all entries are shown.
-        </p>
+        <p className="text-xs text-sachi-fg-muted">Tree is truncated. Not all entries are shown.</p>
       ) : null}
     </InsetView>
   );

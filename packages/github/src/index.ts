@@ -1,64 +1,81 @@
 export {
   withGitHubClient,
-  withGitHubClientOrThrow,
-  withGitHubInstallationClientOrThrow,
+  withGitHubInstallationClient,
+  GitHubClientService,
+  GitHubTelemetry,
+  type GitHubTelemetryEvent,
 } from "./client.ts";
+export { GitHubServiceLayer } from "./services.ts";
 export {
   listUserInstallations,
   getInstallUrl,
   getInstallUrlForAccount,
+  GitHubInstallationsService,
 } from "./installations.ts";
 export {
   listInstallationRepos,
   getRepositoryTree,
   getFileContent,
   listCommits,
+  GitHubRepositoriesService,
 } from "./repositories.ts";
-export { listRepositoryBranches } from "./branches.ts";
+export { listRepositoryBranches, GitHubBranchesService } from "./branches.ts";
 export {
   listCheckRunsForRef,
   getCheckSummaryForRef,
   summarizeCheckRuns,
+  GitHubChecksService,
 } from "./checks.ts";
 export {
+  DEFAULT_INBOX_SECTION_RULES,
   buildPullRequestReviewSignals,
   classifyPullRequests,
   computeReviewDecision,
+  deriveInboxClassificationFacts,
+  matchesInboxCondition,
+  matchesInboxConditionPreset,
 } from "./inbox.ts";
 export type {
+  ClassifyPullRequestsOptions,
   ClassifiedInboxPullRequest,
+  InboxClassificationFacts,
+  InboxCondition,
+  InboxConditionPreset,
   InboxPullRequest,
   InboxSection,
   InboxSectionId,
+  InboxSectionRule,
   PullRequestReviewSignals,
   ReviewDecision,
 } from "./inbox.ts";
 export {
-  addLabels,
   compareBranches,
-  createIssueComment,
   createPullRequest,
   findPullRequestByHead,
   getPullRequest,
   getPullRequestDiff,
-  listIssueComments,
   listPullRequestFiles,
   listPullRequestFilesPaginated,
-  listPullRequestReviewComments,
-  listPullRequestReviews,
-  listRepoLabels,
   listRecentPullRequests,
   listRepositoryPullRequests,
   markPullRequestReadyForReview,
   mergePullRequest,
   mergeUpstream,
-  removeLabel,
+  updatePullRequest,
+  GitHubPullRequestsService,
+} from "./pull-requests.ts";
+export type { BranchComparison, PaginatedFiles } from "./pull-requests.ts";
+export {
+  createIssueComment,
+  listIssueComments,
+  listPullRequestReviewComments,
+  listPullRequestReviews,
   removeReviewers,
   requestReviewers,
   submitPullRequestReview,
-  updatePullRequest,
-} from "./pulls.ts";
-export type { BranchComparison, PaginatedFiles } from "./pulls.ts";
+  GitHubReviewsService,
+} from "./reviews.ts";
+export { addLabels, listRepoLabels, removeLabel, GitHubLabelsService } from "./labels.ts";
 export {
   GitHubError,
   type GitHubAccount,
@@ -72,6 +89,7 @@ export {
   type GitHubInstallation,
   type GitHubIssueComment,
   type GitHubLabel,
+  type GitHubOperationMetadata,
   type GitHubPullRequest,
   type GitHubPullRequestFile,
   type GitHubPullRequestReview,
@@ -82,4 +100,3 @@ export {
   type GitHubTree,
   type GitHubTreeEntry,
 } from "./types.ts";
-export { type Result, type ResultAsync } from "neverthrow";

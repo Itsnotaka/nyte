@@ -54,11 +54,7 @@ const STRATEGIES: { id: MergeMethod; label: string; description: string }[] = [
   },
 ];
 
-function defaultTitle(
-  method: MergeMethod,
-  pullTitle: string,
-  pullNumber: number
-): string {
+function defaultTitle(method: MergeMethod, pullTitle: string, pullNumber: number): string {
   if (method === "squash") return `${pullTitle} (#${String(pullNumber)})`;
   if (method === "merge") return `Merge pull request #${String(pullNumber)}`;
   return "";
@@ -69,19 +65,15 @@ function defaultMessage(method: MergeMethod, pullBody: string | null): string {
   return "";
 }
 
-function CheckWarning({
-  summary,
-}: {
-  summary: GitHubCheckSummary | null | undefined;
-}) {
+function CheckWarning({ summary }: { summary: GitHubCheckSummary | null | undefined }) {
   if (!summary) return null;
   if (summary.conclusion === "success" || summary.total === 0) return null;
 
   if (summary.conclusion === "failure") {
     return (
       <div className="rounded-md bg-destructive/10 px-3 py-2 text-xs text-destructive ring-1 ring-destructive/20">
-        {String(summary.failing)} check{summary.failing === 1 ? "" : "s"}{" "}
-        failing. Merging is not recommended.
+        {String(summary.failing)} check{summary.failing === 1 ? "" : "s"} failing. Merging is not
+        recommended.
       </div>
     );
   }
@@ -89,8 +81,7 @@ function CheckWarning({
   if (summary.conclusion === "pending") {
     return (
       <div className="rounded-md bg-sachi-warning/10 px-3 py-2 text-xs text-sachi-warning ring-1 ring-sachi-warning/20">
-        {String(summary.pending)} check{summary.pending === 1 ? "" : "s"} still
-        running.
+        {String(summary.pending)} check{summary.pending === 1 ? "" : "s"} still running.
       </div>
     );
   }
@@ -112,19 +103,15 @@ export function MergeModal({
 }: MergeModalProps) {
   const trpc = useTRPC();
   const [method, setMethod] = React.useState<MergeMethod>("squash");
-  const [title, setTitle] = React.useState(() =>
-    defaultTitle("squash", pullTitle, pullNumber)
-  );
-  const [message, setMessage] = React.useState(() =>
-    defaultMessage("squash", pullBody)
-  );
+  const [title, setTitle] = React.useState(() => defaultTitle("squash", pullTitle, pullNumber));
+  const [message, setMessage] = React.useState(() => defaultMessage("squash", pullBody));
   const [open, setOpen] = React.useState(false);
 
   const summaryQuery = useQuery(
     trpc.github.getCheckSummary.queryOptions(
       { owner, repo, ref: headSha },
-      { staleTime: 60_000, enabled: open }
-    )
+      { staleTime: 60_000, enabled: open },
+    ),
   );
 
   function handleStrategyChange(next: MergeMethod) {
@@ -167,15 +154,11 @@ export function MergeModal({
                     "flex w-full flex-col gap-0.5 rounded-lg border px-3 py-2 text-left transition-colors",
                     method === strategy.id
                       ? "border-sachi-accent bg-sachi-fill"
-                      : "border-sachi-line hover:bg-sachi-fill"
+                      : "border-sachi-line hover:bg-sachi-fill",
                   )}
                 >
-                  <span className="text-sm font-medium text-sachi-fg">
-                    {strategy.label}
-                  </span>
-                  <span className="text-xs text-sachi-fg-muted">
-                    {strategy.description}
-                  </span>
+                  <span className="text-sm font-medium text-sachi-fg">{strategy.label}</span>
+                  <span className="text-xs text-sachi-fg-muted">{strategy.description}</span>
                 </button>
               ))}
             </div>
@@ -184,9 +167,7 @@ export function MergeModal({
           {method !== "rebase" ? (
             <>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-sachi-fg">
-                  Commit title
-                </label>
+                <label className="text-sm font-medium text-sachi-fg">Commit title</label>
                 <Input
                   value={title}
                   onChange={(event) => setTitle(event.target.value)}
@@ -195,9 +176,7 @@ export function MergeModal({
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-sachi-fg">
-                  Commit message
-                </label>
+                <label className="text-sm font-medium text-sachi-fg">Commit message</label>
                 <Textarea
                   value={message}
                   onChange={(event) => setMessage(event.target.value)}
@@ -217,11 +196,7 @@ export function MergeModal({
             >
               Cancel
             </Button>
-            <Button
-              type="button"
-              disabled={disabled || isPending}
-              onClick={handleSubmit}
-            >
+            <Button type="button" disabled={disabled || isPending} onClick={handleSubmit}>
               {isPending ? "Merging..." : "Confirm merge"}
             </Button>
           </div>

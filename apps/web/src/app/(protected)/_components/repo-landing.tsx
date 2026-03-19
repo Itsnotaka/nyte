@@ -14,7 +14,7 @@ export function RepoLanding() {
   const [search, setSearch] = React.useState("");
 
   const filtered = repos.filter((repo) =>
-    repo.full_name.toLowerCase().includes(search.toLowerCase())
+    repo.full_name.toLowerCase().includes(search.toLowerCase()),
   );
 
   return (
@@ -46,17 +46,13 @@ export function RepoLanding() {
               >
                 <div className="flex min-w-0 flex-col gap-0.5">
                   <div className="flex items-center gap-2">
-                    <span className="truncate text-sm font-medium text-sachi-fg">
-                      {repo.name}
-                    </span>
+                    <span className="truncate text-sm font-medium text-sachi-fg">{repo.name}</span>
                     <Badge variant="outline" className="text-[10px]">
                       {repo.private ? "private" : "public"}
                     </Badge>
                   </div>
                   {repo.description ? (
-                    <p className="truncate text-xs text-sachi-fg-muted">
-                      {repo.description}
-                    </p>
+                    <p className="truncate text-xs text-sachi-fg-muted">{repo.description}</p>
                   ) : null}
                 </div>
 

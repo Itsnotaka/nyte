@@ -1,9 +1,6 @@
 "use client";
 
-import {
-  IconFileText,
-  IconFolder1,
-} from "@central-icons-react/round-filled-radius-2-stroke-1.5";
+import { IconFileText, IconFolder1 } from "@central-icons-react/round-filled-radius-2-stroke-1.5";
 import type { GitHubTreeEntry } from "@sachikit/github";
 import Link from "next/link";
 import * as React from "react";
@@ -16,13 +13,7 @@ type RepoTreeViewProps = {
   currentPath?: string;
 };
 
-export function RepoTreeView({
-  owner,
-  repo,
-  ref,
-  entries,
-  currentPath,
-}: RepoTreeViewProps) {
+export function RepoTreeView({ owner, repo, ref, entries, currentPath }: RepoTreeViewProps) {
   const sorted = React.useMemo(
     () =>
       [...entries].sort((a, b) => {
@@ -30,7 +21,7 @@ export function RepoTreeView({
         if (a.type !== "tree" && b.type === "tree") return 1;
         return a.path.localeCompare(b.path);
       }),
-    [entries]
+    [entries],
   );
 
   const prefix = currentPath ? `${currentPath}/` : "";
@@ -67,9 +58,7 @@ export function RepoTreeView({
             ) : (
               <IconFileText className="size-4 shrink-0 text-sachi-fg-muted" />
             )}
-            <span className="min-w-0 flex-1 truncate text-sachi-fg">
-              {name}
-            </span>
+            <span className="min-w-0 flex-1 truncate text-sachi-fg">{name}</span>
             {entry.type === "blob" && entry.size !== null ? (
               <span className="shrink-0 text-xs text-sachi-fg-faint">
                 {entry.size < 1024

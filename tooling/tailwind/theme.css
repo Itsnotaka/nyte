@@ -9,8 +9,8 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-inter), system-ui, sans-serif;
   --font-mono:
-    var(--font-berkeley-mono), "SFMono Regular", Consolas, "Liberation Mono",
-    Menlo, Courier, monospace;
+    var(--font-berkeley-mono), "SFMono Regular", Consolas, "Liberation Mono", Menlo, Courier,
+    monospace;
   --text-sm: 0.8125rem;
   --text-sm--line-height: calc(21 / 14);
   --color-sidebar-ring: var(--sidebar-ring);
@@ -55,6 +55,7 @@
   --color-sachi-sidebar: light-dark(#f9f8f9, #090909);
   --color-sachi-surface: light-dark(#f8f8f8, #090909);
   --color-sachi-base: light-dark(#ffffff, #101012);
+  --color-sachi-card: light-dark(#ffffff, #141419);
   --color-sachi-fill: light-dark(#f1f2f4, #15161c);
   --color-sachi-fill-hover: light-dark(#f1f2f4, #17181c);
   --color-sachi-overlay: light-dark(rgba(0, 0, 0, 0.275), rgba(0, 0, 0, 0.6));

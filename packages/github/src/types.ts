@@ -1,3 +1,5 @@
+import { Data } from "effect";
+
 export type GitHubAccount = {
   login: string;
   id: number;
@@ -187,6 +189,19 @@ export type GitHubAppInstallationAuth = {
   installationId: number;
 };
 
+export type GitHubOperationMetadata = {
+  owner?: string;
+  repo?: string;
+  ref?: string;
+  path?: string;
+  pullNumber?: number;
+  installationId?: number;
+  branch?: string;
+  base?: string;
+  head?: string;
+  issueNumber?: number;
+};
+
 export type GitHubErrorCode =
   | "unauthorized"
   | "forbidden"
@@ -195,14 +210,21 @@ export type GitHubErrorCode =
   | "server_error"
   | "unknown";
 
-export class GitHubError extends Error {
-  status: number;
-  code: GitHubErrorCode;
-
-  constructor(message: string, status: number, code: GitHubErrorCode) {
-    super(message);
+export class GitHubError extends Data.TaggedError("GitHubError")<{
+  readonly message: string;
+  readonly status: number;
+  readonly code: GitHubErrorCode;
+  readonly operation: string;
+  readonly metadata: GitHubOperationMetadata;
+}> {
+  constructor(
+    message: string,
+    status: number,
+    code: GitHubErrorCode,
+    operation = "github.request",
+    metadata: GitHubOperationMetadata = {},
+  ) {
+    super({ message, status, code, operation, metadata });
     this.name = "GitHubError";
-    this.status = status;
-    this.code = code;
   }
 }

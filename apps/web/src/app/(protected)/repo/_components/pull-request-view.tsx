@@ -14,11 +14,7 @@ import {
 import { InsetView } from "@sachikit/ui/components/sidebar";
 import { Textarea } from "@sachikit/ui/components/textarea";
 import { useHotkey } from "@tanstack/react-hotkeys";
-import {
-  useMutation,
-  useSuspenseQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { useMutation, useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
 import { nanoid } from "nanoid";
 import * as React from "react";
 
@@ -31,10 +27,7 @@ import {
   PullRequestDiffSection,
   SidebarStatusFallback,
 } from "./diff-section";
-import {
-  PullRequestDiscussionFallback,
-  PullRequestDiscussionSection,
-} from "./discussion-section";
+import { PullRequestDiscussionFallback, PullRequestDiscussionSection } from "./discussion-section";
 import { EditableTitle } from "./editable-title";
 import { LabelPanel } from "./label-panel";
 import { SidebarSection } from "./layout-sections";
@@ -58,18 +51,13 @@ type PullRequestViewProps = {
   pullNumber: number;
 };
 
-export function PullRequestView({
-  owner,
-  repo,
-  pullNumber,
-}: PullRequestViewProps) {
+export function PullRequestView({ owner, repo, pullNumber }: PullRequestViewProps) {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const [drafts, setDrafts] = React.useState<DraftComment[]>([]);
   const [reviewBody, setReviewBody] = React.useState("");
   const [commentBody, setCommentBody] = React.useState("");
-  const [reviewAction, setReviewAction] =
-    React.useState<ReviewAction>("COMMENT");
+  const [reviewAction, setReviewAction] = React.useState<ReviewAction>("COMMENT");
   const [sidebarOpen, setSidebarOpen] = React.useState(true);
   const [activeFile, setActiveFile] = React.useState<string | null>(null);
   const [editingDescription, setEditingDescription] = React.useState(false);
@@ -83,17 +71,15 @@ export function PullRequestView({
   const { data: pageData } = useSuspenseQuery(
     trpc.github.getPullRequestPage.queryOptions(queryInput, {
       staleTime: 60_000,
-    })
+    }),
   );
 
   useHotkey("F", () => setSidebarOpen((prev) => !prev));
 
   const draftsByFile = React.useMemo(() => groupByPath(drafts), [drafts]);
 
-  const pullRequestPageQueryKey =
-    trpc.github.getPullRequestPage.queryKey(queryInput);
-  const pullRequestDiscussionQueryKey =
-    trpc.github.getPullRequestDiscussion.queryKey(queryInput);
+  const pullRequestPageQueryKey = trpc.github.getPullRequestPage.queryKey(queryInput);
+  const pullRequestDiscussionQueryKey = trpc.github.getPullRequestDiscussion.queryKey(queryInput);
   const pullRequestReviewCommentsQueryKey =
     trpc.github.getPullRequestReviewComments.queryKey(queryInput);
 
@@ -108,7 +94,7 @@ export function PullRequestView({
           }),
         ]);
       },
-    })
+    }),
   );
 
   const submitReview = useMutation(
@@ -126,7 +112,7 @@ export function PullRequestView({
           }),
         ]);
       },
-    })
+    }),
   );
 
   const merge = useMutation(
@@ -139,7 +125,7 @@ export function PullRequestView({
           }),
         ]);
       },
-    })
+    }),
   );
 
   const updatePR = useMutation(
@@ -150,7 +136,7 @@ export function PullRequestView({
           queryKey: pullRequestPageQueryKey,
         });
       },
-    })
+    }),
   );
 
   const convertToReady = useMutation(
@@ -160,7 +146,7 @@ export function PullRequestView({
           queryKey: pullRequestPageQueryKey,
         });
       },
-    })
+    }),
   );
 
   const { repository, pullRequest } = pageData;
@@ -200,7 +186,7 @@ export function PullRequestView({
   function handleFileSelect(filename: string) {
     setActiveFile(filename);
     const element = diffAreaRef.current?.querySelector(
-      `[data-file-name="${CSS.escape(filename)}"]`
+      `[data-file-name="${CSS.escape(filename)}"]`,
     );
     if (element) {
       element.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -210,10 +196,7 @@ export function PullRequestView({
   function addDraft(path: string, lineNumber: number, side: "LEFT" | "RIGHT") {
     setDrafts((current) => {
       const exists = current.some(
-        (draft) =>
-          draft.path === path &&
-          draft.lineNumber === lineNumber &&
-          draft.side === side
+        (draft) => draft.path === path && draft.lineNumber === lineNumber && draft.side === side,
       );
       if (exists) return current;
       return [...current, { body: "", id: nanoid(), lineNumber, path, side }];
@@ -221,9 +204,7 @@ export function PullRequestView({
   }
 
   function updateDraft(id: string, body: string) {
-    setDrafts((current) =>
-      current.map((draft) => (draft.id === id ? { ...draft, body } : draft))
-    );
+    setDrafts((current) => current.map((draft) => (draft.id === id ? { ...draft, body } : draft)));
   }
 
   function removeDraft(id: string) {
@@ -269,11 +250,7 @@ export function PullRequestView({
 
   const reviewSubmitDisabled =
     submitReview.isPending ||
-    !(
-      reviewAction === "APPROVE" ||
-      reviewBody.trim().length > 0 ||
-      drafts.length > 0
-    );
+    !(reviewAction === "APPROVE" || reviewBody.trim().length > 0 || drafts.length > 0);
 
   return (
     <div className="flex h-full min-h-0">
@@ -293,9 +270,7 @@ export function PullRequestView({
                 isPending={updatePR.isPending}
               />
             ) : (
-              <h1 className="truncate text-sm font-semibold text-sachi-fg">
-                {pullRequest.title}
-              </h1>
+              <h1 className="truncate text-sm font-semibold text-sachi-fg">{pullRequest.title}</h1>
             )}
             <Badge variant="outline">#{pullRequest.number}</Badge>
             {pullRequest.draft ? <Badge variant="outline">draft</Badge> : null}
@@ -309,9 +284,7 @@ export function PullRequestView({
           {isOpen ? (
             <div className="flex shrink-0 items-center gap-2">
               {merge.error ? (
-                <p className="text-sm text-destructive">
-                  {merge.error.message}
-                </p>
+                <p className="text-sm text-destructive">{merge.error.message}</p>
               ) : null}
               {pullRequest.draft ? (
                 <Button
@@ -321,9 +294,7 @@ export function PullRequestView({
                   disabled={convertToReady.isPending}
                   onClick={() => convertToReady.mutate(pullRequestIdentity)}
                 >
-                  {convertToReady.isPending
-                    ? "Publishing..."
-                    : "Ready for review"}
+                  {convertToReady.isPending ? "Publishing..." : "Ready for review"}
                 </Button>
               ) : null}
               <MergeModal
@@ -377,9 +348,7 @@ export function PullRequestView({
                       <div className="space-y-2">
                         <Textarea
                           value={descriptionDraft}
-                          onChange={(event) =>
-                            setDescriptionDraft(event.target.value)
-                          }
+                          onChange={(event) => setDescriptionDraft(event.target.value)}
                           rows={8}
                           disabled={updatePR.isPending}
                         />
@@ -435,10 +404,7 @@ export function PullRequestView({
                         onChange={(event) => setReviewBody(event.target.value)}
                         onKeyDown={(event) => {
                           if (
-                            !(
-                              (event.metaKey || event.ctrlKey) &&
-                              event.key === "Enter"
-                            ) ||
+                            !((event.metaKey || event.ctrlKey) && event.key === "Enter") ||
                             reviewSubmitDisabled
                           )
                             return;
@@ -450,9 +416,7 @@ export function PullRequestView({
                         rows={3}
                       />
                       {submitReview.error ? (
-                        <p className="text-sm text-destructive">
-                          {submitReview.error.message}
-                        </p>
+                        <p className="text-sm text-destructive">{submitReview.error.message}</p>
                       ) : null}
                       <div className="flex items-center justify-end gap-2">
                         <ButtonGroup>
@@ -477,38 +441,22 @@ export function PullRequestView({
                               <IconChevronDownMedium />
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" sideOffset={4}>
-                              <DropdownMenuItem
-                                onClick={() => setReviewAction("COMMENT")}
-                              >
+                              <DropdownMenuItem onClick={() => setReviewAction("COMMENT")}>
                                 <div>
                                   <p className="text-sm font-medium">Comment</p>
-                                  <p className="text-xs text-sachi-fg-muted">
-                                    General feedback
-                                  </p>
+                                  <p className="text-xs text-sachi-fg-muted">General feedback</p>
                                 </div>
                               </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => setReviewAction("APPROVE")}
-                              >
+                              <DropdownMenuItem onClick={() => setReviewAction("APPROVE")}>
                                 <div>
                                   <p className="text-sm font-medium">Approve</p>
-                                  <p className="text-xs text-sachi-fg-muted">
-                                    Approve this PR
-                                  </p>
+                                  <p className="text-xs text-sachi-fg-muted">Approve this PR</p>
                                 </div>
                               </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  setReviewAction("REQUEST_CHANGES")
-                                }
-                              >
+                              <DropdownMenuItem onClick={() => setReviewAction("REQUEST_CHANGES")}>
                                 <div>
-                                  <p className="text-sm font-medium">
-                                    Request changes
-                                  </p>
-                                  <p className="text-xs text-sachi-fg-muted">
-                                    Ask for revisions
-                                  </p>
+                                  <p className="text-sm font-medium">Request changes</p>
+                                  <p className="text-xs text-sachi-fg-muted">Ask for revisions</p>
                                 </div>
                               </DropdownMenuItem>
                             </DropdownMenuContent>
@@ -523,11 +471,7 @@ export function PullRequestView({
                       className="space-y-2"
                       onSubmit={(event) => {
                         event.preventDefault();
-                        if (
-                          commentBody.trim().length === 0 ||
-                          addComment.isPending
-                        )
-                          return;
+                        if (commentBody.trim().length === 0 || addComment.isPending) return;
                         onAddComment();
                       }}
                     >
@@ -536,19 +480,9 @@ export function PullRequestView({
                         value={commentBody}
                         onChange={(event) => setCommentBody(event.target.value)}
                         onKeyDown={(event) => {
-                          if (
-                            !(
-                              (event.metaKey || event.ctrlKey) &&
-                              event.key === "Enter"
-                            )
-                          )
-                            return;
+                          if (!((event.metaKey || event.ctrlKey) && event.key === "Enter")) return;
                           event.preventDefault();
-                          if (
-                            commentBody.trim().length === 0 ||
-                            addComment.isPending
-                          )
-                            return;
+                          if (commentBody.trim().length === 0 || addComment.isPending) return;
                           onAddComment();
                         }}
                         disabled={addComment.isPending}
@@ -556,17 +490,12 @@ export function PullRequestView({
                         rows={3}
                       />
                       {addComment.error ? (
-                        <p className="text-sm text-destructive">
-                          {addComment.error.message}
-                        </p>
+                        <p className="text-sm text-destructive">{addComment.error.message}</p>
                       ) : null}
                       <div className="flex justify-end">
                         <Button
                           type="submit"
-                          disabled={
-                            commentBody.trim().length === 0 ||
-                            addComment.isPending
-                          }
+                          disabled={commentBody.trim().length === 0 || addComment.isPending}
                         >
                           Comment
                         </Button>
@@ -575,10 +504,7 @@ export function PullRequestView({
                   </Section>
 
                   <React.Suspense fallback={<PullRequestDiscussionFallback />}>
-                    <PullRequestDiscussionSection
-                      queryInput={queryInput}
-                      repository={repository}
-                    />
+                    <PullRequestDiscussionSection queryInput={queryInput} repository={repository} />
                   </React.Suspense>
 
                   <React.Suspense fallback={<PullRequestDiffFallback />}>

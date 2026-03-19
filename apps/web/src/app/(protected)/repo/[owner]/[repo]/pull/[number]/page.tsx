@@ -13,9 +13,7 @@ type PullRequestPageProps = {
   }>;
 };
 
-export default async function PullRequestPage({
-  params,
-}: PullRequestPageProps) {
+export default async function PullRequestPage({ params }: PullRequestPageProps) {
   const { owner, repo, number } = await params;
   const pullNumber = Number(number);
   if (!Number.isInteger(pullNumber) || pullNumber <= 0) {
@@ -33,14 +31,14 @@ export default async function PullRequestPage({
       owner,
       repo,
       pullNumber,
-    })
+    }),
   );
   prefetch(
     trpc.github.getPullRequestDiscussion.queryOptions({
       owner,
       repo,
       pullNumber,
-    })
+    }),
   );
   prefetch(
     trpc.github.getPullRequestFiles.queryOptions({
@@ -49,28 +47,28 @@ export default async function PullRequestPage({
       pullNumber,
       page: 1,
       perPage: 1,
-    })
+    }),
   );
   prefetch(
     trpc.github.getPullRequestReviewComments.queryOptions({
       owner,
       repo,
       pullNumber,
-    })
+    }),
   );
   prefetch(
     trpc.github.getPullRequestStack.queryOptions({
       owner,
       repo,
       pullNumber,
-    })
+    }),
   );
   prefetch(
     trpc.github.getCheckSummary.queryOptions({
       owner,
       repo,
       ref: page.pullRequest.head.sha,
-    })
+    }),
   );
   prefetch(trpc.settings.getDiffSettings.queryOptions());
   prefetch(
@@ -78,7 +76,7 @@ export default async function PullRequestPage({
       owner,
       pullNumber,
       repo,
-    })
+    }),
   );
 
   return (

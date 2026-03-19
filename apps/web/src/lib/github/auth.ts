@@ -1,35 +1,30 @@
 import "server-only";
 import type { GitHubAppInstallationAuth } from "@sachikit/github";
 import { getInstallUrl, withGitHubClient } from "@sachikit/github";
-import type { Result } from "neverthrow";
-import { err, ok, ResultAsync } from "neverthrow";
 import { headers } from "next/headers";
 import { cache } from "react";
 
 import { auth } from "../auth";
 import { env } from "../server/env";
-import type { SetupRedirectInput, TokenError } from "./types";
+import { runGitHubEffectOrNull } from "./effect";
+import { GitHubAppConfigurationError } from "./errors";
+import type { SetupRedirectInput } from "./types";
 
-const getGitHubAccessToken = cache(
-  async (): Promise<Result<string, TokenError>> => {
-    const h = await headers();
-    return ResultAsync.fromPromise(
-      auth.api.getAccessToken({ body: { providerId: "github" }, headers: h }),
-      (): TokenError => "token_unavailable"
-    ).andThen((result) =>
-      result?.accessToken
-        ? ok(result.accessToken)
-        : err<string, TokenError>("token_unavailable")
-    );
-  }
-);
+const getGitHubAccessToken = cache(async (): Promise<string | null> => {
+  const h = await headers();
+  const result = await auth.api.getAccessToken({
+    body: { providerId: "github" },
+    headers: h,
+  });
+  return result?.accessToken ?? null;
+});
 
-export function getGitHubAppAuth(
-  installationId: number
-): GitHubAppInstallationAuth {
+export function getGitHubAppAuth(installationId: number): GitHubAppInstallationAuth {
   const appId = Number(env.GITHUB_APP_ID);
   if (!Number.isInteger(appId) || appId <= 0) {
-    throw new Error("Invalid GitHub app configuration.");
+    throw new GitHubAppConfigurationError({
+      message: "Invalid GitHub app configuration.",
+    });
   }
 
   return {
@@ -54,16 +49,20 @@ export function resolveGitHubAppSetupRedirect({
   return { redirectTo: "/setup" };
 }
 
-export const getAuthenticatedGitHubLogin = cache(
-  async (): Promise<string | null> => {
-    const tokenResult = await getGitHubAccessToken();
-    if (tokenResult.isErr()) return null;
+export const getAuthenticatedGitHubLogin = cache(async (): Promise<string | null> => {
+  const token = await getGitHubAccessToken();
+  if (!token) return null;
 
-    return withGitHubClient(tokenResult.value, async (client) => {
-      const { data } = await client.rest.users.getAuthenticated();
-      return data.login;
-    }).unwrapOr(null);
-  }
-);
+  return runGitHubEffectOrNull(
+    withGitHubClient(
+      token,
+      async (client) => {
+        const { data } = await client.rest.users.getAuthenticated();
+        return data.login;
+      },
+      { operation: "github.auth.getAuthenticatedGitHubLogin" },
+    ),
+  );
+});
 
 export { getGitHubAccessToken };

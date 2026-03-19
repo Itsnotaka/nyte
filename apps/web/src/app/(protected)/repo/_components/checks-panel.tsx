@@ -24,10 +24,7 @@ type ChecksPanelProps = {
   headSha: string;
 };
 
-function formatDuration(
-  startedAt: string | null,
-  completedAt: string | null
-): string {
+function formatDuration(startedAt: string | null, completedAt: string | null): string {
   if (!startedAt || !completedAt) return "";
   const ms = new Date(completedAt).getTime() - new Date(startedAt).getTime();
   if (ms < 1000) return "<1s";
@@ -35,9 +32,7 @@ function formatDuration(
   if (seconds < 60) return `${String(seconds)}s`;
   const minutes = Math.floor(seconds / 60);
   const remaining = seconds % 60;
-  return remaining > 0
-    ? `${String(minutes)}m ${String(remaining)}s`
-    : `${String(minutes)}m`;
+  return remaining > 0 ? `${String(minutes)}m ${String(remaining)}s` : `${String(minutes)}m`;
 }
 
 function StatusIcon({ run }: { run: GitHubCheckRun }) {
@@ -64,12 +59,7 @@ function StatusIcon({ run }: { run: GitHubCheckRun }) {
   return <IconCircle className="size-4 text-sachi-fg-faint" />;
 }
 
-function summaryLabel(
-  total: number,
-  passing: number,
-  failing: number,
-  pending: number
-): string {
+function summaryLabel(total: number, passing: number, failing: number, pending: number): string {
   if (total === 0) return "No checks";
   const parts: string[] = [];
   if (passing > 0) parts.push(`${String(passing)} passing`);
@@ -83,16 +73,13 @@ export function ChecksPanel({ owner, repo, headSha }: ChecksPanelProps) {
   const [open, setOpen] = React.useState(false);
 
   const summaryQuery = useSuspenseQuery(
-    trpc.github.getCheckSummary.queryOptions(
-      { owner, repo, ref: headSha },
-      { staleTime: 60_000 }
-    )
+    trpc.github.getCheckSummary.queryOptions({ owner, repo, ref: headSha }, { staleTime: 60_000 }),
   );
   const runsQuery = useQuery(
     trpc.github.getCheckRuns.queryOptions(
       { owner, repo, ref: headSha },
-      { staleTime: 60_000, enabled: open }
-    )
+      { staleTime: 60_000, enabled: open },
+    ),
   );
   const summary = summaryQuery.data ?? null;
   const checks = runsQuery.data ?? [];
@@ -101,17 +88,8 @@ export function ChecksPanel({ owner, repo, headSha }: ChecksPanelProps) {
     <Collapsible open={open} onOpenChange={setOpen}>
       <CollapsibleTrigger className="flex w-full items-center justify-end gap-2 rounded-md py-2 text-left text-sm transition-colors hover:bg-sachi-fill">
         {summary ? (
-          <Badge
-            variant={
-              summary.conclusion === "failure" ? "destructive" : "outline"
-            }
-          >
-            {summaryLabel(
-              summary.total,
-              summary.passing,
-              summary.failing,
-              summary.pending
-            )}
+          <Badge variant={summary.conclusion === "failure" ? "destructive" : "outline"}>
+            {summaryLabel(summary.total, summary.passing, summary.failing, summary.pending)}
           </Badge>
         ) : (
           <span className="text-xs text-sachi-fg-faint">Loading...</span>
@@ -132,17 +110,13 @@ export function ChecksPanel({ owner, repo, headSha }: ChecksPanelProps) {
                 target="_blank"
                 rel="noopener noreferrer"
                 className={cn(
-                  "flex items-center gap-2 rounded-md px-2 py-1.5 text-xs transition-colors hover:bg-sachi-fill"
+                  "flex items-center gap-2 rounded-md px-2 py-1.5 text-xs transition-colors hover:bg-sachi-fill",
                 )}
               >
                 <StatusIcon run={run} />
-                <span className="min-w-0 flex-1 truncate text-sachi-fg-secondary">
-                  {run.name}
-                </span>
+                <span className="min-w-0 flex-1 truncate text-sachi-fg-secondary">{run.name}</span>
                 {run.app ? (
-                  <span className="shrink-0 text-[10px] text-sachi-fg-faint">
-                    {run.app.name}
-                  </span>
+                  <span className="shrink-0 text-[10px] text-sachi-fg-faint">{run.app.name}</span>
                 ) : null}
                 {run.started_at && run.completed_at ? (
                   <span className="shrink-0 text-[10px] text-sachi-fg-faint">

@@ -4,12 +4,7 @@ import type { GitHubCheckSummary } from "@sachikit/github";
 import { Skeleton } from "@sachikit/ui/components/skeleton";
 import { cn } from "@sachikit/ui/lib/utils";
 
-function summaryLabel(
-  total: number,
-  passing: number,
-  failing: number,
-  pending: number
-): string {
+function summaryLabel(total: number, passing: number, failing: number, pending: number): string {
   if (total === 0) return "No checks";
   const parts: string[] = [];
   if (passing > 0) parts.push(`${String(passing)} passing`);
@@ -54,12 +49,7 @@ export function CheckStatusDot({
   return (
     <span
       className={cn("inline-block size-2 shrink-0 rounded-full", color)}
-      title={summaryLabel(
-        summary.total,
-        summary.passing,
-        summary.failing,
-        summary.pending
-      )}
+      title={summaryLabel(summary.total, summary.passing, summary.failing, summary.pending)}
     />
   );
 }
