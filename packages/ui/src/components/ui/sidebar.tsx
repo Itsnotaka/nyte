@@ -1,6 +1,6 @@
 "use client";
 
-import { IconSidebar } from "@central-icons-react/round-filled-radius-2-stroke-1.5";
+import { IconSidebar } from "@central-icons-react/round-outlined-radius-2-stroke-1.5";
 import { cva } from "class-variance-authority";
 import { useReducedMotion } from "motion/react";
 import * as React from "react";

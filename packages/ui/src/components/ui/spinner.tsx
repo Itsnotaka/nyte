@@ -1,4 +1,4 @@
-import { IconLoader } from "@central-icons-react/round-filled-radius-2-stroke-1.5";
+import { IconLoader } from "@central-icons-react/round-outlined-radius-2-stroke-1.5";
 
 import { cn } from "../../lib/utils";
 

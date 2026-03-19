@@ -3,7 +3,7 @@
 import {
   IconCheckmark1,
   IconMagnifyingGlass,
-} from "@central-icons-react/round-filled-radius-2-stroke-1.5";
+} from "@central-icons-react/round-outlined-radius-2-stroke-1.5";
 import { Command as CommandPrimitive } from "cmdk";
 import * as React from "react";
 

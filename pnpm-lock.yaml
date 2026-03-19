@@ -47,9 +47,9 @@ importers:
 
   apps/web:
     dependencies:
-      '@central-icons-react/round-filled-radius-2-stroke-1.5':
-        specifier: ^1.1.169
-        version: 1.1.169(react@19.2.4)
+      '@central-icons-react/round-outlined-radius-2-stroke-1.5':
+        specifier: ^1.1.171
+        version: 1.1.171(react@19.2.4)
       '@dnd-kit/core':
         specifier: ^6.3.1
         version: 6.3.1(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
@@ -233,9 +233,9 @@ importers:
       '@base-ui/react':
         specifier: ^1.3.0
         version: 1.3.0(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
-      '@central-icons-react/round-filled-radius-2-stroke-1.5':
+      '@central-icons-react/round-outlined-radius-2-stroke-1.5':
         specifier: ^1.1.157
-        version: 1.1.158(react@19.2.4)
+        version: 1.1.171(react@19.2.4)
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -601,13 +601,8 @@ packages:
   '@braintree/sanitize-url@7.1.2':
     resolution: {integrity: sha512-jigsZK+sMF/cuiB7sERuo9V7N9jx+dhmHHnQyDSVdpZwVutaBu7WvNYqMDLSgFgfB30n452TP3vjDAvFC973mA==}
 
-  '@central-icons-react/round-filled-radius-2-stroke-1.5@1.1.158':
-    resolution: {integrity: sha512-4DHlyy4CEsHdVrNOqsmg9Tm2ySeh45xYATZqxH9AICYRyaW/IOxn7juWNsUSz5ye3Oc1cRR62gF9l7bR+zrPqw==}
-    peerDependencies:
-      react: '>=14.0.0 <= 19'
-
-  '@central-icons-react/round-filled-radius-2-stroke-1.5@1.1.169':
-    resolution: {integrity: sha512-fk37hECj21/hwVUqbaDjyyjdX7yYFJQK5X6fSIPeXuCB9k+FUY7Yw+zINS4AF2HI5DZirDzxGA/gzEMeN5Rb2Q==}
+  '@central-icons-react/round-outlined-radius-2-stroke-1.5@1.1.171':
+    resolution: {integrity: sha512-UTWs3tQLIJnqJI7I1jvXYLRp2IztwoSslNdD9bPgAMiWuxY5W5qLAbKfV6X0w3/cSOT3sEH2Dpw69pZqek++MA==}
     peerDependencies:
       react: '>=14.0.0 <= 19'
 
@@ -6921,11 +6916,7 @@ snapshots:
 
   '@braintree/sanitize-url@7.1.2': {}
 
-  '@central-icons-react/round-filled-radius-2-stroke-1.5@1.1.158(react@19.2.4)':
-    dependencies:
-      react: 19.2.4
-
-  '@central-icons-react/round-filled-radius-2-stroke-1.5@1.1.169(react@19.2.4)':
+  '@central-icons-react/round-outlined-radius-2-stroke-1.5@1.1.171(react@19.2.4)':
     dependencies:
       react: 19.2.4
 

@@ -6,7 +6,7 @@ import {
   IconCircleX,
   IconExclamationTriangle,
   IconLoader,
-} from "@central-icons-react/round-filled-radius-2-stroke-1.5";
+} from "@central-icons-react/round-outlined-radius-2-stroke-1.5";
 import { useTheme } from "next-themes";
 import { Toaster as Sonner, type ToasterProps } from "sonner";
 

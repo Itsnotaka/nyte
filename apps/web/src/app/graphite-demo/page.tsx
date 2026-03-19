@@ -15,7 +15,7 @@ import {
   IconSend,
   IconSettingsGear1,
   IconSparkle,
-} from "@central-icons-react/round-filled-radius-2-stroke-1.5";
+} from "@central-icons-react/round-outlined-radius-2-stroke-1.5";
 import { Avatar, AvatarFallback, AvatarImage } from "@sachikit/ui/components/avatar";
 import { Badge } from "@sachikit/ui/components/badge";
 import { Button } from "@sachikit/ui/components/button";
@@ -303,7 +303,7 @@ export default function GraphiteDemoPage() {
             href="#"
             className="flex h-10 w-10 items-center justify-center rounded-lg text-sachi-accent"
           >
-            <GraphiteLogo className="size-7" />
+            <IconBox2 className="size-4" />
           </a>
 
           <Separator className="my-2 bg-sachi-line-subtle" />
@@ -414,9 +414,7 @@ export default function GraphiteDemoPage() {
           </div>
 
           {/* Footer */}
-          <div className="mt-8 flex justify-center pb-8">
-            <GraphiteLogo className="size-8 opacity-20" />
-          </div>
+          <div className="mt-8 flex justify-center pb-8"></div>
         </div>
       </main>
     </div>

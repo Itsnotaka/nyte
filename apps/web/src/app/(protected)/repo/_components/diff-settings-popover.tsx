@@ -1,6 +1,6 @@
 "use client";
 
-import { IconSettingsSliderHor } from "@central-icons-react/round-filled-radius-2-stroke-1.5";
+import { IconSettingsSliderHor } from "@central-icons-react/round-outlined-radius-2-stroke-1.5";
 import { DIFF_SETTINGS_DEFAULTS } from "@sachikit/db/schema/settings";
 import type { DiffSettingsJson } from "@sachikit/db/schema/settings";
 import { Button } from "@sachikit/ui/components/button";

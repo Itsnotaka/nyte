@@ -1,6 +1,6 @@
 "use client";
 
-import { IconFileText, IconFolder1 } from "@central-icons-react/round-filled-radius-2-stroke-1.5";
+import { IconFileText, IconFolder1 } from "@central-icons-react/round-outlined-radius-2-stroke-1.5";
 import type { GitHubTreeEntry } from "@sachikit/github";
 import Link from "next/link";
 import * as React from "react";

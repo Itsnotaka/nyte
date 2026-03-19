@@ -1,6 +1,6 @@
 "use client";
 
-import { IconChevronDownMedium } from "@central-icons-react/round-filled-radius-2-stroke-1.5";
+import { IconChevronDownMedium } from "@central-icons-react/round-outlined-radius-2-stroke-1.5";
 import type { GitHubLabel } from "@sachikit/github";
 import { Badge } from "@sachikit/ui/components/badge";
 import { Button } from "@sachikit/ui/components/button";

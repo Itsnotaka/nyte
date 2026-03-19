@@ -17,7 +17,7 @@ import {
   IconMerged,
   IconPeopleCopy,
   IconSettingsGear1,
-} from "@central-icons-react/round-filled-radius-2-stroke-1.5";
+} from "@central-icons-react/round-outlined-radius-2-stroke-1.5";
 import { Avatar, AvatarFallback, AvatarImage } from "@sachikit/ui/components/avatar";
 import { Badge } from "@sachikit/ui/components/badge";
 import { Button } from "@sachikit/ui/components/button";
@@ -110,7 +110,7 @@ const mockPR: PullRequest = {
   mergedBy: "Min Chun Fu",
   body: `Update package dependencies to latest versions
 
-- Upgraded @base-ui/react to version 1.3.0 and @central-icons-react/round-filled-radius-2-stroke-1.5 to version 1.1.169 for improved features and performance.
+- Upgraded @base-ui/react to version 1.3.0 and @central-icons-react/round-outlined-radius-2-stroke-1.5 to version 1.1.169 for improved features and performance.
 - Updated motion to version 12.36.0, react-day-picker to version 9.14.0, and react-resizable-panels to version 4.7.3 to ensure compatibility and enhancements.
 - Bumped @types/node to version 25.5.0 for better type definitions and support.
 

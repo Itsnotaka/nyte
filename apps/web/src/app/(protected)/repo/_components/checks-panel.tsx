@@ -4,7 +4,7 @@ import {
   IconCircle,
   IconCircleCheck,
   IconCircleX,
-} from "@central-icons-react/round-filled-radius-2-stroke-1.5";
+} from "@central-icons-react/round-outlined-radius-2-stroke-1.5";
 import type { GitHubCheckRun } from "@sachikit/github";
 import { Badge } from "@sachikit/ui/components/badge";
 import {

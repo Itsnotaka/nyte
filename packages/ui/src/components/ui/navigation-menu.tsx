@@ -1,5 +1,5 @@
 import { NavigationMenu as NavigationMenuPrimitive } from "@base-ui/react/navigation-menu";
-import { IconChevronDownMedium } from "@central-icons-react/round-filled-radius-2-stroke-1.5";
+import { IconChevronDownMedium } from "@central-icons-react/round-outlined-radius-2-stroke-1.5";
 import { cva } from "class-variance-authority";
 
 import { cn } from "../../lib/utils";

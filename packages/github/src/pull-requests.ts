@@ -2,7 +2,6 @@ import { Effect, Layer, ServiceMap } from "effect";
 
 import { GitHubClientService } from "./client.ts";
 import { toPullRequest, toPullRequestFile } from "./pull-request-mappers.ts";
-import type { PullRequestDetailResponse } from "./pull-request-mappers.ts";
 import {
   GitHubError,
   type GitHubAppInstallationAuth,

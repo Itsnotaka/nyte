@@ -4,7 +4,7 @@ import {
   IconBlockSortAscending,
   IconBlockSortDescending,
   IconSortArrowUpDown,
-} from "@central-icons-react/round-filled-radius-2-stroke-1.5";
+} from "@central-icons-react/round-outlined-radius-2-stroke-1.5";
 import type { GitHubCheckSummary } from "@sachikit/github";
 import type { GitHubRepository } from "@sachikit/github";
 import { Avatar, AvatarFallback, AvatarImage } from "@sachikit/ui/components/avatar";

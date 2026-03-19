@@ -1,6 +1,6 @@
 import type { Octokit } from "octokit";
 
-import { accountFromResponse, type GitHubAccountResponse } from "./client.ts";
+import { accountFromResponse } from "./client.ts";
 import {
   GitHubError,
   type GitHubIssueComment,

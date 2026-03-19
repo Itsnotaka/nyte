@@ -2,7 +2,7 @@
 
 import { Menu as MenuPrimitive } from "@base-ui/react/menu";
 import { Menubar as MenubarPrimitive } from "@base-ui/react/menubar";
-import { IconCheckmark1 } from "@central-icons-react/round-filled-radius-2-stroke-1.5";
+import { IconCheckmark1 } from "@central-icons-react/round-outlined-radius-2-stroke-1.5";
 import * as React from "react";
 
 import { cn } from "../../lib/utils";

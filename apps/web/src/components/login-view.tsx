@@ -1,6 +1,6 @@
 "use client";
 
-import { IconApiConnection } from "@central-icons-react/round-filled-radius-2-stroke-1.5";
+import { IconApiConnection } from "@central-icons-react/round-outlined-radius-2-stroke-1.5";
 import { useMutation } from "@tanstack/react-query";
 
 import { authClient } from "~/lib/auth/client";

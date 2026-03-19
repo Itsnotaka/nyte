@@ -1,7 +1,7 @@
 "use client";
 
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
-import { IconCrossMedium } from "@central-icons-react/round-filled-radius-2-stroke-1.5";
+import { IconCrossMedium } from "@central-icons-react/round-outlined-radius-2-stroke-1.5";
 import * as React from "react";
 
 import { cn } from "../../lib/utils";

@@ -1,7 +1,7 @@
 "use client";
 
 import { Accordion as AccordionPrimitive } from "@base-ui/react/accordion";
-import { IconChevronDownMedium } from "@central-icons-react/round-filled-radius-2-stroke-1.5";
+import { IconChevronDownMedium } from "@central-icons-react/round-outlined-radius-2-stroke-1.5";
 
 import { cn } from "../../lib/utils";
 

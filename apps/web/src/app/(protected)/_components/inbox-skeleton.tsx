@@ -1,4 +1,4 @@
-import { IconChevronDownMedium } from "@central-icons-react/round-filled-radius-2-stroke-1.5";
+import { IconChevronDownMedium } from "@central-icons-react/round-outlined-radius-2-stroke-1.5";
 import { DEFAULT_INBOX_SECTION_RULES, type InboxSectionId } from "@sachikit/github";
 import { Badge } from "@sachikit/ui/components/badge";
 import { Card } from "@sachikit/ui/components/card";

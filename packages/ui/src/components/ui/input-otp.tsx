@@ -1,6 +1,6 @@
 "use client";
 
-import { IconMinusSmall } from "@central-icons-react/round-filled-radius-2-stroke-1.5";
+import { IconMinusSmall } from "@central-icons-react/round-outlined-radius-2-stroke-1.5";
 import { OTPInput, OTPInputContext } from "input-otp";
 import * as React from "react";
 

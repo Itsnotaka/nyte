@@ -1,6 +1,6 @@
 "use client";
 
-import { IconBox2 } from "@central-icons-react/round-filled-radius-2-stroke-1.5";
+import { IconBox2 } from "@central-icons-react/round-outlined-radius-2-stroke-1.5";
 import {
   Sidebar,
   SidebarContent,
@@ -10,7 +10,6 @@ import {
 } from "@sachikit/ui/components/sidebar";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 
 import { useTRPC } from "~/lib/trpc/react";
 
@@ -19,9 +18,6 @@ type AppShellProps = {
 };
 
 function SidebarNav() {
-  const pathname = usePathname();
-  const isInboxActive = pathname === "/";
-
   return (
     <nav aria-label="Primary">
       <ul className="space-y-0.5">

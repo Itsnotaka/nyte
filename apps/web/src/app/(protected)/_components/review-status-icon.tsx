@@ -5,7 +5,7 @@ import {
   IconCircleCheck,
   IconCircleDashed,
   IconCircleX,
-} from "@central-icons-react/round-filled-radius-2-stroke-1.5";
+} from "@central-icons-react/round-outlined-radius-2-stroke-1.5";
 
 import type { ReviewDecision } from "~/lib/github/server";
 

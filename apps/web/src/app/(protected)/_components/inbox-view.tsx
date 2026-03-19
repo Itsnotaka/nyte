@@ -10,7 +10,7 @@ import {
   IconMerged,
   IconSettingsGear1,
   IconSortArrowUpDown,
-} from "@central-icons-react/round-filled-radius-2-stroke-1.5";
+} from "@central-icons-react/round-outlined-radius-2-stroke-1.5";
 import {
   DEFAULT_INBOX_SECTION_RULES,
   type InboxCondition,

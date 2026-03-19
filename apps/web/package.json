@@ -12,7 +12,7 @@
     "clean": "rm -rf .turbo .cache node_modules dist"
   },
   "dependencies": {
-    "@central-icons-react/round-filled-radius-2-stroke-1.5": "^1.1.169",
+    "@central-icons-react/round-outlined-radius-2-stroke-1.5": "^1.1.171",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",

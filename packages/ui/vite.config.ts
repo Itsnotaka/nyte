@@ -10,7 +10,7 @@ export default defineConfig({
     },
     dts: false,
     external: [
-      "@central-icons-react/round-filled-radius-2-stroke-1.5",
+      "@central-icons-react/round-outlined-radius-2-stroke-1.5",
       "next-themes",
       "react",
       "react-dom",

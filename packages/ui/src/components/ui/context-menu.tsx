@@ -4,7 +4,7 @@ import { ContextMenu as ContextMenuPrimitive } from "@base-ui/react/context-menu
 import {
   IconCheckmark1,
   IconChevronRight,
-} from "@central-icons-react/round-filled-radius-2-stroke-1.5";
+} from "@central-icons-react/round-outlined-radius-2-stroke-1.5";
 import * as React from "react";
 
 import { cn } from "../../lib/utils";

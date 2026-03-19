@@ -3,7 +3,7 @@
 import {
   IconCrossMedium,
   IconPlusSmall,
-} from "@central-icons-react/round-filled-radius-2-stroke-1.5";
+} from "@central-icons-react/round-outlined-radius-2-stroke-1.5";
 import type { GitHubAccount } from "@sachikit/github";
 import { Avatar, AvatarFallback, AvatarImage } from "@sachikit/ui/components/avatar";
 import { Button } from "@sachikit/ui/components/button";

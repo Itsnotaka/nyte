@@ -318,7 +318,7 @@
     "vitest": "catalog:"
   },
   "peerDependencies": {
-    "@central-icons-react/round-filled-radius-2-stroke-1.5": "^1.1.157",
+    "@central-icons-react/round-outlined-radius-2-stroke-1.5": "^1.1.157",
     "react": "^19.2.4",
     "react-dom": "^19.2.4"
   }
