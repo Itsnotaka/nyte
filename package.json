@@ -22,12 +22,12 @@
   "devDependencies": {
     "@effect/language-service": "^0.80.0",
     "@sachikit/tsconfig": "workspace:*",
-    "@typescript/native-preview": "^7.0.0-dev.20260318.1",
-    "knip": "^5.88.0",
+    "@typescript/native-preview": "^7.0.0-dev.20260319.1",
+    "knip": "^5.88.1",
     "oxfmt": "^0.41.0",
     "oxlint": "^1.56.0",
     "oxlint-tsgolint": "^0.17.0",
-    "turbo": "^2.8.18",
+    "turbo": "^2.8.20",
     "typescript": "6.0.0-beta"
   },
   "engines": {
