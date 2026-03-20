@@ -1,0 +1,50 @@
+{
+  "name": "@sachikit/cli",
+  "version": "0.1.0",
+  "private": false,
+  "description": "Stacked branch CLI for sachi.",
+  "homepage": "https://github.com/Itsnotaka/Sachi/tree/main/packages/cli#readme",
+  "bugs": {
+    "url": "https://github.com/Itsnotaka/Sachi/issues"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Itsnotaka/Sachi.git",
+    "directory": "packages/cli"
+  },
+  "type": "module",
+  "bin": {
+    "sachi": "./bin/sachi.js"
+  },
+  "files": ["bin", "dist"],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "build": "bun run script/build.ts",
+    "start": "node dist/index.mjs",
+    "test": "node --test",
+    "typecheck": "tsgo --noEmit",
+    "clean": "rm -rf .turbo .cache node_modules dist",
+    "release": "bumpp",
+    "prepack": "pnpm run build",
+    "prepublishOnly": "pnpm run test && pnpm run build"
+  },
+  "dependencies": {
+    "yargs": "^18.0.0"
+  },
+  "devDependencies": {
+    "@sachikit/tsconfig": "workspace:*",
+    "@types/node": "^25.5.0",
+    "@types/yargs": "^17.0.33",
+    "bumpp": "^11.0.1",
+    "tsx": "^4.21.0",
+    "typescript": "6.0.0-beta"
+  }
+}
