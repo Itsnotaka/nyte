@@ -4,6 +4,10 @@
 **/.pnp.js
 references
 
+# Non-web workspace packages
+packages/cli
+packages/cli/**
+
 # Build outputs
 **/.next
 **/dist

@@ -83,3 +83,14 @@ Examples:
 
 - `pnpm --filter web dev`
 - `pnpm --filter web typecheck`
+
+## Deployment
+
+Vercel should deploy the web app only.
+
+- Set the Vercel project Root Directory to `apps/web`
+- Keep `@sachikit/cli` out of the web dependency graph
+- Shared runtime packages used by the app, such as `@sachikit/db`,
+  `@sachikit/github`, and `@sachikit/ui`, stay in scope
+- Root `.vercelignore` explicitly excludes `packages/cli` from ad-hoc root
+  deployments

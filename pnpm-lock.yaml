@@ -196,6 +196,9 @@ importers:
       '@types/yargs':
         specifier: ^17.0.33
         version: 17.0.35
+      bumpp:
+        specifier: ^11.0.1
+        version: 11.0.1
       tsx:
         specifier: ^4.21.0
         version: 4.21.0
