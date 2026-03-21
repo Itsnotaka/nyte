@@ -23,10 +23,10 @@ export default async function SetupPage({ searchParams }: SetupPageProps) {
   const state = await getOnboardingState();
 
   switch (state.step) {
-    case "no_session":
+    case "no_user_session":
       redirect("/login");
-    case "no_github_token":
-    case "no_installation": {
+    case "no_github_user_token":
+    case "no_github_installation": {
       const { installation_id, setup_action } = await setupSearchParamsCache.parse(searchParams);
 
       if (installation_id !== null || setup_action !== null) {

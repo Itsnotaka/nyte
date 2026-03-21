@@ -11,8 +11,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@sachikit/ui/components/dropdown-menu";
-import { Skeleton } from "@sachikit/ui/components/skeleton";
 import { InsetView } from "@sachikit/ui/components/sidebar";
+import { Skeleton } from "@sachikit/ui/components/skeleton";
 import { Textarea } from "@sachikit/ui/components/textarea";
 import { useHotkey } from "@tanstack/react-hotkeys";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";

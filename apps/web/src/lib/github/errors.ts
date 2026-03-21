@@ -1,40 +1,31 @@
+import type { GitHubOperationMetadata } from "@sachikit/github";
 import { Data } from "effect";
+
+export type GitHubAppErrorCode =
+  | "app_configuration_invalid"
+  | "closed_pull_request_exists"
+  | "repo_context_not_found";
+
+export type GitHubAppErrorMetadata = GitHubOperationMetadata & {
+  field?: "GITHUB_APP_ID";
+};
+
+type GitHubAppErrorShape<C extends GitHubAppErrorCode> = {
+  readonly message: string;
+  readonly status: number;
+  readonly code: C;
+  readonly operation: string;
+  readonly metadata: GitHubAppErrorMetadata;
+};
 
 export class GitHubRepoContextNotFoundError extends Data.TaggedError(
   "GitHubRepoContextNotFoundError",
-)<{
-  readonly message: string;
-  readonly owner: string;
-  readonly repo: string;
-}> {}
+)<GitHubAppErrorShape<"repo_context_not_found">> {}
 
-export class GitHubAppConfigurationError extends Data.TaggedError("GitHubAppConfigurationError")<{
-  readonly message: string;
-}> {}
+export class GitHubAppConfigurationError extends Data.TaggedError(
+  "GitHubAppConfigurationError",
+)<GitHubAppErrorShape<"app_configuration_invalid">> {}
 
 export class GitHubClosedPullRequestExistsError extends Data.TaggedError(
   "GitHubClosedPullRequestExistsError",
-)<{
-  readonly message: string;
-  readonly owner: string;
-  readonly repo: string;
-  readonly head: string;
-}> {}
-
-export function isGitHubRepoContextNotFoundError(
-  error: unknown,
-): error is GitHubRepoContextNotFoundError {
-  return error instanceof GitHubRepoContextNotFoundError;
-}
-
-export function isGitHubAppConfigurationError(
-  error: unknown,
-): error is GitHubAppConfigurationError {
-  return error instanceof GitHubAppConfigurationError;
-}
-
-export function isGitHubClosedPullRequestExistsError(
-  error: unknown,
-): error is GitHubClosedPullRequestExistsError {
-  return error instanceof GitHubClosedPullRequestExistsError;
-}
+)<GitHubAppErrorShape<"closed_pull_request_exists">> {}

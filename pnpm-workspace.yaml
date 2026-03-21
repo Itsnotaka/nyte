@@ -1,5 +1,5 @@
 catalog:
-  vite-plus: ^0.1.12
+  vite-plus: ^0.1.13
   vitest: ^4.1.0
 
 packages:

@@ -31,12 +31,8 @@ function buildPatchHeader(file: GitHubPullRequestFile): string {
 
 function parsePullRequestFile(file: GitHubPullRequestFile): FileDiffMetadata | null {
   const diff = `${buildPatchHeader(file)}${file.patch ? `${file.patch}\n` : ""}`;
-  try {
-    const parsed = parsePatchFiles(diff).flatMap((patch) => patch.files);
-    return parsed[0] ?? null;
-  } catch {
-    return null;
-  }
+  const parsed = parsePatchFiles(diff).flatMap((patch) => patch.files);
+  return parsed[0] ?? null;
 }
 
 type PullRequestDiffSectionProps = {

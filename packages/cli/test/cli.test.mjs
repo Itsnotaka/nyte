@@ -1,8 +1,15 @@
 import assert from "node:assert/strict";
-import { chmodSync, existsSync, mkdtempSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import {
+  chmodSync,
+  existsSync,
+  mkdtempSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { spawnSync } from "node:child_process";
 import test from "node:test";
 
 const root = path.resolve(import.meta.dirname, "..");
@@ -60,12 +67,7 @@ const shim = () => {
   mkdirSync(bin);
   writeFileSync(
     path.join(bin, "git"),
-    [
-      "#!/bin/sh",
-      `printf '%s\\n' \"$@\" > ${JSON.stringify(out)}`,
-      "exit 0",
-      "",
-    ].join("\n"),
+    ["#!/bin/sh", `printf '%s\\n' \"$@\" > ${JSON.stringify(out)}`, "exit 0", ""].join("\n"),
   );
   chmodSync(path.join(bin, "git"), 0o755);
 

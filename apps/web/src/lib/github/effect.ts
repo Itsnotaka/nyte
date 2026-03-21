@@ -1,16 +1,12 @@
 import "server-only";
-import {
-  GitHubError,
-  GitHubServiceLayer,
-  GitHubTelemetry,
-  type GitHubTelemetryEvent,
-} from "@sachikit/github";
-import { Cause, Effect, Exit, Layer } from "effect";
+
+import { createGitHubRuntime } from "@sachikit/github";
+import { Effect } from "effect";
 
 import { log } from "../evlog";
 
-const gitHubTelemetryLayer = Layer.succeed(GitHubTelemetry)({
-  onFailure: (event: GitHubTelemetryEvent, error: GitHubError) =>
+const gitHubRuntime = createGitHubRuntime({
+  onFailure: (event, error) =>
     Effect.sync(() => {
       log.error({
         area: "github.effect",
@@ -25,7 +21,7 @@ const gitHubTelemetryLayer = Layer.succeed(GitHubTelemetry)({
         },
       });
     }),
-  onSuccess: (event: GitHubTelemetryEvent) =>
+  onSuccess: (event) =>
     Effect.sync(() => {
       log.info({
         area: "github.effect",
@@ -35,38 +31,7 @@ const gitHubTelemetryLayer = Layer.succeed(GitHubTelemetry)({
     }),
 });
 
-const gitHubRuntimeLayer = GitHubServiceLayer.pipe(Layer.provideMerge(gitHubTelemetryLayer));
-
-type GitHubRuntimeServices = Layer.Success<typeof gitHubRuntimeLayer>;
-
-export type GitHubRuntimeEffect<A> = Effect.Effect<A, GitHubError, GitHubRuntimeServices>;
-
-export async function runGitHubEffectExit<A>(
-  effect: GitHubRuntimeEffect<A>,
-): Promise<Exit.Exit<A, GitHubError>> {
-  return Effect.runPromiseExit(effect.pipe(Effect.provide(gitHubRuntimeLayer)));
-}
-
-export async function runGitHubEffect<A>(effect: GitHubRuntimeEffect<A>): Promise<A> {
-  const exit = await runGitHubEffectExit(effect);
-  if (Exit.isSuccess(exit)) {
-    return exit.value;
-  }
-
-  throw Cause.squash(exit.cause);
-}
-
-export async function runGitHubEffectOrNull<A>(effect: GitHubRuntimeEffect<A>): Promise<A | null> {
-  return runGitHubEffect(
-    effect.pipe(Effect.catchTag("GitHubError", () => Effect.succeed<A | null>(null))),
-  );
-}
-
-export async function runGitHubEffectOrEmptyArray<A>(
-  effect: GitHubRuntimeEffect<ReadonlyArray<A>>,
-): Promise<A[]> {
-  const items: ReadonlyArray<A> = await runGitHubEffect(
-    effect.pipe(Effect.catchTag("GitHubError", () => Effect.succeed<ReadonlyArray<A>>([]))),
-  );
-  return Array.from(items);
-}
+export type { GitHubRuntimeEffect } from "@sachikit/github";
+export const runGitHubEffectExit = gitHubRuntime.runExit;
+export const runGitHubEffect = gitHubRuntime.run;
+export const runGitHubEffectOrNotFound = gitHubRuntime.runNotFoundOrNull;

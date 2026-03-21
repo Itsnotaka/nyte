@@ -13,17 +13,17 @@
     "url": "git+https://github.com/Itsnotaka/Sachi.git",
     "directory": "packages/cli"
   },
-  "type": "module",
   "bin": {
     "sachi": "./bin/sachi.js"
   },
-  "files": ["bin", "dist"],
+  "files": [
+    "bin",
+    "dist"
+  ],
+  "type": "module",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
-  },
-  "engines": {
-    "node": ">=24"
   },
   "scripts": {
     "dev": "tsx src/index.ts",
@@ -42,9 +42,12 @@
   "devDependencies": {
     "@sachikit/tsconfig": "workspace:*",
     "@types/node": "^25.5.0",
-    "@types/yargs": "^17.0.33",
+    "@types/yargs": "^17.0.35",
     "bumpp": "^11.0.1",
     "tsx": "^4.21.0",
     "typescript": "6.0.0-beta"
+  },
+  "engines": {
+    "node": ">=24"
   }
 }

@@ -46,17 +46,11 @@ import { compareAsc, compareDesc, parseISO } from "date-fns";
 import Link from "next/link";
 import * as React from "react";
 
-import type {
-  InboxData,
-  InboxPullRequestRow,
-  InboxSectionData,
-  InboxSectionMeta,
-} from "~/lib/github/server";
+import type { InboxData, InboxPullRequestRow, InboxSectionData } from "~/lib/github/server";
 import { formatRelativeTime } from "~/lib/time";
 import { useTRPC } from "~/lib/trpc/react";
 
 import { CheckStatusDot } from "./check-status-dot";
-import { InboxSkeleton, type InboxSkeletonSection } from "./inbox-skeleton";
 import { ReviewStatusIcon } from "./review-status-icon";
 
 type SortField = "title" | "changes" | "updated";
@@ -550,24 +544,6 @@ function InboxEmptyState({ diagnostics }: { diagnostics: InboxData["diagnostics"
   );
 }
 
-function buildSkeletonSectionsFromMeta(
-  meta: InboxSectionMeta,
-  canonicalOrder: readonly InboxSectionId[],
-): InboxSkeletonSection[] {
-  const byId = new Map(meta.sections.map((s) => [s.id, s] as const));
-  const defaultLabelById = new Map(
-    DEFAULT_INBOX_SECTION_RULES.map((r) => [r.id, r.label] as const),
-  );
-  return canonicalOrder.map((id) => {
-    const entry = byId.get(id);
-    return {
-      id,
-      label: entry?.label ?? defaultLabelById.get(id) ?? String(id),
-      count: entry?.count ?? 0,
-    };
-  });
-}
-
 function orderInboxSections(
   sections: InboxSectionData[],
   canonicalOrder: readonly InboxSectionId[],
@@ -586,54 +562,14 @@ function orderInboxSections(
   return ordered;
 }
 
-function useInboxSectionOrderQuery() {
-  const trpc = useTRPC();
-  return useQuery({
-    ...trpc.settings.getInboxSectionOrder.queryOptions(),
-    staleTime: 10 * 60_000,
-    refetchOnWindowFocus: false,
-  });
-}
-
-function useInboxQuery() {
-  const trpc = useTRPC();
-  return useQuery({
-    ...trpc.github.getInbox.queryOptions(),
-    staleTime: 2 * 60_000,
-  });
-}
-
-function useInboxSectionMetaQuery() {
-  const trpc = useTRPC();
-  return useQuery({
-    ...trpc.github.getInboxSectionMeta.queryOptions(),
-    staleTime: 2 * 60_000,
-  });
-}
-
-export function InboxView({ initialMeta }: { initialMeta?: InboxSectionMeta | null }) {
-  const inboxQuery = useInboxQuery();
-  const sectionMetaQuery = useInboxSectionMetaQuery();
-  const sectionOrderQuery = useInboxSectionOrderQuery();
-  const data = inboxQuery.data;
-  const canonicalOrder = (sectionOrderQuery.data ?? DEFAULT_SECTION_ORDER) as InboxSectionId[];
-  const pendingMeta = sectionMetaQuery.data ?? initialMeta;
-
-  if (!data) {
-    if (inboxQuery.isPending) {
-      const skeletonSections =
-        pendingMeta != null ? buildSkeletonSectionsFromMeta(pendingMeta, canonicalOrder) : null;
-      return (
-        <ScrollArea className="h-full min-h-0 bg-sachi-base">
-          {pendingMeta != null ? (
-            <InboxDiagnosticsBanner diagnostics={pendingMeta.diagnostics} />
-          ) : null}
-          <InboxSkeleton sections={skeletonSections} />
-        </ScrollArea>
-      );
-    }
-    return null;
-  }
+export function InboxView({
+  data,
+  sectionOrder,
+}: {
+  data: InboxData;
+  sectionOrder: string[] | null;
+}) {
+  const canonicalOrder = (sectionOrder ?? DEFAULT_SECTION_ORDER) as InboxSectionId[];
   const { sections, diagnostics } = data;
   const orderedSections = orderInboxSections(sections, canonicalOrder);
   const totalItems = sections.reduce((sum, s) => sum + s.items.length, 0);

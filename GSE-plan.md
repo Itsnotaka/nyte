@@ -285,17 +285,17 @@ If we blur those into `null` or `[]`, we will eventually tell lies to the rest o
 
 ## The important mapping: Linear concepts vs Sachi concepts
 
-| Linear concept | What we have today | What GSE should become |
-| --- | --- | --- |
-| `ModelRegistry` | scattered TS types, Zod inputs, query keys | explicit entity registry + schema hash + partial index rules |
-| Object Pool | none | normalized in-memory entity map keyed by repo/entity ids |
-| IndexedDB stores | none | browser IndexedDB store for repo/PR/cache state |
-| Partial indexes | ad hoc route params / query inputs | explicit lookup keys like `repo+ref`, `repo+pull`, `repo+head_sha` |
-| Full / partial / local bootstrap | RSC fetch + hydrate only | full bootstrap, local bootstrap from IndexedDB, partial hydration on demand |
-| Transactions | direct mutate then invalidate | durable optimistic outbox with rollback / dedupe |
-| Delta packets | none | ordered per-repo deltas over SSE / WebSocket |
-| `lastSyncId` | none | per-repo `snapshot_id` / cursor |
-| Sync groups | synced repo selection only | subscription set of synced repos / installation scopes |
+| Linear concept                   | What we have today                         | What GSE should become                                                      |
+| -------------------------------- | ------------------------------------------ | --------------------------------------------------------------------------- |
+| `ModelRegistry`                  | scattered TS types, Zod inputs, query keys | explicit entity registry + schema hash + partial index rules                |
+| Object Pool                      | none                                       | normalized in-memory entity map keyed by repo/entity ids                    |
+| IndexedDB stores                 | none                                       | browser IndexedDB store for repo/PR/cache state                             |
+| Partial indexes                  | ad hoc route params / query inputs         | explicit lookup keys like `repo+ref`, `repo+pull`, `repo+head_sha`          |
+| Full / partial / local bootstrap | RSC fetch + hydrate only                   | full bootstrap, local bootstrap from IndexedDB, partial hydration on demand |
+| Transactions                     | direct mutate then invalidate              | durable optimistic outbox with rollback / dedupe                            |
+| Delta packets                    | none                                       | ordered per-repo deltas over SSE / WebSocket                                |
+| `lastSyncId`                     | none                                       | per-repo `snapshot_id` / cursor                                             |
+| Sync groups                      | synced repo selection only                 | subscription set of synced repos / installation scopes                      |
 
 ---
 

@@ -9,7 +9,7 @@ import {
 } from "@sachikit/github";
 
 import { findRepoContext, requireRepoContext } from "./context";
-import { runGitHubEffect, runGitHubEffectOrEmptyArray, runGitHubEffectOrNull } from "./effect";
+import { runGitHubEffect, runGitHubEffectOrNotFound } from "./effect";
 import type { StackEntry, StackHealthEntry } from "./types";
 
 export async function getPullRequestStack(
@@ -20,9 +20,7 @@ export async function getPullRequestStack(
   const context = await findRepoContext(owner, repo);
   if (!context) return [];
 
-  const allPRs = await runGitHubEffectOrEmptyArray(
-    listRepositoryPullRequests(context.auth, owner, context.repository.name, "all"),
-  );
+  const allPRs = await runGitHubEffect(listRepositoryPullRequests(context.auth, owner, context.repository.name, "all"));
 
   const currentPR = allPRs.find((pr) => pr.number === currentPrNumber);
   if (!currentPR) return [];
@@ -92,9 +90,7 @@ export async function getStackHealth(
       continue;
     }
 
-    const comparison = await runGitHubEffectOrNull(
-      compareBranches(context.auth, owner, context.repository.name, entry.headRef, entry.baseRef),
-    );
+    const comparison = await runGitHubEffectOrNotFound(compareBranches(context.auth, owner, context.repository.name, entry.headRef, entry.baseRef));
 
     results.push({
       ...entry,
@@ -140,28 +136,22 @@ export async function restackAfterMerge(
 ): Promise<{ restacked: number[] }> {
   const context = await requireRepoContext(owner, repo);
 
-  const mergedPR = await runGitHubEffectOrNull(
-    getPullRequest(context.auth, owner, context.repository.name, mergedPrNumber),
-  );
+  const mergedPR = await runGitHubEffectOrNotFound(getPullRequest(context.auth, owner, context.repository.name, mergedPrNumber));
 
   if (!mergedPR || !mergedPR.merged) {
     return { restacked: [] };
   }
 
-  const allPRs = await runGitHubEffectOrEmptyArray(
-    listRepositoryPullRequests(context.auth, owner, context.repository.name, "open"),
-  );
+  const allPRs = await runGitHubEffect(listRepositoryPullRequests(context.auth, owner, context.repository.name, "open"));
 
   const children = allPRs.filter((pr) => pr.base.ref === mergedPR.head.ref);
 
   const restacked: number[] = [];
 
   for (const child of children) {
-    const updated = await runGitHubEffectOrNull(
-      updatePullRequest(context.auth, owner, context.repository.name, child.number, {
-        base: mergedPR.base.ref,
-      }),
-    );
+    const updated = await runGitHubEffectOrNotFound(updatePullRequest(context.auth, owner, context.repository.name, child.number, {
+      base: mergedPR.base.ref,
+    }));
 
     if (updated) {
       restacked.push(child.number);

@@ -1,14 +1,25 @@
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 
-import { getSession } from "~/lib/auth/server";
+import { getUserSession } from "~/lib/auth/server";
+import { getSyncedRepoSummary } from "~/lib/github/catalog";
 
 import { AppShell } from "./app-shell";
 
-export default async function Layout({ children }: { children: React.ReactNode }) {
-  const session = await getSession();
+async function ProtectedShell({ children }: { children: React.ReactNode }) {
+  const summary = getSyncedRepoSummary();
+  const session = await getUserSession();
   if (!session) {
     redirect("/login");
   }
 
-  return <AppShell>{children}</AppShell>;
+  return <AppShell totalSynced={(await summary).totalSynced}>{children}</AppShell>;
+}
+
+export default function Layout({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense fallback={<AppShell totalSynced={null}>{null}</AppShell>}>
+      <ProtectedShell>{children}</ProtectedShell>
+    </Suspense>
+  );
 }

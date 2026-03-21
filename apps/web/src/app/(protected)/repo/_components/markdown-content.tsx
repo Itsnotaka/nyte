@@ -7,12 +7,12 @@ function resolveMarkdownUrl(url: string, repository: GitHubRepository): string {
     return url;
   }
 
-  try {
-    const repositoryUrl = `https://github.com/${repository.owner.login}/${repository.name}/`;
-    return new URL(url, repositoryUrl).toString();
-  } catch {
+  const repositoryUrl = `https://github.com/${repository.owner.login}/${repository.name}/`;
+  if (!URL.canParse(url, repositoryUrl)) {
     return url;
   }
+
+  return new URL(url, repositoryUrl).toString();
 }
 
 type MarkdownContentProps = {

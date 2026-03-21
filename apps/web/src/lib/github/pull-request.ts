@@ -22,7 +22,7 @@ import {
 } from "@sachikit/github";
 
 import { findRepoContext, requireRepoContext } from "./context";
-import { runGitHubEffect, runGitHubEffectOrEmptyArray, runGitHubEffectOrNull } from "./effect";
+import { runGitHubEffect, runGitHubEffectOrNotFound } from "./effect";
 import { GitHubClosedPullRequestExistsError } from "./errors";
 import type {
   PullRequestDiscussionData,
@@ -39,9 +39,7 @@ export async function getRepoSubmitPageData(
   const context = await findRepoContext(owner, repo);
   if (!context) return null;
 
-  const branches = await runGitHubEffectOrEmptyArray(
-    listRepositoryBranches(context.auth, owner, context.repository.name),
-  );
+  const branches = await runGitHubEffect(listRepositoryBranches(context.auth, owner, context.repository.name));
 
   const selectableBranches = branches.filter(
     (candidate) => candidate.name !== context.repository.default_branch,
@@ -53,17 +51,13 @@ export async function getRepoSubmitPageData(
 
   const [existingPullRequest, openPullRequests] = await Promise.all([
     selectedBranch
-      ? runGitHubEffectOrNull(
-          findPullRequestByHead(context.auth, owner, context.repository.name, selectedBranch, {
-            base: context.repository.default_branch,
-            headOwner: context.repository.owner.login,
-            state: "all",
-          }),
-        )
+      ? runGitHubEffectOrNotFound(findPullRequestByHead(context.auth, owner, context.repository.name, selectedBranch, {
+        base: context.repository.default_branch,
+        headOwner: context.repository.owner.login,
+        state: "all",
+      }))
       : Promise.resolve(null),
-    runGitHubEffectOrEmptyArray(
-      listRepositoryPullRequests(context.auth, owner, context.repository.name, "open"),
-    ),
+    runGitHubEffect(listRepositoryPullRequests(context.auth, owner, context.repository.name, "open")),
   ]);
 
   return {
@@ -85,13 +79,11 @@ export async function saveBranchPullRequest(input: {
 }): Promise<GitHubPullRequest> {
   const context = await requireRepoContext(input.owner, input.repo);
 
-  const existing = await runGitHubEffectOrNull(
-    findPullRequestByHead(context.auth, input.owner, context.repository.name, input.head, {
-      base: context.repository.default_branch,
-      headOwner: context.repository.owner.login,
-      state: "all",
-    }),
-  );
+  const existing = await runGitHubEffectOrNotFound(findPullRequestByHead(context.auth, input.owner, context.repository.name, input.head, {
+    base: context.repository.default_branch,
+    headOwner: context.repository.owner.login,
+    state: "all",
+  }));
 
   if (!existing) {
     return runGitHubEffect(
@@ -107,10 +99,15 @@ export async function saveBranchPullRequest(input: {
 
   if (existing.state === "closed" || existing.merged) {
     throw new GitHubClosedPullRequestExistsError({
+      code: "closed_pull_request_exists",
       message: "This branch already has a closed pull request.",
-      owner: input.owner,
-      repo: input.repo,
-      head: input.head,
+      metadata: {
+        head: input.head,
+        owner: input.owner,
+        repo: input.repo,
+      },
+      operation: "github.pullRequest.saveBranchPullRequest",
+      status: 409,
     });
   }
 
@@ -145,9 +142,7 @@ export async function getPullRequestPageData(
     return null;
   }
 
-  const pullRequest = await runGitHubEffectOrNull(
-    getPullRequest(context.auth, owner, context.repository.name, pullNumber),
-  );
+  const pullRequest = await runGitHubEffectOrNotFound(getPullRequest(context.auth, owner, context.repository.name, pullNumber));
   if (!pullRequest) {
     return null;
   }
@@ -169,12 +164,8 @@ export async function getPullRequestDiscussionData(
   }
 
   const [issueComments, reviews] = await Promise.all([
-    runGitHubEffectOrEmptyArray(
-      listIssueComments(context.auth, owner, context.repository.name, pullNumber),
-    ),
-    runGitHubEffectOrEmptyArray(
-      listPullRequestReviews(context.auth, owner, context.repository.name, pullNumber),
-    ),
+    runGitHubEffect(listIssueComments(context.auth, owner, context.repository.name, pullNumber)),
+    runGitHubEffect(listPullRequestReviews(context.auth, owner, context.repository.name, pullNumber)),
   ]);
 
   return {
@@ -193,9 +184,7 @@ export async function getPullRequestReviewCommentsData(
     return null;
   }
 
-  return runGitHubEffectOrEmptyArray(
-    listPullRequestReviewComments(context.auth, owner, context.repository.name, pullNumber),
-  );
+  return runGitHubEffect(listPullRequestReviewComments(context.auth, owner, context.repository.name, pullNumber));
 }
 
 export async function getPullRequestPageDetailsData(
@@ -232,16 +221,14 @@ export async function getPullRequestFileList(
   const context = await findRepoContext(owner, repo);
   if (!context) return null;
 
-  return runGitHubEffectOrNull(
-    listPullRequestFilesPaginated(
-      context.auth,
-      owner,
-      context.repository.name,
-      pullNumber,
-      page,
-      perPage,
-    ),
-  );
+  return runGitHubEffectOrNotFound(listPullRequestFilesPaginated(
+    context.auth,
+    owner,
+    context.repository.name,
+    pullNumber,
+    page,
+    perPage,
+  ));
 }
 
 export async function updateRepoPullRequest(input: {
@@ -323,12 +310,8 @@ export async function getRepositoryPullRequestsPageData(
   const pullRequests = await Promise.all(
     rawPulls.map(async (pr) => {
       const [detail, reviews] = await Promise.all([
-        runGitHubEffectOrNull(
-          getPullRequest(context.auth, owner, context.repository.name, pr.number),
-        ),
-        runGitHubEffectOrEmptyArray(
-          listPullRequestReviews(context.auth, owner, context.repository.name, pr.number),
-        ),
+        runGitHubEffectOrNotFound(getPullRequest(context.auth, owner, context.repository.name, pr.number)),
+        runGitHubEffect(listPullRequestReviews(context.auth, owner, context.repository.name, pr.number)),
       ]);
 
       const effectivePullRequest = detail ?? pr;

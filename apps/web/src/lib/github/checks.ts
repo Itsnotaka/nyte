@@ -7,7 +7,7 @@ import {
 } from "@sachikit/github";
 
 import { findRepoContext } from "./context";
-import { runGitHubEffectOrEmptyArray } from "./effect";
+import { runGitHubEffect } from "./effect";
 import type { GitHubCheckRef, GitHubCheckReport } from "./types";
 
 export async function getCheckReportForPR(
@@ -18,9 +18,7 @@ export async function getCheckReportForPR(
   const context = await findRepoContext(owner, repo);
   if (!context) return null;
 
-  const runs = await runGitHubEffectOrEmptyArray(
-    listCheckRunsForRef(context.auth, owner, context.repository.name, ref),
-  );
+  const runs = await runGitHubEffect(listCheckRunsForRef(context.auth, owner, context.repository.name, ref));
 
   return {
     runs,

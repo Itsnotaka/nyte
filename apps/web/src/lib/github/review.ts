@@ -17,7 +17,7 @@ import {
 } from "@sachikit/github";
 
 import { findRepoContext, requireRepoContext } from "./context";
-import { runGitHubEffect, runGitHubEffectOrEmptyArray } from "./effect";
+import { runGitHubEffect } from "./effect";
 
 export async function addPullRequestComment(input: {
   owner: string;
@@ -100,7 +100,7 @@ export async function getRepoLabels(owner: string, repo: string): Promise<GitHub
   const context = await findRepoContext(owner, repo);
   if (!context) return [];
 
-  return runGitHubEffectOrEmptyArray(listRepoLabels(context.auth, owner, context.repository.name));
+  return runGitHubEffect(listRepoLabels(context.auth, owner, context.repository.name));
 }
 
 export async function addPullRequestLabels(input: {

@@ -8,13 +8,11 @@ import {
   SidebarInset,
   SidebarProvider,
 } from "@sachikit/ui/components/sidebar";
-import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-
-import { useTRPC } from "~/lib/trpc/react";
 
 type AppShellProps = {
   children: React.ReactNode;
+  totalSynced: number | null;
 };
 
 function SidebarNav() {
@@ -35,14 +33,7 @@ function SidebarNav() {
   );
 }
 
-function SidebarTopBar() {
-  const trpc = useTRPC();
-  const syncedSummaryQuery = useQuery(
-    trpc.github.getSyncedRepoSummary.queryOptions(undefined, {
-      staleTime: 60_000,
-    }),
-  );
-  const totalSynced = syncedSummaryQuery.data?.totalSynced;
+function SidebarTopBar({ totalSynced }: { totalSynced: number | null }) {
   const repoCta = totalSynced == null ? "Repos" : totalSynced === 0 ? "Sync repos" : "Edit repos";
 
   return (
@@ -58,12 +49,12 @@ function SidebarTopBar() {
   );
 }
 
-export function AppShell({ children }: AppShellProps) {
+export function AppShell({ children, totalSynced }: AppShellProps) {
   return (
     <SidebarProvider open={true} className="h-dvh w-full bg-sachi-shell text-sachi-fg-secondary">
       <Sidebar className="bg-sachi-sidebar">
         <SidebarHeader className="h-10 border-b border-sachi-line-subtle">
-          <SidebarTopBar />
+          <SidebarTopBar totalSynced={totalSynced} />
         </SidebarHeader>
 
         <SidebarContent className="px-2.5 pt-2 pb-3">

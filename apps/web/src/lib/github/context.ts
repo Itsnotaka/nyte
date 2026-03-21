@@ -1,7 +1,7 @@
 import "server-only";
 import { cache } from "react";
 
-import { getGitHubAppAuth } from "./auth";
+import { getGitHubInstallationAuth } from "./auth";
 import { getInstallationRepos, getOnboardingState, getSyncedRepoLookupRows } from "./catalog";
 import { GitHubRepoContextNotFoundError } from "./errors";
 import type { RepoContext } from "./types";
@@ -47,7 +47,7 @@ export const findRepoContext = cache(
     return {
       installation,
       repository,
-      auth: getGitHubAppAuth(installation.id),
+      auth: getGitHubInstallationAuth(installation.id),
     };
   },
 );
@@ -56,9 +56,11 @@ export async function requireRepoContext(owner: string, repo: string): Promise<R
   const context = await findRepoContext(owner, repo);
   if (!context) {
     throw new GitHubRepoContextNotFoundError({
+      code: "repo_context_not_found",
       message: "Repository not found.",
-      owner,
-      repo,
+      metadata: { owner, repo },
+      operation: "github.context.requireRepoContext",
+      status: 404,
     });
   }
 

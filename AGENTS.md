@@ -16,15 +16,11 @@
 - Prefer functional array methods (flatMap, filter, map) over for loops; use
   type guards on filter to maintain type inference downstream
 
-### Naming
-
-Prefer single word names for variables and functions. Only use multiple words if
-necessary.
-
 ### Naming Enforcement (Read This)
 
 THIS RULE IS MANDATORY FOR AGENT WRITTEN CODE.
 
+- no single-use boolean wrapper helpers.
 - Use single word names by default for new locals, params, and helper functions.
 - Multi-word names are allowed only when a single word would be unclear or
   ambiguous.
@@ -139,3 +135,25 @@ const userDiffSettings = pgTable("user_diff_settings", {
 ## Type Checking
 
 - Always run `pnpm typecheck` from root, never `tsc` directly.
+
+<!-- intent-skills:start -->
+
+# Skill mappings - when working in these areas, load the linked skill file into context.
+
+skills:
+
+- task: "using `~/lib/trpc/server` `caller.*` for server-only data in RSC pages"
+  load: "/Users/workgyver/Developer/sachi/apps/web/node_modules/@trpc/server/skills/server-side-calls/SKILL.md"
+- task: "prefetching client queries with `prefetch()` + `HydrateClient` or wiring `useTRPC()` queryOptions/mutationOptions"
+  load: "/Users/workgyver/Developer/sachi/apps/web/node_modules/@trpc/tanstack-react-query/skills/react-query-setup/SKILL.md"
+- task: "structuring `appRouter`, `createTRPCContext`, routers, and base procedures"
+  load: "/Users/workgyver/Developer/sachi/apps/web/node_modules/@trpc/server/skills/server-setup/SKILL.md"
+- task: "writing timing, auth, or context-narrowing tRPC middleware like `protectedProcedure`"
+  load: "/Users/workgyver/Developer/sachi/apps/web/node_modules/@trpc/server/skills/middlewares/SKILL.md"
+- task: "working on Better Auth session handling in tRPC context or protected procedures"
+  load: "/Users/workgyver/Developer/sachi/apps/web/node_modules/@trpc/server/skills/auth/SKILL.md"
+- task: "keeping `superjson` aligned between `initTRPC.create` and `httpBatchLink`"
+  load: "/Users/workgyver/Developer/sachi/apps/web/node_modules/@trpc/client/skills/superjson/SKILL.md"
+- task: "mapping Octokit + Effect v4 beta failures into `TRPCError` codes and messages"
+load: "/Users/workgyver/Developer/sachi/apps/web/node_modules/@trpc/server/skills/error-handling/SKILL.md"
+<!-- intent-skills:end -->

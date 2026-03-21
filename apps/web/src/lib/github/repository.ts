@@ -11,7 +11,7 @@ import {
 } from "@sachikit/github";
 
 import { findRepoContext } from "./context";
-import { runGitHubEffectOrEmptyArray, runGitHubEffectOrNull } from "./effect";
+import { runGitHubEffect, runGitHubEffectOrNotFound } from "./effect";
 
 export async function getRepoTree(
   owner: string,
@@ -23,9 +23,7 @@ export async function getRepoTree(
   if (!context) return null;
 
   const treeSha = path ? `${ref}:${path}` : ref;
-  return runGitHubEffectOrNull(
-    getRepositoryTree(context.auth, owner, context.repository.name, treeSha),
-  );
+  return runGitHubEffectOrNotFound(getRepositoryTree(context.auth, owner, context.repository.name, treeSha));
 }
 
 export async function getRepoFileContent(
@@ -37,9 +35,7 @@ export async function getRepoFileContent(
   const context = await findRepoContext(owner, repo);
   if (!context) return null;
 
-  return runGitHubEffectOrNull(
-    getFileContent(context.auth, owner, context.repository.name, path, ref),
-  );
+  return runGitHubEffectOrNotFound(getFileContent(context.auth, owner, context.repository.name, path, ref));
 }
 
 export async function getRepoCommits(
@@ -50,16 +46,12 @@ export async function getRepoCommits(
   const context = await findRepoContext(owner, repo);
   if (!context) return [];
 
-  return runGitHubEffectOrEmptyArray(
-    listCommits(context.auth, owner, context.repository.name, options),
-  );
+  return runGitHubEffect(listCommits(context.auth, owner, context.repository.name, options));
 }
 
 export async function getRepoBranches(owner: string, repo: string): Promise<GitHubBranch[]> {
   const context = await findRepoContext(owner, repo);
   if (!context) return [];
 
-  return runGitHubEffectOrEmptyArray(
-    listRepositoryBranches(context.auth, owner, context.repository.name),
-  );
+  return runGitHubEffect(listRepositoryBranches(context.auth, owner, context.repository.name));
 }

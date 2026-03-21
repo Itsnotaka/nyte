@@ -28,9 +28,9 @@ export type SetupRedirectInput = {
 };
 
 export type OnboardingState =
-  | { step: "no_session" }
-  | { step: "no_github_token" }
-  | { step: "no_installation" }
+  | { step: "no_user_session" }
+  | { step: "no_github_user_token" }
+  | { step: "no_github_installation" }
   | {
       step: "has_installations";
       installations: GitHubInstallation[];
@@ -167,8 +167,3 @@ export type InboxDiagnostics = {
   accessibleRepoCount: number;
 };
 
-export type InboxSectionCount = {
-  id: InboxSectionId;
-  label: string;
-  count: number;
-};

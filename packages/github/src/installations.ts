@@ -1,7 +1,7 @@
 import { Effect, Layer, ServiceMap } from "effect";
 
 import { accountFromResponse, GitHubClientService } from "./client.ts";
-import { type GitHubInstallation } from "./types.ts";
+import { type GitHubAccount, type GitHubInstallation } from "./types.ts";
 import type { GitHubError } from "./types.ts";
 
 type GitHubInstallationsShape = {
@@ -53,10 +53,22 @@ export function listUserInstallations(
   );
 }
 
+export function getAuthenticatedGitHubAccount(
+  userAccessToken: string,
+): Effect.Effect<GitHubAccount, GitHubError, GitHubClientService> {
+  return GitHubClientService.use((service) =>
+    service.withUserClient(
+      userAccessToken,
+      "github.auth.getAuthenticatedGitHubAccount",
+      async (client) => {
+        const res = await client.rest.users.getAuthenticated();
+        return accountFromResponse(res.data, "authenticated user");
+      },
+    ),
+  );
+}
+
 export function getInstallUrl(appSlug: string): string {
   return `https://github.com/apps/${appSlug}/installations/new`;
 }
 
-export function getInstallUrlForAccount(appSlug: string, accountLogin: string): string {
-  return `https://github.com/apps/${appSlug}/installations/new/permissions?target_id=${accountLogin}`;
-}

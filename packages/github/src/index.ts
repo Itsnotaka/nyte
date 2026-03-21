@@ -1,39 +1,25 @@
+export { createGitHubRuntime, type GitHubRuntimeEffect } from "./services.ts";
 export {
-  withGitHubClient,
-  withGitHubInstallationClient,
-  GitHubClientService,
-  GitHubTelemetry,
-  type GitHubTelemetryEvent,
-} from "./client.ts";
-export { GitHubServiceLayer } from "./services.ts";
-export {
-  listUserInstallations,
+  getAuthenticatedGitHubAccount,
   getInstallUrl,
-  getInstallUrlForAccount,
-  GitHubInstallationsService,
+  listUserInstallations,
 } from "./installations.ts";
 export {
   listInstallationRepos,
   getRepositoryTree,
   getFileContent,
   listCommits,
-  GitHubRepositoriesService,
 } from "./repositories.ts";
-export { listRepositoryBranches, GitHubBranchesService } from "./branches.ts";
+export { listRepositoryBranches } from "./branches.ts";
 export {
   listCheckRunsForRef,
-  getCheckSummaryForRef,
   summarizeCheckRuns,
-  GitHubChecksService,
 } from "./checks.ts";
 export {
   DEFAULT_INBOX_SECTION_RULES,
   buildPullRequestReviewSignals,
   classifyPullRequests,
   computeReviewDecision,
-  deriveInboxClassificationFacts,
-  matchesInboxCondition,
-  matchesInboxConditionPreset,
 } from "./inbox.ts";
 export type {
   ClassifyPullRequestsOptions,
@@ -54,7 +40,6 @@ export {
   findPullRequestByHead,
   getPullRequest,
   getPullRequestDiff,
-  listPullRequestFiles,
   listPullRequestFilesPaginated,
   listRecentPullRequests,
   listRepositoryPullRequests,
@@ -62,7 +47,6 @@ export {
   mergePullRequest,
   mergeUpstream,
   updatePullRequest,
-  GitHubPullRequestsService,
 } from "./pull-requests.ts";
 export type { BranchComparison, PaginatedFiles } from "./pull-requests.ts";
 export {
@@ -73,9 +57,8 @@ export {
   removeReviewers,
   requestReviewers,
   submitPullRequestReview,
-  GitHubReviewsService,
 } from "./reviews.ts";
-export { addLabels, listRepoLabels, removeLabel, GitHubLabelsService } from "./labels.ts";
+export { addLabels, listRepoLabels, removeLabel } from "./labels.ts";
 export {
   GitHubError,
   type GitHubAccount,

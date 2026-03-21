@@ -9,33 +9,16 @@ import {
   type ClassifiedInboxPullRequest,
   type GitHubPullRequest,
   type GitHubPullRequestReview,
-  type InboxSectionId,
 } from "@sachikit/github";
 import { subDays } from "date-fns";
 import { Cause, Exit } from "effect";
 import { cache } from "react";
 
 import { log } from "../evlog";
-import { getAuthenticatedGitHubLogin, getGitHubAppAuth } from "./auth";
+import { getGitHubInstallationAuth, getGitHubUserLogin } from "./auth";
 import { getOnboardingState, getSyncedRepoCatalog } from "./catalog";
 import { runGitHubEffectExit, type GitHubRuntimeEffect } from "./effect";
-import type {
-  InboxData,
-  InboxDiagnostics,
-  InboxPullRequestRow,
-  InboxSectionCount,
-  RepoCatalogEntry,
-} from "./types";
-
-export type InboxSectionMeta = {
-  diagnostics: InboxDiagnostics;
-  sections: Array<{
-    id: InboxSectionId;
-    label: string;
-    count: number;
-    hasItems: boolean;
-  }>;
-};
+import type { InboxData, InboxPullRequestRow, RepoCatalogEntry } from "./types";
 
 type RepoPRResult =
   | { ok: true; prs: GitHubPullRequest[]; entry: RepoCatalogEntry }
@@ -72,7 +55,7 @@ const loadInboxData = cache(async (): Promise<InboxData | null> => {
     return null;
   }
 
-  const ghLogin = await getAuthenticatedGitHubLogin();
+  const ghLogin = await getGitHubUserLogin();
   if (!ghLogin) {
     log.info("inbox", "No GitHub login found, skipping inbox fetch");
     return null;
@@ -97,7 +80,7 @@ const loadInboxData = cache(async (): Promise<InboxData | null> => {
 
   const installationResults = await Promise.all(
     Array.from(byInstallation.entries()).map(async ([installationId, entries]) => {
-      const installationAuth = getGitHubAppAuth(installationId);
+      const installationAuth = getGitHubInstallationAuth(installationId);
       const installationPullRequests: ClassifiedInboxPullRequest[] = [];
       const installationFailures: string[] = [];
 
@@ -304,31 +287,4 @@ const loadInboxData = cache(async (): Promise<InboxData | null> => {
 
 export async function getInboxData(): Promise<InboxData | null> {
   return loadInboxData();
-}
-
-export async function getInboxSectionMeta(): Promise<InboxSectionMeta | null> {
-  const data = await loadInboxData();
-  if (!data) {
-    return null;
-  }
-
-  return {
-    diagnostics: data.diagnostics,
-    sections: data.sections.map((section) => ({
-      id: section.id,
-      label: section.label,
-      count: section.items.length,
-      hasItems: section.items.length > 0,
-    })),
-  };
-}
-
-export async function getInboxSectionCounts(): Promise<InboxSectionCount[]> {
-  const data = await getInboxData();
-  if (!data) return [];
-  return data.sections.map((s) => ({
-    id: s.id,
-    label: s.label,
-    count: s.items.length,
-  }));
 }

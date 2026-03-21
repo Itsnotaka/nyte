@@ -9,8 +9,8 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@sachikit/ui/components/breadcrumb";
-import { Skeleton } from "@sachikit/ui/components/skeleton";
 import { InsetView } from "@sachikit/ui/components/sidebar";
+import { Skeleton } from "@sachikit/ui/components/skeleton";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 

@@ -3,7 +3,7 @@ import { cache } from "react";
 import superjson from "superjson";
 
 import { auth } from "../auth";
-import { getSession } from "../auth/server";
+import { getUserSession } from "../auth/server";
 import { log } from "../evlog";
 
 export type CreateTRPCContextOptions = {
@@ -13,7 +13,7 @@ export type CreateTRPCContextOptions = {
 export const createTRPCContext = cache(async (opts?: CreateTRPCContextOptions) => {
   const session = opts?.headers
     ? await auth.api.getSession({ headers: opts.headers })
-    : await getSession();
+    : await getUserSession();
   return { session, auth };
 });
 

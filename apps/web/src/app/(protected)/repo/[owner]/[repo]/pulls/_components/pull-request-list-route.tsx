@@ -53,5 +53,7 @@ export function PullRequestListRoute({ owner, repo }: PullRequestListRouteProps)
     return <PullRequestListSkeleton />;
   }
 
-  return <PullRequestListView repository={page.data.repository} pullRequests={page.data.pullRequests} />;
+  return (
+    <PullRequestListView repository={page.data.repository} pullRequests={page.data.pullRequests} />
+  );
 }
