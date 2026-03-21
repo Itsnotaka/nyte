@@ -18,6 +18,7 @@
     "next.config.ts",
     "**/*.ts",
     "**/*.tsx",
+    "playwright/**/*.js",
     "**/*.d.ts",
     ".next/types/**/*.ts"
   ],

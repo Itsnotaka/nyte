@@ -5,7 +5,7 @@ import { cache } from "react";
 
 import { auth } from "../auth";
 import { env } from "../server/env";
-import { runGitHubEffectOrNotFound } from "./effect";
+import { isUnauthorized, runGitHubEffectOrNotFound } from "./effect";
 import { GitHubAppConfigurationError } from "./errors";
 import type { SetupRedirectInput } from "./types";
 
@@ -58,8 +58,16 @@ export const getGitHubUserLogin = cache(async (): Promise<string | null> => {
   const userToken = await getGitHubUserToken();
   if (!userToken) return null;
 
-  const account = await runGitHubEffectOrNotFound(getAuthenticatedGitHubAccount(userToken));
-  return account?.login ?? null;
+  try {
+    const account = await runGitHubEffectOrNotFound(getAuthenticatedGitHubAccount(userToken));
+    return account?.login ?? null;
+  } catch (error) {
+    if (isUnauthorized(error)) {
+      return null;
+    }
+
+    throw error;
+  }
 });
 
 export { getGitHubUserToken };

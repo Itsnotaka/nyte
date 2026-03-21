@@ -1,6 +1,8 @@
 "use client";
 
 import { IconBox2 } from "@central-icons-react/round-outlined-radius-2-stroke-1.5";
+import { useQueryClient } from "@tanstack/react-query";
+import { useCallback, useEffect } from "react";
 import {
   Sidebar,
   SidebarContent,
@@ -9,20 +11,26 @@ import {
   SidebarProvider,
 } from "@sachikit/ui/components/sidebar";
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+
+import { useTRPC } from "~/lib/trpc/react";
 
 type AppShellProps = {
   children: React.ReactNode;
   totalSynced: number | null;
 };
 
-function SidebarNav() {
+function SidebarNav({ onWarmInbox }: { onWarmInbox: () => void }) {
   return (
     <nav aria-label="Primary">
       <ul className="space-y-0.5">
         <li>
           <Link
             href="/"
-            className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-sachi-focus`}
+            prefetch={false}
+            onFocus={onWarmInbox}
+            onMouseEnter={onWarmInbox}
+            className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-sachi-focus"
           >
             <IconBox2 className="size-4 shrink-0" aria-hidden="true" />
             <span className="truncate">Inbox</span>
@@ -50,6 +58,39 @@ function SidebarTopBar({ totalSynced }: { totalSynced: number | null }) {
 }
 
 export function AppShell({ children, totalSynced }: AppShellProps) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const trpc = useTRPC();
+
+  const warmInbox = useCallback(() => {
+    if (pathname === "/") {
+      return;
+    }
+
+    void Promise.allSettled([
+      queryClient.prefetchQuery({
+        ...trpc.github.getInboxData.queryOptions(),
+        gcTime: 5 * 60_000,
+        staleTime: 60_000,
+      }),
+      queryClient.prefetchQuery({
+        ...trpc.settings.getInboxSectionOrder.queryOptions(),
+        gcTime: 5 * 60_000,
+        staleTime: 60_000,
+      }),
+      Promise.resolve(router.prefetch("/")),
+    ]);
+  }, [pathname, queryClient, router, trpc]);
+
+  useEffect(() => {
+    if (pathname === "/" || pathname.startsWith("/setup")) {
+      return;
+    }
+
+    warmInbox();
+  }, [pathname, warmInbox]);
+
   return (
     <SidebarProvider open={true} className="h-dvh w-full bg-sachi-shell text-sachi-fg-secondary">
       <Sidebar className="bg-sachi-sidebar">
@@ -58,7 +99,7 @@ export function AppShell({ children, totalSynced }: AppShellProps) {
         </SidebarHeader>
 
         <SidebarContent className="px-2.5 pt-2 pb-3">
-          <SidebarNav />
+          <SidebarNav onWarmInbox={warmInbox} />
         </SidebarContent>
       </Sidebar>
 

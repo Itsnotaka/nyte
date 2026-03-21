@@ -8,9 +8,18 @@
     "build": "next build",
     "start": "next start",
     "test": "vp test",
+    "playwright:install": "playwright install chromium",
+    "playwright": "playwright test",
+    "playwright:public": "playwright test --project=public",
+    "playwright:app": "playwright test --project=app",
+    "playwright:setup": "playwright test --project=setup --headed",
+    "playwright:ui": "playwright test --ui",
     "typecheck": "tsgo --noEmit",
     "clean": "rm -rf .turbo .cache node_modules dist",
-    "inspect": "next-browser"
+    "inspect": "next-browser close ; next-browser open http://localhost:3000",
+    "inspect:auth:sync": "node ./playwright/auth.js",
+    "inspect:auth": "next-browser close ; node ./playwright/auth.js && next-browser open http://localhost:3000 --cookies-json playwright/.auth/next-browser.json",
+    "inspect:close": "next-browser close"
   },
   "dependencies": {
     "@central-icons-react/round-outlined-radius-2-stroke-1.5": "^1.1.173",
@@ -49,6 +58,7 @@
     "zustand": "^5.0.12"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@sachikit/tailwind-config": "workspace:*",
     "@sachikit/tsconfig": "workspace:*",
     "@tailwindcss/postcss": "^4.2.2",

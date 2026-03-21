@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createGitHubRuntime } from "@sachikit/github";
+import { createGitHubRuntime, GitHubError } from "@sachikit/github";
 import { Effect } from "effect";
 
 import { log } from "../evlog";
@@ -32,6 +32,9 @@ const gitHubRuntime = createGitHubRuntime({
 });
 
 export type { GitHubRuntimeEffect } from "@sachikit/github";
+export function isUnauthorized(error: unknown): error is GitHubError {
+  return error instanceof GitHubError && error.code === "unauthorized";
+}
 export const runGitHubEffectExit = gitHubRuntime.runExit;
 export const runGitHubEffect = gitHubRuntime.run;
 export const runGitHubEffectOrNotFound = gitHubRuntime.runNotFoundOrNull;

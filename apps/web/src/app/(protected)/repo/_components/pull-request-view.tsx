@@ -50,9 +50,10 @@ type PullRequestViewProps = {
   owner: string;
   repo: string;
   pullNumber: number;
+  close?: React.ReactNode;
 };
 
-export function PullRequestSkeleton() {
+export function PullRequestSkeleton({ close }: { close?: React.ReactNode }) {
   return (
     <div className="flex h-full min-h-0">
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
@@ -63,6 +64,7 @@ export function PullRequestSkeleton() {
             <Skeleton className="h-5 w-14 rounded-full" />
           </div>
           <div className="flex shrink-0 items-center gap-2">
+            {close}
             <Skeleton className="h-8 w-16 rounded-md" />
           </div>
         </header>
@@ -137,7 +139,7 @@ export function PullRequestSkeleton() {
   );
 }
 
-export function PullRequestView({ owner, repo, pullNumber }: PullRequestViewProps) {
+export function PullRequestView({ owner, repo, pullNumber, close }: PullRequestViewProps) {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const [drafts, setDrafts] = React.useState<DraftComment[]>([]);
@@ -241,7 +243,7 @@ export function PullRequestView({ owner, repo, pullNumber }: PullRequestViewProp
   }
 
   if (!pageQuery.data) {
-    return <PullRequestSkeleton />;
+    return <PullRequestSkeleton close={close} />;
   }
 
   const { repository, pullRequest } = pageQuery.data;
@@ -376,12 +378,11 @@ export function PullRequestView({ owner, repo, pullNumber }: PullRequestViewProp
             ) : null}
           </div>
 
-          {isOpen ? (
+          {close || isOpen ? (
             <div className="flex shrink-0 items-center gap-2">
-              {merge.error ? (
-                <p className="text-sm text-destructive">{merge.error.message}</p>
-              ) : null}
-              {pullRequest.draft ? (
+              {close}
+              {merge.error ? <p className="text-sm text-destructive">{merge.error.message}</p> : null}
+              {isOpen && pullRequest.draft ? (
                 <Button
                   variant="outline"
                   size="sm"
@@ -392,22 +393,24 @@ export function PullRequestView({ owner, repo, pullNumber }: PullRequestViewProp
                   {convertToReady.isPending ? "Publishing..." : "Ready for review"}
                 </Button>
               ) : null}
-              <MergeModal
-                pullTitle={pullRequest.title}
-                pullBody={pullRequest.body}
-                pullNumber={pullRequest.number}
-                owner={repository.owner.login}
-                repo={repository.name}
-                headSha={pullRequest.head.sha}
-                disabled={merge.isPending}
-                isPending={merge.isPending}
-                onMerge={onMerge}
-                trigger={
-                  <Button size="sm" type="button" disabled={merge.isPending}>
-                    {merge.isPending ? "Merging..." : "Merge"}
-                  </Button>
-                }
-              />
+              {isOpen ? (
+                <MergeModal
+                  pullTitle={pullRequest.title}
+                  pullBody={pullRequest.body}
+                  pullNumber={pullRequest.number}
+                  owner={repository.owner.login}
+                  repo={repository.name}
+                  headSha={pullRequest.head.sha}
+                  disabled={merge.isPending}
+                  isPending={merge.isPending}
+                  onMerge={onMerge}
+                  trigger={
+                    <Button size="sm" type="button" disabled={merge.isPending}>
+                      {merge.isPending ? "Merging..." : "Merge"}
+                    </Button>
+                  }
+                />
+              ) : null}
             </div>
           ) : null}
         </header>

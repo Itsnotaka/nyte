@@ -1,2 +1,5 @@
 .env.local
 .playwright/
+playwright/.auth/
+playwright-report/
+playwright/test-results/

@@ -17,6 +17,7 @@ import {
   getCheckSummariesForRefs,
   getCheckSummaryForPR,
   getGitHubAppInstallUrl,
+  getInboxData,
   getPullRequestFileList,
   getPullRequestDiscussionData,
   getPullRequestPageData,
@@ -279,6 +280,8 @@ function throwRequestValidation(
 }
 
 export const githubRouter = createTRPCRouter({
+  getInboxData: protectedProcedure.query(() => getInboxData()),
+
   startInstall: protectedProcedure.mutation(() => {
     return { url: getGitHubAppInstallUrl() };
   }),

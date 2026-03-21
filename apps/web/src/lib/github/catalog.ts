@@ -1,17 +1,13 @@
 import "server-only";
 import { db, syncedReposSchema } from "@sachikit/db";
-import {
-  listInstallationRepos,
-  listUserInstallations,
-  type GitHubRepository,
-} from "@sachikit/github";
+import { listInstallationRepos, listUserInstallations, type GitHubRepository } from "@sachikit/github";
 import { eq } from "drizzle-orm";
 import { cache } from "react";
 
 import { getUserSession } from "../auth/server";
 import { env } from "../server/env";
 import { getGitHubUserToken } from "./auth";
-import { runGitHubEffect } from "./effect";
+import { isUnauthorized, runGitHubEffect } from "./effect";
 import type {
   OnboardingState,
   RepoCatalog,
@@ -28,13 +24,21 @@ export const getOnboardingState = cache(async (): Promise<OnboardingState> => {
   const userToken = await getGitHubUserToken();
   if (!userToken) return { step: "no_github_user_token" };
 
-  const installations = await runGitHubEffect(listUserInstallations(userToken));
-  const appInstallations = installations.filter(
-    (installation) => installation.app_slug === env.GITHUB_APP_SLUG,
-  );
-  return appInstallations.length === 0
-    ? { step: "no_github_installation" }
-    : { step: "has_installations", installations: appInstallations };
+  try {
+    const installations = await runGitHubEffect(listUserInstallations(userToken));
+    const appInstallations = installations.filter(
+      (installation) => installation.app_slug === env.GITHUB_APP_SLUG,
+    );
+    return appInstallations.length === 0
+      ? { step: "no_github_installation" }
+      : { step: "has_installations", installations: appInstallations };
+  } catch (error) {
+    if (isUnauthorized(error)) {
+      return { step: "no_github_user_token" };
+    }
+
+    throw error;
+  }
 });
 
 const getSyncedRepoLookupRows = cache(async (): Promise<SyncedRepoLookupRow[]> => {
