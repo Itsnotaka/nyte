@@ -24,6 +24,7 @@ import {
   getPullRequestPageDetailsData,
   getPullRequestReviewCommentsData,
   getPullRequestStack,
+  getRepositoryPullRequestsPageData,
   getRepoBranches,
   getRepoCommits,
   getRepoFileContent,
@@ -53,6 +54,7 @@ const FAILURES = {
   getPullRequestDiscussion: "Pull request discussion data not found.",
   getPullRequestDetails: "Pull request details not found.",
   getPullRequestReviewComments: "Pull request review comments not found.",
+  getRepoPullsPage: "Pull request list not found.",
   getRepoSubmitPage: "Repository submit page data not found.",
   merge: "Failed to merge pull request.",
   removeLabel: "Failed to remove label.",
@@ -270,6 +272,21 @@ export const githubRouter = createTRPCRouter({
       const data = await getRepoSubmitPageData(input.owner, input.repo, input.branch);
       if (!data) {
         throwNotFound(FAILURES.getRepoSubmitPage);
+      }
+
+      return data;
+    }),
+  getRepoPullsPage: protectedProcedure
+    .input(
+      z.object({
+        owner: z.string().min(1),
+        repo: z.string().min(1),
+      }),
+    )
+    .query(async ({ input }) => {
+      const data = await getRepositoryPullRequestsPageData(input.owner, input.repo);
+      if (!data) {
+        throwNotFound(FAILURES.getRepoPullsPage);
       }
 
       return data;

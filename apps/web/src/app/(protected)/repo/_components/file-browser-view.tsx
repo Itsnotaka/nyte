@@ -9,6 +9,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@sachikit/ui/components/breadcrumb";
+import { Skeleton } from "@sachikit/ui/components/skeleton";
 import { InsetView } from "@sachikit/ui/components/sidebar";
 import { useRouter } from "next/navigation";
 import * as React from "react";
@@ -25,6 +26,52 @@ type FileBrowserViewProps = {
   branches: GitHubBranch[];
   filePath: string;
 };
+
+export function FileBrowserSkeleton() {
+  return (
+    <InsetView maxWidth="xl">
+      <div className="space-y-6">
+        <header className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <Skeleton className="h-7 w-40" />
+            <Skeleton className="h-10 w-48" />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-4 w-20" />
+            <Skeleton className="h-4 w-3" />
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-4 w-3" />
+            <Skeleton className="h-4 w-28" />
+          </div>
+        </header>
+
+        <div className="overflow-hidden rounded-lg border border-sachi-line">
+          <div className="flex items-center justify-between border-b border-sachi-line-subtle px-4 py-3">
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-5 w-36" />
+              <Skeleton className="h-5 w-14 rounded-full" />
+              <Skeleton className="h-5 w-12 rounded-full" />
+            </div>
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-4 w-16" />
+              <Skeleton className="h-8 w-28 rounded-md" />
+            </div>
+          </div>
+
+          <div className="space-y-2 px-4 py-3">
+            {Array.from({ length: 14 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <Skeleton className="h-4 w-8 shrink-0" />
+                <Skeleton className="h-4 flex-1" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </InsetView>
+  );
+}
 
 export function FileBrowserView({
   owner,

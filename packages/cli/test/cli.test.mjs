@@ -6,6 +6,7 @@ import { spawnSync } from "node:child_process";
 import test from "node:test";
 
 const root = path.resolve(import.meta.dirname, "..");
+const originalPath = process.env.PATH;
 const env = {
   ...process.env,
   NO_COLOR: "1",
@@ -18,7 +19,14 @@ const run = (...args) =>
   spawnSync("pnpm", ["exec", "tsx", "src/index.ts", ...args], {
     cwd: root,
     encoding: "utf8",
-    env,
+    env: {
+      ...process.env,
+      PATH: originalPath,
+      NO_COLOR: "1",
+      GIT_PAGER: "cat",
+      PAGER: "cat",
+      MANPAGER: "cat",
+    },
   });
 
 const git = (cwd, ...args) => {
@@ -103,7 +111,21 @@ test("help, version, guide, passthrough, stack flow", () => {
 
   assert.equal(pass.status, 0);
   assert.equal(readFileSync(fake.out, "utf8").trim(), "frob\n--x");
+  assert.match(pass.stdout, /Passing command through to git/);
+  assert.match(pass.stdout, /Running: "git frob --x"/);
+  const quiet_pass = spawnSync("pnpm", ["exec", "tsx", "src/index.ts", "-q", "frob", "--x"], {
+    cwd: root,
+    encoding: "utf8",
+    env: {
+      ...env,
+      PATH: `${fake.bin}:${process.env.PATH}`,
+    },
+  });
 
+  assert.equal(quiet_pass.status, 0);
+  assert.equal(readFileSync(fake.out, "utf8").trim(), "frob\n--x");
+  assert.doesNotMatch(quiet_pass.stdout, /Passing command through to git/);
+  assert.doesNotMatch(quiet_pass.stdout, /Running:/);
   const cwd = repo();
   const init = run("--cwd", cwd, "init");
 

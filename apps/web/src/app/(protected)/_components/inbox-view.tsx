@@ -41,7 +41,7 @@ import { Input } from "@sachikit/ui/components/input";
 import { Label } from "@sachikit/ui/components/label";
 import { ScrollArea } from "@sachikit/ui/components/scroll-area";
 import { Table } from "@sachikit/ui/components/table";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { compareAsc, compareDesc, parseISO } from "date-fns";
 import Link from "next/link";
 import * as React from "react";
@@ -204,6 +204,7 @@ function useDeferredVisibility<T extends Element>() {
 
 function PullRequestRow({ pr }: { pr: InboxPullRequestRow }) {
   const trpc = useTRPC();
+  const qc = useQueryClient();
   const { hasBeenVisible, ref } = useDeferredVisibility<HTMLDivElement>();
   const isOpen = pr.state === "open" && !pr.merged;
   const checkSummaryQuery = useQuery(
@@ -220,12 +221,29 @@ function PullRequestRow({ pr }: { pr: InboxPullRequestRow }) {
     ),
   );
 
+  function warm() {
+    void qc.prefetchQuery(
+      trpc.github.getPullRequestPage.queryOptions(
+        {
+          owner: pr.repoOwner,
+          repo: pr.repoName,
+          pullNumber: pr.number,
+        },
+        {
+          staleTime: 60_000,
+        },
+      ),
+    );
+  }
+
   return (
     <Table.Row>
       <Table.Cell className="w-full min-w-0">
         <div ref={ref}>
           <Link
             href={`/repo/${pr.repoOwner}/${pr.repoName}/pull/${String(pr.number)}`}
+            onFocus={warm}
+            onMouseEnter={warm}
             prefetch={true}
             className="flex min-w-0 items-center gap-3"
           >
@@ -570,7 +588,11 @@ function orderInboxSections(
 
 function useInboxSectionOrderQuery() {
   const trpc = useTRPC();
-  return useQuery(trpc.settings.getInboxSectionOrder.queryOptions());
+  return useQuery({
+    ...trpc.settings.getInboxSectionOrder.queryOptions(),
+    staleTime: 10 * 60_000,
+    refetchOnWindowFocus: false,
+  });
 }
 
 function useInboxQuery() {

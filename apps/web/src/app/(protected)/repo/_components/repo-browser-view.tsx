@@ -9,6 +9,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@sachikit/ui/components/breadcrumb";
+import { Skeleton } from "@sachikit/ui/components/skeleton";
 import { InsetView } from "@sachikit/ui/components/sidebar";
 import { useRouter } from "next/navigation";
 import * as React from "react";
@@ -25,6 +26,44 @@ type RepoBrowserViewProps = {
   branches: GitHubBranch[];
   currentPath?: string;
 };
+
+export function RepoBrowserSkeleton({ crumbs = false }: { crumbs?: boolean }) {
+  return (
+    <InsetView maxWidth="xl">
+      <div className="space-y-6">
+        <header className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <Skeleton className="h-7 w-40" />
+            <Skeleton className="h-10 w-48" />
+          </div>
+
+          {crumbs ? (
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-4 w-3" />
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-4 w-3" />
+              <Skeleton className="h-4 w-28" />
+            </div>
+          ) : null}
+        </header>
+
+        <div className="overflow-hidden rounded-lg border border-sachi-line">
+          {Array.from({ length: 10 }).map((_, i) => (
+            <div
+              key={i}
+              className="flex items-center gap-3 border-b border-sachi-line-subtle px-3 py-2 last:border-b-0"
+            >
+              <Skeleton className="size-4 shrink-0" />
+              <Skeleton className="h-4 flex-1" />
+              <Skeleton className="h-3 w-12" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </InsetView>
+  );
+}
 
 export function RepoBrowserView({
   owner,

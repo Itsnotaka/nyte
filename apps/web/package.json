@@ -9,7 +9,11 @@
     "start": "next start",
     "test": "vp test",
     "typecheck": "tsgo --noEmit",
-    "clean": "rm -rf .turbo .cache node_modules dist"
+    "clean": "rm -rf .turbo .cache node_modules dist",
+    "inspect": "next-browser",
+    "browser": "node scripts/browser.mjs",
+    "export-cookies": "node scripts/export-cookies.mjs",
+    "playwright:chromium": "playwright install chromium"
   },
   "dependencies": {
     "@central-icons-react/round-outlined-radius-2-stroke-1.5": "^1.1.171",
@@ -54,6 +58,8 @@
     "@types/node": "^25.5.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@vercel/next-browser": "^0.2.0",
+    "playwright": "^1.58.2",
     "postcss-import": "^16.1.1",
     "typescript": "6.0.0-beta",
     "vite-plus": "catalog:",

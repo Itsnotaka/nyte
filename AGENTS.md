@@ -139,13 +139,3 @@ const userDiffSettings = pgTable("user_diff_settings", {
 ## Type Checking
 
 - Always run `pnpm typecheck` from root, never `tsc` directly.
-
-## Learned User Preferences
-
-- In GitHub-related and Effect-based code, avoid `try`/`catch` and unsafe `as` casts where failures and types should stay inside Effect.
-- Explicit `Effect.Effect<...>` return annotations on Effect v4 services and app-side GitHub wrappers are intentional for readability and developer experience; do not treat them as redundant in review.
-- Prefer preserving typed Effect error channels instead of flattening `Exit` into hand-rolled result objects that drop structured errors.
-
-## Learned Workspace Facts
-
-- GitHub integration is organized around Effect v4 layers under `packages/github` and `apps/web/src/lib/github`.

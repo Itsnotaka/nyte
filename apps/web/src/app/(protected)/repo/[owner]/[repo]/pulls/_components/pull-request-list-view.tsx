@@ -10,8 +10,9 @@ import type { GitHubRepository } from "@sachikit/github";
 import { Avatar, AvatarFallback, AvatarImage } from "@sachikit/ui/components/avatar";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@sachikit/ui/components/empty";
 import { ScrollArea } from "@sachikit/ui/components/scroll-area";
+import { Skeleton } from "@sachikit/ui/components/skeleton";
 import { Table } from "@sachikit/ui/components/table";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { compareAsc, compareDesc, parseISO } from "date-fns";
 import Link from "next/link";
 import * as React from "react";
@@ -68,6 +69,52 @@ function SortIcon({
   return <IconSortArrowUpDown className={cls} aria-label={`Sort by ${field}`} />;
 }
 
+export function PullRequestListSkeleton() {
+  return (
+    <ScrollArea className="h-full bg-sachi-base">
+      <div className="mx-auto w-full max-w-[960px] px-4 pt-4">
+        <Table layout="fixed">
+          <Table.Header>
+            <Table.Row>
+              <Table.Head className="w-full">Title</Table.Head>
+              <Table.Head className="w-24">Status</Table.Head>
+              <Table.Head className="w-28 text-right">Changes</Table.Head>
+              <Table.Head className="w-24 text-right">Updated</Table.Head>
+            </Table.Row>
+          </Table.Header>
+          <Table.Body>
+            {Array.from({ length: 8 }).map((_, i) => (
+              <Table.Row key={i}>
+                <Table.Cell className="w-full min-w-0">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <Skeleton className="size-8 rounded-full" />
+                    <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                      <Skeleton className="h-4 w-4/5" />
+                      <Skeleton className="h-3 w-2/5" />
+                    </div>
+                  </div>
+                </Table.Cell>
+                <Table.Cell className="w-24">
+                  <div className="flex items-center gap-2">
+                    <Skeleton className="size-3 rounded-full" />
+                    <Skeleton className="size-3 rounded-full" />
+                  </div>
+                </Table.Cell>
+                <Table.Cell className="w-28 text-right">
+                  <Skeleton className="ml-auto h-4 w-16" />
+                </Table.Cell>
+                <Table.Cell className="w-24 text-right">
+                  <Skeleton className="ml-auto h-4 w-12" />
+                </Table.Cell>
+              </Table.Row>
+            ))}
+          </Table.Body>
+        </Table>
+      </div>
+    </ScrollArea>
+  );
+}
+
 function SortableHead({
   field,
   label,
@@ -112,13 +159,32 @@ function PullRequestRow({
   owner: string;
   repo: string;
 }) {
+  const trpc = useTRPC();
+  const qc = useQueryClient();
   const checkSummary = checkSummaries[checkSummaryKey(owner, repo, pr.head.sha)];
+
+  function warm() {
+    void qc.prefetchQuery(
+      trpc.github.getPullRequestPage.queryOptions(
+        {
+          owner,
+          repo,
+          pullNumber: pr.number,
+        },
+        {
+          staleTime: 60_000,
+        },
+      ),
+    );
+  }
 
   return (
     <Table.Row>
       <Table.Cell className="w-full min-w-0">
         <Link
           href={`/repo/${owner}/${repo}/pull/${String(pr.number)}`}
+          onFocus={warm}
+          onMouseEnter={warm}
           prefetch={true}
           className="flex min-w-0 items-center gap-3"
         >

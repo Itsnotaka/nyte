@@ -1,10 +1,27 @@
-import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { styleText } from "node:util";
 
 import type { CommandModule } from "yargs";
 import yargs from "yargs/yargs";
+
+import { call, code, git_branch, switch_to } from "./git.ts";
+import { argv } from "./plan.ts";
+import { read, tracked, write, type Stack } from "./stack.ts";
+import {
+  branch,
+  cmd,
+  current,
+  dim,
+  err,
+  fail,
+  hint,
+  info,
+  muted,
+  note,
+  ok,
+  say,
+  warn,
+} from "./term.ts";
+import { version } from "./version.ts";
 
 type Args = {
   cwd: string;
@@ -12,367 +29,6 @@ type Args = {
   interactive: boolean;
   verify: boolean;
   quiet: boolean;
-};
-
-type Node = {
-  parent: string | null;
-  children: string[];
-};
-
-type Stack = {
-  trunk: string;
-  branches: Record<string, Node>;
-};
-
-type Plan =
-  | { kind: "help" }
-  | { kind: "version" }
-  | { kind: "run"; args: string[] }
-  | { kind: "git"; args: string[]; cwd: string };
-
-const known = new Set([
-  "init",
-  "create",
-  "submit",
-  "modify",
-  "restack",
-  "sync",
-  "checkout",
-  "log",
-  "up",
-  "down",
-  "guide",
-]);
-
-const root_help = new Set(["-h", "--help"]);
-const root_version = new Set(["-v", "--version"]);
-const root_flag = new Set([
-  "--debug",
-  "--interactive",
-  "--no-interactive",
-  "--verify",
-  "--no-verify",
-  "-q",
-  "--quiet",
-]);
-
-const tint = (fmt: Parameters<typeof styleText>[0], text: string) =>
-  Boolean(process.stdout.isTTY) &&
-  process.env.NO_COLOR === undefined &&
-  process.env.FORCE_COLOR !== "0" &&
-  process.env.TERM !== "dumb"
-    ? styleText(fmt, text, { validateStream: false })
-    : text;
-
-const dim = (text: string) => tint("dim", text);
-const muted = (text: string) => tint(["gray", "dim"], text);
-const err = (text: string) => tint("red", text);
-const warn = (text: string) => tint("yellow", text);
-const ok = (text: string) => tint("green", text);
-const info = (text: string) => tint("cyan", text);
-const cmd = (text: string) => tint("cyan", text);
-const branch = (text: string) => tint("cyan", text);
-const current = (text: string) => tint(["cyan", "bold"], text);
-const hint = (text: string) => tint(["gray", "dim"], text);
-
-const say = (text: string) => {
-  process.stdout.write(`${text}\n`);
-};
-
-const note = (text: string) => {
-  process.stdout.write(`${info(text)}\n`);
-};
-
-const fail = (text: string) => {
-  process.stderr.write(`${err(text)}\n`);
-  process.exitCode = 1;
-};
-
-const version = () =>
-  JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")).version as string;
-
-const call = (args: string[], cwd: string, stdio: "inherit" | "pipe" = "pipe") => {
-  const out = spawnSync("git", args, {
-    cwd,
-    encoding: "utf8",
-    stdio,
-  });
-
-  if (out.error) {
-    throw out.error;
-  }
-
-  return out;
-};
-
-const code = (status: number | null) => status ?? 1;
-
-const git_branch = (cwd: string) => {
-  const out = call(["branch", "--show-current"], cwd);
-  return out.status === 0 ? out.stdout.trim() : null;
-};
-
-const switch_to = (cwd: string, name: string) =>
-  code(call(["switch", name], cwd, "inherit").status);
-
-const obj = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null;
-
-const is_node = (value: unknown): value is Node =>
-  obj(value) &&
-  (typeof value.parent === "string" || value.parent === null) &&
-  Array.isArray(value.children);
-
-const file = (cwd: string) => {
-  const out = call(["rev-parse", "--path-format=absolute", "--git-dir"], cwd);
-  const dir = out.status === 0 ? out.stdout.trim() : null;
-  return dir ? path.join(dir, "sachi", "stack.json") : null;
-};
-
-const normalize = (stack: Stack) => {
-  const trunk = stack.trunk || "main";
-  const branches = Object.entries(stack.branches)
-    .filter(([name, node]) => name.length > 0 && is_node(node))
-    .reduce<Record<string, Node>>(
-      (acc, [name, node]) => ({
-        ...acc,
-        [name]: {
-          parent: node.parent,
-          children: [],
-        },
-      }),
-      {},
-    );
-
-  const next = {
-    trunk,
-    branches: {
-      ...branches,
-      [trunk]: {
-        parent: null,
-        children: [],
-      },
-    },
-  };
-
-  Object.entries(next.branches).forEach(([name, node]) => {
-    if (node.parent === null) {
-      return;
-    }
-
-    const up = next.branches[node.parent];
-
-    if (!up) {
-      throw new Error(`Tracked branch ${name} points to unknown parent ${node.parent}.`);
-    }
-
-    next.branches[node.parent] = {
-      ...up,
-      children: [...up.children, name].sort(),
-    };
-  });
-
-  if (!next.trunk) {
-    throw new Error("Stack metadata is missing a trunk branch.");
-  }
-
-  const head = next.branches[next.trunk];
-
-  if (!head) {
-    throw new Error(`Trunk branch ${next.trunk} is not tracked.`);
-  }
-
-  if (head.parent !== null) {
-    throw new Error(`Trunk branch ${next.trunk} must not have a parent.`);
-  }
-
-  const visit = (name: string, path: Set<string>, seen: Set<string>): Set<string> => {
-    if (path.has(name)) {
-      throw new Error(`Stack metadata contains a cycle at ${name}.`);
-    }
-
-    if (seen.has(name)) {
-      return seen;
-    }
-
-    return next.branches[name].children.reduce(
-      (acc, child) => visit(child, new Set([...path, name]), acc),
-      new Set([...seen, name]),
-    );
-  };
-
-  const seen = visit(next.trunk, new Set(), new Set());
-  const miss = Object.keys(next.branches).filter((name) => !seen.has(name));
-
-  if (miss.length > 0) {
-    throw new Error(`Stack metadata contains unreachable branches: ${miss.join(", ")}.`);
-  }
-
-  Object.entries(next.branches).forEach(([name, node]) => {
-    if (name === next.trunk) {
-      return;
-    }
-
-    if (node.parent === null) {
-      throw new Error(`Tracked branch ${name} is missing a parent.`);
-    }
-
-    if (!next.branches[node.parent]) {
-      throw new Error(`Tracked branch ${name} points to unknown parent ${node.parent}.`);
-    }
-  });
-
-  return next;
-};
-
-const parse = (text: string) => {
-  const value = JSON.parse(text) as unknown;
-
-  if (!obj(value)) {
-    throw new Error("Stack metadata must be a JSON object.");
-  }
-
-  if (typeof value.trunk !== "string") {
-    throw new Error("Stack metadata must include a string trunk field.");
-  }
-
-  if (!obj(value.branches)) {
-    throw new Error("Stack metadata must include a branches map.");
-  }
-
-  return normalize({
-    trunk: value.trunk,
-    branches: Object.entries(value.branches).reduce<Record<string, Node>>(
-      (acc, [name, node]) => ({
-        ...acc,
-        [name]: is_node(node)
-          ? {
-              parent: node.parent,
-              children: node.children.filter((child): child is string => typeof child === "string"),
-            }
-          : {
-              parent: null,
-              children: [],
-            },
-      }),
-      {},
-    ),
-  });
-};
-
-const read = (cwd: string) => {
-  const name = file(cwd);
-
-  if (!name) {
-    throw new Error("Not inside a git repository.");
-  }
-
-  if (!existsSync(name)) {
-    throw new Error("sachi is not initialized in this repo. Run `sachi init` first.");
-  }
-
-  return parse(readFileSync(name, "utf8"));
-};
-
-const write = (cwd: string, stack: Stack) => {
-  const name = file(cwd);
-
-  if (!name) {
-    throw new Error("Not inside a git repository.");
-  }
-
-  mkdirSync(path.dirname(name), { recursive: true });
-  writeFileSync(name, `${JSON.stringify(normalize(stack), null, 2)}\n`);
-};
-
-const has = (stack: Stack, name: string) => stack.branches[name] !== undefined;
-const parent = (stack: Stack, name: string) => stack.branches[name]?.parent ?? null;
-const children = (stack: Stack, name: string) => stack.branches[name]?.children ?? [];
-const tracked = (stack: Stack, name: string | null) => (name && has(stack, name) ? name : null);
-
-const argv = (raw: string[]): Plan => {
-  const first = (): string | null => {
-    const scan = (idx: number): string | null => {
-      const arg = raw[idx];
-
-      if (arg === undefined) {
-        return null;
-      }
-
-      if (arg === "--cwd") {
-        return scan(idx + 2);
-      }
-
-      if (arg.startsWith("--cwd=")) {
-        return scan(idx + 1);
-      }
-
-      if (root_flag.has(arg) || root_help.has(arg) || root_version.has(arg)) {
-        return scan(idx + 1);
-      }
-
-      return arg.startsWith("-") ? scan(idx + 1) : arg;
-    };
-
-    return scan(0);
-  };
-
-  const cwd = (): string => {
-    const idx = raw.findIndex((arg) => arg === "--cwd" || arg.startsWith("--cwd="));
-
-    if (idx === -1) {
-      return process.cwd();
-    }
-
-    const arg = raw[idx];
-    return path.resolve(arg === "--cwd" ? (raw[idx + 1] ?? process.cwd()) : arg.slice(6));
-  };
-
-  const strip = (): string[] => {
-    const step = (idx: number, seen: boolean, out: string[]): string[] => {
-      const arg = raw[idx];
-
-      if (arg === undefined) {
-        return out;
-      }
-
-      if (!seen && arg === "--cwd") {
-        return step(idx + 2, seen, out);
-      }
-
-      if (!seen && arg.startsWith("--cwd=")) {
-        return step(idx + 1, seen, out);
-      }
-
-      if (!seen && root_flag.has(arg)) {
-        return step(idx + 1, seen, out);
-      }
-
-      if (!seen && arg.startsWith("-")) {
-        return step(idx + 1, seen, [...out, arg]);
-      }
-
-      return step(idx + 1, seen || !arg.startsWith("-"), [...out, arg]);
-    };
-
-    return step(0, false, []);
-  };
-
-  const name = first();
-
-  if (name === null) {
-    return raw.some((arg) => root_version.has(arg)) ? { kind: "version" } : { kind: "help" };
-  }
-
-  if (known.has(name)) {
-    return { kind: "run", args: raw };
-  }
-
-  return {
-    kind: "git",
-    args: strip(),
-    cwd: cwd(),
-  };
 };
 
 type Mod<T = Args> = CommandModule<Args, T>;
@@ -499,7 +155,7 @@ const up: Mod = {
       return;
     }
 
-    const list = children(stack, now);
+    const list = stack.branches[now]?.children ?? [];
 
     if (list.length === 0) {
       fail(`No upstack branch is tracked above ${branch(now)}.`);
@@ -529,7 +185,7 @@ const down: Mod = {
       return;
     }
 
-    const up = parent(stack, now);
+    const up = stack.branches[now]?.parent ?? null;
 
     if (!up) {
       fail(`No downstack branch is tracked below ${branch(now)}.`);
@@ -697,7 +353,7 @@ export const main = async (raw = process.argv.slice(2)) => {
         `  5. Use ${cmd("sachi restack")} when base branches change later.`,
         "",
         "LEARN MORE",
-        `  Unsupported commands are passed to ${cmd("git")}.`,
+        `  Unsupported commands are passed to ${cmd("git")} with the same short banner ${cmd("gt")} prints.`,
         `  ${cmd("sachi <command> --help")} shows command help.`,
         `  ${cmd("sachi guide workflow")} teaches the model.`,
         "",
@@ -725,6 +381,10 @@ export const main = async (raw = process.argv.slice(2)) => {
   }
 
   if (plan.kind === "git") {
+    if (plan.announce) {
+      say(hint("Passing command through to git..."));
+      say(hint(`Running: "git ${plan.args.join(" ")}"`));
+    }
     return code(call(plan.args, plan.cwd, "inherit").status);
   }
 

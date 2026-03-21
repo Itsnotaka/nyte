@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { getRepositoryPullRequestsPageData } from "~/lib/github/server";
+import { findRepoContext } from "~/lib/github/server";
 
-import { PullRequestListView } from "./_components/pull-request-list-view";
+import { PullRequestListRoute } from "./_components/pull-request-list-route";
 
 export const metadata: Metadata = {
   title: "Pull requests",
@@ -15,10 +15,9 @@ type PageProps = {
 
 export default async function RepoPullsPage({ params }: PageProps) {
   const { owner, repo } = await params;
-  const data = await getRepositoryPullRequestsPageData(owner, repo);
-  if (!data) {
+  if (!(await findRepoContext(owner, repo))) {
     notFound();
   }
 
-  return <PullRequestListView repository={data.repository} pullRequests={data.pullRequests} />;
+  return <PullRequestListRoute owner={owner} repo={repo} />;
 }

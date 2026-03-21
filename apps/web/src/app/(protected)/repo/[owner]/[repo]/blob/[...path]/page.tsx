@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
 
-import { findRepoContext, getRepoBranches, getRepoFileContent } from "~/lib/github/server";
+import { findRepoContext } from "~/lib/github/server";
 
-import { FileBrowserView } from "../../../../_components/file-browser-view";
+import { FileBrowserRoute } from "../../../../_components/file-browser-route";
 
 type BlobPageProps = {
   params: Promise<{ owner: string; repo: string; path: string[] }>;
@@ -18,21 +18,12 @@ export default async function BlobPage({ params, searchParams }: BlobPageProps) 
 
   const currentRef = ref ?? context.repository.default_branch;
   const filePath = path.join("/");
-  const [file, branches] = await Promise.all([
-    getRepoFileContent(owner, repo, filePath, currentRef),
-    getRepoBranches(owner, repo),
-  ]);
-
-  if (!file) notFound();
-
   return (
-    <FileBrowserView
+    <FileBrowserRoute
       owner={owner}
       repo={repo}
       currentRef={currentRef}
       defaultBranch={context.repository.default_branch}
-      file={file}
-      branches={branches}
       filePath={filePath}
     />
   );

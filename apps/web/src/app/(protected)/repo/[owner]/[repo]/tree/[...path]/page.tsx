@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
 
-import { findRepoContext, getRepoBranches, getRepoTree } from "~/lib/github/server";
+import { findRepoContext } from "~/lib/github/server";
 
-import { RepoBrowserView } from "../../../../_components/repo-browser-view";
+import { RepoBrowserRoute } from "../../../../_components/repo-browser-route";
 
 type TreePageProps = {
   params: Promise<{ owner: string; repo: string; path: string[] }>;
@@ -18,21 +18,12 @@ export default async function TreePage({ params, searchParams }: TreePageProps) 
 
   const currentRef = ref ?? context.repository.default_branch;
   const currentPath = path.join("/");
-  const [tree, branches] = await Promise.all([
-    getRepoTree(owner, repo, currentRef, currentPath),
-    getRepoBranches(owner, repo),
-  ]);
-
-  if (!tree) notFound();
-
   return (
-    <RepoBrowserView
+    <RepoBrowserRoute
       owner={owner}
       repo={repo}
       currentRef={currentRef}
       defaultBranch={context.repository.default_branch}
-      tree={tree}
-      branches={branches}
       currentPath={currentPath}
     />
   );

@@ -11,10 +11,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@sachikit/ui/components/dropdown-menu";
+import { Skeleton } from "@sachikit/ui/components/skeleton";
 import { InsetView } from "@sachikit/ui/components/sidebar";
 import { Textarea } from "@sachikit/ui/components/textarea";
 import { useHotkey } from "@tanstack/react-hotkeys";
-import { useMutation, useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { nanoid } from "nanoid";
 import * as React from "react";
 
@@ -51,6 +52,91 @@ type PullRequestViewProps = {
   pullNumber: number;
 };
 
+export function PullRequestSkeleton() {
+  return (
+    <div className="flex h-full min-h-0">
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <header className="flex h-10 shrink-0 items-center justify-between gap-3 border-b border-sachi-line-subtle px-4">
+          <div className="flex min-w-0 items-center gap-2">
+            <Skeleton className="h-4 w-52" />
+            <Skeleton className="h-5 w-8 rounded-full" />
+            <Skeleton className="h-5 w-14 rounded-full" />
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            <Skeleton className="h-8 w-16 rounded-md" />
+          </div>
+        </header>
+
+        <div className="min-w-0 flex-1 overflow-auto bg-sachi-base">
+          <div className="mx-auto flex h-full w-full max-w-[1280px] flex-col gap-4 px-4 pt-4 pb-6 sm:px-6">
+            <Skeleton className="h-4 w-64" />
+
+            <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+              <div className="space-y-6">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-semibold text-sachi-fg">Description</span>
+                  </div>
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-5/6" />
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-4 w-2/3" />
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <span className="text-sm font-semibold text-sachi-fg">Review</span>
+                  <Skeleton className="h-20 w-full rounded-md" />
+                  <div className="flex justify-end">
+                    <Skeleton className="h-9 w-24 rounded-md" />
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <span className="text-sm font-semibold text-sachi-fg">Comment</span>
+                  <Skeleton className="h-20 w-full rounded-md" />
+                  <div className="flex justify-end">
+                    <Skeleton className="h-9 w-24 rounded-md" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="divide-y divide-sachi-line-subtle">
+                <div className="space-y-2 px-3 py-3">
+                  <h3 className="text-xs font-medium tracking-wide text-sachi-fg-muted uppercase">
+                    Checks
+                  </h3>
+                  <Skeleton className="h-5 w-24 rounded-full" />
+                </div>
+                <div className="space-y-2 px-3 py-3">
+                  <h3 className="text-xs font-medium tracking-wide text-sachi-fg-muted uppercase">
+                    Stack
+                  </h3>
+                  <Skeleton className="h-8 w-full rounded-md" />
+                  <Skeleton className="h-8 w-full rounded-md" />
+                </div>
+                <div className="space-y-2 px-3 py-3">
+                  <h3 className="text-xs font-medium tracking-wide text-sachi-fg-muted uppercase">
+                    Reviewers
+                  </h3>
+                  <Skeleton className="h-4 w-32" />
+                </div>
+                <div className="space-y-2 px-3 py-3">
+                  <h3 className="text-xs font-medium tracking-wide text-sachi-fg-muted uppercase">
+                    Labels
+                  </h3>
+                  <Skeleton className="h-4 w-20" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function PullRequestView({ owner, repo, pullNumber }: PullRequestViewProps) {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
@@ -68,8 +154,9 @@ export function PullRequestView({ owner, repo, pullNumber }: PullRequestViewProp
 
   const queryInput = { owner, pullNumber, repo };
 
-  const { data: pageData } = useSuspenseQuery(
+  const pageQuery = useQuery(
     trpc.github.getPullRequestPage.queryOptions(queryInput, {
+      enabled: typeof window !== "undefined",
       staleTime: 60_000,
     }),
   );
@@ -149,7 +236,15 @@ export function PullRequestView({ owner, repo, pullNumber }: PullRequestViewProp
     }),
   );
 
-  const { repository, pullRequest } = pageData;
+  if (pageQuery.error) {
+    throw pageQuery.error;
+  }
+
+  if (!pageQuery.data) {
+    return <PullRequestSkeleton />;
+  }
+
+  const { repository, pullRequest } = pageQuery.data;
 
   const pullRequestIdentity = {
     owner: repository.owner.login,
