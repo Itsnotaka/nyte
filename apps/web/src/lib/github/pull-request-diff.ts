@@ -1,4 +1,5 @@
 import { queryOptions } from "@tanstack/react-query";
+import type { FileDiffMetadata } from "@pierre/diffs";
 
 const ttl = 8 * 60 * 60 * 1000;
 
@@ -48,7 +49,7 @@ export type PullRequestDiffSummaryData = {
 };
 
 export type PullRequestDiffFileData = {
-  file: import("@pierre/diffs").FileDiffMetadata;
+  file: FileDiffMetadata;
 };
 
 function getPullRequestDiffSummaryUrl(input: PullRequestDiffRef) {

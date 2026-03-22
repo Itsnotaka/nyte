@@ -1,25 +1,28 @@
 {
   "$schema": "../node_modules/oxlint/configuration_schema.json",
   "plugins": ["nextjs", "typescript", "oxc", "import", "promise", "react", "eslint", "unicorn"],
+  "jsPlugins": ["./oxlint-plugin-sachikit.mjs"],
   "settings": {
     "next": {
-      "rootDir": ["apps/web"]
-    }
+      "rootDir": ["apps/web"],
+    },
   },
   "rules": {
     "react-in-jsx-scope": "off",
     "eslint/no-shadow": "off",
-    "eslint/no-await-in-loop": "off"
+    "eslint/no-await-in-loop": "off",
+    "sachikit/no-inline-type-import": "error",
   },
   "ignorePatterns": [
+    ".oxlint-inline-type-test.ts",
     "stylelint.config.mjs",
     "node_modules/**",
     ".vercel/**",
     ".next/**",
     "out/**",
-    ".pi/**"
+    ".pi/**",
   ],
   "env": {
-    "builtin": true
-  }
+    "builtin": true,
+  },
 }

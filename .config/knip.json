@@ -32,6 +32,7 @@
         "turbo.json",
         "tsconfig.json",
         ".config/.oxlintrc.json",
+        ".config/oxlint-plugin-sachikit.mjs",
         ".config/knip.json"
       ],
       "project": ["*.{js,mjs,cjs,ts,mts,cts,json}", ".config/**/*.{json,js,mjs,cjs,ts,mts,cts}"]
