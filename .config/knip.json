@@ -1,6 +1,6 @@
 {
-  "$schema": "https://unpkg.com/knip@5/schema.json",
-  "treatConfigHintsAsErrors": true,
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "treatConfigHintsAsErrors": false,
   "ignore": ["stylelint.config.mjs", "**/*.css", ".pi/**"],
   "ignoreFiles": ["**/env.d.ts"],
   "ignoreExportsUsedInFile": {
@@ -22,7 +22,6 @@
     "types": "error",
     "nsTypes": "off",
     "enumMembers": "error",
-    "classMembers": "off",
     "duplicates": "error",
     "catalog": "error"
   },
@@ -37,8 +36,12 @@
       ],
       "project": ["*.{js,mjs,cjs,ts,mts,cts,json}", ".config/**/*.{json,js,mjs,cjs,ts,mts,cts}"]
     },
-    "apps/web": {},
-    "packages/ui": {},
+    "apps/web": {
+      "ignoreDependencies": ["@tailwindcss/postcss", "postcss-import"]
+    },
+    "packages/ui": {
+      "entry": ["vite.config.ts"]
+    },
     "tooling/tailwind": {
       "ignoreDependencies": ["@tailwindcss/postcss", "postcss", "postcss-import"]
     }

@@ -18,7 +18,6 @@ import type {
   RepoCatalogEntry,
   SyncedRepoCatalog,
   SyncedRepoLookupRow,
-  SyncedRepoSummary,
 } from "./types";
 
 export const getOnboardingState = cache(async (): Promise<OnboardingState> => {
@@ -111,13 +110,6 @@ export const getSyncedRepoCatalog = cache(async (): Promise<SyncedRepoCatalog> =
     syncedRepos: syncedEntries.map((e) => e.repository),
     totalAccessible: catalog.entries.length,
     totalSynced: syncedRepoIds.size,
-  };
-});
-
-export const getSyncedRepoSummary = cache(async (): Promise<SyncedRepoSummary> => {
-  const syncedRows = await getSyncedRepoLookupRows();
-  return {
-    totalSynced: new Set(syncedRows.map((row) => row.githubRepoId)).size,
   };
 });
 

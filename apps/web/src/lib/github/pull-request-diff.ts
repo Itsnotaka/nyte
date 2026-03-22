@@ -51,12 +51,12 @@ export type PullRequestDiffFileData = {
   file: import("@pierre/diffs").FileDiffMetadata;
 };
 
-export function getPullRequestDiffSummaryUrl(input: PullRequestDiffRef) {
+function getPullRequestDiffSummaryUrl(input: PullRequestDiffRef) {
   const search = new URLSearchParams({ baseSha: input.baseSha, headSha: input.headSha });
   return `${baseUrl()}/api/github/pr/${encodeURIComponent(input.owner)}/${encodeURIComponent(input.repo)}/${input.pullNumber}/diff?${search}`;
 }
 
-export function getPullRequestDiffFileUrl(input: PullRequestDiffFileRef) {
+function getPullRequestDiffFileUrl(input: PullRequestDiffFileRef) {
   const search = new URLSearchParams({ baseSha: input.baseSha, headSha: input.headSha });
   return `${baseUrl()}/api/github/pr/${encodeURIComponent(input.owner)}/${encodeURIComponent(input.repo)}/${input.pullNumber}/diff-file/${pathUrl(input.path)}?${search}`;
 }

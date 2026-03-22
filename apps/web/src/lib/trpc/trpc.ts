@@ -37,7 +37,6 @@ const timingMiddleware = t.middleware(async ({ path, type, next }) => {
 
 export const createCallerFactory = t.createCallerFactory;
 export const createTRPCRouter = t.router;
-export const publicProcedure = t.procedure.use(timingMiddleware);
 export const protectedProcedure = t.procedure.use(timingMiddleware).use(
   t.middleware(async ({ ctx, next }) => {
     if (!ctx.session) {

@@ -59,10 +59,6 @@ export type RepoSubmitPageData = {
   openPullRequests: GitHubPullRequest[];
 };
 
-export type SyncedRepoSummary = {
-  totalSynced: number;
-};
-
 export type InboxPullRequestRow = {
   id: number;
   number: number;
@@ -93,8 +89,6 @@ export type InboxSectionData = {
   label: string;
   items: InboxPullRequestRow[];
 };
-
-export type TokenError = "token_unavailable";
 
 export type SyncedRepoLookupRow = {
   githubRepoId: number;

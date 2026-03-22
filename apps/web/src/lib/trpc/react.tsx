@@ -12,7 +12,9 @@ function getBaseUrl() {
   return `http://localhost:${process.env.PORT ?? 3000}`;
 }
 
-export const { TRPCProvider, useTRPC, useTRPCClient } = createTRPCContext<AppRouter>();
+const trpc = createTRPCContext<AppRouter>();
+export const TRPCProvider = trpc.TRPCProvider;
+export const useTRPC = trpc.useTRPC;
 
 export function makeTRPCClient() {
   const url = `${getBaseUrl()}/api/trpc`;

@@ -24,6 +24,7 @@ export const trpc = createTRPCOptionsProxy({
   queryClient: getQueryClient,
 });
 
+/** @lintignore Documented RSC API; callers import when needed. */
 export const caller = createCallerFactory(appRouter)(createContext);
 
 export function prefetch<T extends ReturnType<TRPCQueryOptions<any>>>(queryOptions: T) {

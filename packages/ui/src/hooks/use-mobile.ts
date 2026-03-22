@@ -41,5 +41,3 @@ export function useMobile(breakpointOrResolver?: number | (() => number)) {
 
   return isMobile;
 }
-
-export const useIsMobile = useMobile;

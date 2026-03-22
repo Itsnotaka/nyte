@@ -109,5 +109,3 @@ export const getGitHubUserLogin = cache(async (): Promise<string | null> => {
 
   return account.login ?? null;
 });
-
-export { getGitHubUserToken };

@@ -75,7 +75,6 @@ Examples:
 - `src/lib/auth/server.ts` -- server-side session helpers
 - `src/lib/github/server.ts` -- GitHub onboarding state and repo loading
 - `src/app/(protected)/layout.tsx` -- protected layout with auth guard
-- `src/app/(protected)/_components/repo-context.tsx` -- repo selection context
 - `src/app/(protected)/app-shell.tsx` -- sidebar shell with repo selector
 - `src/components/providers.tsx` -- client providers (tRPC, NuqsAdapter)
 
