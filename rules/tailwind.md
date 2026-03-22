@@ -113,7 +113,7 @@ items). It's cleaner and more maintainable than margins on children.
   conditionally rendered)
 - **Use padding on parent containers** instead of bottom margins on the last
   child
-- **Always use `min-h-dvh` instead of `min-h-screen`** - `min-h-screen` is buggy
+- **Always use `min-h-svh` instead of `min-h-screen`** - `min-h-screen` is buggy
   on mobile Safari
 - **Prefer `size-*` utilities** over separate `w-*` and `h-*` when setting equal
   dimensions

@@ -21,6 +21,7 @@ import { CheckStatusDot } from "~/app/(protected)/_components/check-status-dot";
 import { ReviewStatusIcon } from "~/app/(protected)/_components/review-status-icon";
 import type { InboxPullRequest, ReviewDecision } from "~/lib/github/server";
 import { formatRelativeTime } from "~/lib/time";
+import { page } from "~/lib/trpc/pr-batch";
 import { useTRPC } from "~/lib/trpc/react";
 
 type SortField = "title" | "changes" | "updated";
@@ -164,18 +165,15 @@ function PullRequestRow({
   const checkSummary = checkSummaries[checkSummaryKey(owner, repo, pr.head.sha)];
 
   function warm() {
-    void qc.prefetchQuery(
-      trpc.github.getPullRequestPage.queryOptions(
-        {
-          owner,
-          repo,
-          pullNumber: pr.number,
-        },
-        {
-          staleTime: 60_000,
-        },
-      ),
+    const q = page(
+      {
+        owner,
+        repo,
+        pullNumber: pr.number,
+      },
+      { staleTime: 60_000 },
     );
+    void qc.prefetchQuery(trpc.github.getPullRequestPage.queryOptions(q.input, q.opts));
   }
 
   return (

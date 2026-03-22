@@ -22,6 +22,49 @@ const getGitHubUserToken = cache(async (): Promise<string | null> => {
   return result?.accessToken ?? null;
 });
 
+const renew = cache(async (): Promise<string | null> => {
+  const h = await headers();
+  try {
+    const result = await auth.api.refreshToken({
+      body: { providerId: "github" },
+      headers: h,
+    });
+    return result?.accessToken ?? null;
+  } catch {
+    return null;
+  }
+});
+
+export async function withToken<T>(run: (token: string) => Promise<T>): Promise<T | null> {
+  const token = await getGitHubUserToken();
+  if (!token) {
+    return null;
+  }
+
+  try {
+    return await run(token);
+  } catch (error) {
+    if (!isUnauthorized(error)) {
+      throw error;
+    }
+  }
+
+  const fresh = await renew();
+  if (!fresh) {
+    return null;
+  }
+
+  try {
+    return await run(fresh);
+  } catch (error) {
+    if (isUnauthorized(error)) {
+      return null;
+    }
+
+    throw error;
+  }
+}
+
 export function getGitHubInstallationAuth(installationId: number): GitHubAppInstallationAuth {
   const appId = Number(env.GITHUB_APP_ID);
   if (!Number.isInteger(appId) || appId <= 0) {
@@ -57,19 +100,14 @@ export function resolveGitHubAppSetupRedirect({
 }
 
 export const getGitHubUserLogin = cache(async (): Promise<string | null> => {
-  const userToken = await getGitHubUserToken();
-  if (!userToken) return null;
-
-  try {
-    const account = await runGitHubEffectOrNotFound(getAuthenticatedGitHubAccount(userToken));
-    return account?.login ?? null;
-  } catch (error) {
-    if (isUnauthorized(error)) {
-      return null;
-    }
-
-    throw error;
+  const account = await withToken((token) =>
+    runGitHubEffectOrNotFound(getAuthenticatedGitHubAccount(token)),
+  );
+  if (!account) {
+    return null;
   }
+
+  return account.login ?? null;
 });
 
 export { getGitHubUserToken };

@@ -1,6 +1,6 @@
 "use client";
 
-import { IconApiConnection } from "@central-icons-react/round-outlined-radius-2-stroke-1.5";
+import { IconGithubDefault } from "@central-icons-react/round-outlined-radius-2-stroke-1.5";
 import { useMutation } from "@tanstack/react-query";
 
 import { authClient } from "~/lib/auth/client";
@@ -33,8 +33,8 @@ export function LoginView() {
           disabled={signInMutation.isPending}
           className="inline-flex h-10 w-full max-w-xs items-center justify-center gap-2 rounded-lg bg-[#2563eb] px-4 text-sm font-medium text-white transition-colors hover:bg-[#1d4ed8] disabled:opacity-50"
         >
-          <IconApiConnection className="size-4" />
-          {signInMutation.isPending ? "Connecting..." : "Sign up with GitHub"}
+          <IconGithubDefault className="size-4" />
+          {signInMutation.isPending ? "Connecting..." : "Sign in with GitHub"}
         </button>
 
         {signInMutation.error ? (

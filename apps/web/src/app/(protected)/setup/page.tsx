@@ -6,9 +6,14 @@ import {
   type SearchParams,
 } from "nuqs/server";
 
-import { getOnboardingState, resolveGitHubAppSetupRedirect } from "~/lib/github/server";
+import {
+  getGitHubAppInstallUrl,
+  getOnboardingState,
+  resolveGitHubAppSetupRedirect,
+} from "~/lib/github/server";
 
 import { ConnectView } from "./_components/connect-view";
+import { ReconnectView } from "./_components/reconnect-view";
 
 export const setupSearchParamsCache = createSearchParamsCache({
   installation_id: parseAsInteger,
@@ -26,6 +31,7 @@ export default async function SetupPage({ searchParams }: SetupPageProps) {
     case "no_user_session":
       redirect("/login");
     case "no_github_user_token":
+      return <ReconnectView />;
     case "no_github_installation": {
       const { installation_id, setup_action } = await setupSearchParamsCache.parse(searchParams);
 
@@ -37,7 +43,7 @@ export default async function SetupPage({ searchParams }: SetupPageProps) {
         redirect(redirectTo);
       }
 
-      return <ConnectView />;
+      return <ConnectView url={getGitHubAppInstallUrl()} />;
     }
     case "has_installations":
       redirect("/setup/repos");

@@ -10,8 +10,8 @@ import { cache } from "react";
 
 import { getUserSession } from "../auth/server";
 import { env } from "../server/env";
-import { getGitHubUserToken } from "./auth";
-import { isUnauthorized, runGitHubEffect } from "./effect";
+import { withToken } from "./auth";
+import { runGitHubEffect } from "./effect";
 import type {
   OnboardingState,
   RepoCatalog,
@@ -25,24 +25,17 @@ export const getOnboardingState = cache(async (): Promise<OnboardingState> => {
   const session = await getUserSession();
   if (!session) return { step: "no_user_session" };
 
-  const userToken = await getGitHubUserToken();
-  if (!userToken) return { step: "no_github_user_token" };
-
-  try {
-    const installations = await runGitHubEffect(listUserInstallations(userToken));
-    const appInstallations = installations.filter(
-      (installation) => installation.app_slug === env.GITHUB_APP_SLUG,
-    );
-    return appInstallations.length === 0
-      ? { step: "no_github_installation" }
-      : { step: "has_installations", installations: appInstallations };
-  } catch (error) {
-    if (isUnauthorized(error)) {
-      return { step: "no_github_user_token" };
-    }
-
-    throw error;
+  const installs = await withToken((token) => runGitHubEffect(listUserInstallations(token)));
+  if (!installs) {
+    return { step: "no_github_user_token" };
   }
+
+  const appInstallations = installs.filter(
+    (installation) => installation.app_slug === env.GITHUB_APP_SLUG,
+  );
+  return appInstallations.length === 0
+    ? { step: "no_github_installation" }
+    : { step: "has_installations", installations: appInstallations };
 });
 
 const getSyncedRepoLookupRows = cache(async (): Promise<SyncedRepoLookupRow[]> => {
@@ -68,10 +61,14 @@ export const getInstallationRepos = cache(async function getInstallationRepos(
   const session = await getUserSession();
   if (!session) return [];
 
-  const userToken = await getGitHubUserToken();
-  if (!userToken) return [];
+  const repos = await withToken((token) =>
+    runGitHubEffect(listInstallationRepos(token, installationId)),
+  );
+  if (!repos) {
+    return [];
+  }
 
-  return runGitHubEffect(listInstallationRepos(userToken, installationId));
+  return repos;
 });
 
 export const getRepoCatalog = cache(async (): Promise<RepoCatalog> => {

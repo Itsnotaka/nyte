@@ -4,6 +4,7 @@ import { cn } from "@sachikit/ui/lib/utils";
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import Link from "next/link";
 
+import { page, stack } from "~/lib/trpc/pr-batch";
 import { useTRPC } from "~/lib/trpc/react";
 
 import type { PullRequestQueryInput } from "./types";
@@ -21,29 +22,25 @@ export function SidebarListFallback() {
 export function PullRequestStackPanel({ queryInput }: { queryInput: PullRequestQueryInput }) {
   const trpc = useTRPC();
   const qc = useQueryClient();
+  const query = stack(queryInput, { staleTime: 60_000 });
   const stackQuery = useSuspenseQuery(
-    trpc.github.getPullRequestStack.queryOptions(queryInput, {
-      staleTime: 60_000,
-    }),
+    trpc.github.getPullRequestStack.queryOptions(query.input, query.opts),
   );
-  const stack = stackQuery.data;
+  const rows = stackQuery.data;
 
   function warm(entryNumber: number) {
-    void qc.prefetchQuery(
-      trpc.github.getPullRequestPage.queryOptions(
-        {
-          owner: queryInput.owner,
-          repo: queryInput.repo,
-          pullNumber: entryNumber,
-        },
-        {
-          staleTime: 60_000,
-        },
-      ),
+    const q = page(
+      {
+        owner: queryInput.owner,
+        repo: queryInput.repo,
+        pullNumber: entryNumber,
+      },
+      { staleTime: 60_000 },
     );
+    void qc.prefetchQuery(trpc.github.getPullRequestPage.queryOptions(q.input, q.opts));
   }
 
-  if (stack.length === 0) {
+  if (rows.length === 0) {
     return (
       <p className="py-2 text-xs text-sachi-fg-muted">This pull request is not part of a stack.</p>
     );
@@ -51,7 +48,7 @@ export function PullRequestStackPanel({ queryInput }: { queryInput: PullRequestQ
 
   return (
     <div className="space-y-1.5 py-1">
-      {stack.map((entry) => (
+      {rows.map((entry) => (
         <Link
           key={entry.number}
           href={`/repo/${queryInput.owner}/${queryInput.repo}/pull/${String(entry.number)}`}

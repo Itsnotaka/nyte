@@ -137,7 +137,7 @@ function SidebarProvider({
       <div
         data-sidebar-shell
         data-slot="sidebar-wrapper"
-        className={cn("min-h-dvh w-full", className)}
+        className={cn("min-h-svh w-full", className)}
         style={shellStyle}
         {...props}
       >
@@ -399,20 +399,6 @@ function SidebarRail({ className, onClick, ...props }: React.ComponentProps<"but
 }
 
 function SidebarInset({ className, style, children, ...props }: React.ComponentProps<"main">) {
-  const { state, isMobile } = useSidebar();
-  const shouldReduceMotion = useReducedMotion() ?? false;
-
-  const insetStyle = {
-    paddingTop: "var(--shell-gutter, 8px)",
-    paddingRight: "var(--shell-gutter, 8px)",
-    paddingBottom: "var(--shell-gutter, 8px)",
-    paddingLeft: !isMobile && state === "expanded" ? 0 : "var(--shell-gutter, 8px)",
-    transition: shouldReduceMotion
-      ? "none"
-      : "padding-left var(--sidebar-transition-normal) var(--sidebar-ease)",
-    ...style,
-  } as React.CSSProperties;
-
   const insetInnerStyle = {
     borderRadius: "var(--shell-inset-radius, 8px)",
   } as React.CSSProperties;
@@ -422,7 +408,7 @@ function SidebarInset({ className, style, children, ...props }: React.ComponentP
       data-sidebar-inset
       data-slot="sidebar-inset"
       className={cn("min-h-0 min-w-0 flex-1", className)}
-      style={insetStyle}
+      style={style}
       {...props}
     >
       <div
@@ -496,7 +482,7 @@ function SidebarTrigger({
       data-slot="sidebar-trigger"
       className={cn(
         "inline-flex size-6.5 items-center justify-center rounded-[5px] border-0 bg-transparent text-sachi-fg-muted hover:bg-sachi-fill-hover hover:text-sachi-fg focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-sachi-focus",
-        layout === "floating" ? "absolute top-2 left-3 z-[2]" : "relative z-[1] shrink-0",
+        layout === "floating" ? "absolute top-2 left-3 z-[2]" : "relative z-[1] -ml-0.5 shrink-0",
         className,
       )}
       onClick={(event) => {

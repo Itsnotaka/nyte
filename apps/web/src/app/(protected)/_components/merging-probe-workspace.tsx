@@ -28,7 +28,7 @@ function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-full border border-sachi-line-subtle bg-sachi-fill px-3 py-1.5 text-xs font-medium text-sachi-fg-secondary">
       <span className="text-sachi-fg-faint">{label}</span>
-      <span className="ml-1.5 tabular-nums text-sachi-fg">{value}</span>
+      <span className="ml-1.5 text-sachi-fg tabular-nums">{value}</span>
     </div>
   );
 }
@@ -73,7 +73,10 @@ export function MergingProbeWorkspace() {
         <header className="rounded-3xl border border-sachi-line-subtle/70 bg-linear-to-br from-sachi-surface via-sachi-surface to-sachi-fill/40 px-6 py-6 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="max-w-3xl space-y-3">
-              <Badge variant="secondary" className="rounded-full bg-sachi-fill px-2.5 py-0.5 text-xs">
+              <Badge
+                variant="secondary"
+                className="rounded-full bg-sachi-fill px-2.5 py-0.5 text-xs"
+              >
                 Inbox rule: merging
               </Badge>
               <div className="space-y-2">
@@ -81,15 +84,22 @@ export function MergingProbeWorkspace() {
                   REST vs GraphQL probe
                 </h1>
                 <p className="max-w-2xl text-sm leading-6 text-sachi-fg-muted">
-                  Side-by-side results for the exact <code className="rounded bg-sachi-fill px-1.5 py-0.5 text-xs">Merging and recently merged</code>{" "}
-                  inbox rule, with each probe isolated so one side can load and paint without waiting on the other.
+                  Side-by-side results for the exact{" "}
+                  <code className="rounded bg-sachi-fill px-1.5 py-0.5 text-xs">
+                    Merging and recently merged
+                  </code>{" "}
+                  inbox rule, with each probe isolated so one side can load and paint without
+                  waiting on the other.
                 </p>
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
               <Stat label="REST items" value={rest ? String(rest.itemCount) : "--"} />
               <Stat label="GraphQL items" value={gql ? String(gql.itemCount) : "--"} />
-              <Stat label={lead ? `${lead} lead` : "Server delta"} value={diff == null ? "--" : `${Math.abs(diff)}ms`} />
+              <Stat
+                label={lead ? `${lead} lead` : "Server delta"}
+                value={diff == null ? "--" : `${Math.abs(diff)}ms`}
+              />
             </div>
           </div>
         </header>

@@ -14,6 +14,7 @@ import {
   getPullRequestDiffSummaryOptions,
   type PullRequestDiffSummaryFile,
 } from "~/lib/github/pull-request-diff";
+import { review } from "~/lib/trpc/pr-batch";
 import { useTRPC } from "~/lib/trpc/react";
 
 import { useDeferredVisibility } from "../../_components/use-deferred-visibility";
@@ -221,10 +222,9 @@ export function PullRequestDiffSection({
     headSha,
   };
   const diffSummaryQuery = useSuspenseQuery(getPullRequestDiffSummaryOptions(diffIdentity));
+  const comments = review(queryInput, { staleTime: 60_000 });
   const reviewCommentsQuery = useSuspenseQuery(
-    trpc.github.getPullRequestReviewComments.queryOptions(queryInput, {
-      staleTime: 60_000,
-    }),
+    trpc.github.getPullRequestReviewComments.queryOptions(comments.input, comments.opts),
   );
 
   const diffSettings: DiffSettingsJson = diffSettingsQuery.data ?? DIFF_SETTINGS_DEFAULTS;

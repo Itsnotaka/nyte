@@ -1,42 +1,30 @@
 "use client";
 
 import { Button } from "@sachikit/ui/components/button";
-import { useMutation } from "@tanstack/react-query";
 import * as React from "react";
 
-import { useTRPC } from "~/lib/trpc/react";
+export function ConnectView({ url }: { url: string }) {
+  const ref = React.useRef<Window | null>(null);
+  const [busy, setBusy] = React.useState(false);
 
-export function ConnectView() {
-  const trpc = useTRPC();
-  const installWindowRef = React.useRef<Window | null>(null);
-  const startInstallMutation = useMutation(
-    trpc.github.startInstall.mutationOptions({
-      onError: () => {
-        installWindowRef.current?.close();
-        installWindowRef.current = null;
-      },
-      onSuccess: ({ url }) => {
-        const installWindow = installWindowRef.current;
-        installWindowRef.current = null;
-
-        if (installWindow && !installWindow.closed) {
-          installWindow.location.assign(url);
-          installWindow.focus();
-          return;
-        }
-
-        window.location.assign(url);
-      },
-    }),
-  );
-
-  function handleInstall() {
-    const installWindow = window.open("about:blank", "_blank");
-    if (installWindow) {
-      installWindow.opener = null;
+  function open() {
+    const tab = window.open("about:blank", "_blank");
+    if (tab) {
+      tab.opener = null;
     }
-    installWindowRef.current = installWindow;
-    startInstallMutation.mutate();
+    ref.current = tab;
+    setBusy(true);
+
+    const next = ref.current;
+    ref.current = null;
+    if (next && !next.closed) {
+      next.location.assign(url);
+      next.focus();
+      setBusy(false);
+      return;
+    }
+
+    window.location.assign(url);
   }
 
   return (
@@ -50,15 +38,9 @@ export function ConnectView() {
           </p>
         </div>
 
-        <Button size="lg" disabled={startInstallMutation.isPending} onClick={handleInstall}>
-          {startInstallMutation.isPending ? "Opening GitHub..." : "Continue to GitHub App install"}
+        <Button size="lg" disabled={busy} onClick={open}>
+          {busy ? "Opening GitHub..." : "Continue to GitHub App install"}
         </Button>
-
-        {startInstallMutation.error ? (
-          <p className="text-sm text-destructive">
-            {startInstallMutation.error.message ?? "Unable to start the GitHub app install."}
-          </p>
-        ) : null}
 
         <p className="text-xs text-sachi-fg-faint">
           We&apos;ll open GitHub in a new tab so you can finish the GitHub App installation without

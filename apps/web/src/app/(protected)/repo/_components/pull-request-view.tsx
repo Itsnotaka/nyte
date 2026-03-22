@@ -20,6 +20,7 @@ import { nanoid } from "nanoid";
 import * as React from "react";
 
 import { formatRelativeTime } from "~/lib/time";
+import { page } from "~/lib/trpc/pr-batch";
 import { useTRPC } from "~/lib/trpc/react";
 
 import { ChecksPanel } from "./checks-panel";
@@ -156,10 +157,11 @@ export function PullRequestView({ owner, repo, pullNumber, close }: PullRequestV
 
   const queryInput = { owner, pullNumber, repo };
 
+  const q = page(queryInput, { staleTime: 60_000 });
   const pageQuery = useQuery(
-    trpc.github.getPullRequestPage.queryOptions(queryInput, {
+    trpc.github.getPullRequestPage.queryOptions(q.input, {
+      ...q.opts,
       enabled: typeof window !== "undefined",
-      staleTime: 60_000,
     }),
   );
 

@@ -16,6 +16,7 @@ import { cn } from "@sachikit/ui/lib/utils";
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import * as React from "react";
 
+import { check } from "~/lib/trpc/pr-batch";
 import { useTRPC } from "~/lib/trpc/react";
 
 type ChecksPanelProps = {
@@ -72,9 +73,8 @@ export function ChecksPanel({ owner, repo, headSha }: ChecksPanelProps) {
   const trpc = useTRPC();
   const [open, setOpen] = React.useState(false);
 
-  const summaryQuery = useSuspenseQuery(
-    trpc.github.getCheckSummary.queryOptions({ owner, repo, ref: headSha }, { staleTime: 60_000 }),
-  );
+  const q = check({ owner, repo, ref: headSha }, { staleTime: 60_000 });
+  const summaryQuery = useSuspenseQuery(trpc.github.getCheckSummary.queryOptions(q.input, q.opts));
   const runsQuery = useQuery(
     trpc.github.getCheckRuns.queryOptions(
       { owner, repo, ref: headSha },

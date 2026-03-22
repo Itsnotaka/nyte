@@ -15,8 +15,7 @@ export default async function ReposPage() {
 
   return (
     <RepoPickerView
-      installations={catalog.installations}
-      repos={catalog.repos}
+      entries={catalog.entries}
       syncedRepoIds={Array.from(syncedCatalog.syncedRepoIds)}
     />
   );

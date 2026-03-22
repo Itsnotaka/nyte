@@ -54,7 +54,15 @@ function useProbeMs(done: boolean) {
   return ms;
 }
 
-function Stat({ label, tone = "default", value }: { label: string; tone?: "default" | "warn"; value: string }) {
+function Stat({
+  label,
+  tone = "default",
+  value,
+}: {
+  label: string;
+  tone?: "default" | "warn";
+  value: string;
+}) {
   const cls =
     tone === "warn"
       ? "border-amber-500/20 bg-amber-500/10 text-amber-200"
@@ -63,7 +71,7 @@ function Stat({ label, tone = "default", value }: { label: string; tone?: "defau
   return (
     <div className={`rounded-full border px-3 py-1.5 text-xs font-medium ${cls}`}>
       <span className="text-sachi-fg-faint">{label}</span>
-      <span className="ml-1.5 tabular-nums text-sachi-fg">{value}</span>
+      <span className="ml-1.5 text-sachi-fg tabular-nums">{value}</span>
     </div>
   );
 }
@@ -201,7 +209,7 @@ function Failures({ data }: { data: InboxProbeData }) {
   return (
     <div className="border-t border-sachi-line-subtle/60 px-5 py-3">
       <details className="text-sm text-sachi-fg-muted">
-        <summary className="cursor-pointer select-none font-medium text-sachi-fg-secondary">
+        <summary className="cursor-pointer font-medium text-sachi-fg-secondary select-none">
           {data.diagnostics.partialFailures.length} partial failure
           {data.diagnostics.partialFailures.length === 1 ? "" : "s"}
         </summary>
@@ -289,8 +297,14 @@ export function MergingProbePane({
         <div className="mt-3 flex flex-wrap gap-2">
           <Stat label="Server" value={query.data ? `${query.data.diagnostics.serverMs}ms` : "--"} />
           <Stat label="Render" value={ms != null ? `${ms}ms` : "--"} />
-          <Stat label="Fetched PRs" value={query.data ? String(query.data.diagnostics.fetchedCount) : "--"} />
-          <Stat label="Matched" value={query.data ? String(query.data.diagnostics.itemCount) : "--"} />
+          <Stat
+            label="Fetched PRs"
+            value={query.data ? String(query.data.diagnostics.fetchedCount) : "--"}
+          />
+          <Stat
+            label="Matched"
+            value={query.data ? String(query.data.diagnostics.itemCount) : "--"}
+          />
           {query.data && query.data.diagnostics.partialFailures.length > 0 ? (
             <Stat
               label="Failures"

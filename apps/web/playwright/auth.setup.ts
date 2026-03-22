@@ -17,7 +17,7 @@ test("bootstrap auth state", async ({ page }) => {
 
   await page.goto("/login");
   await expect(page.getByRole("heading", { name: "Sign in to Sachi" })).toBeVisible();
-  await page.getByRole("button", { name: "Sign up with GitHub" }).click();
+  await page.getByRole("button", { name: "Sign in with GitHub" }).click();
 
   // Finish GitHub auth in the headed browser window, then we save the local app session.
   await expect(page.getByRole("navigation", { name: "Primary" })).toBeVisible({

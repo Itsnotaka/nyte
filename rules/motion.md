@@ -63,3 +63,25 @@ hover(() => {
 
 - Prefer `will-change`/`willChange` over `transform: translateZ(0)`. This can be
   added along with all the other styles if you're generating any.
+
+## `useReducedMotion` (from `motion/react`)
+
+- Import from `motion/react` only (never `framer-motion` directly; see Importing).
+- Re-exported from Motion’s Framer Motion layer: it wires `prefers-reduced-motion`
+  via Motion’s internal listener (`initPrefersReducedMotion`) and
+  `useState(prefersReducedMotion.current)` so the **initial** render is stable for
+  SSR/hydration (no `useEffect` delay).
+- Prefer this over ad‑hoc `matchMedia("(prefers-reduced-motion)")` in `useEffect`,
+  which runs **after** paint and can cause a one-frame style jump.
+
+## Viewport layout vs RSC / client boundaries
+
+- A **Client Component** is still **server-rendered** in Next.js; the boundary does
+  not give you the real viewport width on the server.
+- Hooks like `useMediaQuery` / `useMobile` cannot know `(max-width: …)` until the
+  client runs, so **branching the React tree on `isMobile`** (e.g. drawer vs
+  desktop sidebar) will often **shift after hydration** unless you also express
+  that layout in **CSS** (`@media`) or accept a loading/placeholder strategy.
+- For **inset padding** and similar, prefer **CSS** driven by `data-*` on ancestors
+  plus `@media (min-width: …)` so **first paint** matches the viewport without
+  waiting for JS (see `SidebarInset` in `@sachikit/ui`).

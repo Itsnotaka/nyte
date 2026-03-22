@@ -31,7 +31,7 @@ export function Providers({ children }: { children: ReactNode }) {
         <TRPCProvider trpcClient={trpcClient} queryClient={queryClient}>
           <NextThemesProvider
             attribute="class"
-            defaultTheme="dark"
+            defaultTheme="light"
             disableTransitionOnChange
             enableColorScheme
           >

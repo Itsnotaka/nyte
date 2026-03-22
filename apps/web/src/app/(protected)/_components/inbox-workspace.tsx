@@ -1,7 +1,6 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
 import { useQueryState } from "nuqs";
 import { useEffect } from "react";
 
@@ -13,7 +12,6 @@ import { InboxView } from "./inbox-view";
 
 export function InboxWorkspace() {
   const trpc = useTRPC();
-  const router = useRouter();
   const [pr, setPr] = useQueryState("pr", prState);
   const pick = readPr(pr);
   const inboxQuery = useQuery({
@@ -26,14 +24,6 @@ export function InboxWorkspace() {
     gcTime: 5 * 60_000,
     staleTime: 60_000,
   });
-
-  useEffect(() => {
-    if (inboxQuery.status !== "success" || inboxQuery.data != null) {
-      return;
-    }
-
-    router.replace("/setup");
-  }, [inboxQuery.data, inboxQuery.status, router]);
 
   useEffect(() => {
     if (pr == null || pick != null) {

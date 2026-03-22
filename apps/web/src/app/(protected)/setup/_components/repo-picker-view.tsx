@@ -18,9 +18,13 @@ import * as React from "react";
 
 import { useTRPC } from "~/lib/trpc/react";
 
+type CatalogEntry = {
+  installation: GitHubInstallation;
+  repository: GitHubRepository;
+};
+
 type RepoPickerViewProps = {
-  installations: GitHubInstallation[];
-  repos: GitHubRepository[];
+  entries: CatalogEntry[];
   syncedRepoIds: number[];
 };
 
@@ -44,15 +48,18 @@ function RepoRow({
   );
 }
 
-export function RepoPickerView({ installations, repos, syncedRepoIds }: RepoPickerViewProps) {
+export function RepoPickerView({ entries, syncedRepoIds }: RepoPickerViewProps) {
   const router = useRouter();
   const trpc = useTRPC();
   const [search, setSearch] = React.useState("");
   const [selected, setSelected] = React.useState<Set<number>>(() => new Set(syncedRepoIds));
+  const q = search.toLowerCase();
 
-  const filtered = React.useMemo(
-    () => repos.filter((repo) => repo.full_name.toLowerCase().includes(search.toLowerCase())),
-    [repos, search],
+  const repos = React.useMemo(() => entries.map((e) => e.repository), [entries]);
+
+  const filteredEntries = React.useMemo(
+    () => entries.filter((e) => e.repository.full_name.toLowerCase().includes(q)),
+    [entries, q],
   );
 
   const toggle = (repoId: number) => {
@@ -76,46 +83,45 @@ export function RepoPickerView({ installations, repos, syncedRepoIds }: RepoPick
   );
 
   function handleSave() {
-    const selectedRepos = repos.filter((r) => selected.has(r.id));
+    const selectedEntries = entries.filter((e) => selected.has(e.repository.id));
     saveMutation.mutate({
-      repos: selectedRepos.map((r) => {
-        const inst = installations.find(
-          (i) => i.account.login.toLowerCase() === r.owner.login.toLowerCase(),
-        );
-        if (!inst) {
-          throw new Error(`No installation found for owner: ${r.owner.login}`);
-        }
-        return {
-          githubRepoId: r.id,
-          installationId: inst.id,
-          ownerLogin: r.owner.login,
-          repoName: r.name,
-          repoFullName: r.full_name,
-          isPrivate: r.private,
-        };
-      }),
+      repos: selectedEntries.map((e) => ({
+        githubRepoId: e.repository.id,
+        installationId: e.installation.id,
+        ownerLogin: e.repository.owner.login,
+        repoName: e.repository.name,
+        repoFullName: e.repository.full_name,
+        isPrivate: e.repository.private,
+      })),
     });
   }
 
   const selectedRepos = repos.filter((r) => selected.has(r.id));
-  const unselectedFiltered = filtered.filter((r) => !selected.has(r.id));
+  const unselectedFiltered = filteredEntries
+    .filter((e) => !selected.has(e.repository.id))
+    .map((e) => e.repository);
+
+  const hadSynced = syncedRepoIds.length > 0;
+  const title = hadSynced ? "Synced repositories" : "Select repositories";
+  const actionLabel = hadSynced ? "Save" : "Sync";
 
   return (
     <section className="flex h-full items-center justify-center">
       <div className="mx-auto flex w-full max-w-lg flex-col items-center gap-4">
         <div className="flex flex-col items-center gap-2 text-center">
-          <h1 className="text-xl font-semibold text-sachi-fg">Select repositories</h1>
+          <h1 className="text-xl font-semibold text-sachi-fg">{title}</h1>
           <p className="max-w-sm text-sm text-sachi-fg-muted">
-            Choose which repositories to sync with Sachi. Only synced repos will appear in your
-            inbox and be available for review.
+            {hadSynced
+              ? "Add or remove repositories synced with Sachi. Only synced repos appear in your inbox and are available for review."
+              : "Choose which repositories to sync with Sachi. Only synced repos will appear in your inbox and be available for review."}
           </p>
         </div>
 
         <LayerCard className="w-full">
           <LayerCardSecondary>
-            <span>Select repositories</span>
+            <span>{title}</span>
             <span className="text-xs text-sachi-fg-muted tabular-nums">
-              {String(selected.size)} of {String(repos.length)}
+              {String(selected.size)} of {String(entries.length)}
             </span>
           </LayerCardSecondary>
 
@@ -166,7 +172,11 @@ export function RepoPickerView({ installations, repos, syncedRepoIds }: RepoPick
                 </div>
               )}
 
-              {filtered.length === 0 ? (
+              {entries.length === 0 ? (
+                <p className="px-3 py-4 text-center text-sm text-sachi-fg-muted">
+                  No repositories available from your installations.
+                </p>
+              ) : search && filteredEntries.length === 0 ? (
                 <p className="px-3 py-4 text-center text-sm text-sachi-fg-muted">
                   No repositories match your search.
                 </p>
@@ -193,7 +203,7 @@ export function RepoPickerView({ installations, repos, syncedRepoIds }: RepoPick
         <Button size="lg" disabled={saveMutation.isPending} onClick={handleSave}>
           {saveMutation.isPending
             ? "Saving..."
-            : `Sync ${String(selected.size)} ${selected.size === 1 ? "repository" : "repositories"}`}
+            : `${actionLabel} ${String(selected.size)} ${selected.size === 1 ? "repository" : "repositories"}`}
         </Button>
 
         {saveMutation.error ? (

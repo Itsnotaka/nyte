@@ -351,7 +351,9 @@ export class GitHubPullRequestsService extends ServiceMap.Service<
           auth,
           "github.pullRequests.listMergingPullRequestsGraphql",
           async (client) => {
-            const response = await (client as typeof client & GraphqlClient).graphql<GraphqlPullRequestsResponse>(
+            const response = await (
+              client as typeof client & GraphqlClient
+            ).graphql<GraphqlPullRequestsResponse>(
               `query InboxMergingPullRequests($owner: String!, $repo: String!, $first: Int!) {
                 repository(owner: $owner, name: $repo) {
                   pullRequests(

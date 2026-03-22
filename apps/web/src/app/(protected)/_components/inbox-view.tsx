@@ -13,6 +13,7 @@ import {
 } from "@central-icons-react/round-outlined-radius-2-stroke-1.5";
 import {
   DEFAULT_INBOX_SECTION_RULES,
+  type GitHubCheckSummary,
   type InboxCondition,
   type InboxConditionPreset,
   type InboxSectionId,
@@ -50,6 +51,7 @@ import * as React from "react";
 import { getPullRequestDiffSummaryOptions } from "~/lib/github/pull-request-diff";
 import type { InboxData, InboxProbeData, InboxPullRequestRow } from "~/lib/github/server";
 import { formatRelativeTime } from "~/lib/time";
+import { page, stack } from "~/lib/trpc/pr-batch";
 import { useTRPC } from "~/lib/trpc/react";
 
 import { CheckStatusDot } from "./check-status-dot";
@@ -90,6 +92,14 @@ type InboxSection = {
   label: string;
   items: InboxPullRequestRow[] | null;
 };
+
+type CheckRef = {
+  owner: string;
+  repo: string;
+  ref: string;
+};
+
+type CheckMap = Record<string, GitHubCheckSummary | null>;
 
 type InboxProbe = {
   data: InboxProbeData | null | undefined;
@@ -163,6 +173,10 @@ function sortItems(
   });
 }
 
+function checkKey(input: CheckRef): string {
+  return `${input.owner.toLowerCase()}/${input.repo.toLowerCase()}@${input.ref}`;
+}
+
 function SortIcon({
   field,
   active,
@@ -182,11 +196,19 @@ function SortIcon({
 
 function PullRequestRow({
   active,
+  checks,
+  checksErr,
+  checksLoad,
   onOpen,
+  onSeen,
   pr,
 }: {
   active: boolean;
+  checks: CheckMap;
+  checksErr: boolean;
+  checksLoad: boolean;
   onOpen: (value: string) => void;
+  onSeen: (input: CheckRef) => void;
   pr: InboxPullRequestRow;
 }) {
   const trpc = useTRPC();
@@ -194,46 +216,41 @@ function PullRequestRow({
   const { hasBeenVisible, ref } = useDeferredVisibility<HTMLDivElement>();
   const isOpen = pr.state === "open" && !pr.merged;
   const value = writePr({ owner: pr.repoOwner, repo: pr.repoName, number: pr.number });
-  const checkSummaryQuery = useQuery(
-    trpc.github.getCheckSummary.queryOptions(
+  const check = checkKey({
+    owner: pr.repoOwner,
+    repo: pr.repoName,
+    ref: pr.head.sha,
+  });
+  const summary = checks[check];
+
+  React.useEffect(() => {
+    if (!hasBeenVisible || !isOpen) {
+      return;
+    }
+
+    onSeen({ owner: pr.repoOwner, repo: pr.repoName, ref: pr.head.sha });
+  }, [hasBeenVisible, isOpen, onSeen, pr.head.sha, pr.repoName, pr.repoOwner]);
+
+  function warm() {
+    const q = page(
       {
         owner: pr.repoOwner,
         repo: pr.repoName,
-        ref: pr.head.sha,
+        pullNumber: pr.number,
       },
+      { staleTime: 60_000 },
+    );
+    void qc.prefetchQuery(trpc.github.getPullRequestPage.queryOptions(q.input, q.opts));
+
+    const s = stack(
       {
-        enabled: isOpen && hasBeenVisible,
-        staleTime: 60_000,
+        owner: pr.repoOwner,
+        repo: pr.repoName,
+        pullNumber: pr.number,
       },
-    ),
-  );
-
-  function warm() {
-    void qc.prefetchQuery(
-      trpc.github.getPullRequestPage.queryOptions(
-        {
-          owner: pr.repoOwner,
-          repo: pr.repoName,
-          pullNumber: pr.number,
-        },
-        {
-          staleTime: 60_000,
-        },
-      ),
+      { staleTime: 60_000 },
     );
-
-    void qc.prefetchQuery(
-      trpc.github.getPullRequestStack.queryOptions(
-        {
-          owner: pr.repoOwner,
-          repo: pr.repoName,
-          pullNumber: pr.number,
-        },
-        {
-          staleTime: 60_000,
-        },
-      ),
-    );
+    void qc.prefetchQuery(trpc.github.getPullRequestStack.queryOptions(s.input, s.opts));
 
     if (pr.head.sha && pr.base.sha) {
       void qc.prefetchQuery(
@@ -292,9 +309,9 @@ function PullRequestRow({
 
       <Table.Cell className="w-8 text-center">
         <CheckStatusDot
-          hasError={checkSummaryQuery.isError}
-          isLoading={checkSummaryQuery.isLoading && isOpen}
-          summary={checkSummaryQuery.data}
+          hasError={checksErr && isOpen && hasBeenVisible}
+          isLoading={checksLoad && isOpen && hasBeenVisible && summary === undefined}
+          summary={summary}
         />
       </Table.Cell>
 
@@ -430,15 +447,23 @@ function SectionBodySkeleton() {
 }
 
 function PullRequestTable({
+  checks,
+  checksErr,
+  checksLoad,
   items,
   onOpen,
+  onSeen,
   selected,
   sortDirection,
   sortField,
   onSort,
 }: {
+  checks: CheckMap;
+  checksErr: boolean;
+  checksLoad: boolean;
   items: InboxPullRequestRow[];
   onOpen: (value: string) => void;
+  onSeen: (input: CheckRef) => void;
   selected: string | null;
   sortDirection: SortDirection;
   sortField: SortField;
@@ -487,8 +512,14 @@ function PullRequestTable({
         {items.map((pr) => (
           <PullRequestRow
             key={pr.id}
-            active={selected === writePr({ owner: pr.repoOwner, repo: pr.repoName, number: pr.number })}
+            active={
+              selected === writePr({ owner: pr.repoOwner, repo: pr.repoName, number: pr.number })
+            }
+            checks={checks}
+            checksErr={checksErr}
+            checksLoad={checksLoad}
             onOpen={onOpen}
+            onSeen={onSeen}
             pr={pr}
           />
         ))}
@@ -509,11 +540,19 @@ function ProbeBadge({ children }: { children: React.ReactNode }) {
 }
 
 function ProbeSectionView({
+  checks,
+  checksErr,
+  checksLoad,
   onOpen,
+  onSeen,
   probe,
   selected,
 }: {
+  checks: CheckMap;
+  checksErr: boolean;
+  checksLoad: boolean;
   onOpen: (value: string) => void;
+  onSeen: (input: CheckRef) => void;
   probe: InboxProbe;
   selected: string | null;
 }) {
@@ -560,7 +599,10 @@ function ProbeSectionView({
           <div className="flex items-center gap-1.5">
             <ProbeBadge>{probe.source.toUpperCase()}</ProbeBadge>
             <ProbeBadge>
-              server {probe.data?.diagnostics.serverMs != null ? `${probe.data.diagnostics.serverMs}ms` : "--"}
+              server{" "}
+              {probe.data?.diagnostics.serverMs != null
+                ? `${probe.data.diagnostics.serverMs}ms`
+                : "--"}
             </ProbeBadge>
             <ProbeBadge>render {probe.renderMs != null ? `${probe.renderMs}ms` : "--"}</ProbeBadge>
           </div>
@@ -580,13 +622,18 @@ function ProbeSectionView({
               {probe.data && probe.data.diagnostics.partialFailures.length > 0 ? (
                 <div className="px-4 pt-3 text-xs text-sachi-fg-muted">
                   {probe.data.diagnostics.partialFailures.length} repo fetch
-                  {probe.data.diagnostics.partialFailures.length === 1 ? "" : "es"} had partial failures.
+                  {probe.data.diagnostics.partialFailures.length === 1 ? "" : "es"} had partial
+                  failures.
                 </div>
               ) : null}
               {sortedItems.length > 0 ? (
                 <PullRequestTable
+                  checks={checks}
+                  checksErr={checksErr}
+                  checksLoad={checksLoad}
                   items={sortedItems}
                   onOpen={onOpen}
+                  onSeen={onSeen}
                   selected={selected}
                   sortDirection={sortDirection}
                   sortField={sortField}
@@ -606,11 +653,19 @@ function ProbeSectionView({
 }
 
 function InboxSectionView({
+  checks,
+  checksErr,
+  checksLoad,
   onOpen,
+  onSeen,
   section,
   selected,
 }: {
+  checks: CheckMap;
+  checksErr: boolean;
+  checksLoad: boolean;
   onOpen: (value: string) => void;
+  onSeen: (input: CheckRef) => void;
   section: InboxSection;
   selected: string | null;
 }) {
@@ -661,8 +716,12 @@ function InboxSectionView({
             <CardContent className="px-0">
               {sortedItems.length > 0 ? (
                 <PullRequestTable
+                  checks={checks}
+                  checksErr={checksErr}
+                  checksLoad={checksLoad}
                   items={sortedItems}
                   onOpen={onOpen}
+                  onSeen={onSeen}
                   selected={selected}
                   sortDirection={sortDirection}
                   sortField={sortField}
@@ -734,16 +793,7 @@ function InboxEmptyState({ diagnostics }: { diagnostics: InboxData["diagnostics"
     );
   }
 
-  return (
-    <Empty className="flex-1">
-      <EmptyHeader>
-        <EmptyTitle>No open pull requests</EmptyTitle>
-        <EmptyDescription>
-          There are no open pull requests across your synced repositories right now.
-        </EmptyDescription>
-      </EmptyHeader>
-    </Empty>
-  );
+  return null;
 }
 
 function buildInboxSections(
@@ -787,27 +837,66 @@ export function InboxView({
   sectionOrder: string[] | null | undefined;
   selected: string | null;
 }) {
+  const trpc = useTRPC();
+  const [refs, setRefs] = React.useState<CheckRef[]>([]);
+  const checksQuery = useQuery(
+    trpc.github.getCheckSummaries.queryOptions(refs, {
+      enabled: refs.length > 0,
+      staleTime: 60_000,
+    }),
+  );
+  const checks = checksQuery.data ?? {};
+
+  const onSeen = React.useCallback((input: CheckRef) => {
+    const key = checkKey(input);
+    setRefs((cur) => {
+      if (cur.some((row) => checkKey(row) === key)) {
+        return cur;
+      }
+      return [...cur, input];
+    });
+  }, []);
+
   const canonicalOrder = (sectionOrder ?? DEFAULT_SECTION_ORDER) as InboxSectionId[];
   const diagnostics = data?.diagnostics;
   const orderedSections = buildInboxSections(data, canonicalOrder);
   const totalItems = data?.sections.reduce((sum, section) => sum + section.items.length, 0) ?? 0;
   const hasProbes = (probes?.length ?? 0) > 0;
+  const showBlockingEmpty =
+    diagnostics != null &&
+    totalItems === 0 &&
+    !hasProbes &&
+    ((diagnostics.syncedRepoCount === 0 && diagnostics.accessibleRepoCount > 0) ||
+      (diagnostics.fetchedCount === 0 && diagnostics.partialFailures.length > 0));
 
   return (
     <ScrollArea className="h-full min-h-0 bg-sachi-base">
       {diagnostics ? <InboxDiagnosticsBanner diagnostics={diagnostics} /> : null}
 
-      {diagnostics != null && totalItems === 0 && !hasProbes ? (
+      {showBlockingEmpty ? (
         <InboxEmptyState diagnostics={diagnostics} />
       ) : (
         <div className="mx-auto max-w-5xl space-y-4 p-6">
           {probes?.map((probe) => (
-            <ProbeSectionView key={probe.id} onOpen={onOpen} probe={probe} selected={selected} />
+            <ProbeSectionView
+              key={probe.id}
+              checks={checks}
+              checksErr={checksQuery.isError}
+              checksLoad={checksQuery.isLoading}
+              onOpen={onOpen}
+              onSeen={onSeen}
+              probe={probe}
+              selected={selected}
+            />
           ))}
           {orderedSections.map((section) => (
             <InboxSectionView
               key={section.id}
+              checks={checks}
+              checksErr={checksQuery.isError}
+              checksLoad={checksQuery.isLoading}
               onOpen={onOpen}
+              onSeen={onSeen}
               section={section}
               selected={selected}
             />

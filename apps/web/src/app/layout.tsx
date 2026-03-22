@@ -1,10 +1,11 @@
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { DialRoot } from "dialkit";
 import { Inter } from "next/font/google";
+import localFont from "next/font/local";
 
 import "../styles/globals.css";
 import "dialkit/styles.css";
-import localFont from "next/font/local";
+import Head from "next/head";
 import Script from "next/script";
 
 import { Providers } from "~/components/providers";
@@ -47,15 +48,16 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
+      <Head>
         {process.env.NODE_ENV === "development" && (
           <Script
-            src="//unpkg.com/react-grab/dist/index.global.js"
+            src="https://unpkg.com/react-grab/dist/index.global.js"
             crossOrigin="anonymous"
             strategy="beforeInteractive"
           />
         )}
-      </head>
+      </Head>
+
       <body className={`${inter.variable} ${berkeleyMono.variable} h-full font-sans`}>
         <Providers>
           {children}

@@ -102,7 +102,10 @@ function toInboxPullRequestRow(
   };
 }
 
-function toProbePullRequest(pr: GitHubPullRequest, entry: RepoCatalogEntry): ClassifiedInboxPullRequest {
+function toProbePullRequest(
+  pr: GitHubPullRequest,
+  entry: RepoCatalogEntry,
+): ClassifiedInboxPullRequest {
   return {
     ...pr,
     repoFullName: entry.repository.full_name,
@@ -201,7 +204,11 @@ async function loadInboxProbe(mode: InboxProbeMode): Promise<InboxProbeData | nu
         entries.map(async (entry) => {
           const prsResult = await attemptGitHubEffect(
             mode === "graphql"
-              ? listMergingPullRequestsGraphql(auth, entry.repository.owner.login, entry.repository.name)
+              ? listMergingPullRequestsGraphql(
+                  auth,
+                  entry.repository.owner.login,
+                  entry.repository.name,
+                )
               : listRecentPullRequests(auth, entry.repository.owner.login, entry.repository.name),
           );
 
@@ -228,7 +235,12 @@ async function loadInboxProbe(mode: InboxProbeMode): Promise<InboxProbeData | nu
           const items = await Promise.all(
             picks.map(async (pr) => {
               const detailResult = await attemptGitHubEffect(
-                getPullRequest(auth, entry.repository.owner.login, entry.repository.name, pr.number),
+                getPullRequest(
+                  auth,
+                  entry.repository.owner.login,
+                  entry.repository.name,
+                  pr.number,
+                ),
               );
 
               if (!detailResult.ok) {

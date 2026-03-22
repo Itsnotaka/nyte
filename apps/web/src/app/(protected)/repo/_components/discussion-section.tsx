@@ -5,6 +5,7 @@ import { cn } from "@sachikit/ui/lib/utils";
 import { useSuspenseQuery } from "@tanstack/react-query";
 
 import { formatRelativeTime } from "~/lib/time";
+import { discussion } from "~/lib/trpc/pr-batch";
 import { useTRPC } from "~/lib/trpc/react";
 
 import { Section } from "./layout-sections";
@@ -57,10 +58,9 @@ export function PullRequestDiscussionSection({
   repository,
 }: PullRequestDiscussionSectionProps) {
   const trpc = useTRPC();
+  const q = discussion(queryInput, { staleTime: 60_000 });
   const discussionQuery = useSuspenseQuery(
-    trpc.github.getPullRequestDiscussion.queryOptions(queryInput, {
-      staleTime: 60_000,
-    }),
+    trpc.github.getPullRequestDiscussion.queryOptions(q.input, q.opts),
   );
   const { issueComments, reviews } = discussionQuery.data;
 
