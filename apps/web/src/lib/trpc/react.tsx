@@ -1,6 +1,6 @@
 "use client";
 
-import { createTRPCClient, httpBatchLink } from "@trpc/client";
+import { createTRPCClient, httpBatchLink, httpLink, splitLink } from "@trpc/client";
 import { createTRPCContext } from "@trpc/tanstack-react-query";
 import superjson from "superjson";
 
@@ -15,14 +15,25 @@ function getBaseUrl() {
 export const { TRPCProvider, useTRPC, useTRPCClient } = createTRPCContext<AppRouter>();
 
 export function makeTRPCClient() {
+  const url = `${getBaseUrl()}/api/trpc`;
+  const headers = () => ({ "x-trpc-source": "nextjs-react" });
+
   return createTRPCClient<AppRouter>({
     links: [
-      httpBatchLink({
-        url: `${getBaseUrl()}/api/trpc`,
-        transformer: superjson,
-        headers() {
-          return { "x-trpc-source": "nextjs-react" };
+      splitLink({
+        condition(op) {
+          return Boolean(op.context.skipBatch);
         },
+        true: httpLink({
+          url,
+          transformer: superjson,
+          headers,
+        }),
+        false: httpBatchLink({
+          url,
+          transformer: superjson,
+          headers,
+        }),
       }),
     ],
   });

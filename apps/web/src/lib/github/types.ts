@@ -9,7 +9,6 @@ import type {
   GitHubIssueComment,
   GitHubPullRequest,
   GitHubPullRequestReview,
-  GitHubPullRequestReviewComment,
   GitHubRepository,
   InboxSectionId,
   ReviewDecision,
@@ -47,13 +46,6 @@ export type PullRequestPageData = {
   pullRequest: GitHubPullRequest;
 };
 
-export type PullRequestPageDetailsData = {
-  diff: string;
-  issueComments: GitHubIssueComment[];
-  reviews: GitHubPullRequestReview[];
-  reviewComments: GitHubPullRequestReviewComment[];
-};
-
 export type PullRequestDiscussionData = {
   issueComments: GitHubIssueComment[];
   reviews: GitHubPullRequestReview[];
@@ -85,6 +77,9 @@ export type InboxPullRequestRow = {
     login: string;
   };
   head: {
+    sha: string;
+  };
+  base: {
     sha: string;
   };
   repoFullName: string;
@@ -158,6 +153,23 @@ export type InboxData = {
   diagnostics: InboxDiagnostics;
 };
 
+export type InboxProbeMode = "graphql" | "rest";
+
+export type InboxProbeData = {
+  diagnostics: {
+    accessibleRepoCount: number;
+    fetchedCount: number;
+    itemCount: number;
+    partialFailures: string[];
+    serverMs: number;
+    source: InboxProbeMode;
+    syncedRepoCount: number;
+  };
+  id: string;
+  items: InboxPullRequestRow[];
+  label: string;
+};
+
 export type InboxDiagnostics = {
   fetchedCount: number;
   classifiedCount: number;
@@ -166,4 +178,3 @@ export type InboxDiagnostics = {
   syncedRepoCount: number;
   accessibleRepoCount: number;
 };
-

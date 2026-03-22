@@ -65,7 +65,7 @@ export function DiffFile({
       ];
 
   return (
-    <div className="overflow-hidden rounded-lg ring-1 ring-sachi-line" data-file-name={file.name}>
+    <div className="overflow-hidden rounded-lg ring-1 ring-sachi-line">
       <PanelHeader>
         <PanelHeaderLeading>
           <h3 className="truncate text-sm font-semibold text-sachi-fg">{file.name}</h3>

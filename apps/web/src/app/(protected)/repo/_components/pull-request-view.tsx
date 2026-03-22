@@ -381,7 +381,9 @@ export function PullRequestView({ owner, repo, pullNumber, close }: PullRequestV
           {close || isOpen ? (
             <div className="flex shrink-0 items-center gap-2">
               {close}
-              {merge.error ? <p className="text-sm text-destructive">{merge.error.message}</p> : null}
+              {merge.error ? (
+                <p className="text-sm text-destructive">{merge.error.message}</p>
+              ) : null}
               {isOpen && pullRequest.draft ? (
                 <Button
                   variant="outline"
@@ -608,7 +610,9 @@ export function PullRequestView({ owner, repo, pullNumber, close }: PullRequestV
                   <React.Suspense fallback={<PullRequestDiffFallback />}>
                     <PullRequestDiffSection
                       activeFile={activeFile}
+                      baseSha={pullRequest.base.sha}
                       draftsByFile={draftsByFile}
+                      headSha={pullRequest.head.sha}
                       onAddDraft={addDraft}
                       onDraftChange={updateDraft}
                       onDraftRemove={removeDraft}

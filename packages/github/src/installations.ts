@@ -71,4 +71,3 @@ export function getAuthenticatedGitHubAccount(
 export function getInstallUrl(appSlug: string): string {
   return `https://github.com/apps/${appSlug}/installations/new`;
 }
-

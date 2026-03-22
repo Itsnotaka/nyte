@@ -1,6 +1,10 @@
 import "server-only";
 import { db, syncedReposSchema } from "@sachikit/db";
-import { listInstallationRepos, listUserInstallations, type GitHubRepository } from "@sachikit/github";
+import {
+  listInstallationRepos,
+  listUserInstallations,
+  type GitHubRepository,
+} from "@sachikit/github";
 import { eq } from "drizzle-orm";
 import { cache } from "react";
 
@@ -60,7 +64,7 @@ const getSyncedRepoLookupRows = cache(async (): Promise<SyncedRepoLookupRow[]> =
 
 export const getInstallationRepos = cache(async function getInstallationRepos(
   installationId: number,
- ): Promise<GitHubRepository[]> {
+): Promise<GitHubRepository[]> {
   const session = await getUserSession();
   if (!session) return [];
 

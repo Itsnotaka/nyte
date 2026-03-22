@@ -45,15 +45,13 @@ export function ConnectView() {
         <div className="flex flex-col items-center gap-2">
           <h1 className="text-xl font-semibold text-sachi-fg">Install the GitHub App</h1>
           <p className="max-w-sm text-sm text-sachi-fg-muted">
-            You&apos;re signed in to Sachi. Next, install the Sachi GitHub App on the
-            GitHub account or organization you want to use.
+            You&apos;re signed in to Sachi. Next, install the Sachi GitHub App on the GitHub account
+            or organization you want to use.
           </p>
         </div>
 
         <Button size="lg" disabled={startInstallMutation.isPending} onClick={handleInstall}>
-          {startInstallMutation.isPending
-            ? "Opening GitHub..."
-            : "Continue to GitHub App install"}
+          {startInstallMutation.isPending ? "Opening GitHub..." : "Continue to GitHub App install"}
         </Button>
 
         {startInstallMutation.error ? (
@@ -63,8 +61,8 @@ export function ConnectView() {
         ) : null}
 
         <p className="text-xs text-sachi-fg-faint">
-          We&apos;ll open GitHub in a new tab so you can finish the GitHub App
-          installation without losing your place in Sachi.
+          We&apos;ll open GitHub in a new tab so you can finish the GitHub App installation without
+          losing your place in Sachi.
         </p>
       </div>
     </section>

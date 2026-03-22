@@ -1,9 +1,9 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useQueryState } from "nuqs";
+import { useEffect } from "react";
 
 import { useTRPC } from "~/lib/trpc/react";
 

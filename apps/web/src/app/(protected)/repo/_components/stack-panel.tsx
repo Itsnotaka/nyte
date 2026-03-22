@@ -1,7 +1,7 @@
 import { Badge } from "@sachikit/ui/components/badge";
 import { Skeleton } from "@sachikit/ui/components/skeleton";
 import { cn } from "@sachikit/ui/lib/utils";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import Link from "next/link";
 
 import { useTRPC } from "~/lib/trpc/react";
@@ -20,12 +20,28 @@ export function SidebarListFallback() {
 
 export function PullRequestStackPanel({ queryInput }: { queryInput: PullRequestQueryInput }) {
   const trpc = useTRPC();
+  const qc = useQueryClient();
   const stackQuery = useSuspenseQuery(
     trpc.github.getPullRequestStack.queryOptions(queryInput, {
       staleTime: 60_000,
     }),
   );
   const stack = stackQuery.data;
+
+  function warm(entryNumber: number) {
+    void qc.prefetchQuery(
+      trpc.github.getPullRequestPage.queryOptions(
+        {
+          owner: queryInput.owner,
+          repo: queryInput.repo,
+          pullNumber: entryNumber,
+        },
+        {
+          staleTime: 60_000,
+        },
+      ),
+    );
+  }
 
   if (stack.length === 0) {
     return (
@@ -39,7 +55,9 @@ export function PullRequestStackPanel({ queryInput }: { queryInput: PullRequestQ
         <Link
           key={entry.number}
           href={`/repo/${queryInput.owner}/${queryInput.repo}/pull/${String(entry.number)}`}
-          prefetch={true}
+          prefetch={false}
+          onMouseEnter={() => warm(entry.number)}
+          onFocus={() => warm(entry.number)}
           className={cn(
             "flex items-start justify-between gap-2 rounded-md px-2 py-2 transition-colors hover:bg-sachi-fill",
             entry.isCurrent ? "bg-sachi-fill" : undefined,

@@ -11,15 +11,14 @@ export {
   listCommits,
 } from "./repositories.ts";
 export { listRepositoryBranches } from "./branches.ts";
-export {
-  listCheckRunsForRef,
-  summarizeCheckRuns,
-} from "./checks.ts";
+export { listCheckRunsForRef, summarizeCheckRuns } from "./checks.ts";
 export {
   DEFAULT_INBOX_SECTION_RULES,
   buildPullRequestReviewSignals,
   classifyPullRequests,
   computeReviewDecision,
+  deriveInboxClassificationFacts,
+  matchesInboxCondition,
 } from "./inbox.ts";
 export type {
   ClassifyPullRequestsOptions,
@@ -40,6 +39,7 @@ export {
   findPullRequestByHead,
   getPullRequest,
   getPullRequestDiff,
+  listMergingPullRequestsGraphql,
   listPullRequestFilesPaginated,
   listRecentPullRequests,
   listRepositoryPullRequests,

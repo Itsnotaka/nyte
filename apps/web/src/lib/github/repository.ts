@@ -23,7 +23,9 @@ export async function getRepoTree(
   if (!context) return null;
 
   const treeSha = path ? `${ref}:${path}` : ref;
-  return runGitHubEffectOrNotFound(getRepositoryTree(context.auth, owner, context.repository.name, treeSha));
+  return runGitHubEffectOrNotFound(
+    getRepositoryTree(context.auth, owner, context.repository.name, treeSha),
+  );
 }
 
 export async function getRepoFileContent(
@@ -35,7 +37,9 @@ export async function getRepoFileContent(
   const context = await findRepoContext(owner, repo);
   if (!context) return null;
 
-  return runGitHubEffectOrNotFound(getFileContent(context.auth, owner, context.repository.name, path, ref));
+  return runGitHubEffectOrNotFound(
+    getFileContent(context.auth, owner, context.repository.name, path, ref),
+  );
 }
 
 export async function getRepoCommits(

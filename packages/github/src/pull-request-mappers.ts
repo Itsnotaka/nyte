@@ -21,6 +21,87 @@ export type PullRequestDetailResponse = Awaited<
 
 type PullRequestResponse = PullRequestSummaryResponse | PullRequestDetailResponse;
 
+type GraphqlActor = {
+  __typename: string;
+  avatarUrl: string;
+  login: string;
+  databaseId?: number | null;
+};
+
+type GraphqlPullRequestResponse = {
+  additions: number;
+  autoMergeRequest: object | null;
+  author: GraphqlActor | null;
+  baseRefName: string | null;
+  baseRefOid: string | null;
+  body: string | null;
+  changedFiles: number;
+  comments: { totalCount: number } | null;
+  commits: { totalCount: number } | null;
+  createdAt: string;
+  databaseId: number | null;
+  deletions: number;
+  headRefName: string | null;
+  headRefOid: string | null;
+  isDraft: boolean;
+  mergedAt: string | null;
+  number: number;
+  state: "OPEN" | "CLOSED" | "MERGED";
+  title: string;
+  updatedAt: string;
+  url: string;
+};
+
+function toGraphqlAccount(actor: GraphqlActor | null): GitHubPullRequest["user"] {
+  if (!actor) {
+    throw new GitHubError(
+      "GitHub pull request author is missing",
+      0,
+      "unknown",
+      "github.pullRequests.listMergingPullRequestsGraphql",
+    );
+  }
+
+  return {
+    avatar_url: actor.avatarUrl,
+    id: actor.databaseId ?? 0,
+    login: actor.login,
+    type: actor.__typename === "Organization" ? "Organization" : "User",
+  };
+}
+
+export function toGraphqlPullRequest(pull: GraphqlPullRequestResponse): GitHubPullRequest {
+  return {
+    id: pull.databaseId ?? pull.number,
+    number: pull.number,
+    html_url: pull.url,
+    title: pull.title,
+    body: pull.body,
+    state: pull.state === "OPEN" ? "open" : "closed",
+    draft: pull.isDraft,
+    merged: pull.mergedAt !== null,
+    auto_merge_enabled: pull.autoMergeRequest !== null,
+    comments: pull.comments?.totalCount ?? null,
+    review_comments: null,
+    commits: pull.commits?.totalCount ?? null,
+    additions: pull.additions,
+    deletions: pull.deletions,
+    changed_files: pull.changedFiles,
+    created_at: pull.createdAt,
+    updated_at: pull.updatedAt,
+    user: toGraphqlAccount(pull.author),
+    requested_reviewers: [],
+    head: {
+      ref: pull.headRefName ?? "",
+      sha: pull.headRefOid ?? "",
+    },
+    base: {
+      ref: pull.baseRefName ?? "",
+      sha: pull.baseRefOid ?? "",
+    },
+  };
+}
+
 export function toPullRequest(pull: PullRequestResponse): GitHubPullRequest {
   const user = accountFromResponse(pull.user, "pull request author");
   const state = pull.state === "open" ? "open" : "closed";

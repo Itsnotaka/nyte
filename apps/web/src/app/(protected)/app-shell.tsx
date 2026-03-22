@@ -1,8 +1,6 @@
 "use client";
 
 import { IconBox2 } from "@central-icons-react/round-outlined-radius-2-stroke-1.5";
-import { useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect } from "react";
 import {
   Sidebar,
   SidebarContent,
@@ -10,8 +8,9 @@ import {
   SidebarInset,
   SidebarProvider,
 } from "@sachikit/ui/components/sidebar";
+import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 
 import { useTRPC } from "~/lib/trpc/react";
 
@@ -59,37 +58,25 @@ function SidebarTopBar({ totalSynced }: { totalSynced: number | null }) {
 
 export function AppShell({ children, totalSynced }: AppShellProps) {
   const pathname = usePathname();
-  const router = useRouter();
   const queryClient = useQueryClient();
   const trpc = useTRPC();
 
-  const warmInbox = useCallback(() => {
+  function warmInbox() {
     if (pathname === "/") {
       return;
     }
 
-    void Promise.allSettled([
-      queryClient.prefetchQuery({
-        ...trpc.github.getInboxData.queryOptions(),
-        gcTime: 5 * 60_000,
-        staleTime: 60_000,
-      }),
-      queryClient.prefetchQuery({
-        ...trpc.settings.getInboxSectionOrder.queryOptions(),
-        gcTime: 5 * 60_000,
-        staleTime: 60_000,
-      }),
-      Promise.resolve(router.prefetch("/")),
-    ]);
-  }, [pathname, queryClient, router, trpc]);
-
-  useEffect(() => {
-    if (pathname === "/" || pathname.startsWith("/setup")) {
-      return;
-    }
-
-    warmInbox();
-  }, [pathname, warmInbox]);
+    void queryClient.prefetchQuery({
+      ...trpc.github.getInboxData.queryOptions(),
+      gcTime: 5 * 60_000,
+      staleTime: 60_000,
+    });
+    void queryClient.prefetchQuery({
+      ...trpc.settings.getInboxSectionOrder.queryOptions(),
+      gcTime: 5 * 60_000,
+      staleTime: 60_000,
+    });
+  }
 
   return (
     <SidebarProvider open={true} className="h-dvh w-full bg-sachi-shell text-sachi-fg-secondary">

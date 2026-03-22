@@ -2,6 +2,7 @@ import "server-only";
 
 export type {
   InboxData,
+  InboxProbeData,
   InboxPullRequest,
   InboxPullRequestRow,
   InboxSectionData,
@@ -30,7 +31,6 @@ export {
   getPullRequestDiscussionData,
   getPullRequestFileList,
   getPullRequestPageData,
-  getPullRequestPageDetailsData,
   getPullRequestReviewCommentsData,
   getRepoSubmitPageData,
   getRepositoryPullRequestsPageData,
@@ -57,12 +57,7 @@ export {
   requestPullRequestReviewers,
 } from "./review";
 
-export {
-  getRepoBranches,
-  getRepoCommits,
-  getRepoFileContent,
-  getRepoTree,
-} from "./repository";
+export { getRepoBranches, getRepoCommits, getRepoFileContent, getRepoTree } from "./repository";
 
 export {
   getCheckReportForPR,
@@ -71,4 +66,4 @@ export {
   getCheckSummaryForPR,
 } from "./checks";
 
-export { getInboxData } from "./inbox";
+export { getInboxData, getMergingProbeGraphqlData, getMergingProbeRestData } from "./inbox";

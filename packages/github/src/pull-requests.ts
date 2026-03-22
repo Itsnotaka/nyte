@@ -1,7 +1,7 @@
 import { Effect, Layer, ServiceMap } from "effect";
 
 import { GitHubClientService } from "./client.ts";
-import { toPullRequest, toPullRequestFile } from "./pull-request-mappers.ts";
+import { toGraphqlPullRequest, toPullRequest, toPullRequestFile } from "./pull-request-mappers.ts";
 import {
   GitHubError,
   type GitHubAppInstallationAuth,
@@ -19,6 +19,45 @@ export type BranchComparison = {
   behindBy: number;
   status: "ahead" | "behind" | "diverged" | "identical";
   totalCommits: number;
+};
+
+type GraphqlClient = {
+  graphql: <T>(query: string, variables: Record<string, unknown>) => Promise<T>;
+};
+
+type GraphqlPullRequestsResponse = {
+  repository: {
+    pullRequests: {
+      nodes: Array<{
+        additions: number;
+        autoMergeRequest: object | null;
+        author: {
+          __typename: string;
+          avatarUrl: string;
+          login: string;
+          databaseId?: number | null;
+        } | null;
+        baseRefName: string | null;
+        baseRefOid: string | null;
+        body: string | null;
+        changedFiles: number;
+        comments: { totalCount: number } | null;
+        commits: { totalCount: number } | null;
+        createdAt: string;
+        databaseId: number | null;
+        deletions: number;
+        headRefName: string | null;
+        headRefOid: string | null;
+        isDraft: boolean;
+        mergedAt: string | null;
+        number: number;
+        state: "OPEN" | "CLOSED" | "MERGED";
+        title: string;
+        updatedAt: string;
+        url: string;
+      } | null>;
+    };
+  } | null;
 };
 
 type GitHubPullRequestsShape = {
@@ -79,6 +118,12 @@ type GitHubPullRequestsShape = {
     perPage?: number,
   ) => Effect.Effect<PaginatedFiles, GitHubError>;
   listRecentPullRequests: (
+    auth: GitHubAppInstallationAuth,
+    owner: string,
+    repo: string,
+    options?: { perPage?: number },
+  ) => Effect.Effect<GitHubPullRequest[], GitHubError>;
+  listMergingPullRequestsGraphql: (
     auth: GitHubAppInstallationAuth,
     owner: string,
     repo: string,
@@ -301,6 +346,87 @@ export class GitHubPullRequestsService extends ServiceMap.Service<
           },
           { owner, repo },
         ),
+      listMergingPullRequestsGraphql: (auth, owner, repo, options) =>
+        clients.withInstallationClient(
+          auth,
+          "github.pullRequests.listMergingPullRequestsGraphql",
+          async (client) => {
+            const response = await (client as typeof client & GraphqlClient).graphql<GraphqlPullRequestsResponse>(
+              `query InboxMergingPullRequests($owner: String!, $repo: String!, $first: Int!) {
+                repository(owner: $owner, name: $repo) {
+                  pullRequests(
+                    first: $first
+                    states: [OPEN, MERGED]
+                    orderBy: { field: UPDATED_AT, direction: DESC }
+                  ) {
+                    nodes {
+                      databaseId
+                      number
+                      url
+                      title
+                      body
+                      state
+                      isDraft
+                      mergedAt
+                      autoMergeRequest {
+                        enabledAt
+                      }
+                      additions
+                      deletions
+                      changedFiles
+                      createdAt
+                      updatedAt
+                      comments {
+                        totalCount
+                      }
+                      commits {
+                        totalCount
+                      }
+                      author {
+                        __typename
+                        login
+                        avatarUrl
+                        ... on User {
+                          databaseId
+                        }
+                        ... on Organization {
+                          databaseId
+                        }
+                        ... on Bot {
+                          databaseId
+                        }
+                      }
+                      headRefName
+                      headRefOid
+                      baseRefName
+                      baseRefOid
+                    }
+                  }
+                }
+              }`,
+              {
+                first: options?.perPage ?? 100,
+                owner,
+                repo,
+              },
+            );
+
+            if (!response.repository) {
+              throw new GitHubError(
+                "GitHub repository not found",
+                404,
+                "not_found",
+                "github.pullRequests.listMergingPullRequestsGraphql",
+                { owner, repo },
+              );
+            }
+
+            return response.repository.pullRequests.nodes.flatMap((node) =>
+              node ? [toGraphqlPullRequest(node)] : [],
+            );
+          },
+          { owner, repo },
+        ),
       listRepositoryPullRequests: (auth, owner, repo, state = "open") =>
         clients.withInstallationClient(
           auth,
@@ -425,6 +551,17 @@ export function listRecentPullRequests(
 ): Effect.Effect<GitHubPullRequest[], GitHubError, GitHubPullRequestsService> {
   return GitHubPullRequestsService.use((service) =>
     service.listRecentPullRequests(auth, owner, repo, options),
+  );
+}
+
+export function listMergingPullRequestsGraphql(
+  auth: GitHubAppInstallationAuth,
+  owner: string,
+  repo: string,
+  options?: { perPage?: number },
+): Effect.Effect<GitHubPullRequest[], GitHubError, GitHubPullRequestsService> {
+  return GitHubPullRequestsService.use((service) =>
+    service.listMergingPullRequestsGraphql(auth, owner, repo, options),
   );
 }
 

@@ -1,17 +1,22 @@
 "use client";
 
-import { parsePatchFiles } from "@pierre/diffs";
-import type { FileDiffMetadata } from "@pierre/diffs/react";
 import { DIFF_SETTINGS_DEFAULTS } from "@sachikit/db/schema/settings";
 import type { DiffSettingsJson } from "@sachikit/db/schema/settings";
-import type { GitHubPullRequestFile, GitHubRepository } from "@sachikit/github";
+import type { GitHubPullRequestReviewComment, GitHubRepository } from "@sachikit/github";
 import { Badge } from "@sachikit/ui/components/badge";
+import { Button } from "@sachikit/ui/components/button";
 import { Skeleton } from "@sachikit/ui/components/skeleton";
-import { useMutation, useQuery, useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import * as React from "react";
 
-import { useTRPC, useTRPCClient } from "~/lib/trpc/react";
+import {
+  getPullRequestDiffFileOptions,
+  getPullRequestDiffSummaryOptions,
+  type PullRequestDiffSummaryFile,
+} from "~/lib/github/pull-request-diff";
+import { useTRPC } from "~/lib/trpc/react";
 
+import { useDeferredVisibility } from "../../_components/use-deferred-visibility";
 import { DiffFile } from "./diff-file";
 import { DiffSettingsPopover } from "./diff-settings-popover";
 import { FileTreeSidebar } from "./file-tree-sidebar";
@@ -19,25 +24,19 @@ import { Section } from "./layout-sections";
 import type { DraftComment, PullRequestQueryInput } from "./types";
 import { groupByPath } from "./utils";
 
-const INITIAL_DIFF_PAGE_SIZE = 1;
-const FOLLOW_UP_DIFF_PAGE_SIZE = 100;
-
-function buildPatchHeader(file: GitHubPullRequestFile): string {
-  const previousName = file.previous_filename ?? file.filename;
-  const fromPath = file.status === "added" ? "/dev/null" : `a/${previousName}`;
-  const toPath = file.status === "removed" ? "/dev/null" : `b/${file.filename}`;
-  return `diff --git a/${previousName} b/${file.filename}\n--- ${fromPath}\n+++ ${toPath}\n`;
-}
-
-function parsePullRequestFile(file: GitHubPullRequestFile): FileDiffMetadata | null {
-  const diff = `${buildPatchHeader(file)}${file.patch ? `${file.patch}\n` : ""}`;
-  const parsed = parsePatchFiles(diff).flatMap((patch) => patch.files);
-  return parsed[0] ?? null;
-}
+type DiffIdentity = {
+  owner: string;
+  repo: string;
+  pullNumber: number;
+  baseSha: string;
+  headSha: string;
+};
 
 type PullRequestDiffSectionProps = {
   activeFile: string | null;
+  baseSha: string;
   draftsByFile: Map<string, DraftComment[]>;
+  headSha: string;
   onAddDraft: (path: string, lineNumber: number, side: "LEFT" | "RIGHT") => void;
   onDraftChange: (id: string, body: string) => void;
   onDraftRemove: (id: string) => void;
@@ -46,6 +45,117 @@ type PullRequestDiffSectionProps = {
   repository: GitHubRepository;
   sidebarOpen: boolean;
 };
+
+function DiffFileSkeleton({ file }: { file: PullRequestDiffSummaryFile }) {
+  return (
+    <div className="overflow-hidden rounded-lg bg-sachi-base ring-1 ring-sachi-line-subtle">
+      <div className="flex items-center justify-between gap-3 border-b border-sachi-line-subtle px-4 py-3">
+        <div className="min-w-0 space-y-1">
+          <Skeleton className="h-4 w-56" />
+          <Skeleton className="h-3 w-40" />
+        </div>
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-5 w-20 rounded-full" />
+          <Skeleton className="h-5 w-16 rounded-full" />
+        </div>
+      </div>
+      <div className="space-y-3 px-4 py-4">
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-4 w-20" />
+          <span className="text-xs text-sachi-fg-faint">
+            {file.additions + file.deletions} changed lines
+          </span>
+        </div>
+        <Skeleton className="h-48 w-full rounded-md" />
+      </div>
+    </div>
+  );
+}
+
+function DiffFileError({
+  file,
+  error,
+  onRetry,
+}: {
+  file: PullRequestDiffSummaryFile;
+  error: unknown;
+  onRetry: () => void;
+}) {
+  const message = error instanceof Error ? error.message : "Unknown error";
+
+  return (
+    <div className="overflow-hidden rounded-lg bg-sachi-base ring-1 ring-destructive/30">
+      <div className="space-y-3 px-4 py-4">
+        <div className="space-y-1">
+          <p className="text-sm font-semibold text-sachi-fg">{file.name}</p>
+          <p className="text-sm text-destructive">Unable to load this file diff.</p>
+          <p className="text-xs text-sachi-fg-muted">{message}</p>
+        </div>
+        <div>
+          <Button type="button" variant="outline" size="sm" onClick={onRetry}>
+            Retry
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PullRequestDiffFileSlot({
+  activeFile,
+  diffIdentity,
+  diffSettings,
+  drafts,
+  file,
+  onAddDraft,
+  onDraftChange,
+  onDraftRemove,
+  repository,
+  reviewComments,
+}: {
+  activeFile: string | null;
+  diffIdentity: DiffIdentity;
+  diffSettings: DiffSettingsJson;
+  drafts: DraftComment[];
+  file: PullRequestDiffSummaryFile;
+  onAddDraft: (path: string, lineNumber: number, side: "LEFT" | "RIGHT") => void;
+  onDraftChange: (id: string, body: string) => void;
+  onDraftRemove: (id: string) => void;
+  repository: GitHubRepository;
+  reviewComments: GitHubPullRequestReviewComment[];
+}) {
+  const { hasBeenVisible, ref } = useDeferredVisibility<HTMLDivElement>();
+  const shouldLoad = activeFile === file.name || hasBeenVisible;
+  const fileQuery = useQuery({
+    ...getPullRequestDiffFileOptions({ ...diffIdentity, path: file.name }),
+    enabled: shouldLoad,
+  });
+
+  return (
+    <div ref={ref} className="scroll-mt-4" data-file-name={file.name}>
+      {fileQuery.isError ? (
+        <DiffFileError
+          error={fileQuery.error}
+          file={file}
+          onRetry={() => void fileQuery.refetch()}
+        />
+      ) : fileQuery.data ? (
+        <DiffFile
+          diffSettings={diffSettings}
+          drafts={drafts}
+          file={fileQuery.data.file}
+          onAddDraft={onAddDraft}
+          onDraftChange={onDraftChange}
+          onDraftRemove={onDraftRemove}
+          repository={repository}
+          reviewComments={reviewComments}
+        />
+      ) : (
+        <DiffFileSkeleton file={file} />
+      )}
+    </div>
+  );
+}
 
 export function PullRequestDiffFallback() {
   return (
@@ -84,7 +194,9 @@ export function SidebarStatusFallback() {
 
 export function PullRequestDiffSection({
   activeFile,
+  baseSha,
   draftsByFile,
+  headSha,
   onAddDraft,
   onDraftChange,
   onDraftRemove,
@@ -94,7 +206,6 @@ export function PullRequestDiffSection({
   sidebarOpen,
 }: PullRequestDiffSectionProps) {
   const trpc = useTRPC();
-  const trpcClient = useTRPCClient();
   const queryClient = useQueryClient();
   const diffSettingsQuery = useSuspenseQuery(trpc.settings.getDiffSettings.queryOptions());
   const viewedFilesQuery = useSuspenseQuery(
@@ -102,12 +213,14 @@ export function PullRequestDiffSection({
       staleTime: 5 * 60_000,
     }),
   );
-  const firstPageQuery = useSuspenseQuery(
-    trpc.github.getPullRequestFiles.queryOptions(
-      { ...queryInput, page: 1, perPage: INITIAL_DIFF_PAGE_SIZE },
-      { staleTime: 60_000 },
-    ),
-  );
+  const diffIdentity: DiffIdentity = {
+    owner: queryInput.owner,
+    repo: queryInput.repo,
+    pullNumber: queryInput.pullNumber,
+    baseSha,
+    headSha,
+  };
+  const diffSummaryQuery = useSuspenseQuery(getPullRequestDiffSummaryOptions(diffIdentity));
   const reviewCommentsQuery = useSuspenseQuery(
     trpc.github.getPullRequestReviewComments.queryOptions(queryInput, {
       staleTime: 60_000,
@@ -115,6 +228,7 @@ export function PullRequestDiffSection({
   );
 
   const diffSettings: DiffSettingsJson = diffSettingsQuery.data ?? DIFF_SETTINGS_DEFAULTS;
+  const summaryFiles = diffSummaryQuery.data.files;
   const viewedFiles = new Set(viewedFilesQuery.data ?? []);
   const viewedFilesQueryKey = trpc.settings.getViewedFiles.queryKey({
     owner: queryInput.owner,
@@ -175,6 +289,7 @@ export function PullRequestDiffSection({
       });
       return;
     }
+
     markUnviewed.mutate({
       filePath: filename,
       owner: queryInput.owner,
@@ -183,69 +298,21 @@ export function PullRequestDiffSection({
     });
   }
 
-  const resolvedBulkPagesQuery = useQuery({
-    enabled: firstPageQuery.data.nextPage !== null,
-    queryKey: [
-      "github",
-      "getPullRequestFilesRemaining",
-      queryInput.owner,
-      queryInput.repo,
-      queryInput.pullNumber,
-      firstPageQuery.data.nextPage,
-      FOLLOW_UP_DIFF_PAGE_SIZE,
-    ],
-    queryFn: async () => {
-      const pages = [];
-      let nextPage = firstPageQuery.data.nextPage;
-      while (nextPage !== null) {
-        const page = await trpcClient.github.getPullRequestFiles.query({
-          ...queryInput,
-          page: nextPage,
-          perPage: FOLLOW_UP_DIFF_PAGE_SIZE,
-        });
-        pages.push(page);
-        nextPage = page.nextPage;
-      }
-      return pages;
-    },
-    staleTime: 60_000,
-  });
-
-  const sourceFiles = React.useMemo(() => {
-    const fileMap = new Map<string, GitHubPullRequestFile>();
-    const pages = resolvedBulkPagesQuery.data
-      ? [firstPageQuery.data, ...resolvedBulkPagesQuery.data]
-      : [firstPageQuery.data];
-    for (const page of pages) {
-      for (const file of page.files) {
-        fileMap.set(`${file.filename}:${file.sha}`, file);
-      }
-    }
-    return Array.from(fileMap.values());
-  }, [firstPageQuery.data, resolvedBulkPagesQuery.data]);
-
-  const files = React.useMemo(
-    () =>
-      sourceFiles.flatMap((file) => {
-        const parsed = parsePullRequestFile(file);
-        return parsed ? [parsed] : [];
-      }),
-    [sourceFiles],
-  );
-
   const reviewCommentsByFile = React.useMemo(
-    () => groupByPath(reviewCommentsQuery.data.filter((c) => c.line !== null)),
+    () => groupByPath(reviewCommentsQuery.data.filter((comment) => comment.line !== null)),
     [reviewCommentsQuery.data],
   );
 
-  const fileEntries = sourceFiles.map((file) => ({
-    additions: file.additions,
-    deletions: file.deletions,
-    filename: file.filename,
-    status: file.status,
-  }));
-
-  const isLoadingMoreFiles = resolvedBulkPagesQuery.isLoading || resolvedBulkPagesQuery.isFetching;
+  const fileEntries = React.useMemo(
+    () =>
+      summaryFiles.map((file) => ({
+        additions: file.additions,
+        deletions: file.deletions,
+        filename: file.name,
+        status: file.type,
+      })),
+    [summaryFiles],
+  );
 
   return (
     <div className="flex gap-6">
@@ -253,11 +320,11 @@ export function PullRequestDiffSection({
         <div className="hidden w-72 shrink-0 lg:block">
           <div className="sticky top-0">
             <FileTreeSidebar
-              files={fileEntries}
-              viewedFiles={viewedFiles}
               activeFile={activeFile}
+              files={fileEntries}
               onFileSelect={onFileSelect}
               onToggleViewed={handleToggleViewed}
+              viewedFiles={viewedFiles}
             />
           </div>
         </div>
@@ -265,23 +332,25 @@ export function PullRequestDiffSection({
 
       <div className="min-w-0 flex-1 space-y-6">
         <Section
-          title="Diff"
           action={
             <div className="flex items-center gap-2">
               <Badge variant="outline">
-                {sourceFiles.length} file{sourceFiles.length === 1 ? "" : "s"}
+                {summaryFiles.length} file{summaryFiles.length === 1 ? "" : "s"}
               </Badge>
               <DiffSettingsPopover />
             </div>
           }
+          title="Diff"
         >
-          {files.length === 0 ? (
+          {summaryFiles.length === 0 ? (
             <p className="text-sm text-sachi-fg-muted">No files changed in this pull request.</p>
           ) : (
             <div className="space-y-4">
-              {files.map((file) => (
-                <DiffFile
-                  key={`${file.name}:${file.newObjectId ?? file.prevObjectId ?? file.mode ?? "file"}`}
+              {summaryFiles.map((file) => (
+                <PullRequestDiffFileSlot
+                  key={file.name}
+                  activeFile={activeFile}
+                  diffIdentity={diffIdentity}
                   diffSettings={diffSettings}
                   drafts={draftsByFile.get(file.name) ?? []}
                   file={file}
@@ -292,11 +361,6 @@ export function PullRequestDiffSection({
                   reviewComments={reviewCommentsByFile.get(file.name) ?? []}
                 />
               ))}
-              {isLoadingMoreFiles ? (
-                <div className="rounded-lg border border-sachi-line-subtle bg-sachi-base px-4 py-3 text-sm text-sachi-fg-muted">
-                  Loading more files…
-                </div>
-              ) : null}
             </div>
           )}
         </Section>

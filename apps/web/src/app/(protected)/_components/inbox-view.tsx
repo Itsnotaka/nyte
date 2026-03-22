@@ -47,13 +47,15 @@ import { compareAsc, compareDesc, parseISO } from "date-fns";
 import Link from "next/link";
 import * as React from "react";
 
-import type { InboxData, InboxPullRequestRow } from "~/lib/github/server";
+import { getPullRequestDiffSummaryOptions } from "~/lib/github/pull-request-diff";
+import type { InboxData, InboxProbeData, InboxPullRequestRow } from "~/lib/github/server";
 import { formatRelativeTime } from "~/lib/time";
 import { useTRPC } from "~/lib/trpc/react";
 
 import { CheckStatusDot } from "./check-status-dot";
 import { prHref, writePr } from "./inbox-pr";
 import { ReviewStatusIcon } from "./review-status-icon";
+import { useDeferredVisibility } from "./use-deferred-visibility";
 
 type SortField = "title" | "changes" | "updated";
 type SortDirection = "asc" | "desc";
@@ -87,6 +89,16 @@ type InboxSection = {
   id: string;
   label: string;
   items: InboxPullRequestRow[] | null;
+};
+
+type InboxProbe = {
+  data: InboxProbeData | null | undefined;
+  error: { message: string } | null;
+  id: string;
+  isLoading: boolean;
+  label: string;
+  renderMs: number | null;
+  source: "graphql" | "rest";
 };
 
 function flattenAndConditions(condition: InboxCondition): FlatCondition[] {
@@ -168,42 +180,6 @@ function SortIcon({
   return <IconSortArrowUpDown className={cls} aria-label={`Sort by ${field}`} />;
 }
 
-function useDeferredVisibility<T extends Element>() {
-  const ref = React.useRef<T | null>(null);
-  const [hasBeenVisible, setHasBeenVisible] = React.useState(false);
-
-  React.useEffect(() => {
-    if (hasBeenVisible) {
-      return;
-    }
-
-    const node = ref.current;
-    if (!node) {
-      return;
-    }
-
-    if (typeof IntersectionObserver === "undefined") {
-      setHasBeenVisible(true);
-      return;
-    }
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) {
-          setHasBeenVisible(true);
-          observer.disconnect();
-        }
-      },
-      { rootMargin: "300px 0px" },
-    );
-
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [hasBeenVisible]);
-
-  return { hasBeenVisible, ref };
-}
-
 function PullRequestRow({
   active,
   onOpen,
@@ -245,6 +221,31 @@ function PullRequestRow({
         },
       ),
     );
+
+    void qc.prefetchQuery(
+      trpc.github.getPullRequestStack.queryOptions(
+        {
+          owner: pr.repoOwner,
+          repo: pr.repoName,
+          pullNumber: pr.number,
+        },
+        {
+          staleTime: 60_000,
+        },
+      ),
+    );
+
+    if (pr.head.sha && pr.base.sha) {
+      void qc.prefetchQuery(
+        getPullRequestDiffSummaryOptions({
+          owner: pr.repoOwner,
+          repo: pr.repoName,
+          pullNumber: pr.number,
+          headSha: pr.head.sha,
+          baseSha: pr.base.sha,
+        }),
+      );
+    }
   }
 
   function open(event: React.MouseEvent<HTMLAnchorElement>) {
@@ -428,6 +429,181 @@ function SectionBodySkeleton() {
   );
 }
 
+function PullRequestTable({
+  items,
+  onOpen,
+  selected,
+  sortDirection,
+  sortField,
+  onSort,
+}: {
+  items: InboxPullRequestRow[];
+  onOpen: (value: string) => void;
+  selected: string | null;
+  sortDirection: SortDirection;
+  sortField: SortField;
+  onSort: (field: SortField) => void;
+}) {
+  return (
+    <Table layout="fixed">
+      <Table.Header variant="compact">
+        <Table.Row>
+          <SortableHead
+            field="title"
+            label="Title"
+            activeField={sortField}
+            direction={sortDirection}
+            onSort={onSort}
+            className="w-full pl-4"
+          />
+          <Table.Head className="w-8 text-center">
+            <IconCircleCheck className="mx-auto size-3.5 text-sachi-fg-faint" />
+          </Table.Head>
+          <Table.Head className="w-8 text-center">
+            <IconCircleDashed className="mx-auto size-3.5 text-sachi-fg-faint" />
+          </Table.Head>
+          <Table.Head className="w-8 text-center">
+            <IconMerged className="mx-auto size-3.5 text-sachi-fg-faint" />
+          </Table.Head>
+          <SortableHead
+            field="changes"
+            label="Changes"
+            activeField={sortField}
+            direction={sortDirection}
+            onSort={onSort}
+            className="w-28 text-right"
+          />
+          <SortableHead
+            field="updated"
+            label="Updated"
+            activeField={sortField}
+            direction={sortDirection}
+            onSort={onSort}
+            className="w-24 text-right"
+          />
+        </Table.Row>
+      </Table.Header>
+      <Table.Body>
+        {items.map((pr) => (
+          <PullRequestRow
+            key={pr.id}
+            active={selected === writePr({ owner: pr.repoOwner, repo: pr.repoName, number: pr.number })}
+            onOpen={onOpen}
+            pr={pr}
+          />
+        ))}
+      </Table.Body>
+    </Table>
+  );
+}
+
+function ProbeBadge({ children }: { children: React.ReactNode }) {
+  return (
+    <Badge
+      variant="secondary"
+      className="h-5 rounded-full bg-sachi-fill px-2 text-[11px] font-medium tabular-nums"
+    >
+      {children}
+    </Badge>
+  );
+}
+
+function ProbeSectionView({
+  onOpen,
+  probe,
+  selected,
+}: {
+  onOpen: (value: string) => void;
+  probe: InboxProbe;
+  selected: string | null;
+}) {
+  const [open, setOpen] = React.useState(true);
+  const [sortField, setSortField] = React.useState<SortField>("updated");
+  const [sortDirection, setSortDirection] = React.useState<SortDirection>("desc");
+  const count = probe.data?.items.length;
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection((dir) => (dir === "asc" ? "desc" : "asc"));
+      return;
+    }
+
+    setSortField(field);
+    setSortDirection("desc");
+  };
+
+  const sortedItems = React.useMemo(() => {
+    if (probe.data) {
+      return sortItems(probe.data.items, sortField, sortDirection);
+    }
+
+    return probe.isLoading ? null : [];
+  }, [probe.data, probe.isLoading, sortDirection, sortField]);
+
+  return (
+    <Card>
+      <Collapsible open={open} onOpenChange={setOpen}>
+        <div className="flex items-center gap-3 border-b border-sachi-line-subtle/50 px-4 py-2.5">
+          <CollapsibleTrigger className="flex min-w-0 flex-1 items-center gap-2 text-left text-sm">
+            <IconChevronDownMedium
+              className={`size-4 shrink-0 text-sachi-fg-faint transition-transform ${open ? "" : "-rotate-90"}`}
+              aria-hidden="true"
+            />
+            <Badge
+              variant="secondary"
+              className="h-5 min-w-5 justify-center rounded-full bg-sachi-fill px-1.5 text-xs font-medium tabular-nums"
+            >
+              {count == null ? <Skeleton className="h-3 w-3 rounded-full" /> : count}
+            </Badge>
+            <span className="truncate font-medium text-sachi-fg">{probe.label}</span>
+          </CollapsibleTrigger>
+          <div className="flex items-center gap-1.5">
+            <ProbeBadge>{probe.source.toUpperCase()}</ProbeBadge>
+            <ProbeBadge>
+              server {probe.data?.diagnostics.serverMs != null ? `${probe.data.diagnostics.serverMs}ms` : "--"}
+            </ProbeBadge>
+            <ProbeBadge>render {probe.renderMs != null ? `${probe.renderMs}ms` : "--"}</ProbeBadge>
+          </div>
+        </div>
+
+        <CollapsibleContent>
+          {probe.error ? (
+            <CardContent className="space-y-3 px-4 py-3">
+              <Alert>
+                <AlertDescription>{probe.error.message}</AlertDescription>
+              </Alert>
+            </CardContent>
+          ) : probe.isLoading || sortedItems == null ? (
+            <SectionBodySkeleton />
+          ) : (
+            <CardContent className="space-y-3 px-0 py-0">
+              {probe.data && probe.data.diagnostics.partialFailures.length > 0 ? (
+                <div className="px-4 pt-3 text-xs text-sachi-fg-muted">
+                  {probe.data.diagnostics.partialFailures.length} repo fetch
+                  {probe.data.diagnostics.partialFailures.length === 1 ? "" : "es"} had partial failures.
+                </div>
+              ) : null}
+              {sortedItems.length > 0 ? (
+                <PullRequestTable
+                  items={sortedItems}
+                  onOpen={onOpen}
+                  selected={selected}
+                  sortDirection={sortDirection}
+                  sortField={sortField}
+                  onSort={handleSort}
+                />
+              ) : (
+                <div className="flex h-24 items-center justify-center px-4 text-sm text-sachi-fg-muted">
+                  No pull requests
+                </div>
+              )}
+            </CardContent>
+          )}
+        </CollapsibleContent>
+      </Collapsible>
+    </Card>
+  );
+}
 
 function InboxSectionView({
   onOpen,
@@ -484,58 +660,14 @@ function InboxSectionView({
           ) : (
             <CardContent className="px-0">
               {sortedItems.length > 0 ? (
-                <Table layout="fixed">
-                  <Table.Header variant="compact">
-                    <Table.Row>
-                      <SortableHead
-                        field="title"
-                        label="Title"
-                        activeField={sortField}
-                        direction={sortDirection}
-                        onSort={handleSort}
-                        className="w-full pl-4"
-                      />
-                      <Table.Head className="w-8 text-center">
-                        <IconCircleCheck className="mx-auto size-3.5 text-sachi-fg-faint" />
-                      </Table.Head>
-                      <Table.Head className="w-8 text-center">
-                        <IconCircleDashed className="mx-auto size-3.5 text-sachi-fg-faint" />
-                      </Table.Head>
-                      <Table.Head className="w-8 text-center">
-                        <IconMerged className="mx-auto size-3.5 text-sachi-fg-faint" />
-                      </Table.Head>
-                      <SortableHead
-                        field="changes"
-                        label="Changes"
-                        activeField={sortField}
-                        direction={sortDirection}
-                        onSort={handleSort}
-                        className="w-28 text-right"
-                      />
-                      <SortableHead
-                        field="updated"
-                        label="Updated"
-                        activeField={sortField}
-                        direction={sortDirection}
-                        onSort={handleSort}
-                        className="w-24 text-right"
-                      />
-                    </Table.Row>
-                  </Table.Header>
-                  <Table.Body>
-                    {sortedItems.map((pr) => (
-                      <PullRequestRow
-                        key={pr.id}
-                        active={
-                          selected ===
-                          writePr({ owner: pr.repoOwner, repo: pr.repoName, number: pr.number })
-                        }
-                        onOpen={onOpen}
-                        pr={pr}
-                      />
-                    ))}
-                  </Table.Body>
-                </Table>
+                <PullRequestTable
+                  items={sortedItems}
+                  onOpen={onOpen}
+                  selected={selected}
+                  sortDirection={sortDirection}
+                  sortField={sortField}
+                  onSort={handleSort}
+                />
               ) : (
                 <div className="flex h-24 items-center justify-center text-sm text-sachi-fg-muted">
                   No pull requests
@@ -645,11 +777,13 @@ function buildInboxSections(
 export function InboxView({
   data,
   onOpen,
+  probes,
   sectionOrder,
   selected,
 }: {
   data: InboxData | undefined;
   onOpen: (value: string) => void;
+  probes?: InboxProbe[];
   sectionOrder: string[] | null | undefined;
   selected: string | null;
 }) {
@@ -657,15 +791,19 @@ export function InboxView({
   const diagnostics = data?.diagnostics;
   const orderedSections = buildInboxSections(data, canonicalOrder);
   const totalItems = data?.sections.reduce((sum, section) => sum + section.items.length, 0) ?? 0;
+  const hasProbes = (probes?.length ?? 0) > 0;
 
   return (
     <ScrollArea className="h-full min-h-0 bg-sachi-base">
       {diagnostics ? <InboxDiagnosticsBanner diagnostics={diagnostics} /> : null}
 
-      {diagnostics != null && totalItems === 0 ? (
+      {diagnostics != null && totalItems === 0 && !hasProbes ? (
         <InboxEmptyState diagnostics={diagnostics} />
       ) : (
         <div className="mx-auto max-w-5xl space-y-4 p-6">
+          {probes?.map((probe) => (
+            <ProbeSectionView key={probe.id} onOpen={onOpen} probe={probe} selected={selected} />
+          ))}
           {orderedSections.map((section) => (
             <InboxSectionView
               key={section.id}

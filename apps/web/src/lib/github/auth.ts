@@ -1,5 +1,9 @@
 import "server-only";
-import { getAuthenticatedGitHubAccount, getInstallUrl, type GitHubAppInstallationAuth } from "@sachikit/github";
+import {
+  getAuthenticatedGitHubAccount,
+  getInstallUrl,
+  type GitHubAppInstallationAuth,
+} from "@sachikit/github";
 import { headers } from "next/headers";
 import { cache } from "react";
 
@@ -18,9 +22,7 @@ const getGitHubUserToken = cache(async (): Promise<string | null> => {
   return result?.accessToken ?? null;
 });
 
-export function getGitHubInstallationAuth(
-  installationId: number,
- ): GitHubAppInstallationAuth {
+export function getGitHubInstallationAuth(installationId: number): GitHubAppInstallationAuth {
   const appId = Number(env.GITHUB_APP_ID);
   if (!Number.isInteger(appId) || appId <= 0) {
     throw new GitHubAppConfigurationError({

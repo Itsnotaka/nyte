@@ -18,7 +18,9 @@ export async function getCheckReportForPR(
   const context = await findRepoContext(owner, repo);
   if (!context) return null;
 
-  const runs = await runGitHubEffect(listCheckRunsForRef(context.auth, owner, context.repository.name, ref));
+  const runs = await runGitHubEffect(
+    listCheckRunsForRef(context.auth, owner, context.repository.name, ref),
+  );
 
   return {
     runs,

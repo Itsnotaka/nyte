@@ -22,9 +22,9 @@ export class GitHubRepoContextNotFoundError extends Data.TaggedError(
   "GitHubRepoContextNotFoundError",
 )<GitHubAppErrorShape<"repo_context_not_found">> {}
 
-export class GitHubAppConfigurationError extends Data.TaggedError(
-  "GitHubAppConfigurationError",
-)<GitHubAppErrorShape<"app_configuration_invalid">> {}
+export class GitHubAppConfigurationError extends Data.TaggedError("GitHubAppConfigurationError")<
+  GitHubAppErrorShape<"app_configuration_invalid">
+> {}
 
 export class GitHubClosedPullRequestExistsError extends Data.TaggedError(
   "GitHubClosedPullRequestExistsError",

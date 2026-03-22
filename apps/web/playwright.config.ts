@@ -1,5 +1,6 @@
-import { defineConfig, devices } from "@playwright/test";
 import { join } from "node:path";
+
+import { defineConfig, devices } from "@playwright/test";
 
 const authFile = join("playwright", ".auth", "user.json");
 

@@ -1,16 +1,15 @@
 import { Cause, Effect, Exit, Layer } from "effect";
 
-import { GitHubTelemetry, type GitHubTelemetryEvent } from "./client.ts";
-import { GitHubError } from "./types.ts";
-
 import { GitHubBranchesService } from "./branches.ts";
 import { GitHubChecksService } from "./checks.ts";
+import { GitHubTelemetry, type GitHubTelemetryEvent } from "./client.ts";
 import { GitHubClientService } from "./client.ts";
 import { GitHubInstallationsService } from "./installations.ts";
 import { GitHubLabelsService } from "./labels.ts";
 import { GitHubPullRequestsService } from "./pull-requests.ts";
 import { GitHubRepositoriesService } from "./repositories.ts";
 import { GitHubReviewsService } from "./reviews.ts";
+import { GitHubError } from "./types.ts";
 
 export const GitHubServiceLayer = Layer.mergeAll(
   GitHubClientService.layer,
@@ -35,12 +34,10 @@ type GitHubRuntime = {
   runNotFoundOrNull: <A>(effect: GitHubRuntimeEffect<A>) => Promise<A | null>;
 };
 
-export function createGitHubRuntime(
-  telemetry: {
-    onFailure: (event: GitHubTelemetryEvent, error: GitHubError) => Effect.Effect<void>;
-    onSuccess: (event: GitHubTelemetryEvent) => Effect.Effect<void>;
-  },
-): GitHubRuntime {
+export function createGitHubRuntime(telemetry: {
+  onFailure: (event: GitHubTelemetryEvent, error: GitHubError) => Effect.Effect<void>;
+  onSuccess: (event: GitHubTelemetryEvent) => Effect.Effect<void>;
+}): GitHubRuntime {
   const gitHubTelemetryLayer = Layer.succeed(GitHubTelemetry)(telemetry);
   const gitHubRuntimeLayer = GitHubServiceLayer.pipe(Layer.provideMerge(gitHubTelemetryLayer));
 

@@ -18,10 +18,11 @@ import {
   getCheckSummaryForPR,
   getGitHubAppInstallUrl,
   getInboxData,
+  getMergingProbeGraphqlData,
+  getMergingProbeRestData,
   getPullRequestFileList,
   getPullRequestDiscussionData,
   getPullRequestPageData,
-  getPullRequestPageDetailsData,
   getPullRequestReviewCommentsData,
   getPullRequestStack,
   getRepositoryPullRequestsPageData,
@@ -51,7 +52,6 @@ const FAILURES = {
   fileContent: "File content not found.",
   getPullRequestPage: "Pull request page data not found.",
   getPullRequestDiscussion: "Pull request discussion data not found.",
-  getPullRequestDetails: "Pull request details not found.",
   getPullRequestReviewComments: "Pull request review comments not found.",
   getRepoPullsPage: "Pull request list not found.",
   getRepoSubmitPage: "Repository submit page data not found.",
@@ -69,10 +69,7 @@ type GitHubAppError =
   | GitHubClosedPullRequestExistsError
   | GitHubRepoContextNotFoundError;
 
-type GitHubRouterErrorCode =
-  | "request_validation"
-  | "route_data_not_found"
-  | "unexpected_failure";
+type GitHubRouterErrorCode = "request_validation" | "route_data_not_found" | "unexpected_failure";
 
 type GitHubRouterErrorMetadata = GitHubOperationMetadata & {
   mutation?: string;
@@ -86,17 +83,17 @@ type GitHubRouterErrorShape<C extends GitHubRouterErrorCode> = {
   readonly metadata: GitHubRouterErrorMetadata;
 };
 
-class GitHubRouteDataNotFoundError extends Data.TaggedError(
-  "GitHubRouteDataNotFoundError",
-)<GitHubRouterErrorShape<"route_data_not_found">> {}
+class GitHubRouteDataNotFoundError extends Data.TaggedError("GitHubRouteDataNotFoundError")<
+  GitHubRouterErrorShape<"route_data_not_found">
+> {}
 
-class GitHubRequestValidationError extends Data.TaggedError(
-  "GitHubRequestValidationError",
-)<GitHubRouterErrorShape<"request_validation">> {}
+class GitHubRequestValidationError extends Data.TaggedError("GitHubRequestValidationError")<
+  GitHubRouterErrorShape<"request_validation">
+> {}
 
-class GitHubUnexpectedError extends Data.TaggedError(
-  "GitHubUnexpectedError",
-)<GitHubRouterErrorShape<"unexpected_failure">> {}
+class GitHubUnexpectedError extends Data.TaggedError("GitHubUnexpectedError")<
+  GitHubRouterErrorShape<"unexpected_failure">
+> {}
 
 function getErrorDetails(error: unknown): Record<string, unknown> {
   if (error instanceof Error) {
@@ -139,7 +136,7 @@ function logGitHubMutationFailure(
   mutation: string,
   input: Record<string, unknown>,
   error: unknown,
- ) {
+) {
   log.error({
     area: "trpc.github",
     message: "GitHub tRPC mutation failed",
@@ -177,7 +174,11 @@ function mapGitHubErrorToTrpcCode(error: GitHubError): TRPCError["code"] {
 }
 
 function mapGitHubAppErrorToTrpcCode(
-  error: GitHubAppError | GitHubRouteDataNotFoundError | GitHubRequestValidationError | GitHubUnexpectedError,
+  error:
+    | GitHubAppError
+    | GitHubRouteDataNotFoundError
+    | GitHubRequestValidationError
+    | GitHubUnexpectedError,
 ): TRPCError["code"] {
   switch (error.code) {
     case "repo_context_not_found":
@@ -281,6 +282,8 @@ function throwRequestValidation(
 
 export const githubRouter = createTRPCRouter({
   getInboxData: protectedProcedure.query(() => getInboxData()),
+  getMergingProbeRest: protectedProcedure.query(() => getMergingProbeRestData()),
+  getMergingProbeGraphql: protectedProcedure.query(() => getMergingProbeGraphqlData()),
 
   startInstall: protectedProcedure.mutation(() => {
     return { url: getGitHubAppInstallUrl() };
@@ -316,11 +319,15 @@ export const githubRouter = createTRPCRouter({
     .query(async ({ input }) => {
       const data = await getPullRequestDiscussionData(input.owner, input.repo, input.pullNumber);
       if (!data) {
-        throwRouteDataNotFound(FAILURES.getPullRequestDiscussion, "github.trpc.getPullRequestDiscussion", {
-          owner: input.owner,
-          repo: input.repo,
-          pullNumber: input.pullNumber,
-        });
+        throwRouteDataNotFound(
+          FAILURES.getPullRequestDiscussion,
+          "github.trpc.getPullRequestDiscussion",
+          {
+            owner: input.owner,
+            repo: input.repo,
+            pullNumber: input.pullNumber,
+          },
+        );
       }
 
       return data;
@@ -349,26 +356,6 @@ export const githubRouter = createTRPCRouter({
             pullNumber: input.pullNumber,
           },
         );
-      }
-
-      return data;
-    }),
-  getPullRequestDetails: protectedProcedure
-    .input(
-      z.object({
-        owner: z.string().min(1),
-        repo: z.string().min(1),
-        pullNumber: z.number().int().positive(),
-      }),
-    )
-    .query(async ({ input }) => {
-      const data = await getPullRequestPageDetailsData(input.owner, input.repo, input.pullNumber);
-      if (!data) {
-        throwRouteDataNotFound(FAILURES.getPullRequestDetails, "github.trpc.getPullRequestDetails", {
-          owner: input.owner,
-          repo: input.repo,
-          pullNumber: input.pullNumber,
-        });
       }
 
       return data;
@@ -423,21 +410,26 @@ export const githubRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ input }) => {
-      return settle("savePullRequest", FAILURES.savePullRequest, {
-        bodyLength: input.body.length,
-        draft: input.draft,
-        head: input.head,
-        owner: input.owner,
-        repo: input.repo,
-        titleLength: input.title.length,
-      }, saveBranchPullRequest({
-        body: input.body,
-        draft: input.draft,
-        head: input.head,
-        owner: input.owner,
-        repo: input.repo,
-        title: input.title,
-      }));
+      return settle(
+        "savePullRequest",
+        FAILURES.savePullRequest,
+        {
+          bodyLength: input.body.length,
+          draft: input.draft,
+          head: input.head,
+          owner: input.owner,
+          repo: input.repo,
+          titleLength: input.title.length,
+        },
+        saveBranchPullRequest({
+          body: input.body,
+          draft: input.draft,
+          head: input.head,
+          owner: input.owner,
+          repo: input.repo,
+          title: input.title,
+        }),
+      );
     }),
   addPullRequestComment: protectedProcedure
     .input(
@@ -449,17 +441,22 @@ export const githubRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ input }) => {
-      return settle("addPullRequestComment", FAILURES.addComment, {
-        bodyLength: input.body.length,
-        owner: input.owner,
-        pullNumber: input.pullNumber,
-        repo: input.repo,
-      }, addPullRequestComment({
-        body: input.body,
-        owner: input.owner,
-        pullNumber: input.pullNumber,
-        repo: input.repo,
-      }));
+      return settle(
+        "addPullRequestComment",
+        FAILURES.addComment,
+        {
+          bodyLength: input.body.length,
+          owner: input.owner,
+          pullNumber: input.pullNumber,
+          repo: input.repo,
+        },
+        addPullRequestComment({
+          body: input.body,
+          owner: input.owner,
+          pullNumber: input.pullNumber,
+          repo: input.repo,
+        }),
+      );
     }),
   mergePullRequest: protectedProcedure
     .input(
@@ -473,19 +470,24 @@ export const githubRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ input }) => {
-      return settle("mergePullRequest", FAILURES.merge, {
-        ...(input.mergeMethod ? { mergeMethod: input.mergeMethod } : {}),
-        owner: input.owner,
-        pullNumber: input.pullNumber,
-        repo: input.repo,
-      }, mergeRepoPullRequest({
-        commitMessage: input.commitMessage,
-        commitTitle: input.commitTitle,
-        mergeMethod: input.mergeMethod,
-        owner: input.owner,
-        pullNumber: input.pullNumber,
-        repo: input.repo,
-      }));
+      return settle(
+        "mergePullRequest",
+        FAILURES.merge,
+        {
+          ...(input.mergeMethod ? { mergeMethod: input.mergeMethod } : {}),
+          owner: input.owner,
+          pullNumber: input.pullNumber,
+          repo: input.repo,
+        },
+        mergeRepoPullRequest({
+          commitMessage: input.commitMessage,
+          commitTitle: input.commitTitle,
+          mergeMethod: input.mergeMethod,
+          owner: input.owner,
+          pullNumber: input.pullNumber,
+          repo: input.repo,
+        }),
+      );
     }),
   submitPullRequestReview: protectedProcedure
     .input(
@@ -524,21 +526,26 @@ export const githubRouter = createTRPCRouter({
         });
       }
 
-      return settle("submitPullRequestReview", FAILURES.review, {
-        bodyLength: body?.length ?? 0,
-        commentCount: comments?.length ?? 0,
-        event: input.event,
-        owner: input.owner,
-        pullNumber: input.pullNumber,
-        repo: input.repo,
-      }, addPullRequestReview({
-        body,
-        comments,
-        event: input.event,
-        owner: input.owner,
-        pullNumber: input.pullNumber,
-        repo: input.repo,
-      }));
+      return settle(
+        "submitPullRequestReview",
+        FAILURES.review,
+        {
+          bodyLength: body?.length ?? 0,
+          commentCount: comments?.length ?? 0,
+          event: input.event,
+          owner: input.owner,
+          pullNumber: input.pullNumber,
+          repo: input.repo,
+        },
+        addPullRequestReview({
+          body,
+          comments,
+          event: input.event,
+          owner: input.owner,
+          pullNumber: input.pullNumber,
+          repo: input.repo,
+        }),
+      );
     }),
 
   getPullRequestFiles: protectedProcedure
@@ -624,11 +631,16 @@ export const githubRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ input }) => {
-      return settle("updatePullRequest", FAILURES.updatePullRequest, {
-        owner: input.owner,
-        repo: input.repo,
-        pullNumber: input.pullNumber,
-      }, updateRepoPullRequest(input));
+      return settle(
+        "updatePullRequest",
+        FAILURES.updatePullRequest,
+        {
+          owner: input.owner,
+          repo: input.repo,
+          pullNumber: input.pullNumber,
+        },
+        updateRepoPullRequest(input),
+      );
     }),
 
   requestReviewers: protectedProcedure
@@ -641,11 +653,16 @@ export const githubRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ input }) => {
-      return settle("requestReviewers", FAILURES.requestReviewers, {
-        owner: input.owner,
-        repo: input.repo,
-        pullNumber: input.pullNumber,
-      }, requestPullRequestReviewers(input));
+      return settle(
+        "requestReviewers",
+        FAILURES.requestReviewers,
+        {
+          owner: input.owner,
+          repo: input.repo,
+          pullNumber: input.pullNumber,
+        },
+        requestPullRequestReviewers(input),
+      );
     }),
 
   removeReviewer: protectedProcedure
@@ -658,11 +675,16 @@ export const githubRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ input }) => {
-      return settle("removeReviewer", FAILURES.removeReviewer, {
-        owner: input.owner,
-        repo: input.repo,
-        pullNumber: input.pullNumber,
-      }, removePullRequestReviewer(input));
+      return settle(
+        "removeReviewer",
+        FAILURES.removeReviewer,
+        {
+          owner: input.owner,
+          repo: input.repo,
+          pullNumber: input.pullNumber,
+        },
+        removePullRequestReviewer(input),
+      );
     }),
 
   listRepoLabels: protectedProcedure
@@ -686,11 +708,16 @@ export const githubRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ input }) => {
-      return settle("addLabels", FAILURES.addLabels, {
-        owner: input.owner,
-        repo: input.repo,
-        pullNumber: input.pullNumber,
-      }, addPullRequestLabels(input));
+      return settle(
+        "addLabels",
+        FAILURES.addLabels,
+        {
+          owner: input.owner,
+          repo: input.repo,
+          pullNumber: input.pullNumber,
+        },
+        addPullRequestLabels(input),
+      );
     }),
 
   removeLabel: protectedProcedure
@@ -703,11 +730,16 @@ export const githubRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ input }) => {
-      return settle("removeLabel", FAILURES.removeLabel, {
-        owner: input.owner,
-        repo: input.repo,
-        pullNumber: input.pullNumber,
-      }, removePullRequestLabel(input));
+      return settle(
+        "removeLabel",
+        FAILURES.removeLabel,
+        {
+          owner: input.owner,
+          repo: input.repo,
+          pullNumber: input.pullNumber,
+        },
+        removePullRequestLabel(input),
+      );
     }),
 
   convertToReady: protectedProcedure
@@ -719,11 +751,16 @@ export const githubRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ input }) => {
-      return settle("convertToReady", FAILURES.convertToReady, {
-        owner: input.owner,
-        repo: input.repo,
-        pullNumber: input.pullNumber,
-      }, convertPullRequestToReady(input));
+      return settle(
+        "convertToReady",
+        FAILURES.convertToReady,
+        {
+          owner: input.owner,
+          repo: input.repo,
+          pullNumber: input.pullNumber,
+        },
+        convertPullRequestToReady(input),
+      );
     }),
 
   getRepoTree: protectedProcedure
@@ -822,12 +859,17 @@ export const githubRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ input }) => {
-      return settle("restackPullRequest", "Failed to restack pull request.", {
-        owner: input.owner,
-        repo: input.repo,
-        pullNumber: input.pullNumber,
-        newBase: input.newBase,
-      }, restackPullRequest(input.owner, input.repo, input.pullNumber, input.newBase));
+      return settle(
+        "restackPullRequest",
+        "Failed to restack pull request.",
+        {
+          owner: input.owner,
+          repo: input.repo,
+          pullNumber: input.pullNumber,
+          newBase: input.newBase,
+        },
+        restackPullRequest(input.owner, input.repo, input.pullNumber, input.newBase),
+      );
     }),
 
   updateStackedBranch: protectedProcedure
@@ -840,17 +882,17 @@ export const githubRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ input }) => {
-      return settle("updateStackedBranch", "Failed to update stacked branch.", {
-        owner: input.owner,
-        repo: input.repo,
-        branch: input.branch,
-        upstreamBranch: input.upstreamBranch,
-      }, updateStackedBranch(
-        input.owner,
-        input.repo,
-        input.branch,
-        input.upstreamBranch,
-      ));
+      return settle(
+        "updateStackedBranch",
+        "Failed to update stacked branch.",
+        {
+          owner: input.owner,
+          repo: input.repo,
+          branch: input.branch,
+          upstreamBranch: input.upstreamBranch,
+        },
+        updateStackedBranch(input.owner, input.repo, input.branch, input.upstreamBranch),
+      );
     }),
 
   restackAfterMerge: protectedProcedure
@@ -862,10 +904,15 @@ export const githubRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ input }) => {
-      return settle("restackAfterMerge", "Failed to restack after merge.", {
-        owner: input.owner,
-        repo: input.repo,
-        mergedPrNumber: input.mergedPrNumber,
-      }, restackAfterMerge(input.owner, input.repo, input.mergedPrNumber));
+      return settle(
+        "restackAfterMerge",
+        "Failed to restack after merge.",
+        {
+          owner: input.owner,
+          repo: input.repo,
+          mergedPrNumber: input.mergedPrNumber,
+        },
+        restackAfterMerge(input.owner, input.repo, input.mergedPrNumber),
+      );
     }),
 });
