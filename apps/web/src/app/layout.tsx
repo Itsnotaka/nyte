@@ -47,7 +47,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className="h-full min-h-svh bg-sachi-sidebar" suppressHydrationWarning>
       <Head>
         {process.env.NODE_ENV === "development" && (
           <Script
@@ -58,7 +58,9 @@ export default function RootLayout({
         )}
       </Head>
 
-      <body className={`${inter.variable} ${berkeleyMono.variable} h-full font-sans`}>
+      <body
+        className={`${inter.variable} ${berkeleyMono.variable} h-full min-h-svh bg-sachi-sidebar font-sans text-sm text-sachi-foreground antialiased`}
+      >
         <Providers>
           {children}
           <ReactQueryDevtools />

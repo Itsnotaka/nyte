@@ -91,9 +91,9 @@ export function getGitHubAppInstallUrl(): string {
 export function resolveGitHubAppSetupRedirect({
   installationId,
   setupAction,
-}: SetupRedirectInput): { redirectTo: "/setup" | "/setup/repos" } {
+}: SetupRedirectInput): { redirectTo: "/" | "/setup" } {
   if (setupAction === "install" && installationId) {
-    return { redirectTo: "/setup/repos" };
+    return { redirectTo: "/" };
   }
 
   return { redirectTo: "/setup" };

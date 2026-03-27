@@ -96,7 +96,7 @@ function Checkbox({ className, variant = "default", ...props }: CheckboxProps) {
       <CheckboxPrimitive.Indicator
         data-slot="checkbox-indicator"
         keepMounted
-        className="flex items-center justify-center text-sachi-fg data-[unchecked]:invisible"
+        className="flex items-center justify-center text-sachi-foreground data-[unchecked]:invisible"
         render={(renderProps, state) => (
           <span {...renderProps}>
             {state.indeterminate ? (

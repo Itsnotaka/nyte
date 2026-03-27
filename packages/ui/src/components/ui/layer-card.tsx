@@ -38,7 +38,7 @@ function LayerCard({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="layer-card"
       className={cn(
-        "flex flex-col gap-1.5 rounded-xl bg-sachi-fill text-sm text-sachi-fg shadow-xs ring-1 ring-sachi-line",
+        "flex flex-col gap-1.5 rounded-xl bg-sachi-fill text-sm text-sachi-foreground shadow-xs ring-1 ring-sachi-line",
         className,
       )}
       {...props}
@@ -60,7 +60,7 @@ function LayerCardSecondary({ className, ...props }: React.ComponentProps<"div">
     <div
       data-slot="layer-card-secondary"
       className={cn(
-        "flex items-center justify-between gap-3 px-3 py-2 text-sm font-medium text-sachi-fg",
+        "flex items-center justify-between gap-3 px-3 py-2 text-sm font-medium text-sachi-foreground",
         className,
       )}
       {...props}

@@ -2,19 +2,3 @@
 
 @source "../../../../packages/ui/src/components/ui/**.{tsx,ts}";
 @source "../../../../node_modules/streamdown/dist/*.js";
-
-* {
-  box-sizing: border-box;
-  touch-action: pan-x pan-y;
-}
-
-a {
-  text-decoration: none;
-}
-
-[data-sidebar-shell] {
-  --sidebar-transition-fast: var(--speed-quickTransition);
-  --sidebar-transition-normal: var(--speed-regularTransition);
-  --sidebar-ease: var(--ease-out-cubic);
-  --sidebar-collapsed-shadow: 0 14px 32px rgba(7, 9, 14, 0.24), 0 3px 12px rgba(7, 9, 14, 0.18);
-}

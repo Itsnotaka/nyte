@@ -47,6 +47,7 @@ type GitHubClientShape = {
     run: (client: Octokit) => Promise<T>,
     metadata?: GitHubOperationMetadata,
   ) => Effect.Effect<T, GitHubError>;
+  /** GitHub App user-to-server OAuth access token (e.g. from Better Auth), not a PAT. */
   withUserClient: <T>(
     token: string,
     operation: string,

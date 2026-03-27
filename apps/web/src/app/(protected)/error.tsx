@@ -19,7 +19,7 @@ export default function Error({
             {error.message || "An unexpected error occurred while loading this page."}
           </EmptyDescription>
           {error.digest ? (
-            <p className="text-xs text-sachi-fg-faint">Error ID: {error.digest}</p>
+            <p className="text-xs text-sachi-foreground-faint">Error ID: {error.digest}</p>
           ) : null}
         </EmptyHeader>
         <Button onClick={reset}>Try again</Button>

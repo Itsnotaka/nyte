@@ -1,51 +1,68 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
-import {
-  createSearchParamsCache,
-  parseAsInteger,
-  parseAsString,
-  type SearchParams,
-} from "nuqs/server";
 
+import { getUserSession } from "~/lib/auth/server";
 import {
   getGitHubAppInstallUrl,
   getOnboardingState,
   resolveGitHubAppSetupRedirect,
 } from "~/lib/github/server";
 
-import { ConnectView } from "./_components/connect-view";
-import { ReconnectView } from "./_components/reconnect-view";
-
-export const setupSearchParamsCache = createSearchParamsCache({
-  installation_id: parseAsInteger,
-  setup_action: parseAsString,
-});
-
 type SetupPageProps = {
-  searchParams: Promise<SearchParams>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
 export default async function SetupPage({ searchParams }: SetupPageProps) {
-  const state = await getOnboardingState();
-
-  switch (state.step) {
-    case "no_user_session":
-      redirect("/login");
-    case "no_github_user_token":
-      return <ReconnectView />;
-    case "no_github_installation": {
-      const { installation_id, setup_action } = await setupSearchParamsCache.parse(searchParams);
-
-      if (installation_id !== null || setup_action !== null) {
-        const { redirectTo } = resolveGitHubAppSetupRedirect({
-          installationId: installation_id,
-          setupAction: setup_action,
-        });
-        redirect(redirectTo);
-      }
-
-      return <ConnectView url={getGitHubAppInstallUrl()} />;
-    }
-    case "has_installations":
-      redirect("/setup/repos");
+  const session = await getUserSession();
+  if (!session) {
+    redirect("/login");
   }
+
+  const sp = await searchParams;
+  const rawId = sp.installation_id;
+  const installationId =
+    typeof rawId === "string" && rawId.length > 0 ? Number.parseInt(rawId, 10) : null;
+  const setupAction = typeof sp.setup_action === "string" ? sp.setup_action : null;
+
+  const { redirectTo } = resolveGitHubAppSetupRedirect({
+    installationId: Number.isFinite(installationId) ? installationId : null,
+    setupAction,
+  });
+  if (redirectTo !== "/setup") {
+    redirect(redirectTo);
+  }
+
+  const state = await getOnboardingState();
+  if (state.step === "has_installations") {
+    redirect("/");
+  }
+
+  const installUrl = getGitHubAppInstallUrl();
+
+  return (
+    <main className="flex min-h-0 flex-1 flex-col items-center justify-center gap-6 p-6">
+      <div className="max-w-sm text-center">
+        <h1 className="text-lg font-semibold text-sachi-foreground">Install GitHub App</h1>
+        <p className="mt-2 text-sm text-sachi-foreground-muted">
+          Connect the Sachi GitHub App to your account or organization so we can access repositories you
+          choose.
+        </p>
+      </div>
+      <a
+        href={installUrl}
+        target="_blank"
+        rel="noreferrer"
+        className="inline-flex h-10 items-center justify-center rounded-lg bg-[#2563eb] px-5 text-sm font-medium text-white transition-colors hover:bg-[#1d4ed8]"
+      >
+        Install on GitHub
+      </a>
+      <p className="text-xs text-sachi-foreground-muted">
+        After installing, you can{" "}
+        <Link href="/" className="text-sachi-foreground underline underline-offset-2">
+          return to the app
+        </Link>
+        .
+      </p>
+    </main>
+  );
 }

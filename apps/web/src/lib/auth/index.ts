@@ -13,8 +13,8 @@ export const auth = betterAuth({
   }),
   baseURL: env.BETTER_AUTH_URL,
   secret: env.BETTER_AUTH_SECRET,
-  // GitHub social login identifies the user in Sachi.
-  // GitHub API auth stays in ~/lib/github/auth.ts via user tokens and app installations.
+  // GitHub App OAuth (user-to-server): use the OAuth Client ID + secret from the same GitHub App as
+  // GITHUB_APP_ID / GITHUB_APP_PRIVATE_KEY. Callback URL must be registered on that app.
   socialProviders: {
     github: {
       clientId: env.GITHUB_CLIENT_ID,

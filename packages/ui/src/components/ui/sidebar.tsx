@@ -2,7 +2,6 @@
 
 import { IconSidebar } from "@central-icons-react/round-outlined-radius-2-stroke-1.5";
 import { cva } from "class-variance-authority";
-import { useReducedMotion } from "motion/react";
 import * as React from "react";
 
 import { useMobile } from "../../hooks/use-mobile";
@@ -127,7 +126,6 @@ function SidebarProvider({
   const shellStyle = {
     "--sidebar-desktop-width": `${SIDEBAR_DESKTOP_WIDTH}px`,
     "--sidebar-transition-fast": "var(--speed-quickTransition, 0.1s)",
-    "--sidebar-transition-normal": "var(--speed-regularTransition, 0.25s)",
     "--sidebar-ease": "var(--ease-out, cubic-bezier(0.25, 0.1, 0.25, 1))",
     ...style,
   } as React.CSSProperties;
@@ -137,7 +135,7 @@ function SidebarProvider({
       <div
         data-sidebar-shell
         data-slot="sidebar-wrapper"
-        className={cn("min-h-svh w-full", className)}
+        className={cn("flex h-svh min-h-0 w-full flex-col overflow-hidden", className)}
         style={shellStyle}
         {...props}
       >
@@ -148,7 +146,7 @@ function SidebarProvider({
           data-collapsible={open ? "" : "offcanvas"}
           data-variant={variant}
           data-side="left"
-          className="relative flex size-full"
+          className="relative flex min-h-0 w-full min-w-0 flex-1 flex-row"
         >
           {children}
         </div>
@@ -168,53 +166,34 @@ function useSidebar() {
 
 type SidebarSpacerProps = {
   expanded: boolean;
-  shouldReduceMotion: boolean;
 };
 
-function SidebarSpacer({ expanded, shouldReduceMotion }: SidebarSpacerProps) {
-  const spacerStyle = {
-    width: expanded ? "var(--sidebar-desktop-width)" : "0px",
-    flexBasis: expanded ? "var(--sidebar-desktop-width)" : "0px",
-    transition: shouldReduceMotion
-      ? "none"
-      : "width var(--sidebar-transition-normal) var(--sidebar-ease), flex-basis var(--sidebar-transition-normal) var(--sidebar-ease)",
-  } as React.CSSProperties;
-
+function SidebarSpacer({ expanded }: SidebarSpacerProps) {
   return (
     <div
       data-sidebar-spacer
       data-slot="sidebar-gap"
       aria-hidden
-      className="h-full shrink-0"
-      style={spacerStyle}
+      className={cn(
+        "h-full shrink-0",
+        expanded
+          ? "w-[var(--sidebar-desktop-width)] basis-[var(--sidebar-desktop-width)]"
+          : "w-0 basis-0",
+      )}
     />
   );
 }
 
-type SidebarDesktopProps = React.ComponentProps<"aside"> & {
-  shouldReduceMotion: boolean;
-};
+type SidebarDesktopProps = React.ComponentProps<"aside">;
 
-function SidebarDesktopStatic({
-  className,
-  children,
-  shouldReduceMotion,
-  ...props
-}: SidebarDesktopProps) {
-  const layerStyle = {
-    transition: shouldReduceMotion
-      ? "none"
-      : "left var(--sidebar-transition-normal) var(--sidebar-ease)",
-  } as React.CSSProperties;
-
+function SidebarDesktopStatic({ className, children, ...props }: SidebarDesktopProps) {
   return (
     <>
-      <SidebarSpacer expanded shouldReduceMotion={shouldReduceMotion} />
+      <SidebarSpacer expanded />
       <div
         data-sidebar-layer
         data-slot="sidebar-container"
         className={cn(sidebarLayerVariants({ mode: "static" }), "h-full")}
-        style={layerStyle}
       >
         <aside
           data-sidebar="sidebar"
@@ -229,42 +208,17 @@ function SidebarDesktopStatic({
   );
 }
 
-function SidebarDesktopCollapsed({
-  className,
-  children,
-  shouldReduceMotion,
-  ...props
-}: SidebarDesktopProps) {
+function SidebarDesktopCollapsed({ className, children, ...props }: SidebarDesktopProps) {
   const { toggleSidebar } = useSidebar();
-
-  const previewStyle = {
-    transition: shouldReduceMotion
-      ? "none"
-      : "left var(--sidebar-transition-normal) var(--sidebar-ease)",
-  } as React.CSSProperties;
-
-  const overlayStyle = {
-    transition: shouldReduceMotion
-      ? "none"
-      : "opacity var(--sidebar-transition-normal) var(--sidebar-ease)",
-  } as React.CSSProperties;
-
-  const edgeStyle = {
-    top: "31.5px",
-    bottom: "17px",
-    left: "0px",
-    width: "20px",
-  } as React.CSSProperties;
 
   return (
     <>
-      <SidebarSpacer expanded={false} shouldReduceMotion={shouldReduceMotion} />
+      <SidebarSpacer expanded={false} />
       <div className="group/sidebar-collapsed absolute inset-y-0 left-0 isolate z-20 w-5">
         <div
           aria-hidden="true"
           data-sidebar-hover-overlay
           className="pointer-events-none fixed inset-0 z-10 bg-sachi-overlay opacity-0 group-focus-within/sidebar-collapsed:opacity-100 group-hover/sidebar-collapsed:opacity-100"
-          style={overlayStyle}
         />
 
         <button
@@ -272,8 +226,7 @@ function SidebarDesktopCollapsed({
           data-sidebar-edge
           aria-label="Open sidebar"
           onClick={toggleSidebar}
-          className="absolute z-20 cursor-pointer border-0 bg-transparent p-0 group-focus-within/sidebar-collapsed:pointer-events-none group-hover/sidebar-collapsed:pointer-events-none focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-sachi-focus"
-          style={edgeStyle}
+          className="absolute top-[31.5px] bottom-[17px] left-0 z-20 w-5 cursor-pointer border-0 bg-transparent p-0 group-focus-within/sidebar-collapsed:pointer-events-none group-hover/sidebar-collapsed:pointer-events-none focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-sachi-focus"
         >
           <span
             aria-hidden="true"
@@ -285,7 +238,6 @@ function SidebarDesktopCollapsed({
           data-sidebar-layer
           data-slot="sidebar-container"
           className={cn(sidebarLayerVariants({ mode: "collapsed" }), "h-full")}
-          style={previewStyle}
         >
           <aside
             data-sidebar="sidebar"
@@ -306,7 +258,7 @@ function SidebarMobileDrawer({ className, children, ...props }: React.ComponentP
 
   return (
     <>
-      <SidebarSpacer expanded={false} shouldReduceMotion={false} />
+      <SidebarSpacer expanded={false} />
       <Drawer open={openMobile} onOpenChange={setOpenMobile} swipeDirection="right" modal>
         <DrawerContent
           data-slot="sidebar-container"
@@ -328,7 +280,6 @@ function SidebarMobileDrawer({ className, children, ...props }: React.ComponentP
 
 function Sidebar({ className, children, ...props }: React.ComponentProps<"aside">) {
   const { isMobile, state } = useSidebar();
-  const shouldReduceMotion = useReducedMotion() ?? false;
 
   if (isMobile) {
     return (
@@ -340,22 +291,14 @@ function Sidebar({ className, children, ...props }: React.ComponentProps<"aside"
 
   if (state === "expanded") {
     return (
-      <SidebarDesktopStatic
-        className={className}
-        shouldReduceMotion={shouldReduceMotion}
-        {...props}
-      >
+      <SidebarDesktopStatic className={className} {...props}>
         {children}
       </SidebarDesktopStatic>
     );
   }
 
   return (
-    <SidebarDesktopCollapsed
-      className={className}
-      shouldReduceMotion={shouldReduceMotion}
-      {...props}
-    >
+    <SidebarDesktopCollapsed className={className} {...props}>
       {children}
     </SidebarDesktopCollapsed>
   );
@@ -364,22 +307,15 @@ function Sidebar({ className, children, ...props }: React.ComponentProps<"aside"
 function SidebarRail({ className, onClick, ...props }: React.ComponentProps<"button">) {
   const { toggleSidebar } = useSidebar();
 
-  const railStyle = {
-    right: "-5px",
-    top: "14px",
-    bottom: "14px",
-  } as React.CSSProperties;
-
   return (
     <button
       type="button"
       data-sidebar="rail"
       data-slot="sidebar-rail"
       className={cn(
-        "group absolute z-[25] w-[10px] cursor-pointer border-0 bg-transparent p-0 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-sachi-focus",
+        "group absolute top-[14px] right-[-5px] bottom-[14px] z-[25] w-[10px] cursor-pointer border-0 bg-transparent p-0 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-sachi-focus",
         className,
       )}
-      style={railStyle}
       onClick={(event) => {
         onClick?.(event);
         if (event.defaultPrevented) {
@@ -399,22 +335,17 @@ function SidebarRail({ className, onClick, ...props }: React.ComponentProps<"but
 }
 
 function SidebarInset({ className, style, children, ...props }: React.ComponentProps<"main">) {
-  const insetInnerStyle = {
-    borderRadius: "var(--shell-inset-radius, 8px)",
-  } as React.CSSProperties;
-
   return (
     <main
       data-sidebar-inset
       data-slot="sidebar-inset"
-      className={cn("min-h-0 min-w-0 flex-1", className)}
+      className={cn("flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden", className)}
       style={style}
       {...props}
     >
       <div
         data-sidebar-inset-inner
-        className="relative flex h-full min-h-0 flex-col overflow-hidden border border-sachi-line bg-sachi-base [&>*]:min-h-0"
-        style={insetInnerStyle}
+        className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-[var(--shell-inset-radius,8px)] border border-sachi-line bg-sachi-base"
       >
         {children}
       </div>
@@ -481,7 +412,7 @@ function SidebarTrigger({
       data-sidebar="trigger"
       data-slot="sidebar-trigger"
       className={cn(
-        "inline-flex size-6.5 items-center justify-center rounded-[5px] border-0 bg-transparent text-sachi-fg-muted hover:bg-sachi-fill-hover hover:text-sachi-fg focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-sachi-focus",
+        "inline-flex size-6.5 items-center justify-center rounded-[5px] border-0 bg-transparent text-sachi-foreground-muted hover:bg-sachi-fill-hover hover:text-sachi-foreground focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-sachi-focus",
         layout === "floating" ? "absolute top-2 left-3 z-[2]" : "relative z-[1] -ml-0.5 shrink-0",
         className,
       )}

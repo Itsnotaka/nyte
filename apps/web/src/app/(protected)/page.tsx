@@ -1,9 +1,6 @@
 import { redirect } from "next/navigation";
 
 import { getOnboardingState } from "~/lib/github/server";
-import { HydrateClient, prefetch, trpc } from "~/lib/trpc/server";
-
-import { InboxWorkspace } from "./_components/inbox-workspace";
 
 export default async function App() {
   const state = await getOnboardingState();
@@ -11,20 +8,12 @@ export default async function App() {
     redirect("/setup");
   }
 
-  prefetch({
-    ...trpc.github.getInboxData.queryOptions(),
-    gcTime: 5 * 60_000,
-    staleTime: 60_000,
-  });
-  prefetch({
-    ...trpc.settings.getInboxSectionOrder.queryOptions(),
-    gcTime: 5 * 60_000,
-    staleTime: 60_000,
-  });
-
   return (
-    <HydrateClient>
-      <InboxWorkspace />
-    </HydrateClient>
+    <main className="flex min-h-0 flex-1 flex-col p-6">
+      <h1 className="text-lg font-semibold text-sachi-foreground">Home</h1>
+      <p className="mt-2 text-sm text-sachi-foreground-muted">
+        GitHub App is installed. Connect synced repos from the shell when that flow is available.
+      </p>
+    </main>
   );
 }

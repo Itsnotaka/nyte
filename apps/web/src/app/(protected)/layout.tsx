@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
 import { getUserSession } from "~/lib/auth/server";
-import { getSyncedRepoLookupRows } from "~/lib/github/catalog";
 
 import { AppShell } from "./app-shell";
 
@@ -12,8 +11,7 @@ async function ProtectedShell({ children }: { children: React.ReactNode }) {
     redirect("/login");
   }
 
-  const rows = await getSyncedRepoLookupRows();
-  return <AppShell repos={rows}>{children}</AppShell>;
+  return <AppShell>{children}</AppShell>;
 }
 
 export default function Layout({ children }: { children: React.ReactNode }) {

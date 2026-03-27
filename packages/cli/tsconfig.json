@@ -1,8 +1,0 @@
-{
-  "extends": "@sachikit/tsconfig/base",
-  "compilerOptions": {
-    "lib": ["ES2024"],
-    "types": ["node"]
-  },
-  "include": ["./src/**/*.ts", "./script/**/*.ts"]
-}
