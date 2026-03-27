@@ -262,7 +262,7 @@ function SidebarMobileDrawer({ className, children, ...props }: React.ComponentP
       <Drawer open={openMobile} onOpenChange={setOpenMobile} swipeDirection="right" modal>
         <DrawerContent
           data-slot="sidebar-container"
-          className="h-full gap-0 overflow-hidden border-r border-sachi-line p-0 data-[swipe-direction=right]:rounded-none"
+          className="min-h-0 gap-0 overflow-hidden border-r border-sachi-line bg-sachi-sidebar p-0 data-[swipe-direction=right]:rounded-none"
         >
           <aside
             data-sidebar="sidebar"

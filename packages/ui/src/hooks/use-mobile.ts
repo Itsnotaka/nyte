@@ -16,15 +16,13 @@ const resolveBreakpoint = (breakpointOrResolver?: number | (() => number)) => {
 
 export function useMobile(breakpointOrResolver?: number | (() => number)) {
   const breakpoint = resolveBreakpoint(breakpointOrResolver);
-  const [isMobile, setIsMobile] = React.useState<boolean>(() => {
-    if (typeof window === "undefined") {
-      return false;
-    }
+  // Must match SSR and the first client paint — never read `window` in the
+  // initializer or server HTML and client hydration will disagree (see React
+  // hydration docs). Sync the real viewport after mount; useLayoutEffect runs
+  // before paint so mobile users rarely flash the desktop layout.
+  const [isMobile, setIsMobile] = React.useState(false);
 
-    return window.innerWidth <= breakpoint;
-  });
-
-  React.useEffect(() => {
+  React.useLayoutEffect(() => {
     const mediaQuery = window.matchMedia(`(max-width: ${breakpoint}px)`);
 
     const syncIsMobile = () => {
