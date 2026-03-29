@@ -221,9 +221,6 @@ importers:
 
   packages/github:
     dependencies:
-      '@octokit/auth-app':
-        specifier: ^8.2.0
-        version: 8.2.0
       effect:
         specifier: 4.0.0-beta.35
         version: 4.0.0-beta.35

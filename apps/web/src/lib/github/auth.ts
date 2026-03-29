@@ -1,16 +1,11 @@
 import "server-only";
-import {
-  getAuthenticatedGitHubAccount,
-  getInstallUrl,
-  type GitHubAppInstallationAuth,
-} from "@sachikit/github";
+import { installUrl } from "@sachikit/github";
 import { headers } from "next/headers";
 import { cache } from "react";
 
 import { auth } from "../auth";
 import { env } from "../server/env";
-import { isUnauthorized, runGitHubEffectOrNotFound } from "./effect";
-import { GitHubAppConfigurationError } from "./errors";
+import { isUnauthorized } from "./effect";
 import type { SetupRedirectInput } from "./types";
 
 const getGitHubUserToken = cache(async (): Promise<string | null> => {
@@ -65,27 +60,8 @@ export async function withToken<T>(run: (token: string) => Promise<T>): Promise<
   }
 }
 
-export function getGitHubInstallationAuth(installationId: number): GitHubAppInstallationAuth {
-  const appId = Number(env.GITHUB_APP_ID);
-  if (!Number.isInteger(appId) || appId <= 0) {
-    throw new GitHubAppConfigurationError({
-      code: "app_configuration_invalid",
-      message: "Invalid GitHub app configuration.",
-      metadata: { field: "GITHUB_APP_ID", installationId },
-      operation: "github.auth.getGitHubInstallationAuth",
-      status: 500,
-    });
-  }
-
-  return {
-    appId,
-    installationId,
-    privateKey: env.GITHUB_APP_PRIVATE_KEY.replace(/\\n/g, "\n"),
-  };
-}
-
 export function getGitHubAppInstallUrl(): string {
-  return getInstallUrl(env.GITHUB_APP_SLUG);
+  return installUrl(env.GITHUB_APP_SLUG);
 }
 
 export function resolveGitHubAppSetupRedirect({
@@ -98,14 +74,3 @@ export function resolveGitHubAppSetupRedirect({
 
   return { redirectTo: "/setup" };
 }
-
-export const getGitHubUserLogin = cache(async (): Promise<string | null> => {
-  const account = await withToken((token) =>
-    runGitHubEffectOrNotFound(getAuthenticatedGitHubAccount(token)),
-  );
-  if (!account) {
-    return null;
-  }
-
-  return account.login ?? null;
-});
