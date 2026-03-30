@@ -1,4 +1,4 @@
-import { initTRPC } from "@trpc/server";
+import { initTRPC, TRPCError } from "@trpc/server";
 import { cache } from "react";
 import superjson from "superjson";
 
@@ -40,7 +40,7 @@ export const createTRPCRouter = t.router;
 export const protectedProcedure = t.procedure.use(timingMiddleware).use(
   t.middleware(async ({ ctx, next }) => {
     if (!ctx.session) {
-      throw new Error("Unauthorized");
+      throw new TRPCError({ code: 'UNAUTHORIZED' });
     }
     return next({
       ctx: {

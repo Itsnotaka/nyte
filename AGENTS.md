@@ -117,3 +117,30 @@ const table = pgTable("session", {
 
 - Avoid mocks as much as possible
 - Test actual implementation, do not duplicate logic into tests
+
+<!-- intent-skills:start -->
+# Skill mappings - when working in these areas, load the linked skill file into context.
+skills:
+  - task: "setting up or changing tRPC routers, procedures, or context"
+    load: "node_modules/@trpc/server/skills/server-setup/SKILL.md"
+  - task: "working on the tRPC API route or Next.js request handler"
+    load: "node_modules/@trpc/server/skills/adapter-fetch/SKILL.md"
+  - task: "protecting procedures or changing auth/session behavior inside tRPC"
+    load: "node_modules/@trpc/server/skills/auth/SKILL.md"
+  - task: "working on tRPC React Query integration in providers and hooks"
+    load: "node_modules/@trpc/tanstack-react-query/skills/react-query-setup/SKILL.md"
+  - task: "changing the tRPC client link chain, batching, or headers"
+    load: "node_modules/@trpc/client/skills/links/SKILL.md"
+  - task: "configuring SuperJSON transformer on client or server"
+    load: "node_modules/@trpc/client/skills/superjson/SKILL.md"
+  - task: "creating reusable tRPC middlewares"
+    load: "node_modules/@trpc/server/skills/middlewares/SKILL.md"
+  - task: "handling tRPC errors and TRPCError patterns"
+    load: "node_modules/@trpc/server/skills/error-handling/SKILL.md"
+  - task: "adding input or output validators to procedures"
+    load: "node_modules/@trpc/server/skills/validators/SKILL.md"
+  - task: "calling tRPC procedures from server-side code"
+    load: "node_modules/@trpc/server/skills/server-side-calls/SKILL.md"
+  - task: "working on the shared UI package build or component packaging workflow"
+    load: "node_modules/vite-plus/skills/vite-plus/SKILL.md"
+<!-- intent-skills:end -->

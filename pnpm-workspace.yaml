@@ -12,8 +12,8 @@ catalog:
   react: ^19.2.4
   react-dom: ^19.2.4
   sonner: ^2.0.7
-  "@trpc/server": ^11.15.1
-  "@trpc/client": ^11.15.1
+  "@trpc/server": ^11.16.0
+  "@trpc/client": ^11.16.0
   better-auth: 1.5.5
   "@types/react": ^19.2.14
   "@types/react-dom": ^19.2.3

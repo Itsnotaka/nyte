@@ -35,6 +35,8 @@ export function makeTRPCClient() {
           url,
           transformer: superjson,
           headers,
+          maxURLLength: 2083,
+          maxItems: 10,
         }),
       }),
     ],
